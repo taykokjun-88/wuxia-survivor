@@ -494,6 +494,12 @@ func _sprite_anim_test() -> void:
 	# 真实素材能被加载
 	var real := SpriteAnim.new()
 	_check(real.load_dir("res://assets/sprites/player"), "assets/sprites/player 应能加载并包含 idle")
+	for an in real.anims:
+		var ad: Dictionary = real.anims[an]
+		var tw: int = (ad["tex"] as Texture2D).get_width()
+		_check(tw == int(ad["frames"]) * real.cell, "动画 %s 的条带宽度 %d 应等于 %d 帧 × %d" % [an, tw, int(ad["frames"]), real.cell])
+		_check((ad["tex"] as Texture2D).get_height() == real.cell, "动画 %s 的条带高度应等于格子 %d" % [an, real.cell])
+	print("  已加载的动画：", ", ".join(PackedStringArray(real.anims.keys())))
 	# 状态选择
 	var w := _new_world(71)
 	_check(w._player_anim_state()[0] == "idle", "静止 → idle")

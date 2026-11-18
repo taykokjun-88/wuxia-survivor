@@ -81,6 +81,26 @@ func _ready() -> void:
 	_snap("05_chest_choice")
 	main._on_choice(0)
 
+	# 角色动画：出招 / 冲刺 / 行走（在游戏里真实绘制）
+	w.over = false
+	w.invuln = 0.0
+	w.since_hit = 9.0
+	w.play_anim("punch", 0.4)
+	w.anim_ovr_t = 0.2            # 出招动画进行到 0.2s（第 3 帧）
+	w.facing = Vector2.RIGHT
+	await _frames(3)
+	_snap("07_anim_punch")
+	w.anim_ovr_t = 0.0
+	w.dash_t = 0.1
+	await _frames(3)
+	_snap("08_anim_dash")
+	w.dash_t = 0.0
+	w.input_move = Vector2.LEFT
+	w.facing = Vector2.LEFT
+	await _frames(3)
+	_snap("09_anim_walk_left")
+	w.input_move = Vector2.ZERO
+
 	# 精英 + 小 Boss
 	w.time = 355.0
 	await _advance(25.0)

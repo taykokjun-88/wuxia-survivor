@@ -121,21 +121,31 @@ SHOT_DIR=/tmp/shots xvfb-run -a godot --path . --rendering-driver opengl3 res://
 
 ## 角色 sprite 流水线
 
-AI 出的洋红底图 → `tools/process_sprites.py` → 游戏用 sprite。工具会：去洋红底、估计原生像素块并还原成像素画、
-全套动画共用同一缩放比例和 24 色调色板、按脚底线对齐。游戏启动时读取 `assets/sprites/player/anim.json`，
-**缺哪条动画就回退到待机**，所以每交一条动画只需跑一条命令，游戏代码不用改：
+AI 出的洋红底条带 → `tools/process_sprites.py` → 游戏用 sprite（透明底、统一缩放、共用 28 色调色板、脚底对齐）。
+工具会自动处理 AI 出图的常见毛病：紫色动态模糊拖影、帧交界的细竖线、飘在外面的深色碎块（靠近角色的浅色特效如拳风、气劲弧、速度线会保留）。
+游戏启动时读取 `assets/sprites/player/anim.json`，**缺哪条动画就回退到待机**，所以交一条处理一条，游戏代码不用改。
 
 ```bash
-pip install pillow numpy
-python3 tools/process_sprites.py assets/sprites/source/player_base_pose.jpg idle --frames 1 --fps 1   # 基础姿势（决定缩放和调色板）
-python3 tools/process_sprites.py assets/sprites/source/walk.png  walk  --frames 6 --fps 10
-python3 tools/process_sprites.py assets/sprites/source/punch.png punch --frames 4 --fps 16 --once
+pip install pillow numpy scipy
+S=assets/sprites/source
+python3 tools/process_sprites.py palette $S/*.jpg --colors 28            # 用全部素材建共用调色板
+python3 tools/process_sprites.py strip $S/idle.jpg  idle  --frames 4 --use 1,3,4,3 --fps 4
+python3 tools/process_sprites.py strip $S/walk.jpg  walk  --frames 6 --use 5,6 --ref-frame 5 --fps 6
+python3 tools/process_sprites.py strip $S/punch.jpg punch --frames 4 --fps 16 --once
+python3 tools/process_sprites.py strip $S/palm.jpg  palm  --frames 4 --use 1,3,4 --fps 12 --once --scale-mode image
+python3 tools/process_sprites.py strip $S/dash.jpg  dash  --frames 3 --fps 14 --once --scale-mode image --align keep
 ```
 
-动画名：`idle walk dash hurt death punch palm ult`。游戏会自动选择：静止 idle、移动 walk、冲刺 dash、受击 hurt、
+- `--use 1,3,4,3`：只用并重排其中几帧（跳过出坏的帧）；`--ref-frame`：缩放参考帧，应选**站姿**的那一帧；
+  `--scale-mode image`：没有站姿的动画按图高比例缩放；`--align keep`：保留帧间高低（冲刺腾空）。
+- 主角约 56 像素高，格子 96×96（出拳的手臂会伸出 64 的格子）。
+
+**当前动画状态**：idle ✅　punch ✅　palm ✅（跳过了第 2 帧）　dash ✅　walk ⚠️（只用了第 5、6 帧，等重出）　hurt / death / ult ❌（未出，回退到待机）
+
+动画名：`idle walk dash hurt death punch palm ult`。游戏自动选择：静止 idle、移动 walk、冲刺 dash、受击 hurt、
 阵亡 death；连环拳 / 撼地拳 / 金刚拳出招播放 punch，其余拳掌技能播放 palm，真气爆发播放 ult。
 
-主角约 56 像素高（64×64 格），敌人后续按同一比例出图（山贼/刀客约 36、官兵约 44、精英约 56、Boss 约 110）。
+敌人后续按同一比例出图（山贼/刀客约 36、官兵约 44、精英约 56、Boss 约 110）。
 
 ## 美术替换计划（nano banana → 像素）
 
