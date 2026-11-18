@@ -14,6 +14,8 @@ var api_url := ""
 var nick := ""
 var token := ""
 var school := ""
+var invite := ""        # 注册时用的邀请码（决定所属群）
+var group_name := ""    # 所属群的名称（邀请表里的「名称」）
 var bests: Dictionary = {}
 ## 测试注入：func(is_get: bool, url: String, body: Dictionary) -> Dictionary
 var transport: Callable = Callable()
@@ -46,6 +48,11 @@ func configured() -> bool:
 
 func logged_in() -> bool:
 	return token != ""
+
+
+## 没有配置在线服务时：只有桌面版（编辑器 / 本地调试）允许离线单机；网页版必须登录。
+func offline_allowed() -> bool:
+	return not OS.has_feature("web")
 
 
 func device() -> String:
@@ -113,6 +120,8 @@ func _apply_profile(res: Dictionary) -> void:
 	nick = str(res.get("nick", ""))
 	token = str(res.get("token", ""))
 	school = str(res.get("school", ""))
+	invite = str(res.get("invite", ""))
+	group_name = str(res.get("group", ""))
 	bests = res.get("bests", {})
 	Save.set_session(nick, token)
 	session_changed.emit()
@@ -122,6 +131,8 @@ func _clear_session() -> void:
 	nick = ""
 	token = ""
 	school = ""
+	invite = ""
+	group_name = ""
 	bests = {}
 	Save.clear_session()
 	session_changed.emit()
@@ -179,8 +190,12 @@ func submit_run(summary: Dictionary) -> Dictionary:
 	return res
 
 
-func board(kind: String) -> Dictionary:
-	return await call_api("board", {"kind": kind, "nick": nick})
+## group_only：只看自己所属群（邀请码相同的玩家）
+func board(kind: String, group_only: bool = false) -> Dictionary:
+	var body := {"kind": kind, "nick": nick}
+	if group_only and invite != "":
+		body["group"] = invite
+	return await call_api("board", body)
 
 
 func save_state(p_school: String) -> Dictionary:

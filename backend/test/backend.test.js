@@ -67,6 +67,47 @@ test('邀请码：关闭 / 满员 / 计数', (e) => {
   assert.strictEqual(Number(inv[5]), 1);
 });
 
+test('邀请码：昵称名单（只有名单里的昵称能注册，不分大小写）', (e) => {
+  e.invite('VIPONE', '核心朋友', true, 0, '阿杰，小明, Lee\n王五');
+  assert.strictEqual(reg(e, '路人甲', '4815', 'VIPONE').err, 'not_on_roster');
+  assert.ok(reg(e, '阿杰', '4815', 'VIPONE').ok, '名单里的昵称可以注册');
+  assert.ok(reg(e, 'lee', '4815', 'VIPONE').ok, '名单不分大小写');
+  assert.ok(reg(e, '王五', '4815', 'VIPONE').ok, '换行分隔的名字也认');
+  assert.ok(reg(e, '路人乙', '4815', 'ABC234').ok, '没有名单的邀请码不受影响');
+});
+
+test('邀请码：到期（填日期 = 当天有效）', (e) => {
+  const day = new Date(2027, 0, 15);                                  // 本地 2027-01-15 0 点（表格里只填日期的样子）
+  e.invite('SOON01', '限时', true, 0, '', day);
+  e.ctx.__clock = new Date(2027, 0, 15, 15, 0, 0).getTime();         // 当天下午
+  assert.ok(reg(e, '赶上了', '4815', 'SOON01').ok, '到期当天还能用');
+  e.ctx.__clock = new Date(2027, 0, 16, 9, 0, 0).getTime();          // 第二天
+  assert.strictEqual(reg(e, '来晚了', '4815', 'SOON01').err, 'code_expired');
+  const stamp = new Date(2027, 0, 10, 12, 30, 0);                     // 带具体时刻的到期：精确到点
+  e.invite('SOON02', '精确', true, 0, '', stamp);
+  e.ctx.__clock = new Date(2027, 0, 10, 12, 0, 0).getTime();
+  assert.ok(reg(e, '准时', '4815', 'SOON02').ok);
+  e.ctx.__clock = new Date(2027, 0, 10, 13, 0, 0).getTime();
+  assert.strictEqual(reg(e, '迟到', '4815', 'SOON02').err, 'code_expired');
+});
+
+test('群：个人信息带群名；排行榜可只看本群', (e) => {
+  e.invite('GRPAAA', '篮球群', true, 0);
+  e.invite('GRPBBB', '读书会', true, 0);
+  const a1 = reg(e, 'A1', '4815', 'GRPAAA'), a2 = reg(e, 'A2', '4815', 'grpaaa'), b1 = reg(e, 'B1', '4815', 'GRPBBB');
+  assert.strictEqual(a1.group, '篮球群'); assert.strictEqual(a1.invite, 'GRPAAA');
+  const b1login = e.call({ action: 'login', nick: 'B1', pin: '4815' });      // 登录会换令牌，之后用新令牌
+  assert.strictEqual(b1login.group, '读书会');
+  submit(e, a1, RUN({ level: 10, kills: 500 })); submit(e, a2, RUN({ level: 20, kills: 900 })); submit(e, b1login, RUN({ level: 30, kills: 1500 }));
+  const all = e.get({ action: 'board', kind: 'score' });
+  assert.strictEqual(all.total, 3);
+  const g = e.get({ action: 'board', kind: 'score', group: 'GRPAAA', nick: 'A1' });
+  assert.strictEqual(g.total, 2, '只含本群'); assert.deepStrictEqual(g.rows.map((r) => r.nick), ['A2', 'A1']);
+  assert.strictEqual(g.me.rank, 2, '本群内的名次'); assert.strictEqual(g.group, '篮球群');
+  assert.strictEqual(e.get({ action: 'board', kind: 'score', group: 'NOPE00' }).total, 0);
+  assert.strictEqual(all.rows[0].nick, 'B1', '全体榜里 B1 分最高');
+});
+
 test('登录：成功换令牌、错误提示不泄露、锁定与解锁', (e) => {
   const r = reg(e, '阿杰', '2468');
   const l = e.call({ action: 'login', nick: '阿杰', pin: '2468' });
@@ -193,7 +234,7 @@ test('日志：登录用户写入，未登录丢弃', (e) => {
 });
 
 test('后台：新建邀请码 / 重设 PIN / 封禁 / 清空排行榜', (e) => {
-  e.ui.queue.push('新朋友', '3');
+  e.ui.queue.push('新朋友', '3', '', '');
   const code = e.ctx.adminNewInvite();
   assert.ok(/^[A-Z2-9]{6}$/.test(code));
   assert.ok(reg(e, '新人1', '4815', code).ok);
@@ -203,6 +244,22 @@ test('后台：新建邀请码 / 重设 PIN / 封禁 / 清空排行榜', (e) => 
   assert.strictEqual(e.call({ action: 'login', nick: '忘记PIN的人', pin: '1111' }).err, 'bad_login', '旧 PIN 失效');
   assert.ok(e.call({ action: 'login', nick: '忘记PIN的人', pin: '2222' }).ok, '新 PIN 可用');
   assert.strictEqual(e.call({ action: 'resume', nick: '忘记PIN的人', token: me.token }).err, 'bad_token', '重设后旧令牌失效');
+  // 开启 / 关闭邀请码
+  e.ui.queue.push('abc234'); e.ctx.adminToggleInvite();
+  assert.strictEqual(reg(e, '关了之后', '4815', 'ABC234').err, 'code_closed', '关闭后不能再用它注册');
+  assert.ok(e.call({ action: 'login', nick: '新人1', pin: '4815' }).ok, '已注册的玩家不受影响');
+  e.ui.queue.push('ABC234'); e.ctx.adminToggleInvite();
+  assert.ok(reg(e, '开了之后', '4815', 'ABC234').ok, '重新开启后可以注册');
+  e.ui.queue.push('XXXXXX'); e.ctx.adminToggleInvite();
+  assert.ok(String(e.ui.alerts[e.ui.alerts.length - 1]).includes('找不到'));
+  // 新建邀请码：带名单和到期日期
+  e.ui.queue.push('限定', '1', '甲一, 乙二', '2099-12-31');
+  const vip = e.ctx.adminNewInvite();
+  assert.strictEqual(reg(e, '丙三', '4815', vip).err, 'not_on_roster');
+  assert.ok(reg(e, '甲一', '4815', vip).ok);
+  assert.strictEqual(reg(e, '乙二', '4815', vip).err, 'code_full', '人数上限 1');
+  e.ui.queue.push('坏日期', '0', '', '明年');
+  assert.strictEqual(e.ctx.adminNewInvite(), undefined, '日期格式不对不应创建');
   // 封禁后不能登录 / 续期
   const b = reg(e, '捣蛋鬼');
   e.ui.queue.push('捣蛋鬼'); e.ctx.adminToggleBan();

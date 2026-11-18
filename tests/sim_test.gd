@@ -372,7 +372,8 @@ func _fake_transport(is_get: bool, url: String, body: Dictionary) -> Dictionary:
 		return fake_reply
 	match str(body["action"]):
 		"login", "register", "resume":
-			return {"ok": true, "nick": body.get("nick", "阿杰"), "token": "T1", "school": "fist", "bests": {"score": 5}}
+			return {"ok": true, "nick": body.get("nick", "阿杰"), "token": "T1", "school": "fist", "bests": {"score": 5},
+				"invite": "GRPAAA", "group": "篮球群"}
 		"submit":
 			return {"ok": true, "score": 1234, "best": true, "ranks": {"score": 2, "speed": 0, "level": 3}, "bests": {"score": 1234}}
 		"board":
@@ -400,6 +401,8 @@ func _net_test() -> void:
 	var r1: Dictionary = await Net.login("阿杰", "2468")
 	_check(bool(r1["ok"]) and Net.logged_in() and Net.nick == "阿杰" and Net.school == "fist", "登录后应记住昵称/令牌/流派")
 	_check(str(Save.session().get("token", "")) == "T1", "令牌应写入本地存档")
+	_check(Net.group_name == "篮球群" and Net.invite == "GRPAAA", "登录后应记住所属群")
+	_check(Net.offline_allowed(), "非网页版允许离线（本地调试）")
 	var c: Dictionary = net_calls[-1]
 	_check(not c["get"] and c["body"]["pin"] == "2468" and not c["body"].has("token"), "登录请求：POST、带 PIN、不带令牌")
 	# 带令牌的请求自动附带昵称 + 令牌
@@ -412,9 +415,15 @@ func _net_test() -> void:
 	# 排行榜：GET，不带令牌
 	await Net.board("score")
 	_check(net_calls[-1]["get"] and net_calls[-1]["body"]["kind"] == "score" and not net_calls[-1]["body"].has("token"), "读榜应为 GET 且不带令牌")
+	# 只看本群：带群代码；否则不带
+	await Net.board("score", true)
+	_check(net_calls[-1]["body"].get("group", "") == "GRPAAA", "仅看本群应带上邀请码")
+	await Net.board("score", false)
+	_check(not net_calls[-1]["body"].has("group"), "全体榜不应带 group")
 	# 退出登录
 	await Net.logout()
 	_check(not Net.logged_in() and not Save.has_session() and net_calls[-1]["body"]["action"] == "logout", "退出登录应通知服务器并清除本地会话")
+	_check(Net.group_name == "" and Net.invite == "", "退出登录应清掉所属群")
 
 	# 续期：令牌失效 → 清会话；断网 → 保留会话
 	Save.set_session("阿杰", "OLD")

@@ -23,7 +23,8 @@ var SHEETS = {
 };
 
 var HEADERS = {
-  invites:  ['代码 Code', '名称 Name', '开放 Active', '建立 Created', '可用次数 MaxUses(0=不限)', '已用 Used', '备注 Note'],
+  invites:  ['代码 Code', '名称 Name', '开放 Active', '建立 Created', '可用次数 MaxUses(0=不限)', '已用 Used', '备注 Note',
+             '昵称名单 Roster(可选，逗号分隔)', '到期 Expires(可选，填日期=当天有效)'],
   players:  ['昵称 Nickname', '邀请码 Invite', 'salt', 'pinHash', '建立 Created', '最后登入 Last login', 'token', 'tokenExp',
              'fails', 'lockUntil', '封禁 Banned', '最后更新 Updated', '局数 Runs', '通关 Wins', '最高分 BestScore',
              '最快通关秒 BestWinSec', '最高等级 BestLevel', '总击杀 Kills', '流派 School', 'state', '最后提交 LastSubmit'],
@@ -58,6 +59,22 @@ function toMs(v) {
   if (v instanceof Date) return v.getTime();
   var t = Date.parse(v);
   return isFinite(t) ? t : 0;
+}
+
+/** 昵称名单：逗号/顿号/分号/空白/换行分隔，不分大小写 */
+function parseRoster(v) {
+  return String(v === undefined || v === null ? '' : v).split(/[,，、;；\s]+/)
+    .map(function (x) { return x.trim().toLowerCase(); }).filter(function (x) { return x !== ''; });
+}
+
+/** 到期时刻（毫秒）。只填了日期（0 点整）视为当天有效，到当天结束；空值返回 0 = 不限 */
+function expiryEnd(v) {
+  if (v === '' || v === undefined || v === null) return 0;
+  var ms = toMs(v);
+  if (!ms) return 0;
+  var d = new Date(ms);
+  if (d.getHours() === 0 && d.getMinutes() === 0 && d.getSeconds() === 0) ms += 86400000 - 1;
+  return ms;
 }
 
 function truthy(v) {
@@ -104,7 +121,7 @@ function setup() {
     s.setFrozenRows(1);
   });
   // 这些列必须是纯文本：否则昵称 "007" 会变成数字 7，长十六进制串可能被当成科学计数法
-  var TEXT_COLS = { players: [1, 2, 3, 4, 7], scores: [2], logs: [3], feedback: [1, 3] };
+  var TEXT_COLS = { invites: [1, 8], players: [1, 2, 3, 4, 7], scores: [2], logs: [3], feedback: [1, 3] };
   Object.keys(TEXT_COLS).forEach(function (key) {
     var s = ss.getSheetByName(SHEETS[key]);
     TEXT_COLS[key].forEach(function (c) { s.getRange(1, c, s.getMaxRows(), 1).setNumberFormat('@'); });
@@ -181,11 +198,22 @@ function savePlayer(found) {
   found.sheet.getRange(found.idx + 2, 1, 1, HEADERS.players.length).setValues([found.row]);
 }
 
+/** 邀请码 → 群名称（邀请表里的「名称」列）；找不到返回空串 */
+function groupName(code) {
+  var inv = sheet('invites');
+  var last = inv.getLastRow();
+  if (last < 2 || !code) return '';
+  var rows = inv.getRange(2, 1, last - 1, 2).getValues();
+  for (var i = 0; i < rows.length; i++) if (String(rows[i][0]).toUpperCase() === String(code).toUpperCase()) return String(rows[i][1]);
+  return '';
+}
+
 function profile(row) {
   var state = {};
   try { state = JSON.parse(row[P.state] || '{}'); } catch (e) {}
   return {
     nick: row[P.nick], school: String(row[P.school] || ''), state: state,
+    invite: String(row[P.invite] || ''), group: groupName(row[P.invite]),
     bests: { score: Number(row[P.bestScore]) || 0, winSec: Number(row[P.bestWin]) || 0, level: Number(row[P.bestLevel]) || 0,
              runs: Number(row[P.runs]) || 0, wins: Number(row[P.wins]) || 0 }
   };
@@ -224,6 +252,11 @@ function register(req) {
   if (hit < 0) return fail('bad_code', '邀请码不正确');
   var r = rows[hit];
   if (!truthy(r[2])) return fail('code_closed', '这个邀请码已关闭');
+  var end = expiryEnd(r[8]);
+  if (end && now() > end) return fail('code_expired', '这个邀请码已过期');
+  var roster = parseRoster(r[7]);
+  if (roster.length > 0 && roster.indexOf(nick.toLowerCase()) < 0)
+    return fail('not_on_roster', '这个邀请码只允许名单里的昵称注册，请用管理员给你的昵称');
   var max = Number(r[4]) || 0;
   if (max > 0 && (Number(r[5]) || 0) >= max) return fail('code_full', '这个邀请码的名额已满');
 
@@ -355,12 +388,14 @@ var BOARD = {
   level: { col: P.bestLevel, asc: false }
 };
 
-function boardRows(kind) {
+function boardRows(kind, group) {
   var spec = BOARD[kind];
   var pl = loadPlayers();
   var list = [];
+  var want = String(group || '').toUpperCase();
   pl.rows.forEach(function (r) {
     if (truthy(r[P.banned])) return;
+    if (want && String(r[P.invite]).toUpperCase() !== want) return;
     var v = Number(r[spec.col]) || 0;
     if (v <= 0) return;
     list.push({ nick: String(r[P.nick]), value: v, school: String(r[P.school] || ''), wins: Number(r[P.wins]) || 0 });
@@ -378,12 +413,13 @@ function rankOf(nick, kind) {
 function board(req) {
   var kind = String(req.kind || 'score');
   if (!BOARD[kind]) return fail('bad_kind', '未知的榜单');
-  var list = boardRows(kind);
+  var group = String(req.group || '');
+  var list = boardRows(kind, group);
   var me = null;
   var want = String(req.nick || '').toLowerCase();
   var rows = list.slice(0, CFG.BOARD_SIZE).map(function (e, i) { e.rank = i + 1; return e; });
   if (want) for (var i = 0; i < list.length; i++) if (list[i].nick.toLowerCase() === want) me = { rank: i + 1, value: list[i].value };
-  return ok({ kind: kind, rows: rows, me: me, total: list.length });
+  return ok({ kind: kind, rows: rows, me: me, total: list.length, group: group ? groupName(group) : '' });
 }
 
 // ---------------------------------------------------------------- 云存档 / 反馈 / 日志
@@ -438,6 +474,7 @@ function onOpen() {
     .addItem('初始化 / 修复表头', 'setup')
     .addSeparator()
     .addItem('新建邀请码', 'adminNewInvite')
+    .addItem('开启 / 关闭邀请码', 'adminToggleInvite')
     .addItem('重设玩家 PIN', 'adminResetPin')
     .addItem('封禁 / 解封玩家', 'adminToggleBan')
     .addSeparator()
@@ -463,10 +500,37 @@ function adminNewInvite() {
   if (name === null) return;
   var max = ask('新建邀请码', '最多可注册几人？（0 = 不限）：');
   if (max === null) return;
+  var roster = ask('新建邀请码', '只允许这些昵称注册？（逗号分隔；留空 = 不限）：');
+  if (roster === null) return;
+  var exp = ask('新建邀请码', '到期日期（如 2026-12-31，当天有效；留空 = 不限）：');
+  if (exp === null) return;
+  var expires = '';
+  if (exp !== '') {
+    var m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(exp);
+    if (!m) { tell('日期格式不对，请用 2026-12-31 这样的写法'); return; }
+    expires = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  }
   var code = makeCode();
-  sheet('invites').appendRow([code, name, true, iso(), Number(max) || 0, 0, '']);
-  tell('邀请码：' + code + '\n把它发给朋友，注册时填写。');
+  sheet('invites').appendRow([code, name, true, iso(), Number(max) || 0, 0, '', roster, expires]);
+  tell('邀请码：' + code + '\n把它发给朋友，注册时填写。\n（同一个人注册后，排行榜里可以选择只看这个群。）');
   return code;
+}
+
+function adminToggleInvite() {
+  var code = ask('开启 / 关闭邀请码', '邀请码：');
+  if (code === null) return;
+  var inv = sheet('invites');
+  var last = inv.getLastRow();
+  var rows = last < 2 ? [] : inv.getRange(2, 1, last - 1, 3).getValues();
+  for (var i = 0; i < rows.length; i++) {
+    if (String(rows[i][0]).toUpperCase() === code.toUpperCase()) {
+      var now_open = !truthy(rows[i][2]);
+      inv.getRange(i + 2, 3).setValue(now_open);
+      tell(rows[i][0] + '（' + rows[i][1] + '）' + (now_open ? ' 已开启' : ' 已关闭：不能再用它注册，已注册的玩家不受影响'));
+      return;
+    }
+  }
+  tell('找不到这个邀请码');
 }
 
 function adminResetPin() {

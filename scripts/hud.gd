@@ -7,7 +7,6 @@ signal loadout_confirmed(starter_id: String, qinggong_id: String)
 signal character_created(school_id: String)
 signal recreate_requested
 signal auth_submitted(mode: String, nick: String, pin: String, code: String)
-signal guest_chosen
 signal board_open_requested
 signal board_kind_requested(kind: String)
 signal feedback_open_requested
@@ -39,6 +38,7 @@ var auth_submit_btn: Button
 var auth_busy := false
 var board_panel: Control
 var board_kind := "score"
+var board_group_only := false
 var board_grid: GridContainer
 var board_status: Label
 var feedback_panel: Control
@@ -307,7 +307,10 @@ func _build_loadout() -> void:
 	box.add_child(srow)
 	if Net.configured():
 		var xrow := _center_row(12)
-		var who := _label("玩家：%s" % Net.nick if Net.logged_in() else "游客（成绩不上榜）", 16, Color("#cfc6ae"))
+		var who_text := "玩家：%s" % Net.nick
+		if Net.group_name != "":
+			who_text += "　群：%s" % Net.group_name
+		var who := _label(who_text, 16, Color("#cfc6ae"))
 		xrow.add_child(who)
 		var bb := _button("排行榜", Vector2(120, 38), 16)
 		bb.pressed.connect(func(): board_open_requested.emit())
@@ -316,7 +319,7 @@ func _build_loadout() -> void:
 			var fb := _button("反馈", Vector2(100, 38), 16)
 			fb.pressed.connect(func(): feedback_open_requested.emit())
 			xrow.add_child(fb)
-		var acc := _button("退出登录" if Net.logged_in() else "登录 / 注册", Vector2(130, 38), 16)
+		var acc := _button("退出登录", Vector2(130, 38), 16)
 		acc.pressed.connect(func(): account_requested.emit())
 		xrow.add_child(acc)
 		box.add_child(xrow)
@@ -401,7 +404,7 @@ func _build_auth(prefill: String) -> void:
 	auth_panel = pb[0]
 	var box: VBoxContainer = pb[1]
 	box.add_child(_label("武侠幸存者", 52))
-	box.add_child(_label("登录后成绩可以上排行榜；也可以先游客试玩", 18, Color("#cfc6ae")))
+	box.add_child(_label("请登录。还没有账号？点「注册」，需要管理员给你的邀请码", 18, Color("#cfc6ae")))
 	var mode_row := _center_row(10)
 	box.add_child(mode_row)
 	var group := ButtonGroup.new()
@@ -415,7 +418,7 @@ func _build_auth(prefill: String) -> void:
 	auth_nick = _field("昵称（2–12 个字）", false, 12)
 	auth_nick.text = prefill
 	auth_pin = _field("PIN（4–8 位数字）", true, 8)
-	auth_code = _field("邀请码（找管理员要）", false, 12)
+	auth_code = _field("邀请码（注册必填，找管理员要）", false, 12)
 	for f in [auth_nick, auth_pin, auth_code]:
 		var r := _center_row()
 		r.add_child(f)
@@ -424,12 +427,9 @@ func _build_auth(prefill: String) -> void:
 	auth_status.custom_minimum_size = Vector2(0, 24)
 	box.add_child(auth_status)
 	var btns := _center_row(16)
-	auth_submit_btn = _button("登录", Vector2(200, 48), 22)
+	auth_submit_btn = _button("登录", Vector2(260, 50), 22)
 	auth_submit_btn.pressed.connect(_submit_auth)
-	var guest := _button("游客试玩（不上榜）", Vector2(220, 48), 18)
-	guest.pressed.connect(func(): guest_chosen.emit())
 	btns.add_child(auth_submit_btn)
-	btns.add_child(guest)
 	box.add_child(btns)
 	_refresh_auth()
 
@@ -514,6 +514,17 @@ func _build_board() -> void:
 	var tabs := _center_row(10)
 	box.add_child(tabs)
 	var group := ButtonGroup.new()
+	if Net.group_name != "":
+		var scope := CheckButton.new()
+		scope.text = "仅看本群（%s）" % Net.group_name
+		scope.button_pressed = board_group_only
+		scope.focus_mode = Control.FOCUS_NONE
+		scope.add_theme_font_size_override("font_size", 16)
+		scope.toggled.connect(func(on: bool): board_group_only = on; board_kind_requested.emit(board_kind))
+		var scope_row := _center_row()
+		scope.custom_minimum_size = Vector2(320, 0)
+		scope_row.add_child(scope)
+		box.add_child(scope_row)
 	for k in [["score", "总分榜"], ["speed", "最快通关"], ["level", "最高等级"]]:
 		var b := _button(k[1], Vector2(150, 42))
 		b.toggle_mode = true

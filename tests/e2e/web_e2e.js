@@ -24,20 +24,29 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ ' : '  ✗ ') + 
 
   await boot(GAME);
   await shot('01_auth');
-  // 注册
-  await page.mouse.click(720, 305); await page.waitForTimeout(400);
+  // 没有游客入口：登录界面只能登录或注册（注册必须有邀请码）
+  let st = await state(); ok(st.players === 3, '开始时服务器有 3 个预置玩家');
+  await page.mouse.click(720, 305); await page.waitForTimeout(400);                // 切到「注册」
+  // 错误的邀请码 → 被拒绝，不会创建账号
   await page.keyboard.type('Tester1'); await page.keyboard.press('Tab');
   await page.keyboard.type('2468'); await page.keyboard.press('Tab');
-  await page.keyboard.type('friend'); await page.keyboard.press('Enter');          // 邀请码不分大小写
-  await page.waitForTimeout(3000);
-  let st = await state(); ok(st.players === 4, '注册成功（服务器玩家数 ' + st.players + '）');
+  await page.keyboard.type('WRONG1'); await page.keyboard.press('Enter');
+  await page.waitForTimeout(3000); await shot('01b_wrong_code');
+  st = await state(); ok(st.players === 3, '错误的邀请码不能注册（服务器玩家数仍为 ' + st.players + '）');
+  // 改成正确的邀请码（不分大小写）
+  await page.mouse.click(640, 452); await page.waitForTimeout(400);                  // 点进邀请码输入框（软件渲染很慢，操作要放慢）
+  await page.keyboard.press('Control+A'); await page.waitForTimeout(400);
+  await page.keyboard.type('friend'); await page.waitForTimeout(500);
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(3500);
+  st = await state(); ok(st.players === 4, '正确的邀请码可以注册（服务器玩家数 ' + st.players + '）');
   await page.keyboard.press('Enter'); await page.waitForTimeout(1500);              // 创建角色（拳掌）
   await shot('02_loadout');
   // 排行榜
-  await page.mouse.click(571, 602); await page.waitForTimeout(3000); await shot('03_board');
+  await page.mouse.click(627, 602); await page.waitForTimeout(3000); await shot('03_board');
   await page.keyboard.press('Escape'); await page.waitForTimeout(1200);
   // 反馈
-  await page.mouse.click(693, 602); await page.waitForTimeout(1500);
+  await page.mouse.click(749, 602); await page.waitForTimeout(1500);
   await page.keyboard.type('e2e feedback');
   await page.mouse.click(552, 540); await page.waitForTimeout(2500);
   st = await state(); ok(st.feedback.length === 2 && String(st.feedback[1][5]).includes('e2e feedback'), '反馈已写入表格');
@@ -45,7 +54,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ ' : '  ✗ ') + 
   // 刷新 → 自动登录
   await boot(GAME); await shot('04_after_reload');
   // 退出 → 错误 PIN → 正确 PIN
-  await page.mouse.click(820, 602); await page.waitForTimeout(2500);
+  await page.mouse.click(876, 602); await page.waitForTimeout(2500);
   await page.keyboard.type('Tester1'); await page.keyboard.press('Tab'); await page.keyboard.type('0000'); await page.keyboard.press('Enter');
   await page.waitForTimeout(2500); await shot('05_wrong_pin');
   await page.mouse.click(640, 425); await page.keyboard.press('Control+A'); await page.keyboard.type('2468'); await page.keyboard.press('Enter');

@@ -87,9 +87,9 @@ function makeEnv(opts = {}) {
     call(req) { return JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify(req) } }).text); },
     get(params) { return JSON.parse(ctx.doGet({ parameter: params }).text); },
     sheetRows(key) { return (sheets[ctx.SHEETS[key]] || { data: [] }).data; },
-    invite(code, name, active = true, max = 0) {
+    invite(code, name, active = true, max = 0, roster = '', expires = '') {
       ctx.setup();
-      sheets[ctx.SHEETS.invites].appendRow([code, name, active, new Date(ctx.__clock).toISOString(), max, 0, '']);
+      sheets[ctx.SHEETS.invites].appendRow([code, name, active, new Date(ctx.__clock).toISOString(), max, 0, '', roster, expires]);
     },
   };
 }

@@ -2,8 +2,8 @@ extends Node
 ## 主控：状态机、读取输入、驱动 GameWorld、相机跟随，以及登录 / 创建角色 / 排行榜 / 反馈的流程。
 ##
 ## 启动流程：
-##   未配置在线服务（Net.api_url 为空）→ 单机：创建角色 → 开局选择 → 游戏
-##   已配置：有保存的登录 → 自动登录；否则登录/注册界面（也可游客试玩）
+##   未配置在线服务（Net.api_url 为空）→ 桌面版单机；网页版提示"尚未配置"（没有游客模式）
+##   已配置：有保存的登录 → 自动登录；否则登录 / 注册界面（注册必须有邀请码）
 ##           登录后以云端流派为准（云端没有而本机有，则上传）
 
 enum State { BOOT, AUTH, CREATE, LOADOUT, PLAY, CHOOSE, PAUSED, END, MODAL }
@@ -29,7 +29,6 @@ func _ready() -> void:
 	hud.character_created.connect(_on_created)
 	hud.recreate_requested.connect(_on_recreate)
 	hud.auth_submitted.connect(_on_auth_submitted)
-	hud.guest_chosen.connect(_on_guest)
 	hud.board_open_requested.connect(_open_board)
 	hud.board_kind_requested.connect(_load_board)
 	hud.feedback_open_requested.connect(_open_feedback)
@@ -106,7 +105,11 @@ func _show_game(on: bool) -> void:
 
 func _boot() -> void:
 	if not Net.configured():
-		_enter_character()
+		if Net.offline_allowed():
+			_enter_character()          # 桌面版 / 本地调试：没配置在线服务时单机玩
+			return
+		state = State.BOOT
+		hud.show_message("在线服务还没有配置好\n请联系管理员")
 		return
 	var last_nick := str(Save.session().get("nick", ""))
 	if Save.has_session():
@@ -142,13 +145,6 @@ func _on_auth_submitted(mode: String, nick: String, pin: String, code: String) -
 		_after_login()
 	else:
 		hud.set_auth_status(str(res.get("msg", "出错了，请再试一次")), true)
-
-
-func _on_guest() -> void:
-	if state != State.AUTH:
-		return
-	hud.hide_auth()
-	_enter_character()
 
 
 ## 登录成功：以云端流派为准；云端没有而本机有，则上传
@@ -257,10 +253,7 @@ func _on_end(won: bool) -> void:
 	hud.show_end(won)
 	if not Net.configured():
 		return
-	if not Net.logged_in():
-		hud.set_end_extra("游客成绩不上榜（回到开局界面点「登录 / 注册」）")
-		return
-	if world.time < 30.0:
+	if not Net.logged_in() or world.time < 30.0:
 		return
 	hud.set_end_extra("成绩上传中…")
 	var res: Dictionary = await Net.submit_run(world.run_summary())
@@ -298,7 +291,7 @@ func _open_board() -> void:
 
 
 func _load_board(kind: String) -> void:
-	var res: Dictionary = await Net.board(kind)
+	var res: Dictionary = await Net.board(kind, hud.board_group_only)
 	hud.update_board(kind, res)
 
 
