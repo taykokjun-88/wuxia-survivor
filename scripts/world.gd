@@ -62,6 +62,8 @@ var still_t := 0.0                # 连续站立不动的时间（入定）
 var realm_time := [0.0, 0.0, 0.0] # 虚 / 平 / 盈 各停留了多久（测试与平衡用）
 var empower_count := 0
 var _emp_ctx := -1                # 延迟命中（弹体 / 区域）的催动状态：-1 未设置，0 否，1 是
+var synergies: Array = []          # 当前生效的阴阳组合 / 合璧：[{name, desc, harmony}]
+var burn_t := 0.0
 var break_count := 0              # 打破 Boss 罡气的次数（测试用）
 var shield := 0.0
 var level := 1
@@ -222,6 +224,7 @@ func recalc() -> void:
 		stats[k] = st(k) + float(qs[k])
 	for k in talent_stats:
 		stats[k] = st(k) + float(talent_stats[k])
+	_apply_synergies()
 	# 标签加成：心法每升 1 级，加成 ×(1 + 0.5 × (等级-1))
 	tag_bonus.clear()
 	for id in xinfa:
@@ -232,6 +235,63 @@ func recalc() -> void:
 			tag_bonus[tg] = float(tag_bonus.get(tg, 0.0)) + float(b[tg]) * scale
 	hp = minf(hp, st("max_hp"))
 	neili = minf(neili, st("max_neili"))
+
+
+## 阴阳与合璧：只看当前学会的两个心法。先加数值，再做倍率。
+func _apply_synergies() -> void:
+	synergies.clear()
+	var ids: Array = xinfa.keys()
+	if ids.size() < 2:
+		return
+	var defs: Array = []
+	var yy := Data.yinyang_of(ids[0], ids[1])
+	if yy != "":
+		var d: Dictionary = Data.yinyang[yy]
+		defs.append(d)
+		synergies.append({"name": d["name"], "desc": d["desc"], "harmony": false})
+	var h := Data.harmony_of(ids[0], ids[1])
+	if not h.is_empty():
+		defs.append(h)
+		synergies.append({"name": h["name"], "desc": h["desc"], "harmony": true})
+	for d in defs:
+		var sd: Dictionary = d.get("stats", {})
+		for k in sd:
+			stats[k] = st(k) + float(sd[k])
+	for d in defs:
+		var md: Dictionary = d.get("mul", {})
+		for k in md:
+			stats[k] = st(k) * float(md[k])
+
+
+## 冰火同炉：被定身的敌人持续灼烧（每 0.5 秒结算一次）
+func _burn_tick(dt: float) -> void:
+	if st("burn") <= 0.0:
+		return
+	burn_t -= dt
+	if burn_t > 0.0:
+		return
+	burn_t = 0.5
+	var dmg := st("burn") * 0.5 * (1.0 + st("damage_pct"))
+	for e in enemies:
+		if e.alive and e.stun > 0.0:
+			damage_enemy(e, dmg * (0.3 if e.is_boss else 1.0), Vector2.ZERO)
+			if effects.size() < MAX_EFFECTS and e.weak_fx <= 0.0:
+				add_fx("text", e.pos + Vector2(0, -e.radius - 6), 0.4, {"text": "灼", "size": 14, "color": VERMILION})
+
+
+## 选心法卡片上的提示：和已学心法搭配会出现什么
+func _synergy_hint(new_id: String) -> String:
+	if xinfa.size() != 1:
+		return ""
+	var have: String = xinfa.keys()[0]
+	var out := ""
+	var yy := Data.yinyang_of(have, new_id)
+	if yy != "":
+		out += "\n▶ 与「%s」成「%s」：%s" % [Data.xinfa[have]["name"], Data.yinyang[yy]["name"], Data.yinyang[yy]["desc"]]
+	var h := Data.harmony_of(have, new_id)
+	if not h.is_empty():
+		out += "\n★ 合璧「%s」：%s" % [h["name"], h["desc"]]
+	return out
 
 
 func _exp_for(l: int) -> int:
@@ -256,14 +316,14 @@ func realm() -> int:
 	var r := neili / maxf(1.0, st("max_neili"))
 	if r >= ying_at():
 		return Realm.YING
-	if r < Data.T("xu_below"):
+	if r < maxf(0.05, Data.T("xu_below") - st("ping_widen")):
 		return Realm.XU
 	return Realm.PING
 
 
 ## 入定：站立不动一小会儿，回气加快并减伤
 func meditating() -> bool:
-	return still_t >= Data.T("meditate_after")
+	return st("no_meditate") <= 0.0 and still_t >= Data.T("meditate_after")
 
 
 ## 催动：处于盈境且内力够用时，招式出手会消耗内力并打出灌注版
@@ -352,6 +412,7 @@ func _update_player(dt: float) -> void:
 	var regen := st("neili_regen") * (1.0 + (float(qg.get("buff_regen", 0.0)) if buff_t > 0.0 else 0.0))
 	var rl := realm()
 	realm_time[rl] += dt
+	_burn_tick(dt)
 	if move.length() < 0.1 and dash_t <= 0.0:
 		still_t += dt
 	else:
@@ -869,6 +930,11 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 	var crit := force_crit or rng.randf() < crit_p
 	if crit:
 		m *= st("crit_mult")
+	var emp := (_emp_ctx == 1) if _emp_ctx >= 0 else (sk != null and sk.empowered)
+	if emp:
+		m *= maxf(0.2, 1.0 + st("emp_power"))
+	if crit and st("crit_neili") > 0.0:
+		neili = minf(st("max_neili"), neili + st("crit_neili"))
 	var amount := base * m
 	var hs := st("hit_slow")
 	if sk != null and float(sk.mods["debuff"]) > 0.0:
@@ -879,7 +945,6 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 		hp = minf(st("max_hp"), hp + minf(3.0, amount * float(sk.mods["heal"])))
 	skill_dmg[sid] = float(skill_dmg.get(sid, 0.0)) + amount
 	if e.is_boss:
-		var emp := (_emp_ctx == 1) if _emp_ctx >= 0 else (sk != null and sk.empowered)
 		amount = _boss_guard(e, amount, emp)
 	damage_enemy(e, amount, knock_vec, crit)
 	return amount
@@ -1264,7 +1329,8 @@ func roll_choices(n: int = 3) -> Array:
 		elif xinfa.size() < MAX_XINFA:
 			pool.append({
 				"kind": "new_xinfa", "id": id, "tag": "心法", "src": "level",
-				"title": "修习：%s" % def2["name"], "desc": def2["desc"],
+				"title": "修习：%s【%s】" % [def2["name"], "阳" if str(def2.get("yy", "")) == "yang" else "阴"],
+				"desc": str(def2["desc"]) + _synergy_hint(id),
 			})
 	_shuffle(pool)
 	var out: Array = []

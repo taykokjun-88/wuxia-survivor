@@ -130,6 +130,20 @@ func _ready() -> void:
 	w.bosses[w.bosses.size() - 1].guard *= 0.6
 	await _advance(0.5)
 	_snap("06b_boss_guard")
+	# 阴阳 / 合璧：已学纯阳诀，选卡里出现寒霜诀（合璧）；再学会后 HUD 显示组合
+	w.xinfa = {"chunyang": 1}
+	w.recalc()
+	main.hud.show_choices([
+		{"kind": "new_xinfa", "id": "hanshuang", "tag": "心法", "title": "修习：寒霜诀【阴】", "desc": str(Data.xinfa["hanshuang"]["desc"]) + w._synergy_hint("hanshuang")},
+		{"kind": "new_xinfa", "id": "tiegu", "tag": "心法", "title": "修习：铁骨诀【阳】", "desc": str(Data.xinfa["tiegu"]["desc"]) + w._synergy_hint("tiegu")},
+		{"kind": "new_xinfa", "id": "puti", "tag": "心法", "title": "修习：菩提诀【阴】", "desc": str(Data.xinfa["puti"]["desc"]) + w._synergy_hint("puti")}], "测试")
+	await _frames(3)
+	_snap("06c_xinfa_cards")
+	main.hud.hide_choices()
+	w.xinfa = {"chunyang": 1, "hanshuang": 1}
+	w.recalc()
+	await _frames(3)
+	_snap("06d_synergy_hud")
 	Save.reset_character()   # 清理截图产生的存档
 	get_tree().quit()
 

@@ -1196,6 +1196,10 @@ func _draw_hud() -> void:
 		canvas.draw_string(font, Vector2(16, y), "%s Lv%d" % [Data.xinfa[id]["name"], w.xinfa[id]],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#2a2a2a"))
 		y += 21.0
+	for sy in w.synergies:
+		canvas.draw_string(font, Vector2(16, y), ("★ " if bool(sy["harmony"]) else "◇ ") + str(sy["name"]),
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#a0521d") if bool(sy["harmony"]) else Color("#1f6f6a"))
+		y += 19.0
 	y += 4.0
 	canvas.draw_string(font, Vector2(16, y), "轻功：%s" % w.qg["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#1f6f6a"))
 

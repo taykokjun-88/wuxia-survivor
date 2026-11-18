@@ -21,6 +21,7 @@ func _ready() -> void:
 		_neili_test()
 		_build_test()
 		_p2_test()
+		_synergy_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
 		_skill_matrix()
@@ -401,6 +402,146 @@ func _save_test() -> void:
 
 var net_calls: Array = []
 var fake_reply: Dictionary = {}
+
+
+func _synergy_test() -> void:
+	print("\n=== P3：阴阳 / 合璧 ===")
+	var ids: Array = Data.xinfa.keys()
+	var yang := 0
+	for id in ids:
+		_check(["yin", "yang"].has(str(Data.xinfa[id].get("yy", ""))), "%s 应有阴阳属性" % id)
+		yang += 1 if Data.xinfa[id]["yy"] == "yang" else 0
+	_check(yang == 5, "10 个心法：5 阳 5 阴")
+	var seen := {}
+	for h in Data.harmony:
+		var a: String = h["pair"][0]
+		var b: String = h["pair"][1]
+		_check(Data.xinfa.has(a) and Data.xinfa.has(b) and a != b, "合璧 %s 的心法要存在且不同" % h["name"])
+		var key := a + "|" + b if a < b else b + "|" + a
+		_check(not seen.has(key), "合璧不能重复：" + key)
+		seen[key] = true
+		for k in h["stats"]:
+			_check(Data.player_base.has(k), "合璧 %s 用了不存在的属性 %s" % [h["name"], k])
+		for k in h.get("mul", {}):
+			_check(Data.player_base.has(k), "合璧 %s 倍率用了不存在的属性 %s" % [h["name"], k])
+	_check(Data.harmony.size() >= 6 and Data.harmony.size() <= 10, "合璧数量 6~10")
+	# 45 种搭配：每一种都有阴阳组合，合璧只在配对时出现
+	var n_harm := 0
+	for i in ids.size():
+		for j in range(i + 1, ids.size()):
+			var w := _new_world(70)
+			w.skills.clear()
+			w.xinfa[ids[i]] = 1
+			w.recalc()
+			_check(w.synergies.is_empty(), "只学一个心法没有组合")
+			w.xinfa[ids[j]] = 1
+			w.recalc()
+			var want_h := not Data.harmony_of(ids[i], ids[j]).is_empty()
+			var got_h := 0
+			for sy in w.synergies:
+				got_h += 1 if bool(sy["harmony"]) else 0
+			_check(w.synergies.size() == 1 + (1 if want_h else 0) and got_h == (1 if want_h else 0), "%s + %s 的组合数量" % [ids[i], ids[j]])
+			n_harm += 1 if want_h else 0
+			_free_world(w)
+	_check(n_harm == Data.harmony.size(), "每个合璧恰好对应一种搭配")
+	# 阴阳效果（用没有合璧的搭配：无相诀 + 铁骨诀 阳阳；寒霜诀 + 吞海诀 阴阴；无相诀 + 寒霜诀 一阴一阳）
+	var base_regen := float(Data.player_base["neili_regen"])
+	var base_max := float(Data.player_base["max_neili"])
+	var wa := _new_world(71)
+	wa.skills.clear()
+	wa.xinfa = {"wuxiang": 1, "hanshuang": 1}
+	wa.recalc()
+	_check(absf(wa.st("neili_regen") - base_regen * 1.2) < 1e-6 and wa.st("ping_widen") > 0.0 and wa.synergies[0]["name"] == "阴阳调和", "阴阳调和：回气 +20%，平境更宽")
+	var xu0 := Data.T("xu_below")
+	wa.neili = wa.st("max_neili") * (xu0 - 0.03)
+	_check(wa.realm() == GameWorld.Realm.PING, "平境更宽：略低于虚境线时仍算平")
+	_free_world(wa)
+	var wb := _new_world(72)
+	wb.skills.clear()
+	wb.xinfa = {"wuxiang": 1, "tiegu": 1}
+	wb.recalc()
+	_check(absf(wb.st("neili_regen") - base_regen * 0.8) < 1e-6 and absf(wb.st("emp_power") - 0.3) < 1e-9 and wb.synergies[0]["name"] == "烈火", "烈火：回气 −20%，催动威力 +30%")
+	wb.input_move = Vector2.ZERO
+	for i in int(3.0 / DT):
+		wb.step(DT)
+	_check(not wb.meditating(), "烈火：入定无效")
+	var probe := Enemy.new()
+	probe.hp = 1.0e12
+	probe.max_hp = 1.0e12
+	wb.stats["crit_chance"] = 0.0
+	wb._emp_ctx = 0
+	var plain := wb.hit_enemy(probe, 100.0, ["远程"], Vector2.ZERO, "probe")
+	wb._emp_ctx = 1
+	var emp := wb.hit_enemy(probe, 100.0, ["远程"], Vector2.ZERO, "probe")
+	_check(absf(emp / plain - 1.3) < 1e-6, "烈火：催动版伤害 ×1.3（实际 ×%.2f）" % (emp / plain))
+	_free_world(wb)
+	var wc := _new_world(73)
+	wc.skills.clear()
+	wc.xinfa = {"hanshuang": 1, "tunhai": 1}
+	wc.recalc()
+	var per_max := float(Data.xinfa["hanshuang"]["per_level"].get("max_neili", 0.0)) + float(Data.xinfa["tunhai"]["per_level"].get("max_neili", 0.0))
+	_check(absf(wc.st("max_neili") - (base_max + per_max) * 1.3) < 1e-6 and absf(wc.st("emp_power") + 0.15) < 1e-9 and wc.synergies[0]["name"] == "寒潭", "寒潭：内力上限 +30%，催动威力 −15%")
+	_free_world(wc)
+	# 合璧效果
+	var wd := _new_world(74)
+	wd.skills.clear()
+	wd.xinfa = {"chunyang": 1, "hanshuang": 1}
+	wd.recalc()
+	_check(wd.st("burn") == 40.0, "冰火同炉：灼烧")
+	var burn_e := Enemy.new()
+	burn_e.hp = 1000.0
+	burn_e.max_hp = 1000.0
+	burn_e.stun = 5.0
+	burn_e.pos = Vector2(500, 500)
+	wd.enemies.append(burn_e)
+	var free_e := Enemy.new()
+	free_e.hp = 1000.0
+	free_e.max_hp = 1000.0
+	free_e.pos = Vector2(520, 500)
+	wd.enemies.append(free_e)
+	for i in int(2.0 / DT):
+		wd.step(DT)
+	_check(burn_e.hp < 1000.0 - 20.0 and free_e.hp > 999.0, "冰火同炉：只灼烧被定身的敌人（%.0f / %.0f）" % [burn_e.hp, free_e.hp])
+	_free_world(wd)
+	var we := _new_world(75)
+	we.skills.clear()
+	we.xinfa = {"tiegu": 1, "jieli": 1}
+	we.recalc()
+	_check(absf(we.st("thorns") - float(Data.xinfa["jieli"]["per_level"]["thorns"]) * 2.0) < 1e-6, "金钟罩：反震翻倍")
+	_free_world(we)
+	var wf := _new_world(76)
+	wf.skills.clear()
+	wf.xinfa = {"tunhai": 1, "lingxi": 1}
+	wf.recalc()
+	wf.neili = 10.0
+	wf.stats["crit_chance"] = 1.0
+	var pe := Enemy.new()
+	pe.hp = 1.0e12
+	pe.max_hp = 1.0e12
+	wf.hit_enemy(pe, 10.0, ["远程"], Vector2.ZERO, "probe")
+	_check(absf(wf.neili - 11.5) < 1e-6, "吞吐万象：暴击回内力 +1.5（实际 %.2f）" % wf.neili)
+	_free_world(wf)
+	# 选卡提示：已学一个心法时，候选心法的卡片会提示阴阳组合 / 合璧
+	var wg := _new_world(77)
+	wg.skills.clear()
+	wg.xinfa = {"chunyang": 1}
+	var hinted := false
+	var spoil := false
+	for i in 60:
+		for c in wg.roll_choices(30):
+			if str(c["kind"]) == "new_xinfa":
+				_check(str(c["title"]).contains("【阳】") or str(c["title"]).contains("【阴】"), "心法卡片带阴阳标记")
+				if c["id"] == "hanshuang":
+					hinted = hinted or str(c["desc"]).contains("合璧「冰火同炉」")
+				if c["id"] == "puti":
+					spoil = spoil or str(c["desc"]).contains("合璧")
+	_check(hinted and not spoil, "能合璧的卡片提示合璧，不能的不提示")
+	wg.xinfa.clear()
+	for c in wg.roll_choices(30):
+		if str(c["kind"]) == "new_xinfa":
+			_check(not str(c["desc"]).contains("▶"), "一个心法都没学时没有搭配提示")
+	_free_world(wg)
+	print("  阴阳属性 / 45 种搭配 / 调和·烈火·寒潭 / 合璧效果 / 选卡提示  OK")
 
 
 func _p2_test() -> void:

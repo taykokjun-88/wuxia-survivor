@@ -29,7 +29,12 @@
     "ying_dmg": 0,
     "empower_cut": 0,
     "med_regen": 0,
-    "med_reduce": 0
+    "med_reduce": 0,
+    "emp_power": 0,
+    "ping_widen": 0,
+    "no_meditate": 0,
+    "crit_neili": 0,
+    "burn": 0
   },
   "tuning": {
     "spawn_base": 1.0,
@@ -373,7 +378,8 @@
         "neili_regen": 2,
         "full_hp_regen": 1.2,
         "ying_shift": -0.05
-      }
+      },
+      "yy": "yang"
     },
     "tiegu": {
       "name": "铁骨诀",
@@ -386,7 +392,8 @@
       "per_level": {
         "max_hp": 10,
         "block_chance": 0.06
-      }
+      },
+      "yy": "yang"
     },
     "tunhai": {
       "name": "吞海诀",
@@ -398,7 +405,8 @@
       },
       "per_level": {
         "kill_neili": 1.5
-      }
+      },
+      "yy": "yin"
     },
     "hanshuang": {
       "name": "寒霜诀",
@@ -410,7 +418,8 @@
       },
       "per_level": {
         "hit_slow": 0.15
-      }
+      },
+      "yy": "yin"
     },
     "jieli": {
       "name": "借力诀",
@@ -422,7 +431,8 @@
       },
       "per_level": {
         "thorns": 12
-      }
+      },
+      "yy": "yin"
     },
     "wuxiang": {
       "name": "无相诀",
@@ -434,7 +444,8 @@
       },
       "per_level": {
         "cd_reduce": 0.06
-      }
+      },
+      "yy": "yang"
     },
     "changsheng": {
       "name": "长生诀",
@@ -447,7 +458,8 @@
       "per_level": {
         "hp_regen": 0.6,
         "pickup_heal": 0.4
-      }
+      },
+      "yy": "yin"
     },
     "gangqi": {
       "name": "罡气诀",
@@ -460,7 +472,8 @@
       "per_level": {
         "shield_max": 15,
         "shield_regen": 2
-      }
+      },
+      "yy": "yang"
     },
     "lingxi": {
       "name": "灵犀诀",
@@ -473,7 +486,8 @@
       "per_level": {
         "crit_chance": 0.06,
         "crit_mult": 0.15
-      }
+      },
+      "yy": "yang"
     },
     "puti": {
       "name": "菩提诀",
@@ -486,7 +500,8 @@
       "per_level": {
         "exp_pct": 0.08,
         "pickup_range": 20
-      }
+      },
+      "yy": "yin"
     }
   },
   "qinggong": {
@@ -1385,5 +1400,154 @@
     "inventory_max": 40,
     "drops_per_win": 1,
     "extra_drop_chance": 0.5
-  }
+  },
+  "yinyang": {
+    "harmony": {
+      "name": "阴阳调和",
+      "desc": "回气 +20%；平境更宽（不容易掉进虚境）",
+      "stats": {
+        "ping_widen": 0.06
+      },
+      "mul": {
+        "neili_regen": 1.2
+      }
+    },
+    "double_yang": {
+      "name": "烈火",
+      "desc": "催动威力 +30%，回气 −20%，入定无效",
+      "stats": {
+        "emp_power": 0.3,
+        "no_meditate": 1
+      },
+      "mul": {
+        "neili_regen": 0.8
+      }
+    },
+    "double_yin": {
+      "name": "寒潭",
+      "desc": "内力上限 +30%，回气 +15%，催动威力 −15%",
+      "stats": {
+        "emp_power": -0.15
+      },
+      "mul": {
+        "max_neili": 1.3,
+        "neili_regen": 1.15
+      }
+    }
+  },
+  "harmony": [
+    {
+      "id": "bingho",
+      "name": "冰火同炉",
+      "pair": [
+        "chunyang",
+        "hanshuang"
+      ],
+      "desc": "被定身的敌人持续灼烧（每秒 40 点）",
+      "stats": {
+        "burn": 40
+      },
+      "mul": {}
+    },
+    {
+      "id": "jinzhong",
+      "name": "金钟罩",
+      "pair": [
+        "tiegu",
+        "jieli"
+      ],
+      "desc": "受击反震翻倍；格挡几率 +5%",
+      "stats": {
+        "block_chance": 0.05
+      },
+      "mul": {
+        "thorns": 2.0
+      }
+    },
+    {
+      "id": "tuntu",
+      "name": "吞吐万象",
+      "pair": [
+        "tunhai",
+        "lingxi"
+      ],
+      "desc": "击杀回内力 +1.5；暴击时再回内力 +1.5",
+      "stats": {
+        "kill_neili": 1.5,
+        "crit_neili": 1.5
+      },
+      "mul": {}
+    },
+    {
+      "id": "budong",
+      "name": "不动如山",
+      "pair": [
+        "gangqi",
+        "changsheng"
+      ],
+      "desc": "入定减伤 +20%、回气 +0.5；护盾回复 +2/秒",
+      "stats": {
+        "med_reduce": 0.2,
+        "med_regen": 0.5,
+        "shield_regen": 2
+      },
+      "mul": {}
+    },
+    {
+      "id": "wanfa",
+      "name": "万法归宗",
+      "pair": [
+        "wuxiang",
+        "puti"
+      ],
+      "desc": "招式冷却 −8%；经验获取 +8%",
+      "stats": {
+        "cd_reduce": 0.08,
+        "exp_pct": 0.08
+      },
+      "mul": {}
+    },
+    {
+      "id": "lieyang",
+      "name": "烈阳贯日",
+      "pair": [
+        "chunyang",
+        "lingxi"
+      ],
+      "desc": "盈境伤害 +15%；暴击伤害 +25%",
+      "stats": {
+        "ying_dmg": 0.15,
+        "crit_mult": 0.25
+      },
+      "mul": {}
+    },
+    {
+      "id": "hantan",
+      "name": "寒潭养元",
+      "pair": [
+        "hanshuang",
+        "changsheng"
+      ],
+      "desc": "气血回复 +1/秒；命中减速 +10%",
+      "stats": {
+        "hp_regen": 1.0,
+        "hit_slow": 0.1
+      },
+      "mul": {}
+    },
+    {
+      "id": "tongpi",
+      "name": "铜皮铁骨",
+      "pair": [
+        "tiegu",
+        "gangqi"
+      ],
+      "desc": "防御 +2；护盾上限 +15",
+      "stats": {
+        "armor": 2.0,
+        "shield_max": 15
+      },
+      "mul": {}
+    }
+  ]
 }

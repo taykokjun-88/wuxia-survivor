@@ -13,6 +13,8 @@ var tiers: Array = []             # 升级档位：小成 / 中成 / 大成 / �
 var max_upgrades := 11             # 技能最多升级次数（起始 1 层 → 最高 12 层）
 var enemies: Dictionary = {}
 var talents: Dictionary = {}      # 天赋树：{row_gate, branches}
+var yinyang: Dictionary = {}      # 阴阳组合（调和 / 烈火 / 寒潭）
+var harmony: Array = []           # 合璧：两个特定心法同时修习的额外效果
 var gear: Dictionary = {}         # 装备：部位 / 稀有度 / 词条池
 var font_bold: Font               # 楷体粗体（"极"等需要突出的字）
 
@@ -36,6 +38,8 @@ func _ready() -> void:
 	enemies = d["enemies"]
 	talents = d["talents"]
 	gear = d["gear"]
+	yinyang = d["yinyang"]
+	harmony = d["harmony"]
 	_setup_input()
 	_load_font()
 
@@ -114,3 +118,23 @@ func _load_font() -> void:
 		font_bold = ThemeDB.fallback_font
 	if ResourceLoader.exists("res://assets/fonts/main_bold.ttf"):
 		font_bold = load("res://assets/fonts/main_bold.ttf")
+
+
+## 两个心法能不能合璧：返回合璧定义，没有则返回空字典
+func harmony_of(a: String, b: String) -> Dictionary:
+	for h in harmony:
+		var pr: Array = h["pair"]
+		if (pr[0] == a and pr[1] == b) or (pr[0] == b and pr[1] == a):
+			return h
+	return {}
+
+
+## 两个心法的阴阳组合：yinyang 里的键；不满两个或没有组合返回 ""
+func yinyang_of(a: String, b: String) -> String:
+	var ya := str(xinfa[a].get("yy", ""))
+	var yb := str(xinfa[b].get("yy", ""))
+	if ya == "" or yb == "":
+		return ""
+	if ya == yb:
+		return "double_" + ya
+	return "harmony"
