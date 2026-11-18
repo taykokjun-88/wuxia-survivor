@@ -15,6 +15,7 @@ func _ready() -> void:
 		_upgrade_system_test()
 		_level_growth_test()
 		_save_test()
+		_sprite_anim_test()
 	if only == "" or only == "matrix":
 		_skill_matrix()
 	if only == "":
@@ -22,8 +23,37 @@ func _ready() -> void:
 		_qinggong_test()
 	if only == "" or only == "full":
 		_run_full()
+	if only == "levels":
+		_levels_report()
 	print("\nRESULT: %s" % ("FAIL (%d)" % failures if failures > 0 else "OK"))
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+## 测量「打完一局」的角色等级：会选卡的无敌 bot（≈ 理想玩家）多个种子，打到大 Boss 被击败为止
+func _levels_report() -> void:
+	print("\n=== 通关时的角色等级（exp_mult = %.2f）===" % Data.T("exp_mult"))
+	var sum := 0
+	var n := 0
+	for sd in [11, 12, 13, 14]:
+		var w := GameWorld.new()
+		w.god = true
+		w.rng_seed = sd
+		add_child(w)
+		w.start_run(["chain_fist", "point_finger", "cloud_palm"][sd % 3], "tashue")
+		var pick_rng := RandomNumberGenerator.new()
+		pick_rng.seed = sd
+		for i in int(1000.0 / DT):
+			TestBot.drive(w, TestBot.engage_for(w))
+			w.step(DT)
+			TestBot.resolve_choices(w, pick_rng, true)
+			if w.over:
+				break
+		print("  种子 %d：%s @ %ds  Lv%d  击杀 %d  修为 %d" % [
+			sd, "通关" if w.won else "未通关", int(w.time), w.level, w.kills, w.exp_total])
+		sum += w.level
+		n += 1
+		_free_world(w)
+	print("  平均等级 %.1f" % (float(sum) / n))
 
 
 func _run_full() -> void:
@@ -328,6 +358,51 @@ func _save_test() -> void:
 	sv.free()
 	sv2.free()
 	print("  创建 / 读回 / 无效流派 / 损坏存档 / 重建  OK")
+
+
+func _sprite_anim_test() -> void:
+	print("\n=== 角色动画（回退链 / 帧计算 / 状态选择） ===")
+	var a := SpriteAnim.new()
+	_check(a.resolve("idle") == "", "没有任何动画时应返回空")
+	var img := Image.create(64 * 6, 64, false, Image.FORMAT_RGBA8)
+	var tex := ImageTexture.create_from_image(img)
+	a.add_anim("idle", tex, 1, 1.0)
+	_check(a.resolve("walk") == "idle", "缺 walk 时回退到 idle")
+	_check(a.resolve("dash") == "idle", "缺 dash/walk 时回退到 idle")
+	a.add_anim("walk", tex, 6, 10.0)
+	_check(a.resolve("dash") == "walk", "有 walk 时 dash 回退到 walk")
+	_check(a.frame_index("walk", 0.0) == 0 and a.frame_index("walk", 0.15) == 1, "walk 帧索引")
+	_check(a.frame_index("walk", 0.6) == 0, "循环动画应回到第 0 帧")
+	a.add_anim("punch", tex, 4, 16.0, false)
+	_check(a.frame_index("punch", 10.0) == 3, "一次性动画应停在最后一帧")
+	_check(is_equal_approx(a.anim_length("punch"), 0.25), "动画时长 = 帧数 / fps")
+	# 真实素材能被加载
+	var real := SpriteAnim.new()
+	_check(real.load_dir("res://assets/sprites/player"), "assets/sprites/player 应能加载并包含 idle")
+	# 状态选择
+	var w := _new_world(71)
+	_check(w._player_anim_state()[0] == "idle", "静止 → idle")
+	w.input_move = Vector2.RIGHT
+	_check(w._player_anim_state()[0] == "walk", "移动 → walk")
+	w.dash_t = 0.1
+	_check(w._player_anim_state()[0] == "dash", "冲刺 → dash")
+	w.since_hit = 0.0
+	_check(w._player_anim_state()[0] == "hurt", "刚受击 → hurt")
+	w.play_anim("punch", 0.3)
+	_check(w._player_anim_state()[0] == "punch", "出招动画优先于受击")
+	w.over = true
+	w.won = false
+	_check(w._player_anim_state()[0] == "death", "阵亡 → death（最高优先）")
+	_free_world(w)
+	# 技能出招会触发动画
+	var w2 := _new_world(72)
+	_populate(w2, 30)
+	for i in 120:
+		TestBot.drive(w2, 75.0)
+		w2.step(DT)
+	_check(w2.anim_ovr == "punch", "连环拳出招应触发 punch 动画，实际 %s" % w2.anim_ovr)
+	print("  回退链 / 帧索引 / 状态优先级 / 出招触发  OK")
+	_free_world(w2)
 
 
 func _xinfa_test() -> void:

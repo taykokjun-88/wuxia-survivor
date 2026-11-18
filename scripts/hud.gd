@@ -323,6 +323,36 @@ func _bar(pos: Vector2, size: Vector2, ratio: float, color: Color, label: String
 	canvas.draw_string(font, pos + Vector2(8, size.y - 4), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
 
 
+const ICON := 44.0
+## 技能图标底色：按第一个标签区分（占位；以后换成正式图标）
+const TAG_COLORS := {
+	"贯穿": "#3a5a7a", "远程": "#3a5a7a", "近战": "#9a3a2a", "连击": "#9a3a2a",
+	"范围": "#6a4a8a", "控制": "#7a5a2a", "追踪": "#2a7f7a", "蓄力": "#8a6a1a",
+	"多向": "#2a6a5a", "防御": "#4a5a6a",
+}
+
+
+## 技能图标：底色方块 + 楷体首字 + 层数；满层（12 层）时在图标上方显示小「极」字。
+func _draw_skill_icon(pos: Vector2, s: SkillBase, maxed: bool) -> void:
+	var tag: String = str(s.tags()[0])
+	var base := Color(str(TAG_COLORS.get(tag, "#4a4a4a")))
+	var r := Rect2(pos, Vector2(ICON, ICON))
+	canvas.draw_rect(r, base)
+	canvas.draw_rect(Rect2(pos + Vector2(2, 2), Vector2(ICON - 4, ICON - 4)), Color(1, 1, 1, 0.10))
+	canvas.draw_rect(r, GameWorld.GOLD if maxed else Color(0.05, 0.05, 0.08, 0.9), false, 3.0 if maxed else 2.0)
+	var glyph := str(s.def["name"]).substr(0, 1)
+	var bold := Data.font_bold
+	canvas.draw_string_outline(bold, pos + Vector2(0, 31), glyph, HORIZONTAL_ALIGNMENT_CENTER, ICON, 28, 3, Color(0, 0, 0, 0.55))
+	canvas.draw_string(bold, pos + Vector2(0, 31), glyph, HORIZONTAL_ALIGNMENT_CENTER, ICON, 28, Color("#f3ead2"))
+	canvas.draw_string(Data.font_bold, pos + Vector2(ICON - 20, ICON - 3), str(s.level),
+		HORIZONTAL_ALIGNMENT_RIGHT, 18, 12, Color("#f3ead2"))
+	if maxed:
+		# 「极」：楷体粗体，金字黑边，居中在图标正上方
+		var p := pos + Vector2(0, -5)
+		canvas.draw_string_outline(bold, p, "极", HORIZONTAL_ALIGNMENT_CENTER, ICON, 18, 4, Color("#3a1f10"))
+		canvas.draw_string(bold, p, "极", HORIZONTAL_ALIGNMENT_CENTER, ICON, 18, Color("#f0c050"))
+
+
 func _draw_hud() -> void:
 	if world == null or world.stats.is_empty():
 		return
@@ -367,12 +397,16 @@ func _draw_hud() -> void:
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#7a6a3a"))
 	y += 20.0
 	for s: SkillBase in w.skills.values():
+		var maxed := s.upgrades.size() >= Data.max_upgrades
+		var icon_pos := Vector2(16, y + 22.0)      # 图标上方留出 22px 给「极」
+		_draw_skill_icon(icon_pos, s, maxed)
 		var star := " ★%d" % w.enhance_level if w.enhance_id == s.id else ""
-		var txt := "%s Lv%d%s%s" % [s.def["name"], s.level, "满" if s.upgrades.size() >= Data.max_upgrades else "", star]
-		canvas.draw_string(font, Vector2(16, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 16,
-			GameWorld.VERMILION if star != "" else Color("#2a2a2a"))
-		y += 21.0
-	y += 4.0
+		canvas.draw_string(font, icon_pos + Vector2(ICON + 8.0, 18.0), str(s.def["name"]),
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#2a2a2a"))
+		canvas.draw_string(font, icon_pos + Vector2(ICON + 8.0, 36.0), "Lv%d%s" % [s.level, star],
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 14, GameWorld.VERMILION if star != "" else Color("#6a5a3a"))
+		y += ICON + 30.0
+	y += 8.0
 	canvas.draw_string(font, Vector2(16, y), "心法 %d/%d" % [w.xinfa.size(), GameWorld.MAX_XINFA],
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#7a6a3a"))
 	y += 20.0

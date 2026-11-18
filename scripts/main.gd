@@ -77,13 +77,21 @@ func _unhandled_input(event: InputEvent) -> void:
 				get_tree().reload_current_scene()
 
 
+## 创建角色 / 开局选择时隐藏世界和 HUD，避免透出游戏画面
+func _show_game(on: bool) -> void:
+	world.visible = on
+	hud.canvas.visible = on
+
+
 func _enter_create() -> void:
 	state = State.CREATE
+	_show_game(false)
 	hud.show_create()
 
 
 func _enter_loadout() -> void:
 	state = State.LOADOUT
+	_show_game(false)
 	hud.show_loadout(Save.school())
 
 
@@ -109,6 +117,7 @@ func _on_loadout(starter_id: String, qinggong_id: String) -> void:
 		return
 	world.start_run(starter_id, qinggong_id)
 	hud.hide_loadout()
+	_show_game(true)
 	state = State.PLAY
 
 

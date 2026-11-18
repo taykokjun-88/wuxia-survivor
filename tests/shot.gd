@@ -61,6 +61,10 @@ func _ready() -> void:
 		for dir in ["damage", "cooldown", "range", "crit"]:
 			if s.available_dirs().has(dir):
 				s.add_upgrade(dir, 2)
+	# 让第二个技能升满 12 层，检查「极」标记
+	var smax: SkillBase = w.skills.values()[1]
+	while smax.upgrades.size() < Data.max_upgrades:
+		smax.add_upgrade("damage", 0)
 	w.xinfa["chunyang"] = 2
 	w.xinfa["lingxi"] = 1
 	w.enhance_id = "cloud_palm"

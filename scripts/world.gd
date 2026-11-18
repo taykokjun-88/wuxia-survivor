@@ -14,6 +14,7 @@ const PLAYER_RADIUS := 12.0
 const SPAWN_DIST := 780.0
 const RELOCATE_DIST := 1300.0
 const MAX_GEMS := 400
+const GEM_AUTO_PULL := 4.0
 const MAX_EFFECTS := 160
 const CELL := 64.0
 const MAX_SKILLS := 4
@@ -76,6 +77,7 @@ var shake := 0.0
 # ---- 世界状态 ----
 var time := 0.0
 var kills := 0
+var exp_total := 0          # 统计：本局累计获得的修为
 var over := false
 var won := false
 var enemies: Array[Enemy] = []
@@ -83,6 +85,7 @@ var projs: Array[Projectile] = []
 var zones: Array[Dictionary] = []
 var gem_pos: Array[Vector2] = []
 var gem_val: Array[int] = []
+var gem_age: Array[float] = []     # 宝石落地后的时间：超过 GEM_AUTO_PULL 秒会自动飞向玩家
 var chests: Array[Vector2] = []
 var effects: Array[Dictionary] = []
 var bosses: Array[Enemy] = []
@@ -97,10 +100,19 @@ var boss_spawned := false
 var next_uid := 1
 var chain_depth := 0
 var dash_count := 0
+var sprite_anim: SpriteAnim = null   # 角色动画（没有素材时为 null，回退占位图形）
+var anim_clock := 0.0
+var anim_ovr := ""                   # 出招/大招等一次性动画
+var anim_ovr_t := 0.0
+var anim_ovr_len := 0.0
+var death_t := 0.0
 var max_enemies := 800
 
 
 func _ready() -> void:
+	sprite_anim = SpriteAnim.new()
+	if not sprite_anim.load_dir("res://assets/sprites/player"):
+		sprite_anim = null
 	if rng_seed != 0:
 		rng.seed = rng_seed
 	else:
@@ -139,6 +151,7 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue") 
 	buff_t = 0.0
 	time = 0.0
 	kills = 0
+	exp_total = 0
 	over = false
 	won = false
 	enemies.clear()
@@ -146,11 +159,15 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue") 
 	zones.clear()
 	gem_pos.clear()
 	gem_val.clear()
+	gem_age.clear()
 	chests.clear()
 	effects.clear()
 	bosses.clear()
 	skill_dmg.clear()
 	boss_log.clear()
+	anim_clock = 0.0
+	anim_ovr_t = 0.0
+	death_t = 0.0
 	dash_count = 0
 	spawn_acc = 0.0
 	next_burst = Data.T("burst_interval")
@@ -203,7 +220,7 @@ func recalc() -> void:
 
 
 func _exp_for(l: int) -> int:
-	return int(6 + 4.0 * l + 0.5 * l * l)
+	return int(Data.T("exp_mult") * (6 + 4.0 * l + 0.5 * l * l))
 
 
 func cd_mult() -> float:
@@ -220,6 +237,10 @@ func dmg_mult() -> float:
 # =====================================================================
 
 func step(dt: float) -> void:
+	anim_clock += dt
+	anim_ovr_t = maxf(0.0, anim_ovr_t - dt)
+	if over and not won:
+		death_t += dt
 	if over:
 		_update_effects(dt)
 		queue_redraw()
@@ -333,6 +354,7 @@ func _end_dash() -> void:
 
 
 func _ult() -> void:
+	play_anim("ult", 0.5)
 	area_hit_raw(player_pos, ULT_RADIUS, ULT_DAMAGE, [], "ult", 600.0)
 	for p in projs:
 		if p.hostile and p.pos.distance_to(player_pos) < ULT_RADIUS:
@@ -996,6 +1018,7 @@ func _drop_gem(at: Vector2, value: int) -> void:
 		return
 	gem_pos.append(at)
 	gem_val.append(value)
+	gem_age.append(0.0)
 
 
 func _update_gems(dt: float) -> void:
@@ -1009,16 +1032,24 @@ func _update_gems(dt: float) -> void:
 			var last := gem_pos.size() - 1
 			gem_pos[i] = gem_pos[last]
 			gem_val[i] = gem_val[last]
+			gem_age[i] = gem_age[last]
 			gem_pos.pop_back()
 			gem_val.pop_back()
+			gem_age.pop_back()
 			continue
+		gem_age[i] += dt
 		if d < pull:
 			gem_pos[i] += (player_pos - gem_pos[i]).normalized() * 420.0 * dt
+		elif gem_age[i] > GEM_AUTO_PULL:
+			# 落地一段时间后自动飞向玩家：升级节奏只取决于击杀，不取决于敢不敢冲进怪堆里捡
+			gem_pos[i] += (player_pos - gem_pos[i]).normalized() * 320.0 * dt
 		i += 1
 
 
 func _gain_exp(v: int) -> void:
-	exp_now += int(ceil(v * (1.0 + st("exp_pct"))))
+	var gain := int(ceil(v * (1.0 + st("exp_pct"))))
+	exp_now += gain
+	exp_total += gain
 	var leveled := false
 	while exp_now >= exp_next:
 		exp_now -= exp_next
@@ -1329,16 +1360,50 @@ func _draw_proj(p: Projectile) -> void:
 			draw_circle(p.pos, p.radius * 0.6, INK)
 
 
+## 播放一次性动画（出招、大招）。受击、倒下、冲刺由状态自动决定。
+func play_anim(name: String, dur: float) -> void:
+	anim_ovr = name
+	anim_ovr_len = dur
+	anim_ovr_t = dur
+
+
+## 当前应播放的角色动画：[名称, 该动画内的时间]
+func _player_anim_state() -> Array:
+	if over and not won:
+		return ["death", death_t]
+	if anim_ovr_t > 0.0:
+		return [anim_ovr, anim_ovr_len - anim_ovr_t]
+	if since_hit < 0.25:
+		return ["hurt", since_hit]
+	if dash_t > 0.0:
+		return ["dash", float(qg["dash_time"]) - dash_t]
+	if input_move.length() > 0.1:
+		return ["walk", anim_clock]
+	return ["idle", anim_clock]
+
+
 func _draw_player() -> void:
 	var blink := invuln > 0.0 and dash_t <= 0.0 and int(time * 24.0) % 2 == 0
 	if blink:
 		return
 	var alpha := 0.45 if stealth_t > 0.0 else 1.0
-	draw_circle(player_pos + Vector2(0, 9), 10.0, Color(0, 0, 0, 0.12))
+	var has_sprite := sprite_anim != null
+	if has_sprite:
+		# 脚下的扁椭圆影子（角色脚底在 player_pos 下方 14px）
+		draw_set_transform(player_pos + Vector2(0, 13), 0.0, Vector2(1.0, 0.35))
+		draw_circle(Vector2.ZERO, 15.0, Color(0, 0, 0, 0.18))
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	else:
+		draw_circle(player_pos + Vector2(0, 9), 10.0, Color(0, 0, 0, 0.12))
 	if neili >= st("max_neili") * NEILI_BONUS_THRESHOLD:
 		draw_arc(player_pos, 19.0, 0.0, TAU, 28, Color(JADE, 0.45 * alpha), 2.0)
 	if shield > 0.0:
 		draw_arc(player_pos, 24.0, 0.0, TAU, 28, Color("#7fc8e8", 0.8), 3.0)
+	if has_sprite:
+		var state := _player_anim_state()
+		var tint := Color(1.0, 0.55, 0.55, alpha) if since_hit < 0.08 else Color(1.0, 1.0, 1.0, alpha)
+		if sprite_anim.draw(self, str(state[0]), float(state[1]), player_pos + Vector2(0, 14), facing.x < 0.0, tint):
+			return
 	draw_circle(player_pos, PLAYER_RADIUS, Color(JADE, alpha))
 	draw_arc(player_pos, PLAYER_RADIUS, 0.0, TAU, 20, Color(0.03, 0.08, 0.08, alpha), 2.0)
 	draw_circle(player_pos + Vector2(0, -9), 6.0, Color(0.11, 0.11, 0.11, alpha))

@@ -12,6 +12,7 @@ var directions: Dictionary = {}   # 升级方向
 var tiers: Array = []             # 升级档位：小成 / 中成 / 大成 / 灵机一动
 var max_upgrades := 11             # 技能最多升级次数（起始 1 层 → 最高 12 层）
 var enemies: Dictionary = {}
+var font_bold: Font               # 楷体粗体（"极"等需要突出的字）
 
 
 func _ready() -> void:
@@ -95,9 +96,12 @@ func _setup_input() -> void:
 
 
 ## 若 assets/fonts/main.ttf|otf 存在则作为全局字体（解决部分平台缺中文字体的问题）。
+## 自带的楷体字库（霞鹜文楷 LXGW WenKai，OFL 协议）。
+## 浏览器里没有系统字体可回退，所以必须打包；UI 控件的默认字体在 project.godot 的 gui/theme/custom_font 里设置。
 func _load_font() -> void:
-	for path in ["res://assets/fonts/main.ttf", "res://assets/fonts/main.otf"]:
-		if ResourceLoader.exists(path):
-			var font: Font = load(path)
-			ThemeDB.fallback_font = font
-			return
+	font_bold = ThemeDB.fallback_font
+	if ResourceLoader.exists("res://assets/fonts/main.ttf"):
+		ThemeDB.fallback_font = load("res://assets/fonts/main.ttf")
+		font_bold = ThemeDB.fallback_font
+	if ResourceLoader.exists("res://assets/fonts/main_bold.ttf"):
+		font_bold = load("res://assets/fonts/main_bold.ttf")

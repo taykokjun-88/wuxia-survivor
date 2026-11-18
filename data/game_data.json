@@ -43,7 +43,8 @@
       390,
       600
     ],
-    "boss_time": 720
+    "boss_time": 720,
+    "exp_mult": 1.4
   },
   "skills": {
     "yue_palm": {
@@ -75,7 +76,8 @@
           "life"
         ],
         "targets": "pierce"
-      }
+      },
+      "anim": "palm"
     },
     "chain_fist": {
       "name": "连环拳",
@@ -100,7 +102,8 @@
         ],
         "duration": [],
         "targets": ""
-      }
+      },
+      "anim": "punch"
     },
     "quake_fist": {
       "name": "撼地拳",
@@ -128,7 +131,8 @@
           "stun"
         ],
         "targets": ""
-      }
+      },
+      "anim": "punch"
     },
     "whirl_palm": {
       "name": "回风掌",
@@ -153,7 +157,8 @@
         ],
         "duration": [],
         "targets": ""
-      }
+      },
+      "anim": "palm"
     },
     "point_finger": {
       "name": "点穴指",
@@ -185,7 +190,8 @@
           "life"
         ],
         "targets": "count"
-      }
+      },
+      "anim": "palm"
     },
     "vajra_fist": {
       "name": "金刚拳",
@@ -212,7 +218,8 @@
         ],
         "duration": [],
         "targets": ""
-      }
+      },
+      "anim": "punch"
     },
     "cloud_palm": {
       "name": "流云掌",
@@ -245,7 +252,8 @@
           "life"
         ],
         "targets": "count"
-      }
+      },
+      "anim": "palm"
     },
     "eight_waste": {
       "name": "八荒拳",
@@ -277,7 +285,8 @@
           "life"
         ],
         "targets": "count"
-      }
+      },
+      "anim": "palm"
     },
     "taiji": {
       "name": "太极劲",

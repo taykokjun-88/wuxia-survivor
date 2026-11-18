@@ -12,6 +12,10 @@ config/features=PackedStringArray("4.4", "GL Compatibility")
 Data="*res://scripts/data.gd"
 Save="*res://scripts/save.gd"
 
+[gui]
+
+theme/custom_font="res://assets/fonts/main.ttf"
+
 [display]
 
 window/size/viewport_width=1280

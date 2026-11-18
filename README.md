@@ -4,7 +4,20 @@ Godot 4.4 · 武侠题材 Survivor-like · 独立开发 · PC 优先
 
 > 原型阶段：全部使用代码绘制的占位图形，用来验证玩法。招式、角色均为**原创命名**（"类"某某武学），不使用任何受版权保护的作品名称。
 
-## 运行
+## 在线玩（网页版）
+
+目标平台是**浏览器**，发给朋友直接点链接玩，不需要安装。
+
+- 构建：`tools/build_web.sh`（需要 Godot 4.4.1 + Web 导出模板），产物在 `export/web/`。
+- 本地预览：`cd export/web && python3 -m http.server 8000`，打开 <http://localhost:8000>。
+- 发布：任意静态托管都行（GitHub Pages / itch.io / Netlify）。仓库里带了 `.github/workflows/pages.yml`，
+  在仓库 Settings → Pages 里把 Source 选成 "GitHub Actions"，推送到 `main` 就会自动构建并发布。
+- 体积：`index.wasm` 约 44MB（服务器 gzip 后约 10MB）+ 游戏数据包约 3MB，首次加载需要几秒。
+- **存档**保存在每个人自己浏览器的 IndexedDB 里：不用服务器、朋友之间互不影响；
+  清除浏览器数据或换浏览器/设备会丢存档。
+- 使用单线程导出（`variant/thread_support=false`），所以不需要 COOP/COEP 响应头，普通静态托管就能跑。
+
+## 运行（桌面编辑器）
 
 1. 安装 [Godot 4.4+](https://godotengine.org/download)（标准版即可）。
 2. 用 Godot 打开本目录的 `project.godot`，按 F5。
@@ -43,6 +56,9 @@ Godot 4.4 · 武侠题材 Survivor-like · 独立开发 · PC 优先
   所有数值在 `data/game_data.json` 的 `directions` / `tiers`。
 - **角色升级成长**：每升 1 级，**基础伤害 +2%**（所有技能）、**气血上限 +4**、**防御 +0.2**
   （防御是固定减伤，但至少承受 25% 伤害）。数值在 `data/game_data.json` 的 `level_growth`。
+- **满层标记**：技能升到 12 层，图标上方出现金色楷体小字「极」。
+- **经验宝石**：落地 4 秒后自动飞向玩家，升级节奏只取决于击杀，不取决于敢不敢冲进怪堆里捡。
+- **升级节奏**：打完一局（击败大 Boss）角色约 **Lv30–35**（`tuning.exp_mult` 控制）。
 - **自动瞄准**：Boss 和精英在射程内时优先瞄准。
 - **标签系统**：技能带标签（贯穿 近战 范围 控制 追踪 蓄力 多向 防御 连击 远程），心法按标签加成，新增技能自动生效。
 - **内力**：轻功和大招耗内力；内力 ≥ 50% 时全部伤害 +25%。
@@ -83,8 +99,27 @@ SHOT_DIR=/tmp/shots xvfb-run -a godot --path . --rendering-driver opengl3 res://
 
 ## 字体
 
-默认依赖系统中文字体回退。若目标机器缺中文字体，把字体放到
-`assets/fonts/main.ttf`（或 `main.otf`），启动时会自动作为全局字体。
+浏览器里没有系统字体可回退，所以**自带中文字体**：霞鹜文楷（LXGW WenKai，SIL OFL 协议，见 `assets/fonts/OFL.txt`），
+已裁剪成常用字（约 1.7MB / 字重）。`main.ttf` 是正文，`main_bold.ttf` 用于「极」等需要突出的字。
+新增文案用到了字库里没有的生僻字时，重新运行 `python3 tools/subset_font.py`（见脚本注释）。
+
+## 角色 sprite 流水线
+
+AI 出的洋红底图 → `tools/process_sprites.py` → 游戏用 sprite。工具会：去洋红底、估计原生像素块并还原成像素画、
+全套动画共用同一缩放比例和 24 色调色板、按脚底线对齐。游戏启动时读取 `assets/sprites/player/anim.json`，
+**缺哪条动画就回退到待机**，所以每交一条动画只需跑一条命令，游戏代码不用改：
+
+```bash
+pip install pillow numpy
+python3 tools/process_sprites.py assets/sprites/source/player_base_pose.jpg idle --frames 1 --fps 1   # 基础姿势（决定缩放和调色板）
+python3 tools/process_sprites.py assets/sprites/source/walk.png  walk  --frames 6 --fps 10
+python3 tools/process_sprites.py assets/sprites/source/punch.png punch --frames 4 --fps 16 --once
+```
+
+动画名：`idle walk dash hurt death punch palm ult`。游戏会自动选择：静止 idle、移动 walk、冲刺 dash、受击 hurt、
+阵亡 death；连环拳 / 撼地拳 / 金刚拳出招播放 punch，其余拳掌技能播放 palm，真气爆发播放 ult。
+
+主角约 56 像素高（64×64 格），敌人后续按同一比例出图（山贼/刀客约 36、官兵约 44、精英约 56、Boss 约 110）。
 
 ## 美术替换计划（nano banana → 像素）
 
@@ -103,5 +138,6 @@ SHOT_DIR=/tmp/shots xvfb-run -a godot --path . --rendering-driver opengl3 res://
 | 存档 + 创建角色（流派） | ✅ |
 | M5：局外天赋树（总 50 点，刚柔灵三方向） | 待做 |
 | M6：大 Boss 掉落装备（5 部位、稀有度、基础属性 + 特殊词条）+ 背包 | 待做 |
-| 美术接入 + 渲染优化（插值、MultiMesh、对象池） | 待做 |
+| 网页导出 + 中文字体 + 主角 sprite 接入（待机；其余动画待出图） | ✅ |
+| 敌人 sprite + 渲染优化（插值、MultiMesh、对象池） | 待做 |
 | 剑 / 刀 / 长兵流派 | 待做 |
