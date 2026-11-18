@@ -1,0 +1,230 @@
+// 运行：node backend/test/backend.test.js
+// 每个用例在两种模式下各跑一遍：plain（理想表格）和 smart（表格自作聪明：时间变 Date、纯数字串变数字）。
+const assert = require('assert');
+const fs = require('fs');
+const path = require('path');
+const { makeEnv } = require('./harness');
+
+const vectors = JSON.parse(fs.readFileSync(path.join(__dirname, 'score_vectors.json'), 'utf8'));
+const cases = [];
+const test = (name, fn) => cases.push({ name, fn });
+
+const RUN = (o = {}) => Object.assign({ won: false, seconds: 300, level: 12, kills: 800, bosses: 0, school: 'fist', starter: 'chain_fist', qinggong: 'tashue', enhance: '', build: [], version: '0.1' }, o);
+const MIN = 60000;
+
+function env(mode) { const e = makeEnv({ autoConvert: mode === 'smart' }); e.invite('ABC234', '测试', true, 0); return e; }
+function reg(e, nick, pin = '4815', code = 'ABC234') { return e.call({ action: 'register', nick, pin, code }); }
+function submit(e, who, run) { e.advance(60 * 1000); return e.call(Object.assign({ action: 'submit', nick: who.nick, token: who.token }, run)); }
+
+test('setup：建表、表头、可重复运行', (e) => {
+  e.ctx.setup(); e.ctx.setup();
+  for (const k of Object.keys(e.ctx.SHEETS)) {
+    const rows = e.sheetRows(k);
+    assert.strictEqual(JSON.stringify(rows[0]), JSON.stringify(e.ctx.HEADERS[k]), k + ' 表头');   // 跨 VM 的数组不能直接 deepEqual
+  }
+});
+
+test('ping / 未知请求 / 坏 JSON', (e) => {
+  assert.ok(e.get({ action: 'ping' }).ok);
+  assert.strictEqual(e.call({ action: 'nope' }).err, 'bad_action');
+  const r = JSON.parse(e.ctx.doPost({ postData: { contents: '{坏的' } }).text);
+  assert.strictEqual(r.err, 'server');
+  assert.ok(e.sheetRows('logs').length >= 2, '服务器错误应写入日志');
+});
+
+test('注册：校验与成功', (e) => {
+  assert.strictEqual(reg(e, 'a').err, 'bad_nick');
+  assert.strictEqual(reg(e, 'has space').err, 'bad_nick');
+  assert.strictEqual(reg(e, '<script>').err, 'bad_nick');
+  assert.strictEqual(reg(e, '小明', '12').err, 'bad_pin');
+  assert.strictEqual(reg(e, '小明', 'abcd').err, 'bad_pin');
+  assert.strictEqual(reg(e, '小明', '4815', 'WRONG1').err, 'bad_code');
+  const r = reg(e, '小明', '48151623');
+  assert.ok(r.ok, JSON.stringify(r));
+  assert.ok(r.token && r.token.length >= 32);
+  assert.strictEqual(r.nick, '小明');
+  assert.strictEqual(reg(e, '小明').err, 'nick_taken');
+  assert.strictEqual(reg(e, '小明'.toUpperCase() === '小明' ? '小明' : 'x').err, 'nick_taken');
+  // PIN 不能明文落盘
+  for (const row of e.sheetRows('players')) for (const cell of row) assert.notStrictEqual(String(cell), '48151623');
+});
+
+test('注册：昵称不分大小写唯一；数字昵称保留前导 0', (e) => {
+  assert.ok(reg(e, 'Alice').ok);
+  assert.strictEqual(reg(e, 'alice').err, 'nick_taken');
+  assert.ok(reg(e, '007').ok);
+  assert.ok(e.call({ action: 'login', nick: '007', pin: '4815' }).ok, '007 应能登录');
+  assert.strictEqual(e.sheetRows('players')[2][0], '007');
+});
+
+test('邀请码：关闭 / 满员 / 计数', (e) => {
+  e.invite('CLOSED', '关了', false, 0);
+  e.invite('ONLY1X', '一个人', true, 1);
+  assert.strictEqual(reg(e, 'p1', '4815', 'CLOSED').err, 'code_closed');
+  assert.ok(reg(e, 'p1', '4815', 'only1x').ok, '邀请码不分大小写');
+  assert.strictEqual(reg(e, 'p2', '4815', 'ONLY1X').err, 'code_full');
+  const inv = e.sheetRows('invites').find((r) => r[0] === 'ONLY1X');
+  assert.strictEqual(Number(inv[5]), 1);
+});
+
+test('登录：成功换令牌、错误提示不泄露、锁定与解锁', (e) => {
+  const r = reg(e, '阿杰', '2468');
+  const l = e.call({ action: 'login', nick: '阿杰', pin: '2468' });
+  assert.ok(l.ok); assert.notStrictEqual(l.token, r.token, '登录应换新令牌');
+  assert.strictEqual(e.call({ action: 'login', nick: '不存在', pin: '2468' }).err, 'bad_login');
+  const w = e.call({ action: 'login', nick: '阿杰', pin: '0000' });
+  assert.strictEqual(w.err, 'bad_login'); assert.strictEqual(w.left, 4);
+  assert.strictEqual(w.msg, e.call({ action: 'login', nick: '不存在', pin: '1' }).msg, '用户不存在与 PIN 错误提示一致');
+  for (let i = 0; i < 3; i++) e.call({ action: 'login', nick: '阿杰', pin: '0000' });
+  const lock = e.call({ action: 'login', nick: '阿杰', pin: '0000' });
+  assert.strictEqual(lock.err, 'locked');
+  assert.strictEqual(e.call({ action: 'login', nick: '阿杰', pin: '2468' }).err, 'locked', '锁定期间正确 PIN 也不行');
+  e.advance(11 * MIN);
+  assert.ok(e.call({ action: 'login', nick: '阿杰', pin: '2468' }).ok, '锁定到期后可登录');
+});
+
+test('令牌：resume / 过期 / logout', (e) => {
+  const r = reg(e, '小红');
+  const a = e.call({ action: 'resume', nick: '小红', token: r.token });
+  assert.ok(a.ok); assert.strictEqual(a.token, r.token);
+  assert.strictEqual(e.call({ action: 'resume', nick: '小红', token: 'bad' }).err, 'bad_token');
+  e.call({ action: 'logout', nick: '小红', token: r.token });
+  assert.strictEqual(e.call({ action: 'resume', nick: '小红', token: r.token }).err, 'bad_token', 'logout 后令牌失效');
+  const l = e.call({ action: 'login', nick: '小红', pin: '4815' });
+  e.advance(31 * 86400000);
+  assert.strictEqual(e.call({ action: 'resume', nick: '小红', token: l.token }).err, 'bad_token', '30 天后过期');
+});
+
+test('成绩：校验规则', (e) => {
+  const me = reg(e, '选手');
+  const bad = (o, why) => assert.strictEqual(submit(e, me, RUN(o)).err, 'bad_run', why);
+  bad({ seconds: 5 }, '用时太短');
+  bad({ seconds: 99999 }, '用时太长');
+  bad({ level: 0 }, '等级 0');
+  bad({ level: 120 }, '等级过大');
+  bad({ level: 1.5 }, '等级非整数');
+  bad({ kills: -1 }, '击杀为负');
+  bad({ kills: 100000 }, '击杀过大');
+  bad({ seconds: 60, kills: 5000 }, '击杀速度不可能');
+  bad({ seconds: 60, level: 60 }, '升级速度不可能');
+  bad({ won: true, seconds: 400, bosses: 4, level: 20, kills: 2000 }, '12 分钟前不可能通关');
+  bad({ won: true, seconds: 800, bosses: 0, level: 30, kills: 3000 }, '通关必须击败 Boss');
+  assert.strictEqual(e.call({ action: 'submit', nick: '选手', token: 'bad', ...RUN() }).err, 'bad_token');
+  assert.strictEqual(e.sheetRows('scores').length, 1, '被拒绝的成绩不应入表');
+});
+
+test('成绩：得分公式与客户端一致（共用向量）', (e) => {
+  for (const v of vectors) assert.strictEqual(e.ctx.computeScore(v), v.score, JSON.stringify(v));
+});
+
+test('成绩：入表、最高记录、提交间隔', (e) => {
+  const me = reg(e, '选手');
+  e.call({ action: 'saveState', nick: '选手', token: me.token, state: { school: 'fist' } });   // 创建角色的云存档不应影响提交间隔
+  const a = e.call({ action: 'submit', nick: '选手', token: me.token, ...RUN({ seconds: 300, level: 12, kills: 800 }) });
+  assert.ok(a.ok, JSON.stringify(a)); assert.strictEqual(a.score, 800 + 1200); assert.ok(a.best);
+  assert.strictEqual(e.call({ action: 'submit', nick: '选手', token: me.token, ...RUN() }).err, 'too_fast', '连续提交应被限速');
+  const b = submit(e, me, RUN({ seconds: 200, level: 8, kills: 300 }));
+  assert.ok(b.ok); assert.ok(!b.best, '更低的分数不应刷新最高记录');
+  const w = submit(e, me, RUN({ won: true, seconds: 750, level: 38, kills: 6100, bosses: 4 }));
+  assert.ok(w.ok); assert.strictEqual(w.score, 20400); assert.ok(w.best);
+  assert.strictEqual(w.bests.wins, 1); assert.strictEqual(w.bests.runs, 3); assert.strictEqual(w.bests.winSec, 750);
+  const w2 = submit(e, me, RUN({ won: true, seconds: 740, level: 30, kills: 4000, bosses: 4 }));
+  assert.strictEqual(w2.bests.winSec, 740, '更快的通关刷新最快记录');
+  assert.strictEqual(e.sheetRows('scores').length, 1 + 4);
+  assert.deepStrictEqual(w.ranks, { score: 1, speed: 1, level: 1 });
+});
+
+test('排行榜：排序、我的名次、封禁排除、条数上限', (e) => {
+  const names = [];
+  for (let i = 0; i < 25; i++) {
+    const n = 'P' + String(i).padStart(2, '0');
+    const p = reg(e, n); names.push(n);
+    submit(e, p, RUN({ level: 5 + i, kills: 100 + i * 10, seconds: 300 }));
+    if (i % 5 === 0) submit(e, p, RUN({ won: true, seconds: 900 - i * 3, level: 30, kills: 3000, bosses: 4 }));
+  }
+  const b = e.get({ action: 'board', kind: 'score', nick: 'P03' });
+  assert.ok(b.ok); assert.strictEqual(b.rows.length, 20); assert.strictEqual(b.total, 25);
+  for (let i = 1; i < b.rows.length; i++) assert.ok(b.rows[i - 1].value >= b.rows[i].value, '分数降序');
+  assert.ok(b.me && b.me.rank > 0);
+  const sp = e.get({ action: 'board', kind: 'speed' });
+  assert.strictEqual(sp.rows.length, 5, '只有通关过的人上最快榜');
+  for (let i = 1; i < sp.rows.length; i++) assert.ok(sp.rows[i - 1].value <= sp.rows[i].value, '用时升序');
+  assert.strictEqual(e.get({ action: 'board', kind: 'level' }).rows[0].value, 30 + 0);
+  assert.strictEqual(e.get({ action: 'board', kind: 'xxx' }).err, 'bad_kind');
+  // 封禁
+  e.ctx.__ask = null;
+  e.ui.queue.push('P24');
+  e.ctx.adminToggleBan();
+  const b2 = e.get({ action: 'board', kind: 'score' });
+  assert.ok(!b2.rows.some((r) => r.nick === 'P24'), '被封禁的玩家不上榜');
+});
+
+test('云存档：保存 / 随登录返回 / 校验', (e) => {
+  const me = reg(e, '存档君');
+  assert.ok(e.call({ action: 'saveState', nick: '存档君', token: me.token, state: { school: 'fist' } }).ok);
+  assert.strictEqual(e.call({ action: 'saveState', nick: '存档君', token: me.token, state: { school: 'Fist!!' } }).err, 'bad_state');
+  assert.strictEqual(e.call({ action: 'saveState', nick: '存档君', token: me.token, state: 'x' }).err, 'bad_state');
+  assert.strictEqual(e.call({ action: 'saveState', nick: '存档君', token: me.token, state: { school: 'fist', pad: 'x'.repeat(3000) } }).err, 'bad_state');
+  assert.strictEqual(e.call({ action: 'saveState', nick: '存档君', token: 'bad', state: { school: 'fist' } }).err, 'bad_token');
+  const l = e.call({ action: 'login', nick: '存档君', pin: '4815' });
+  assert.strictEqual(l.school, 'fist'); assert.strictEqual(l.state.school, 'fist');
+});
+
+test('反馈：入表、类型兜底、限流', (e) => {
+  const me = reg(e, '提意见');
+  assert.strictEqual(e.call({ action: 'feedback', nick: '提意见', token: me.token, type: 'bug', comment: '' }).err, 'bad_feedback');
+  assert.ok(e.call({ action: 'feedback', nick: '提意见', token: me.token, type: 'bug', where: '战斗', comment: '卡住了' }).ok);
+  assert.ok(e.call({ action: 'feedback', nick: '提意见', token: me.token, type: '乱写', comment: '建议加音效' }).ok);
+  const rows = e.sheetRows('feedback');
+  assert.strictEqual(rows[2][3], 'other'); assert.strictEqual(rows[1][7], '待处理');
+  for (let i = 0; i < 18; i++) e.call({ action: 'feedback', nick: '提意见', token: me.token, comment: '第' + i + '条' });
+  assert.strictEqual(e.call({ action: 'feedback', nick: '提意见', token: me.token, comment: '太多了' }).err, 'too_many');
+  e.advance(25 * 3600000);
+  assert.ok(e.call({ action: 'feedback', nick: '提意见', token: me.token, comment: '隔天又可以了' }).ok);
+});
+
+test('日志：登录用户写入，未登录丢弃', (e) => {
+  const me = reg(e, '记录员');
+  const before = e.sheetRows('logs').length;
+  assert.ok(e.call({ action: 'log', nick: '记录员', token: 'bad', kind: 'error', message: 'x' }).ok);
+  assert.strictEqual(e.sheetRows('logs').length, before, '未登录的日志被丢弃');
+  assert.ok(e.call({ action: 'log', nick: '记录员', token: me.token, kind: 'error', message: '出错了', where: 'world.gd', detail: '栈' }).ok);
+  assert.strictEqual(e.sheetRows('logs').length, before + 1);
+});
+
+test('后台：新建邀请码 / 重设 PIN / 封禁 / 清空排行榜', (e) => {
+  e.ui.queue.push('新朋友', '3');
+  const code = e.ctx.adminNewInvite();
+  assert.ok(/^[A-Z2-9]{6}$/.test(code));
+  assert.ok(reg(e, '新人1', '4815', code).ok);
+  const me = reg(e, '忘记PIN的人', '1111');
+  e.ui.queue.push('忘记PIN的人', '2222');
+  e.ctx.adminResetPin();
+  assert.strictEqual(e.call({ action: 'login', nick: '忘记PIN的人', pin: '1111' }).err, 'bad_login', '旧 PIN 失效');
+  assert.ok(e.call({ action: 'login', nick: '忘记PIN的人', pin: '2222' }).ok, '新 PIN 可用');
+  assert.strictEqual(e.call({ action: 'resume', nick: '忘记PIN的人', token: me.token }).err, 'bad_token', '重设后旧令牌失效');
+  // 封禁后不能登录 / 续期
+  const b = reg(e, '捣蛋鬼');
+  e.ui.queue.push('捣蛋鬼'); e.ctx.adminToggleBan();
+  assert.strictEqual(e.call({ action: 'login', nick: '捣蛋鬼', pin: '4815' }).err, 'banned');
+  assert.strictEqual(e.call({ action: 'resume', nick: '捣蛋鬼', token: b.token }).err, 'bad_token');
+  e.ui.queue.push('捣蛋鬼'); e.ctx.adminToggleBan();
+  assert.ok(e.call({ action: 'login', nick: '捣蛋鬼', pin: '4815' }).ok, '解封后可登录');
+  // 清空排行榜
+  const s = reg(e, '选手Z'); submit(e, s, RUN());
+  assert.ok(e.sheetRows('scores').length > 1);
+  e.ctx.adminClearScores();
+  assert.strictEqual(e.sheetRows('scores').length, 1);
+  assert.strictEqual(e.get({ action: 'board', kind: 'score' }).total, 0);
+  assert.ok(e.call({ action: 'login', nick: '选手Z', pin: '4815' }).ok, '账号保留');
+});
+
+let failed = 0;
+for (const mode of ['plain', 'smart']) {
+  for (const c of cases) {
+    try { c.fn(env(mode)); console.log(`  ✓ [${mode}] ${c.name}`); }
+    catch (err) { failed++; console.log(`  ✗ [${mode}] ${c.name}\n      ${String(err.stack || err).split('\n').slice(0, 4).join('\n      ')}`); }
+  }
+}
+console.log(failed ? `\n失败 ${failed} 项` : `\n全部通过（${cases.length} 个用例 × 2 种表格模式）`);
+process.exit(failed ? 1 : 0);

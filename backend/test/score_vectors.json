@@ -1,0 +1,50 @@
+[
+ {
+  "won": true,
+  "seconds": 750,
+  "level": 38,
+  "kills": 6100,
+  "bosses": 4,
+  "score": 20400
+ },
+ {
+  "won": true,
+  "seconds": 900,
+  "level": 33,
+  "kills": 5000,
+  "bosses": 4,
+  "score": 17300
+ },
+ {
+  "won": true,
+  "seconds": 1100,
+  "level": 30,
+  "kills": 4800,
+  "bosses": 4,
+  "score": 16800
+ },
+ {
+  "won": false,
+  "seconds": 300,
+  "level": 12,
+  "kills": 800,
+  "bosses": 0,
+  "score": 2000
+ },
+ {
+  "won": false,
+  "seconds": 420,
+  "level": 19,
+  "kills": 1500,
+  "bosses": 1,
+  "score": 4400
+ },
+ {
+  "won": false,
+  "seconds": 60,
+  "level": 3,
+  "kills": 40,
+  "bosses": 0,
+  "score": 340
+ }
+]

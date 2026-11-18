@@ -6,6 +6,14 @@ signal choice_selected(index: int)
 signal loadout_confirmed(starter_id: String, qinggong_id: String)
 signal character_created(school_id: String)
 signal recreate_requested
+signal auth_submitted(mode: String, nick: String, pin: String, code: String)
+signal guest_chosen
+signal board_open_requested
+signal board_kind_requested(kind: String)
+signal feedback_open_requested
+signal feedback_submitted(type: String, comment: String)
+signal account_requested
+signal modal_closed
 
 var world: GameWorld
 var canvas: Control
@@ -18,6 +26,24 @@ var choice_buttons: Array[Button] = []
 var loadout_panel: Control
 var create_panel: Control
 var sel_school := "fist"
+var auth_panel: Control
+var auth_mode := "login"
+var auth_nick: LineEdit
+var auth_pin: LineEdit
+var auth_code: LineEdit
+var auth_status: Label
+var auth_submit_btn: Button
+var auth_busy := false
+var board_panel: Control
+var board_kind := "score"
+var board_grid: GridContainer
+var board_status: Label
+var feedback_panel: Control
+var feedback_type: OptionButton
+var feedback_text: TextEdit
+var feedback_status: Label
+var end_base := ""
+const FEEDBACK_TYPES := ["bug", "balance", "idea", "other"]
 var school := "fist"          # 当前角色的流派
 var sel_starter := "chain_fist"
 var sel_qg := "tashue"
@@ -228,6 +254,21 @@ func _build_loadout() -> void:
 	srow.add_child(start)
 	srow.add_child(redo)
 	box.add_child(srow)
+	if Net.configured():
+		var xrow := _center_row(12)
+		var who := _label("玩家：%s" % Net.nick if Net.logged_in() else "游客（成绩不上榜）", 16, Color("#cfc6ae"))
+		xrow.add_child(who)
+		var bb := _button("排行榜", Vector2(120, 38), 16)
+		bb.pressed.connect(func(): board_open_requested.emit())
+		xrow.add_child(bb)
+		if Net.logged_in():
+			var fb := _button("反馈", Vector2(100, 38), 16)
+			fb.pressed.connect(func(): feedback_open_requested.emit())
+			xrow.add_child(fb)
+		var acc := _button("退出登录" if Net.logged_in() else "登录 / 注册", Vector2(130, 38), 16)
+		acc.pressed.connect(func(): account_requested.emit())
+		xrow.add_child(acc)
+		box.add_child(xrow)
 
 
 func confirm_create() -> void:
@@ -264,6 +305,289 @@ func hide_loadout() -> void:
 		loadout_panel.visible = false
 
 
+# ---------------------------------------------------------------------
+# 账号 / 排行榜 / 反馈（需要在线服务；api_url 为空时这些界面不会出现）
+# ---------------------------------------------------------------------
+
+func _button(text: String, size: Vector2, font_size: int = 20) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = size
+	b.focus_mode = Control.FOCUS_NONE
+	b.add_theme_font_size_override("font_size", font_size)
+	return b
+
+
+func _field(placeholder: String, secret: bool, max_len: int) -> LineEdit:
+	var le := LineEdit.new()
+	le.placeholder_text = placeholder
+	le.secret = secret
+	le.secret_character = "*"   # 默认的 • 不在自带字库里，会显示成方块
+	le.max_length = max_len
+	le.custom_minimum_size = Vector2(380, 46)
+	le.add_theme_font_size_override("font_size", 20)
+	le.text_submitted.connect(func(_t: String): _submit_auth())
+	return le
+
+
+func _center_row(sep: int = 12) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", sep)
+	return row
+
+
+func show_message(text: String) -> void:
+	overlay_title.text = "武侠幸存者"
+	overlay_body.text = text
+	overlay.visible = true
+
+
+func _build_auth(prefill: String) -> void:
+	if auth_panel:
+		auth_panel.queue_free()
+	var pb := _panel_box()
+	auth_panel = pb[0]
+	var box: VBoxContainer = pb[1]
+	box.add_child(_label("武侠幸存者", 52))
+	box.add_child(_label("登录后成绩可以上排行榜；也可以先游客试玩", 18, Color("#cfc6ae")))
+	var mode_row := _center_row(10)
+	box.add_child(mode_row)
+	var group := ButtonGroup.new()
+	for m in [["login", "登录"], ["register", "注册"]]:
+		var b := _button(m[1], Vector2(150, 44))
+		b.toggle_mode = true
+		b.button_group = group
+		b.button_pressed = auth_mode == m[0]
+		b.pressed.connect(func(): auth_mode = m[0]; _refresh_auth())
+		mode_row.add_child(b)
+	auth_nick = _field("昵称（2–12 个字）", false, 12)
+	auth_nick.text = prefill
+	auth_pin = _field("PIN（4–8 位数字）", true, 8)
+	auth_code = _field("邀请码（找管理员要）", false, 12)
+	for f in [auth_nick, auth_pin, auth_code]:
+		var r := _center_row()
+		r.add_child(f)
+		box.add_child(r)
+	auth_status = _label("", 16, Color("#f08070"))
+	auth_status.custom_minimum_size = Vector2(0, 24)
+	box.add_child(auth_status)
+	var btns := _center_row(16)
+	auth_submit_btn = _button("登录", Vector2(200, 48), 22)
+	auth_submit_btn.pressed.connect(_submit_auth)
+	var guest := _button("游客试玩（不上榜）", Vector2(220, 48), 18)
+	guest.pressed.connect(func(): guest_chosen.emit())
+	btns.add_child(auth_submit_btn)
+	btns.add_child(guest)
+	box.add_child(btns)
+	_refresh_auth()
+
+
+func _refresh_auth() -> void:
+	auth_code.get_parent().visible = auth_mode == "register"
+	auth_submit_btn.text = "注册并进入" if auth_mode == "register" else "登录"
+	auth_status.text = ""
+
+
+func _submit_auth() -> void:
+	if auth_busy:
+		return
+	var n := auth_nick.text.strip_edges()
+	var pin := auth_pin.text
+	if n.length() < 2:
+		return set_auth_status("昵称至少 2 个字", true)
+	if pin.length() < 4 or not pin.is_valid_int():
+		return set_auth_status("PIN 要是 4–8 位数字", true)
+	if auth_mode == "register" and auth_code.text.strip_edges() == "":
+		return set_auth_status("请填写邀请码", true)
+	auth_submitted.emit(auth_mode, n, pin, auth_code.text.strip_edges())
+
+
+func set_auth_status(msg: String, is_error: bool) -> void:
+	if auth_status:
+		auth_status.text = msg
+		auth_status.add_theme_color_override("font_color", Color("#f08070") if is_error else Color("#cfc6ae"))
+
+
+func set_auth_busy(busy: bool) -> void:
+	auth_busy = busy
+	if auth_submit_btn:
+		auth_submit_btn.disabled = busy
+
+
+func show_auth(prefill: String = "") -> void:
+	_build_auth(prefill)
+	auth_panel.visible = true
+	overlay.visible = false
+	(auth_pin if prefill != "" else auth_nick).call_deferred("grab_focus")
+
+
+func hide_auth() -> void:
+	if auth_panel:
+		auth_panel.visible = false
+
+
+func _cell(text: String, color: Color) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", 18)
+	l.add_theme_color_override("font_color", color)
+	return l
+
+
+func _commas(n: int) -> String:
+	var t := str(absi(n))
+	var out := ""
+	for i in t.length():
+		if i > 0 and (t.length() - i) % 3 == 0:
+			out += ","
+		out += t[i]
+	return ("-" if n < 0 else "") + out
+
+
+func _board_value(kind: String, v: float) -> String:
+	match kind:
+		"speed": return "%d:%02d" % [int(v / 60.0), int(v) % 60]
+		"level": return "Lv%d" % int(v)
+	return _commas(int(v))
+
+
+func _build_board() -> void:
+	if board_panel:
+		board_panel.queue_free()
+	var pb := _panel_box()
+	board_panel = pb[0]
+	var box: VBoxContainer = pb[1]
+	box.add_theme_constant_override("separation", 10)
+	box.add_child(_label("排行榜", 44))
+	var tabs := _center_row(10)
+	box.add_child(tabs)
+	var group := ButtonGroup.new()
+	for k in [["score", "总分榜"], ["speed", "最快通关"], ["level", "最高等级"]]:
+		var b := _button(k[1], Vector2(150, 42))
+		b.toggle_mode = true
+		b.button_group = group
+		b.button_pressed = board_kind == k[0]
+		b.pressed.connect(func(): board_kind = k[0]; board_kind_requested.emit(k[0]))
+		tabs.add_child(b)
+	board_status = _label("", 16, Color("#cfc6ae"))
+	box.add_child(board_status)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(660, 390)
+	box.add_child(scroll)
+	board_grid = GridContainer.new()
+	board_grid.columns = 4
+	board_grid.add_theme_constant_override("h_separation", 40)
+	board_grid.add_theme_constant_override("v_separation", 4)
+	scroll.add_child(board_grid)
+	var btns := _center_row(16)
+	var refresh := _button("刷新", Vector2(130, 42), 18)
+	refresh.pressed.connect(func(): board_kind_requested.emit(board_kind))
+	var close := _button("关闭  [Esc]", Vector2(150, 42), 18)
+	close.pressed.connect(func(): modal_closed.emit())
+	btns.add_child(refresh)
+	btns.add_child(close)
+	box.add_child(btns)
+
+
+func show_board() -> void:
+	_build_board()
+	board_status.text = "加载中…"
+	board_panel.visible = true
+
+
+func hide_board() -> void:
+	if board_panel:
+		board_panel.visible = false
+
+
+func update_board(kind: String, res: Dictionary) -> void:
+	if board_grid == null or kind != board_kind:
+		return
+	for c in board_grid.get_children():
+		c.queue_free()
+	if not bool(res.get("ok", false)):
+		board_status.text = str(res.get("msg", "加载失败"))
+		return
+	var titles := {"score": "得分", "speed": "用时", "level": "等级"}
+	for h in ["名次", "昵称", titles[kind], "流派"]:
+		board_grid.add_child(_cell(h, Color("#c9a227")))
+	for r in res["rows"]:
+		var mine := Net.nick != "" and str(r["nick"]).to_lower() == Net.nick.to_lower()
+		var col := Color("#f0c050") if mine else Color("#f3ead2")
+		var sch := str(r.get("school", ""))
+		board_grid.add_child(_cell("%d" % int(r["rank"]), col))
+		board_grid.add_child(_cell(str(r["nick"]), col))
+		board_grid.add_child(_cell(_board_value(kind, float(r["value"])), col))
+		board_grid.add_child(_cell(str(Data.schools[sch]["name"]) if Data.schools.has(sch) else "", col))
+	var me: Variant = res.get("me")
+	if (res["rows"] as Array).is_empty():
+		board_status.text = "还没有人上榜，来当第一个吧"
+	elif me is Dictionary:
+		board_status.text = "我的名次：第 %d 名（%s）　共 %d 人上榜" % [int(me["rank"]), _board_value(kind, float(me["value"])), int(res["total"])]
+	elif Net.logged_in():
+		board_status.text = "你还没有这个榜的成绩　共 %d 人上榜" % int(res["total"])
+	else:
+		board_status.text = "游客不在榜上，登录后成绩才会上榜　共 %d 人上榜" % int(res["total"])
+
+
+func _build_feedback() -> void:
+	if feedback_panel:
+		feedback_panel.queue_free()
+	var pb := _panel_box()
+	feedback_panel = pb[0]
+	var box: VBoxContainer = pb[1]
+	box.add_child(_label("给我们反馈", 44))
+	box.add_child(_label("Bug、太难或太简单、想要的功能……都可以写", 18, Color("#cfc6ae")))
+	var row := _center_row()
+	feedback_type = OptionButton.new()
+	feedback_type.custom_minimum_size = Vector2(300, 44)
+	feedback_type.add_theme_font_size_override("font_size", 20)
+	for t in ["Bug / 卡住了", "难度 / 平衡", "建议 / 想法", "其他"]:
+		feedback_type.add_item(t)
+	row.add_child(feedback_type)
+	box.add_child(row)
+	feedback_text = TextEdit.new()
+	feedback_text.custom_minimum_size = Vector2(600, 150)
+	feedback_text.placeholder_text = "写在这里（最多 500 字）"
+	feedback_text.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	feedback_text.add_theme_font_size_override("font_size", 20)
+	box.add_child(feedback_text)
+	feedback_status = _label("", 16, Color("#cfc6ae"))
+	feedback_status.custom_minimum_size = Vector2(0, 24)
+	box.add_child(feedback_status)
+	var btns := _center_row(16)
+	var send := _button("发送", Vector2(160, 46), 22)
+	send.pressed.connect(func():
+		var t := feedback_text.text.strip_edges()
+		if t.length() < 2:
+			set_feedback_status("请写点内容", true)
+		else:
+			feedback_submitted.emit(FEEDBACK_TYPES[feedback_type.selected], t.substr(0, 500)))
+	var cancel := _button("取消  [Esc]", Vector2(160, 46), 18)
+	cancel.pressed.connect(func(): modal_closed.emit())
+	btns.add_child(send)
+	btns.add_child(cancel)
+	box.add_child(btns)
+
+
+func show_feedback() -> void:
+	_build_feedback()
+	feedback_panel.visible = true
+	feedback_text.call_deferred("grab_focus")
+
+
+func hide_feedback() -> void:
+	if feedback_panel:
+		feedback_panel.visible = false
+
+
+func set_feedback_status(msg: String, is_error: bool) -> void:
+	if feedback_status:
+		feedback_status.text = msg
+		feedback_status.add_theme_color_override("font_color", Color("#f08070") if is_error else Color("#9ad0a0"))
+
+
 func show_pause() -> void:
 	overlay_title.text = "暂停"
 	overlay_body.text = "按 Esc 继续"
@@ -273,10 +597,17 @@ func show_pause() -> void:
 func show_end(won: bool) -> void:
 	var w := world
 	overlay_title.text = "天下第一！" if won else "江湖路远……"
-	overlay_body.text = "%s\n\n存活 %s　等级 %d　击杀 %d\n\n按 Enter / R 重新开始" % [
+	end_base = "%s\n\n存活 %s　等级 %d　击杀 %d\n本局得分 %s" % [
 		"击败海岛剑尊，名动江湖。" if won else "侠士请重新来过。",
-		_fmt_time(w.time), w.level, w.kills]
+		_fmt_time(w.time), w.level, w.kills, _commas(Score.compute(w.run_summary()))]
+	set_end_extra("")
 	overlay.visible = true
+
+
+## 结算界面的补充行（成绩上传结果等）
+func set_end_extra(extra: String) -> void:
+	var tail := "按 Enter / R 重新开始" + ("　·　按 B 查看排行榜" if Net.configured() else "")
+	overlay_body.text = end_base + ("\n" + extra if extra != "" else "") + "\n\n" + tail
 
 
 func hide_overlay() -> void:
@@ -332,7 +663,7 @@ const TAG_COLORS := {
 }
 
 
-## 技能图标：底色方块 + 楷体首字 + 层数；满层（12 层）时在图标上方显示小「极」字。
+## 技能图标：底色方块 + 楷体首字 + 右下角层数（1~11 显示数字，12 层换成「极」）。
 func _draw_skill_icon(pos: Vector2, s: SkillBase, maxed: bool) -> void:
 	var tag: String = str(s.tags()[0])
 	var base := Color(str(TAG_COLORS.get(tag, "#4a4a4a")))
@@ -344,13 +675,14 @@ func _draw_skill_icon(pos: Vector2, s: SkillBase, maxed: bool) -> void:
 	var bold := Data.font_bold
 	canvas.draw_string_outline(bold, pos + Vector2(0, 31), glyph, HORIZONTAL_ALIGNMENT_CENTER, ICON, 28, 3, Color(0, 0, 0, 0.55))
 	canvas.draw_string(bold, pos + Vector2(0, 31), glyph, HORIZONTAL_ALIGNMENT_CENTER, ICON, 28, Color("#f3ead2"))
-	canvas.draw_string(Data.font_bold, pos + Vector2(ICON - 20, ICON - 3), str(s.level),
-		HORIZONTAL_ALIGNMENT_RIGHT, 18, 12, Color("#f3ead2"))
 	if maxed:
-		# 「极」：楷体粗体，金字黑边，居中在图标正上方
-		var p := pos + Vector2(0, -5)
-		canvas.draw_string_outline(bold, p, "极", HORIZONTAL_ALIGNMENT_CENTER, ICON, 18, 4, Color("#3a1f10"))
-		canvas.draw_string(bold, p, "极", HORIZONTAL_ALIGNMENT_CENTER, ICON, 18, Color("#f0c050"))
+		# 12 层：右下角的层数数字直接换成「极」（楷体粗体，金字黑边）
+		var p := pos + Vector2(ICON - 24, ICON - 3)
+		canvas.draw_string_outline(bold, p, "极", HORIZONTAL_ALIGNMENT_RIGHT, 22, 19, 5, Color("#3a1f10"))
+		canvas.draw_string(bold, p, "极", HORIZONTAL_ALIGNMENT_RIGHT, 22, 19, Color("#f0c050"))
+	else:
+		canvas.draw_string(bold, pos + Vector2(ICON - 20, ICON - 3), str(s.level),
+			HORIZONTAL_ALIGNMENT_RIGHT, 18, 12, Color("#f3ead2"))
 
 
 func _draw_hud() -> void:
@@ -398,14 +730,14 @@ func _draw_hud() -> void:
 	y += 20.0
 	for s: SkillBase in w.skills.values():
 		var maxed := s.upgrades.size() >= Data.max_upgrades
-		var icon_pos := Vector2(16, y + 22.0)      # 图标上方留出 22px 给「极」
+		var icon_pos := Vector2(16, y + 4.0)
 		_draw_skill_icon(icon_pos, s, maxed)
 		var star := " ★%d" % w.enhance_level if w.enhance_id == s.id else ""
 		canvas.draw_string(font, icon_pos + Vector2(ICON + 8.0, 18.0), str(s.def["name"]),
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#2a2a2a"))
-		canvas.draw_string(font, icon_pos + Vector2(ICON + 8.0, 36.0), "Lv%d%s" % [s.level, star],
+		canvas.draw_string(font, icon_pos + Vector2(ICON + 8.0, 36.0), "Lv%s%s" % ["极" if maxed else str(s.level), star],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 14, GameWorld.VERMILION if star != "" else Color("#6a5a3a"))
-		y += ICON + 30.0
+		y += ICON + 14.0
 	y += 8.0
 	canvas.draw_string(font, Vector2(16, y), "心法 %d/%d" % [w.xinfa.size(), GameWorld.MAX_XINFA],
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#7a6a3a"))

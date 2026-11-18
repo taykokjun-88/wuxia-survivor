@@ -1360,6 +1360,23 @@ func _draw_proj(p: Projectile) -> void:
 			draw_circle(p.pos, p.radius * 0.6, INK)
 
 
+## 本局成绩摘要（提交排行榜用；字段与 backend/Code.gs 的 submit 对应）
+func run_summary() -> Dictionary:
+	var bosses_killed := 0
+	for b in bosses:
+		if not b.alive:
+			bosses_killed += 1
+	var build: Array = []
+	for s: SkillBase in skills.values():
+		build.append({"id": s.id, "lv": s.level})
+	return {
+		"won": won, "seconds": int(time), "level": level, "kills": kills, "bosses": bosses_killed,
+		"school": school_id, "starter": starter_id, "qinggong": qinggong_id,
+		"enhance": "%s:%d" % [enhance_id, enhance_level] if enhance_id != "" else "",
+		"build": build, "version": str(ProjectSettings.get_setting("application/config/version", "0")),
+	}
+
+
 ## 播放一次性动画（出招、大招）。受击、倒下、冲刺由状态自动决定。
 func play_anim(name: String, dur: float) -> void:
 	anim_ovr = name

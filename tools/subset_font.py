@@ -20,7 +20,7 @@ EXTRA = "，。、：；！？“”‘’（）【】《》—…·×→←↑�
 
 def repo_chars() -> set:
     chars = set()
-    for pat in ("scripts/**/*.gd", "data/*.json", "docs/*.md", "README.md", "tests/*.gd"):
+    for pat in ("scripts/**/*.gd", "data/*.json", "backend/*.gs", "docs/*.md", "README.md", "tests/*.gd"):
         for p in ROOT.glob(pat):
             chars.update(p.read_text(encoding="utf-8", errors="ignore"))
     return {c for c in chars if not c.isspace() or c == " "}

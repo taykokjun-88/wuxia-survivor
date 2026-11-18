@@ -1,0 +1,71 @@
+// 网页版端到端测试：真实的 Godot 网页导出 + 模拟 Apps Script 后端（backend/test/mock_server.js）+ Chromium。
+// 覆盖：注册 → 创建角色 → 排行榜 → 反馈 → 刷新自动登录 → 退出 → 错误 PIN → 再登录 → 打完一局并上传成绩 → 排行榜。
+// 运行：tests/e2e/run.sh（会自己构建网页、启动两个本地服务器）。需要 playwright。
+// 注意：软件渲染（SwiftShader）下帧率很低，帧率数字没有参考意义；这里只验证流程是否正确。
+const { chromium } = require('playwright');
+const fs = require('fs');
+const OUT = process.env.E2E_OUT || '/tmp/e2e_shots';
+fs.mkdirSync(OUT, { recursive: true });
+const GAME = 'http://localhost:8077/index.html?api=http://localhost:8099/exec';
+const state = async () => (await fetch('http://localhost:8099/admin/state')).json();
+let fails = 0;
+const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ ' : '  ✗ ') + m); };
+
+(async () => {
+  const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } });   // 同一上下文 = 同一浏览器存储
+  const page = await ctx.newPage();
+  const logs = [];
+  page.on('console', (m) => logs.push(m.type() + ': ' + m.text()));
+  page.on('pageerror', (e) => logs.push('PAGEERROR: ' + e.message));
+  page.on('requestfailed', (r) => logs.push('REQFAILED: ' + r.url()));
+  const shot = (n) => page.screenshot({ path: `${OUT}/${n}.png` });
+  const boot = async (url) => { await page.goto(url); await page.waitForSelector('canvas'); await page.waitForTimeout(7500); };
+
+  await boot(GAME);
+  await shot('01_auth');
+  // 注册
+  await page.mouse.click(720, 305); await page.waitForTimeout(400);
+  await page.keyboard.type('Tester1'); await page.keyboard.press('Tab');
+  await page.keyboard.type('2468'); await page.keyboard.press('Tab');
+  await page.keyboard.type('friend'); await page.keyboard.press('Enter');          // 邀请码不分大小写
+  await page.waitForTimeout(3000);
+  let st = await state(); ok(st.players === 4, '注册成功（服务器玩家数 ' + st.players + '）');
+  await page.keyboard.press('Enter'); await page.waitForTimeout(1500);              // 创建角色（拳掌）
+  await shot('02_loadout');
+  // 排行榜
+  await page.mouse.click(571, 602); await page.waitForTimeout(3000); await shot('03_board');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(1200);
+  // 反馈
+  await page.mouse.click(693, 602); await page.waitForTimeout(1500);
+  await page.keyboard.type('e2e feedback');
+  await page.mouse.click(552, 540); await page.waitForTimeout(2500);
+  st = await state(); ok(st.feedback.length === 2 && String(st.feedback[1][5]).includes('e2e feedback'), '反馈已写入表格');
+  await page.waitForTimeout(1500);
+  // 刷新 → 自动登录
+  await boot(GAME); await shot('04_after_reload');
+  // 退出 → 错误 PIN → 正确 PIN
+  await page.mouse.click(820, 602); await page.waitForTimeout(2500);
+  await page.keyboard.type('Tester1'); await page.keyboard.press('Tab'); await page.keyboard.type('0000'); await page.keyboard.press('Enter');
+  await page.waitForTimeout(2500); await shot('05_wrong_pin');
+  await page.mouse.click(640, 425); await page.keyboard.press('Control+A'); await page.keyboard.type('2468'); await page.keyboard.press('Enter');
+  await page.waitForTimeout(3000); await shot('06_relogin');
+  // 打完一局（加速 4 倍；本机后端才允许 speed 参数）
+  await boot(GAME + '&speed=4');
+  await page.keyboard.press('Enter'); await page.waitForTimeout(1000);              // 开始闯荡
+  const t0 = Date.now();
+  for (;;) {
+    for (let i = 0; i < 6; i++) { await page.keyboard.press('1'); await page.waitForTimeout(1500); }   // 升级选卡选第一张
+    st = await state();
+    if (st.scores >= 4 || Date.now() - t0 > 420000) break;
+  }
+  await page.waitForTimeout(1500); await shot('07_end');
+  ok(st.scores === 4, '成绩已上传（表格里共 ' + st.scores + ' 条）');
+  await page.keyboard.press('b'); await page.waitForTimeout(3500); await shot('08_board_after_run');
+
+  const errs = logs.filter((l) => /error|FAILED|PAGEERROR/i.test(l));
+  ok(errs.length === 0, '浏览器控制台无错误' + (errs.length ? '：' + errs.slice(0, 3).join(' | ') : ''));
+  console.log(fails ? `\n失败 ${fails} 项` : '\n全部通过');
+  await browser.close();
+  process.exit(fails ? 1 : 0);
+})();

@@ -5,12 +5,14 @@ config_version=5
 
 config/name="武侠幸存者 (原型)"
 run/main_scene="res://scenes/main.tscn"
+config/version="0.3"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 
 [autoload]
 
 Data="*res://scripts/data.gd"
 Save="*res://scripts/save.gd"
+Net="*res://scripts/net.gd"
 
 [gui]
 

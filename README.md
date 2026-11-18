@@ -17,6 +17,16 @@ Godot 4.4 · 武侠题材 Survivor-like · 独立开发 · PC 优先
   清除浏览器数据或换浏览器/设备会丢存档。
 - 使用单线程导出（`variant/thread_support=false`），所以不需要 COOP/COEP 响应头，普通静态托管就能跑。
 
+## 账号与排行榜（Google 表格 + Apps Script）
+
+朋友可以注册账号（昵称 + PIN + 你发的邀请码），成绩上**排行榜**（总分 / 最快通关 / 最高等级），也能在游戏里提反馈；
+角色流派存在云端，换设备登录也在。**也可以不配置**：`data/config.json` 里的 `api_url` 留空，游戏就是纯单机，没有任何在线功能。
+
+- 后端是一张 Google 表格 + 一段 Apps Script（`backend/Code.gs`），模式参照「知识岛」：PIN 加盐哈希、令牌、失败锁定、邀请码、日志、反馈。
+- **部署步骤（约 10 分钟）见 [`backend/README.md`](backend/README.md)**，部署后把网址填进 `data/config.json`。
+- 游戏流程：打开链接 → 登录 / 注册（或游客试玩）→ 创建角色（首次）→ 开局 → 打完自动上传成绩，结算界面显示名次，按 B 看排行榜。
+- 排行榜的得分公式：击杀数 + 等级×100 + 击败 Boss 数×1000；通关另加 5000 + (900 − 用时秒)×10（最少 0）。
+
 ## 运行（桌面编辑器）
 
 1. 安装 [Godot 4.4+](https://godotengine.org/download)（标准版即可）。
@@ -56,7 +66,7 @@ Godot 4.4 · 武侠题材 Survivor-like · 独立开发 · PC 优先
   所有数值在 `data/game_data.json` 的 `directions` / `tiers`。
 - **角色升级成长**：每升 1 级，**基础伤害 +2%**（所有技能）、**气血上限 +4**、**防御 +0.2**
   （防御是固定减伤，但至少承受 25% 伤害）。数值在 `data/game_data.json` 的 `level_growth`。
-- **满层标记**：技能升到 12 层，图标上方出现金色楷体小字「极」。
+- **满层标记**：技能图标右下角显示层数（1–11 是数字），升到 12 层时数字直接换成金色楷体「极」。
 - **经验宝石**：落地 4 秒后自动飞向玩家，升级节奏只取决于击杀，不取决于敢不敢冲进怪堆里捡。
 - **升级节奏**：打完一局（击败大 Boss）角色约 **Lv30–35**（`tuning.exp_mult` 控制）。
 - **自动瞄准**：Boss 和精英在射程内时优先瞄准。
@@ -85,6 +95,12 @@ docs/                      设计稿
 ## 测试
 
 ```bash
+# 一键：后端（Node）+ 游戏（Godot 无头）
+tools/run_all_tests.sh
+
+# 网页端到端（真实网页 + 模拟后端 + Chromium，较慢，需要 playwright）
+tests/e2e/run.sh
+
 # 完整无渲染测试：秘籍流程 / 9 个技能（含强化）伤害报告 / 10 个心法 / 6 个轻功 / 两局完整对局
 godot --headless --path . res://tests/sim_test.tscn
 
@@ -136,6 +152,7 @@ python3 tools/process_sprites.py assets/sprites/source/punch.png punch --frames 
 |---|---|
 | M1–M4：槽位 / 标签 / 9 技能 / 10 心法 / 6 轻功 / 专属强化 / 小 Boss / 精英 | ✅ |
 | 存档 + 创建角色（流派） | ✅ |
+| 账号 / 排行榜 / 反馈 / 云端流派（Google 表格 + Apps Script） | ✅（待你部署后端） |
 | M5：局外天赋树（总 50 点，刚柔灵三方向） | 待做 |
 | M6：大 Boss 掉落装备（5 部位、稀有度、基础属性 + 特殊词条）+ 背包 | 待做 |
 | 网页导出 + 中文字体 + 主角 sprite 接入（待机；其余动画待出图） | ✅ |

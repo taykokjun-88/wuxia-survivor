@@ -5,7 +5,7 @@ extends Node
 const DEFAULT_PATH := "user://save.json"
 
 var path := DEFAULT_PATH
-var data: Dictionary = {"school": ""}
+var data: Dictionary = {"school": "", "session": {}}
 
 
 func _ready() -> void:
@@ -13,7 +13,7 @@ func _ready() -> void:
 
 
 func load_data() -> void:
-	data = {"school": ""}
+	data = {"school": "", "session": {}}
 	if not FileAccess.file_exists(path):
 		return
 	var f := FileAccess.open(path, FileAccess.READ)
@@ -46,6 +46,28 @@ func school() -> String:
 
 func create_character(school_id: String) -> void:
 	data["school"] = school_id
+	save_data()
+
+
+## 登录会话（昵称 + 令牌）。令牌只是登录凭证，不含 PIN。
+func session() -> Dictionary:
+	var s: Variant = data.get("session", {})
+	if s is Dictionary and str(s.get("nick", "")) != "" and str(s.get("token", "")) != "":
+		return s
+	return {}
+
+
+func has_session() -> bool:
+	return not session().is_empty()
+
+
+func set_session(nick: String, token: String) -> void:
+	data["session"] = {"nick": nick, "token": token}
+	save_data()
+
+
+func clear_session() -> void:
+	data["session"] = {}
 	save_data()
 
 

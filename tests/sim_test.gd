@@ -16,6 +16,8 @@ func _ready() -> void:
 		_level_growth_test()
 		_save_test()
 		_sprite_anim_test()
+		await _net_test()
+		_font_coverage_test()
 	if only == "" or only == "matrix":
 		_skill_matrix()
 	if only == "":
@@ -358,6 +360,119 @@ func _save_test() -> void:
 	sv.free()
 	sv2.free()
 	print("  创建 / 读回 / 无效流派 / 损坏存档 / 重建  OK")
+
+
+var net_calls: Array = []
+var fake_reply: Dictionary = {}
+
+
+func _fake_transport(is_get: bool, url: String, body: Dictionary) -> Dictionary:
+	net_calls.append({"get": is_get, "url": url, "body": body.duplicate(true)})
+	if not fake_reply.is_empty():
+		return fake_reply
+	match str(body["action"]):
+		"login", "register", "resume":
+			return {"ok": true, "nick": body.get("nick", "阿杰"), "token": "T1", "school": "fist", "bests": {"score": 5}}
+		"submit":
+			return {"ok": true, "score": 1234, "best": true, "ranks": {"score": 2, "speed": 0, "level": 3}, "bests": {"score": 1234}}
+		"board":
+			return {"ok": true, "kind": body["kind"], "rows": [], "me": null, "total": 0}
+	return {"ok": true}
+
+
+func _net_test() -> void:
+	print("\n=== 在线：得分公式 / 网络层（模拟传输） ===")
+	var vec: Array = JSON.parse_string(FileAccess.get_file_as_string("res://backend/test/score_vectors.json"))
+	for v in vec:
+		_check(Score.compute(v) == int(v["score"]), "得分公式与后端向量不一致：%s" % str(v))
+	var old_path: String = Save.path
+	var old_url: String = Net.api_url
+	Save.path = "user://test_net_save.json"
+	Save.load_data()
+	Net.api_url = ""
+	var r0: Dictionary = await Net.call_api("ping")
+	_check(str(r0["err"]) == "offline", "未配置时应返回 offline")
+	_check(not Net.configured(), "api_url 为空 = 未配置")
+	Net.api_url = "https://example.invalid/exec"
+	Net.transport = _fake_transport
+
+	# 登录
+	var r1: Dictionary = await Net.login("阿杰", "2468")
+	_check(bool(r1["ok"]) and Net.logged_in() and Net.nick == "阿杰" and Net.school == "fist", "登录后应记住昵称/令牌/流派")
+	_check(str(Save.session().get("token", "")) == "T1", "令牌应写入本地存档")
+	var c: Dictionary = net_calls[-1]
+	_check(not c["get"] and c["body"]["pin"] == "2468" and not c["body"].has("token"), "登录请求：POST、带 PIN、不带令牌")
+	# 带令牌的请求自动附带昵称 + 令牌
+	await Net.save_state("fist")
+	_check(net_calls[-1]["body"]["token"] == "T1" and net_calls[-1]["body"]["state"]["school"] == "fist", "saveState 应带令牌和流派")
+	var sub: Dictionary = await Net.submit_run({"won": true, "seconds": 750, "level": 38, "kills": 6100, "bosses": 4,
+		"school": "fist", "starter": "chain_fist", "qinggong": "tashue", "enhance": "yue_palm:3", "build": [{"id": "yue_palm", "lv": 12}], "version": "0.3"})
+	_check(bool(sub["ok"]) and net_calls[-1]["body"]["build"] is String and net_calls[-1]["body"]["nick"] == "阿杰", "提交成绩：build 序列化为字符串、带昵称")
+	_check(int(Net.bests.get("score", 0)) == 1234, "提交成功后应更新本地最高记录")
+	# 排行榜：GET，不带令牌
+	await Net.board("score")
+	_check(net_calls[-1]["get"] and net_calls[-1]["body"]["kind"] == "score" and not net_calls[-1]["body"].has("token"), "读榜应为 GET 且不带令牌")
+	# 退出登录
+	await Net.logout()
+	_check(not Net.logged_in() and not Save.has_session() and net_calls[-1]["body"]["action"] == "logout", "退出登录应通知服务器并清除本地会话")
+
+	# 续期：令牌失效 → 清会话；断网 → 保留会话
+	Save.set_session("阿杰", "OLD")
+	fake_reply = {"ok": false, "err": "bad_token", "msg": "登录已过期"}
+	var r2: Dictionary = await Net.resume()
+	_check(str(r2["err"]) == "bad_token" and not Save.has_session() and not Net.logged_in(), "令牌失效应清除本地会话")
+	Save.set_session("阿杰", "OLD")
+	fake_reply = {"ok": false, "err": "net", "msg": "网络连接失败"}
+	await Net.resume()
+	_check(Save.has_session() and not Net.logged_in(), "断网时应保留会话，下次再试")
+	# 登录失败不应留下会话
+	Save.clear_session()
+	fake_reply = {"ok": false, "err": "bad_login", "msg": "昵称或 PIN 不正确", "left": 4}
+	var r3: Dictionary = await Net.login("阿杰", "0000")
+	_check(str(r3["err"]) == "bad_login" and not Net.logged_in() and not Save.has_session(), "登录失败不应留下会话")
+	# 没有保存的登录
+	fake_reply = {}
+	var r4: Dictionary = await Net.resume()
+	_check(str(r4["err"]) == "no_session", "没有会话时 resume 应返回 no_session")
+
+	# 还原
+	Net.transport = Callable()
+	Net.api_url = old_url
+	fake_reply = {}
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_net_save.json"))
+	Save.path = old_path
+	Save.load_data()
+	print("  得分向量 / 离线 / 登录 / 令牌 / 提交 / 读榜 / 退出 / 续期 / 断网 / 失败  OK")
+
+
+## 游戏里出现的每个汉字都必须在自带字库里（浏览器没有系统字体可回退，缺字会显示成方块）。
+## 失败时：python3 tools/subset_font.py 重新裁剪字库（见脚本注释）。
+func _font_coverage_test() -> void:
+	print("\n=== 字库覆盖（游戏文案 + 后端提示里的每个字都要有）===")
+	var font: Font = load("res://assets/fonts/main.ttf")
+	var bold: Font = load("res://assets/fonts/main_bold.ttf")
+	var files: Array[String] = []
+	for dir in ["res://scripts", "res://scripts/skills", "res://data", "res://backend"]:
+		for f in DirAccess.get_files_at(dir):
+			if f.ends_with(".gd") or f.ends_with(".json") or f.ends_with(".gs"):
+				files.append(dir + "/" + f)
+	var missing := {}
+	var total := 0
+	for path in files:
+		var seen := {}
+		for ch in FileAccess.get_file_as_string(path):
+			var code := ch.unicode_at(0)
+			if code < 0x2E80 or seen.has(code):
+				continue          # 只检查 CJK 及以上；ASCII 一定在字库里
+			seen[code] = true
+			total += 1
+			if not font.has_char(code) or not bold.has_char(code):
+				missing[ch] = path.get_file()
+	for ch in missing:
+		print("  缺字：「%s」（%s）" % [ch, missing[ch]])
+	_check(missing.is_empty(), "字库缺少 %d 个字：%s" % [missing.size(), "".join(missing.keys())])
+	if missing.is_empty():
+		print("  %d 个文件、约 %d 个汉字出现，全部在字库中  OK" % [files.size(), total])
 
 
 func _sprite_anim_test() -> void:
