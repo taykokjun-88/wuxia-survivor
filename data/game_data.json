@@ -1,0 +1,82 @@
+{
+  "player": {
+    "max_hp": 100, "max_neili": 100, "neili_regen": 8, "hp_regen": 0,
+    "move_speed": 200, "dash_cost": 25, "dash_cd": 0.6, "armor": 0,
+    "pickup_range": 90, "ult_cost": 100
+  },
+
+  "skills": {
+    "liyue_palm": {
+      "name": "裂岳掌", "kind": "skill", "type": "wave", "max_level": 5,
+      "desc": "掌风前冲，贯穿并击退敌人（类降龙掌）",
+      "damage": [14, 18, 23, 29, 36], "cooldown": [1.5, 1.4, 1.3, 1.2, 1.1],
+      "pierce": [3, 3, 4, 4, 6], "radius": [26, 28, 30, 32, 36],
+      "speed": 380, "life": 0.9, "knock": 260, "both_sides": false
+    },
+    "chuanyun": {
+      "name": "穿云指", "kind": "skill", "type": "bolt", "max_level": 5,
+      "desc": "指力化作剑气，穿透射击（类六脉神剑）",
+      "damage": [9, 9, 12, 12, 15], "cooldown": [1.1, 1.0, 1.0, 0.9, 0.8],
+      "count": [1, 2, 2, 3, 4], "pierce": [2, 2, 3, 3, 4], "radius": 8,
+      "speed": 650, "life": 0.9, "knock": 60, "pattern": "spread", "spread": 0.14
+    },
+    "huifeng": {
+      "name": "回风剑", "kind": "skill", "type": "orbit", "max_level": 5,
+      "desc": "飞剑环身，护体并切割近敌（类乾坤护体）",
+      "damage": [8, 10, 12, 14, 18], "count": [2, 2, 3, 3, 4],
+      "orbit_radius": 90, "radius": 16, "speed": 2.8
+    },
+
+    "kanglong": {
+      "name": "亢龙破天", "kind": "skill", "type": "wave", "max_level": 1, "evolved": true,
+      "desc": "裂岳掌大成：前后双向龙形劲气，贯穿一切",
+      "damage": [95], "cooldown": [1.3], "pierce": [99], "radius": [60],
+      "speed": 440, "life": 1.0, "knock": 420, "both_sides": true
+    },
+    "chuanyun_liekong": {
+      "name": "穿云裂空", "kind": "skill", "type": "bolt", "max_level": 1, "evolved": true,
+      "desc": "穿云指大成：十道剑气四面迸发，无物不穿",
+      "damage": [24], "cooldown": [0.9], "count": [10], "pierce": [99], "radius": 9,
+      "speed": 700, "life": 1.1, "knock": 80, "pattern": "radial", "spread": 0.0
+    },
+    "huifeng_luanwu": {
+      "name": "回风乱舞", "kind": "skill", "type": "orbit", "max_level": 1, "evolved": true,
+      "desc": "回风剑大成：六柄飞剑，范围更广，转速更快",
+      "damage": [30], "count": [6], "orbit_radius": 120, "radius": 22, "speed": 3.8
+    },
+
+    "chunyang": {
+      "name": "纯阳诀", "kind": "passive", "type": "passive", "max_level": 5,
+      "desc": "内力上限+20，内力回复+2.5/秒，气血回复+0.3/秒（类九阳神功）",
+      "per_level": { "max_neili": 20, "neili_regen": 2.5, "hp_regen": 0.3 }
+    },
+    "qingshen": {
+      "name": "轻身诀", "kind": "passive", "type": "passive", "max_level": 5,
+      "desc": "移速+12，轻功消耗-2.5，轻功冷却-0.06秒",
+      "per_level": { "move_speed": 12, "dash_cost": -2.5, "dash_cd": -0.06 }
+    },
+    "tiebu": {
+      "name": "铁布衫", "kind": "passive", "type": "passive", "max_level": 5,
+      "desc": "气血上限+15，受击减伤+1.5",
+      "per_level": { "max_hp": 15, "armor": 1.5 }
+    }
+  },
+
+  "evolutions": [
+    { "from": "liyue_palm", "to": "kanglong", "requires": "chunyang" },
+    { "from": "chuanyun", "to": "chuanyun_liekong", "requires": "qingshen" },
+    { "from": "huifeng", "to": "huifeng_luanwu", "requires": "tiebu" }
+  ],
+
+  "adventures": {
+    "cliff": { "name": "断崖奇遇", "desc": "坠崖得秘籍：随机一门武学+1级，但气血上限永久-15%" },
+    "master": { "name": "高人指点", "desc": "内力上限永久+30，并立即回满内力" }
+  },
+
+  "enemies": {
+    "bandit":  { "name": "山贼",       "hp": 12,   "speed": 70, "damage": 6,  "radius": 12, "exp": 1,  "color": "#6b5a48" },
+    "blade":   { "name": "刀客",       "hp": 26,   "speed": 115, "damage": 8,  "radius": 11, "exp": 2,  "color": "#8a2f2f" },
+    "soldier": { "name": "官兵",       "hp": 70,   "speed": 52,  "damage": 12, "radius": 16, "exp": 3,  "color": "#2f4a6a" },
+    "boss":    { "name": "海岛剑尊",   "hp": 3500, "speed": 55,  "damage": 22, "radius": 40, "exp": 50, "color": "#3a1f4a" }
+  }
+}
