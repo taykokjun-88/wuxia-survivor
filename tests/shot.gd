@@ -125,6 +125,11 @@ func _ready() -> void:
 	w.time = 355.0
 	await _advance(25.0)
 	_snap("06_mini_boss")
+	w._spawn_boss("mini_boss_2", false)
+	w.bosses[w.bosses.size() - 1].pos = w.player_pos + Vector2(140, -40)
+	w.bosses[w.bosses.size() - 1].guard *= 0.6
+	await _advance(0.5)
+	_snap("06b_boss_guard")
 	Save.reset_character()   # 清理截图产生的存档
 	get_tree().quit()
 

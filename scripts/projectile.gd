@@ -28,3 +28,4 @@ var boomerang := false
 var returning := false
 var stun := 0.0
 var chain := false
+var empowered := false   # 催动版出手的弹体（对 Boss 罡气 ×3）

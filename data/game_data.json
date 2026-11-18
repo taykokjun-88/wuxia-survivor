@@ -60,7 +60,16 @@
     "meditate_after": 1.5,
     "meditate_regen": 2.5,
     "meditate_reduce": 0.15,
-    "empower_cost_mult": 1.0
+    "empower_cost_mult": 1.0,
+    "weak_crit": 0.4,
+    "weak_slow_mult": 1.3,
+    "weak_aoe_mult": 1.5,
+    "boss_guard_pct": 0.3,
+    "guard_reduce": 0.5,
+    "guard_empower_mult": 3.0,
+    "break_t": 4.0,
+    "break_dmg": 1.5,
+    "guard_regen_t": 12.0
   },
   "skills": {
     "yue_palm": {

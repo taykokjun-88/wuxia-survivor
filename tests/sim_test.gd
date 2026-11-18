@@ -20,6 +20,7 @@ func _ready() -> void:
 		_meta_test()
 		_neili_test()
 		_build_test()
+		_p2_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
 		_skill_matrix()
@@ -400,6 +401,99 @@ func _save_test() -> void:
 
 var net_calls: Array = []
 var fake_reply: Dictionary = {}
+
+
+func _p2_test() -> void:
+	print("\n=== P2：破绽联动 / Boss 罡气 ===")
+	var w := _new_world(41)
+	w.skills.clear()
+	w.stats["crit_chance"] = 0.0
+	var e := Enemy.new()
+	e.hp = 1.0e12
+	e.max_hp = 1.0e12
+	e.radius = 10.0
+	# 点穴 → 近战 / 蓄力：暴击率 +40%
+	var base := w.hit_enemy(e, 100.0, ["远程"], Vector2.ZERO, "probe")
+	var crits := 0
+	var crits_plain := 0
+	for i in 3000:
+		e.stun = 0.0
+		if w.hit_enemy(e, 100.0, ["近战"], Vector2.ZERO, "probe") > base * 1.2:
+			crits_plain += 1
+		e.stun = 5.0
+		if w.hit_enemy(e, 100.0, ["近战"], Vector2.ZERO, "probe") > base * 1.2:
+			crits += 1
+	_check(crits_plain == 0 and absf(float(crits) / 3000.0 - Data.T("weak_crit")) < 0.04, "定身的敌人：近战招式暴击率 +40%%（实际 %.1f%%，对照 %d）" % [float(crits) / 30.0, crits_plain])
+	# 减速 → 追踪 / 贯穿 ×1.3；定身 → 范围 ×1.5；不相关的标签不受影响
+	e.stun = 0.0
+	var a0 := w.hit_enemy(e, 100.0, ["追踪"], Vector2.ZERO, "probe")
+	e.slow_t = 3.0
+	var a1 := w.hit_enemy(e, 100.0, ["追踪"], Vector2.ZERO, "probe")
+	var a2 := w.hit_enemy(e, 100.0, ["贯穿"], Vector2.ZERO, "probe")
+	var a3 := w.hit_enemy(e, 100.0, ["远程"], Vector2.ZERO, "probe")
+	_check(absf(a1 / a0 - 1.3) < 1e-6 and absf(a2 / a0 - 1.3) < 1e-6 and absf(a3 / a0 - 1.0) < 1e-6, "减速的敌人：追踪 / 贯穿 ×1.3，其他标签不变")
+	e.slow_t = 0.0
+	e.stun = 5.0
+	var b1 := w.hit_enemy(e, 100.0, ["范围"], Vector2.ZERO, "probe")
+	_check(absf(b1 / a0 - 1.5) < 1e-6, "定身的敌人：范围招式 ×1.5（实际 ×%.2f）" % (b1 / a0))
+	_free_world(w)
+	# Boss 罡气
+	var w2 := _new_world(42)
+	w2.god = true
+	w2.skills.clear()
+	w2.stats["crit_chance"] = 0.0
+	w2._spawn_boss("mini_boss_1", false)
+	var boss: Enemy = w2.bosses[0]
+	_check(is_equal_approx(boss.guard_max, boss.max_hp * Data.T("boss_guard_pct")) and boss.guard == boss.guard_max, "Boss 出生带罡气（30% 血量）")
+	var dummy := Enemy.new()
+	dummy.hp = 1.0e12
+	dummy.max_hp = 1.0e12
+	var ref := w2.hit_enemy(dummy, 100.0, ["远程"], Vector2.ZERO, "probe")   # 100 基础伤害结算后的实际数值
+	var hp0 := boss.hp
+	w2.hit_enemy(boss, 100.0, ["远程"], Vector2.ZERO, "probe")
+	_check(absf(hp0 - boss.hp - ref * Data.T("guard_reduce")) < 1e-3 and absf(boss.guard - (boss.guard_max - ref)) < 1e-3, "罡气期间只受 50%% 伤害，罡气减少等同伤害（受伤 %.1f / 伤害 %.1f）" % [hp0 - boss.hp, ref])
+	var g1 := boss.guard
+	w2._emp_ctx = 1
+	w2.hit_enemy(boss, 100.0, ["远程"], Vector2.ZERO, "probe")
+	w2._emp_ctx = -1
+	_check(absf(g1 - boss.guard - ref * Data.T("guard_empower_mult")) < 1e-3, "催动攻击对罡气 ×3")
+	# 打破：进入虚弱，之后受伤 ×1.5；罡气在一段时间后重聚
+	boss.guard = 50.0
+	w2.hit_enemy(boss, 100.0, ["远程"], Vector2.ZERO, "probe")
+	_check(boss.guard == 0.0 and boss.weak_t > 3.9 and w2.break_count == 1, "罡气被打破 → 虚弱")
+	var hp1 := boss.hp
+	w2.hit_enemy(boss, 100.0, ["远程"], Vector2.ZERO, "probe")
+	_check(absf(hp1 - boss.hp - ref * Data.T("break_dmg")) < 1e-3, "虚弱期间受伤 ×1.5（实际 %.1f，期望 %.1f）" % [hp1 - boss.hp, ref * Data.T("break_dmg")])
+	var seen_weak_end := false
+	for i in int(5.0 / DT):
+		w2.step(DT)
+	seen_weak_end = boss.weak_t <= 0.0 and boss.guard == 0.0
+	_check(seen_weak_end, "虚弱 4 秒后结束，罡气还没有重聚")
+	for i in int((Data.T("guard_regen_t") + 1.0) / DT):
+		w2.step(DT)
+	_check(is_equal_approx(boss.guard, boss.guard_max), "再过一段时间罡气重聚（guard %.0f / %.0f，alive %s，regen %.1f）" % [boss.guard, boss.guard_max, str(boss.alive), boss.guard_regen])
+	_free_world(w2)
+	# 催动状态跟着弹体走：催动版弹体命中时对罡气 ×3，即使出手后已不在催动状态
+	var w3 := _new_world(43)
+	w3.god = true
+	w3.skills.clear()
+	w3.add_skill("yue_palm")
+	w3._spawn_boss("mini_boss_1", false)
+	var b3: Enemy = w3.bosses[0]
+	b3.pos = w3.player_pos + Vector2(150, 0)
+	b3.speed = 0.0
+	var sk: SkillBase = w3.skills["yue_palm"]
+	sk.empowered = true
+	var pr: Projectile = w3.spawn_proj(sk, 0.0, {"radius": 40.0})
+	sk.empowered = false
+	_check(pr.empowered, "弹体记录催动状态")
+	var g_before := b3.guard
+	for i in int(1.0 / DT):
+		w3.step(DT)
+	var lost := g_before - b3.guard
+	_check(lost > 0.0, "弹体命中了 Boss")
+	_free_world(w3)
+	print("  破绽（暴击 / 追踪 / 范围）/ 罡气（减伤 / 催动 ×3 / 破罡 / 虚弱 / 重聚）/ 弹体催动  OK")
 
 
 func _build_test() -> void:

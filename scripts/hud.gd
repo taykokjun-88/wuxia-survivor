@@ -1164,7 +1164,14 @@ func _draw_hud() -> void:
 		if b.alive:
 			var bw := 520.0
 			_bar(Vector2(vw * 0.5 - bw * 0.5, by), Vector2(bw, 18), b.hp / b.max_hp, Color("#5a2a7a"), b.boss_name)
-			by += 24.0
+			# 罡气条：青色细条；被打破后显示「虚弱」倒计时
+			if b.weak_t > 0.0:
+				canvas.draw_rect(Rect2(vw * 0.5 - bw * 0.5, by + 19, bw * b.weak_t / Data.T("break_t"), 5), GameWorld.GOLD)
+				canvas.draw_string(font, Vector2(vw * 0.5 + bw * 0.5 + 8, by + 15), "虚弱 受伤 ×%.1f" % Data.T("break_dmg"), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, GameWorld.GOLD)
+			elif b.guard > 0.0:
+				canvas.draw_rect(Rect2(vw * 0.5 - bw * 0.5, by + 19, bw * b.guard / b.guard_max, 5), Color("#4fe0d0"))
+				canvas.draw_string(font, Vector2(vw * 0.5 + bw * 0.5 + 8, by + 15), "罡气 减伤 50%　催动 ×3", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#1f6f6a"))
+			by += 30.0
 
 	# 装备栏：技能 / 心法 / 轻功
 	var y := 118.0

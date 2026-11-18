@@ -203,6 +203,8 @@ class Taiji extends SkillBase:
 		if emp:
 			mult = maxf(mult * 1.5, 3.0)
 		var dmg := p("damage") + absorbed * mult
+		empowered = emp
 		w.area_hit(self, w.player_pos, r, dmg, 400.0, 0.5)
+		empowered = false
 		w.add_fx("ring", w.player_pos, 0.45, {"r0": 15.0, "r1": r, "color": GameWorld.JADE})
 		return amount - absorbed

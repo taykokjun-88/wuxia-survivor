@@ -61,6 +61,8 @@ var neili := 100.0
 var still_t := 0.0                # 连续站立不动的时间（入定）
 var realm_time := [0.0, 0.0, 0.0] # 虚 / 平 / 盈 各停留了多久（测试与平衡用）
 var empower_count := 0
+var _emp_ctx := -1                # 延迟命中（弹体 / 区域）的催动状态：-1 未设置，0 否，1 是
+var break_count := 0              # 打破 Boss 罡气的次数（测试用）
 var shield := 0.0
 var level := 1
 var exp_now := 0
@@ -144,6 +146,8 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue") 
 	still_t = 0.0
 	realm_time = [0.0, 0.0, 0.0]
 	empower_count = 0
+	break_count = 0
+	_emp_ctx = -1
 	shield = 0.0
 	player_pos = Vector2.ZERO
 	exp_now = 0
@@ -515,6 +519,8 @@ func _spawn_boss(id: String, final: bool) -> void:
 	e.speed = float(def["speed"])
 	e.damage = float(def["damage"])
 	e.boss_bolts = int(def["bolts"])
+	e.guard_max = e.max_hp * Data.T("boss_guard_pct")
+	e.guard = e.guard_max
 	bosses.append(e)
 	add_fx("text", player_pos + Vector2(0, -80), 2.0, {"text": "%s 现身！" % e.boss_name, "size": 28, "color": VERMILION})
 
@@ -621,6 +627,15 @@ func _update_enemies(dt: float) -> void:
 			continue
 		e.flash = maxf(0.0, e.flash - dt)
 		e.slow_t = maxf(0.0, e.slow_t - dt)
+		e.weak_fx = maxf(0.0, e.weak_fx - dt)
+		if e.is_boss:
+			if e.weak_t > 0.0:
+				e.weak_t -= dt
+			elif e.guard <= 0.0:
+				e.guard_regen -= dt
+				if e.guard_regen <= 0.0:
+					e.guard = e.guard_max
+					add_fx("text", e.pos + Vector2(0, -e.radius - 26), 1.0, {"text": "罡气重聚", "size": 20, "color": Color("#4fe0d0")})
 		var to := player_pos - e.pos
 		var d := to.length()
 		if d > RELOCATE_DIST and not e.is_boss:
@@ -836,6 +851,21 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 	m *= dmg_mult() * (1.0 + st("damage_pct"))
 	var sk: SkillBase = skills.get(sid)
 	var crit_p := st("crit_chance") + (float(sk.mods["crit"]) if sk != null else 0.0)
+	# 破绽联动：被定身 / 减速的敌人，特定标签的招式有额外效果
+	var weak_hit := false
+	if e.stun > 0.0:
+		if tags.has("近战") or tags.has("蓄力"):
+			crit_p += Data.T("weak_crit")
+			weak_hit = true
+		if tags.has("范围"):
+			m *= Data.T("weak_aoe_mult")
+			weak_hit = true
+	if e.slow_t > 0.0 and (tags.has("追踪") or tags.has("贯穿")):
+		m *= Data.T("weak_slow_mult")
+		weak_hit = true
+	if weak_hit and e.weak_fx <= 0.0 and effects.size() < MAX_EFFECTS:
+		e.weak_fx = 0.8
+		add_fx("text", e.pos + Vector2(0, -e.radius - 14), 0.6, {"text": "破绽", "size": 16, "color": JADE})
 	var crit := force_crit or rng.randf() < crit_p
 	if crit:
 		m *= st("crit_mult")
@@ -848,8 +878,29 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 	if sk != null and float(sk.mods["heal"]) > 0.0:
 		hp = minf(st("max_hp"), hp + minf(3.0, amount * float(sk.mods["heal"])))
 	skill_dmg[sid] = float(skill_dmg.get(sid, 0.0)) + amount
+	if e.is_boss:
+		var emp := (_emp_ctx == 1) if _emp_ctx >= 0 else (sk != null and sk.empowered)
+		amount = _boss_guard(e, amount, emp)
 	damage_enemy(e, amount, knock_vec, crit)
 	return amount
+
+
+## Boss 护体罡气：罡气期间只受一半伤害，并消耗罡气（催动攻击消耗 ×3）；罡气被打破后虚弱一段时间，受伤加成。
+func _boss_guard(e: Enemy, amount: float, emp: bool) -> float:
+	if e.weak_t > 0.0:
+		return amount * Data.T("break_dmg")
+	if e.guard <= 0.0:
+		return amount
+	e.guard -= amount * (Data.T("guard_empower_mult") if emp else 1.0)
+	if e.guard <= 0.0:
+		e.guard = 0.0
+		e.weak_t = Data.T("break_t")
+		e.guard_regen = Data.T("guard_regen_t")
+		break_count += 1
+		shake = maxf(shake, 9.0)
+		add_fx("text", e.pos + Vector2(0, -e.radius - 30), 1.4, {"text": "破罡！", "size": 30, "color": Color("#4fe0d0")})
+		add_fx("ring", e.pos, 0.5, {"r0": 20.0, "r1": 130.0, "color": Color("#4fe0d0")})
+	return amount * Data.T("guard_reduce")
 
 
 func area_hit_raw(center: Vector2, radius: float, base: float, tags: Array, sid: String,
@@ -907,6 +958,7 @@ func spawn_proj(s: SkillBase, angle: float, o: Dictionary = {}) -> Projectile:
 	pr.boomerang = bool(o.get("boomerang", false))
 	pr.stun = float(o.get("stun", 0.0))
 	pr.chain = bool(o.get("chain", false))
+	pr.empowered = s.empowered
 	projs.append(pr)
 	return pr
 
@@ -914,6 +966,8 @@ func spawn_proj(s: SkillBase, angle: float, o: Dictionary = {}) -> Projectile:
 func add_zone(z: Dictionary) -> void:
 	if not z.has("pos"):
 		z["pos"] = player_pos
+	if z.has("skill") and not z.has("emp"):
+		z["emp"] = (z["skill"] as SkillBase).empowered
 	zones.append(z)
 
 
@@ -977,7 +1031,9 @@ func _update_projectiles(dt: float) -> void:
 						continue
 					if p.pos.distance_to(e.pos) < p.radius + e.radius:
 						p.hit[e.uid] = true
+						_emp_ctx = 1 if p.empowered else 0
 						hit_enemy(e, p.damage, p.tags, p.vel.normalized() * p.knock, p.skill_id)
+						_emp_ctx = -1
 						if p.stun > 0.0:
 							stun_enemy(e, p.stun, p.chain)
 						if p.split > 0:
@@ -1015,6 +1071,7 @@ func _update_zones(dt: float) -> void:
 		z["t"] = float(z["t"]) + dt
 		var zpos: Vector2 = z["pos"]
 		var zr: float = z["r"]
+		_emp_ctx = 1 if bool(z.get("emp", false)) else 0
 		match str(z["kind"]):
 			"impact":
 				if z["t"] >= z["delay"]:
@@ -1060,6 +1117,7 @@ func _update_zones(dt: float) -> void:
 			zones[j] = z
 			j += 1
 	zones.resize(j)
+	_emp_ctx = -1
 
 
 # =====================================================================
@@ -1383,6 +1441,11 @@ func _draw_enemy(e: Enemy) -> void:
 					Color("#9aa7b4"))
 	if e.is_elite:
 		draw_arc(e.pos, r + 5.0, 0.0, TAU, 26, GOLD, 3.0)
+	if e.is_boss:
+		if e.weak_t > 0.0:
+			draw_arc(e.pos, r + 8.0, 0.0, TAU, 32, Color(GOLD, 0.5 + 0.5 * sin(time * 16.0)), 4.0)
+		elif e.guard > 0.0:
+			draw_arc(e.pos, r + 8.0, 0.0, TAU * e.guard / maxf(1.0, e.guard_max), 32, Color("#4fe0d0", 0.85), 4.0)
 	if e.stun > 0.0:
 		var ang := time * 8.0
 		for k in 3:
