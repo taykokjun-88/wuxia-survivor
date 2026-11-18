@@ -51,7 +51,7 @@ func p(key: String) -> float:
 
 ## 催动消耗的内力（运功升级可降低，最多 −70%）
 func empower_cost() -> float:
-	return float(def.get("empower_cost", 8.0)) * Data.T("empower_cost_mult") * (1.0 - float(mods["empower"]))
+	return float(def.get("empower_cost", 8.0)) * Data.T("empower_cost_mult") * maxf(0.25, 1.0 - float(mods["empower"]) - w.st("empower_cut"))
 
 
 func tags() -> Array:

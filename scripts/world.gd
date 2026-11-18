@@ -47,7 +47,9 @@ var xinfa: Dictionary = {}        # id -> 等级（最多 2 个）
 var enhance_id := ""              # 本局唯一的专属强化所属技能
 var enhance_level := 0            # 强化等级 1~3：首个小 Boss 选择强化，之后每个小 Boss 升一级
 var deferred_upgrades := 0
-var talent_stats: Dictionary = {} # 天赋加成（局外成长，M5 接入）
+var talent_stats: Dictionary = {} # 局外加成合计（属性点 + 天赋 + 装备基础属性），开局前由 main 设置
+var gear_skill_mods: Dictionary = {}   # 装备词条：技能 → {方向: 百分数}
+var gear_xinfa: Dictionary = {}        # 装备词条：心法 → 额外等级（只对已学会的心法生效）
 
 # ---- 玩家状态 ----
 var stats: Dictionary = {}
@@ -190,6 +192,9 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue") 
 func add_skill(id: String) -> void:
 	var s := FistSkills.create(id)
 	s.setup(self, id, Data.skills[id])
+	var gm: Dictionary = gear_skill_mods.get(id, {})
+	for dir in gm:
+		s.mods[dir] = float(s.mods.get(dir, 0.0)) + float(gm[dir]) / 100.0
 	skills[id] = s
 
 
@@ -201,7 +206,7 @@ func recalc() -> void:
 	stats = Data.player_base.duplicate()
 	for id in xinfa:
 		var def: Dictionary = Data.xinfa[id]
-		var l: int = xinfa[id]
+		var l: int = int(xinfa[id]) + int(gear_xinfa.get(id, 0))
 		var per: Dictionary = def["per_level"]
 		for k in per:
 			stats[k] = st(k) + float(per[k]) * l
@@ -217,7 +222,7 @@ func recalc() -> void:
 	tag_bonus.clear()
 	for id in xinfa:
 		var def2: Dictionary = Data.xinfa[id]
-		var scale := 1.0 + 0.5 * (int(xinfa[id]) - 1)
+		var scale := 1.0 + 0.5 * (int(xinfa[id]) + int(gear_xinfa.get(id, 0)) - 1)
 		var b: Dictionary = def2["bonus"]
 		for tg in b:
 			tag_bonus[tg] = float(tag_bonus.get(tg, 0.0)) + float(b[tg]) * scale
@@ -235,7 +240,7 @@ func cd_mult() -> float:
 
 ## 内力充盈（≥50%）时全部伤害 +25%
 func dmg_mult() -> float:
-	return Data.T("ying_dmg") if realm() == Realm.YING else 1.0
+	return Data.T("ying_dmg") + st("ying_dmg") if realm() == Realm.YING else 1.0
 
 
 ## 盈境的门槛（纯阳诀等心法可以调低）
@@ -350,7 +355,7 @@ func _update_player(dt: float) -> void:
 	if rl == Realm.XU:
 		regen *= Data.T("xu_regen")
 	if meditating():
-		regen *= Data.T("meditate_regen")
+		regen *= Data.T("meditate_regen") + st("med_regen")
 	if rl == Realm.YING:
 		regen -= Data.T("ying_leak") * max_n      # 真气外放：盈境每秒外泄一点，防止囤着不用
 	neili = clampf(neili + regen * dt, 0.0, max_n)
@@ -729,7 +734,7 @@ func _hurt(amount: float) -> void:
 		dmg = s.on_hurt(dmg)
 	dmg = maxf(maxf(1.0, dmg * 0.25), dmg - st("armor"))
 	if meditating():
-		dmg *= 1.0 - Data.T("meditate_reduce")
+		dmg *= 1.0 - minf(0.6, Data.T("meditate_reduce") + st("med_reduce"))
 	since_hit = 0.0
 	invuln = 0.6
 	if st("thorns") > 0.0:

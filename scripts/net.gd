@@ -19,6 +19,9 @@ var group_name := ""    # 所属群的名称（邀请表里的「名称」）
 var bests: Dictionary = {}
 var exp := 0            # 修为（服务器为准）
 var alloc: Dictionary = {}   # 属性点分配
+var talents: Dictionary = {} # 天赋加点
+var items: Array = []        # 背包（装备编码，服务器发放）
+var equip: Dictionary = {}   # 已穿戴：部位 → 编码
 ## 测试注入：func(is_get: bool, url: String, body: Dictionary) -> Dictionary
 var transport: Callable = Callable()
 
@@ -127,8 +130,19 @@ func _apply_profile(res: Dictionary) -> void:
 	bests = res.get("bests", {})
 	exp = int(res.get("exp", 0))
 	alloc = Meta.clean_alloc(res.get("alloc", {}))
+	talents = Talents.clean(res.get("talents", {}))
+	items = _codes(res.get("items", []))
+	equip = res.get("equip", {}) if res.get("equip", {}) is Dictionary else {}
 	Save.set_session(nick, token)
 	session_changed.emit()
+
+
+func _codes(v: Variant) -> Array:
+	var out := []
+	if v is Array:
+		for c in v:
+			out.append(str(c))
+	return out
 
 
 func _clear_session() -> void:
@@ -140,6 +154,9 @@ func _clear_session() -> void:
 	bests = {}
 	exp = 0
 	alloc = {}
+	talents = {}
+	items = []
+	equip = {}
 	Save.clear_session()
 	session_changed.emit()
 
@@ -215,6 +232,25 @@ func save_alloc(p_alloc: Dictionary) -> Dictionary:
 	var res := await call_api("saveState", {"state": {"school": Save.school(), "alloc": Meta.clean_alloc(p_alloc)}})
 	if bool(res.get("ok", false)):
 		alloc = Meta.clean_alloc(p_alloc)
+	return res
+
+
+func save_talents(t: Dictionary) -> Dictionary:
+	var res := await call_api("saveState", {"state": {"school": Save.school(), "talents": Talents.clean(t)}})
+	if bool(res.get("ok", false)):
+		talents = Talents.clean(t)
+	return res
+
+
+## 穿戴 / 丢弃装备；成功时以服务器返回的背包和穿戴为准
+func save_gear(p_equip: Dictionary, discard: Array) -> Dictionary:
+	var st := {"school": Save.school(), "equip": p_equip}
+	if not discard.is_empty():
+		st["discard"] = discard
+	var res := await call_api("saveState", {"state": st})
+	if bool(res.get("ok", false)):
+		items = _codes(res.get("items", items))
+		equip = res.get("equip", p_equip)
 	return res
 
 

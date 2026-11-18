@@ -15,6 +15,10 @@ signal account_requested
 signal modal_closed
 signal meta_open_requested
 signal meta_saved(alloc: Dictionary)
+signal talents_open_requested
+signal talents_saved(talents: Dictionary)
+signal gear_open_requested
+signal gear_saved(equip: Dictionary, discard: Array)
 
 var world: GameWorld
 var canvas: Control
@@ -47,6 +51,14 @@ var feedback_panel: Control
 var meta_panel: Control
 var meta_work: Dictionary = {}
 var meta_status: Label
+var talents_panel: Control
+var talents_work: Dictionary = {}
+var talents_status: Label
+var gear_panel: Control
+var gear_equip: Dictionary = {}
+var gear_discard: Array = []
+var gear_drop_mode := false
+var gear_status: Label
 var feedback_type: OptionButton
 var feedback_text: TextEdit
 var feedback_status: Label
@@ -316,6 +328,9 @@ func _build_loadout() -> void:
 	var growth := _button("角色成长 Lv%d%s" % [mp["level"], ("　·%d点未分配" % free_pts) if free_pts > 0 else ""], Vector2(230, 48), 18)
 	growth.pressed.connect(func(): meta_open_requested.emit())
 	srow.add_child(growth)
+	var gbtn := _button("装备（%d）" % Save.items().size(), Vector2(130, 48), 18)
+	gbtn.pressed.connect(func(): gear_open_requested.emit())
+	srow.add_child(gbtn)
 	box.add_child(srow)
 	if Net.configured():
 		var xrow := _center_row(12)
@@ -754,11 +769,253 @@ func _build_meta() -> void:
 		meta_work = Meta.clean_alloc({})
 		_build_meta()
 		meta_panel.visible = true)
+	var tal := _button("天赋树（%d 点可用）" % maxi(0, Talents.total_points(level) - Talents.spent(Save.meta_talents())), Vector2(200, 46), 18)
+	tal.pressed.connect(func(): talents_open_requested.emit())
 	var save := _button("保存", Vector2(160, 46), 22)
 	save.pressed.connect(func(): meta_saved.emit(meta_work.duplicate()))
 	var cancel := _button("返回  [Esc]", Vector2(160, 46), 18)
 	cancel.pressed.connect(func(): modal_closed.emit())
 	btns.add_child(reset)
+	btns.add_child(tal)
+	btns.add_child(save)
+	btns.add_child(cancel)
+	box.add_child(btns)
+
+
+# ---------------------------------------------------------------------
+# 天赋树
+# ---------------------------------------------------------------------
+
+func show_talents() -> void:
+	talents_work = Save.meta_talents()
+	_build_talents()
+	talents_panel.visible = true
+
+
+func hide_talents() -> void:
+	if talents_panel:
+		talents_panel.visible = false
+
+
+func set_talents_status(msg: String, is_error: bool) -> void:
+	if talents_status:
+		talents_status.text = msg
+		talents_status.add_theme_color_override("font_color", Color("#f08070") if is_error else Color("#9ad0a0"))
+
+
+func _talent_click(id: String, delta: int, level: int) -> void:
+	if delta > 0 and Talents.can_add(talents_work, id, level):
+		talents_work[id] = int(talents_work.get(id, 0)) + 1
+	elif delta < 0 and Talents.can_remove(talents_work, id, level):
+		talents_work[id] = int(talents_work[id]) - 1
+		if int(talents_work[id]) == 0:
+			talents_work.erase(id)
+	else:
+		return
+	_build_talents()
+	talents_panel.visible = true
+
+
+func _build_talents() -> void:
+	if talents_panel:
+		talents_panel.queue_free()
+	var pb := _panel_box()
+	talents_panel = pb[0]
+	var box: VBoxContainer = pb[1]
+	box.add_theme_constant_override("separation", 6)
+	var level := Meta.level_of(Save.meta_exp())
+	var free_pts := Talents.total_points(level) - Talents.spent(talents_work)
+	box.add_child(_label("天赋树", 36))
+	box.add_child(_label("可用天赋点 %d　（局外等级 %d）　左键加点，右键减点；每层需要本系更低层投入 ≥ 层号 × %d 点" % [
+		free_pts, level, Talents.gate()], 16, Color("#9ad0a0") if free_pts > 0 else Color("#cfc6ae")))
+	var cols := HBoxContainer.new()
+	cols.add_theme_constant_override("separation", 26)
+	cols.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_child(cols)
+	for b in Talents.branches():
+		var bd: Dictionary = Data.talents["branches"][b]
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", 4)
+		cols.add_child(col)
+		col.add_child(_label("%s　%d / 35" % [bd["name"], Talents.branch_spent(talents_work, b)], 24, Color("#c9a227")))
+		col.add_child(_label(str(bd["desc"]), 13, Color("#8d8670")))
+		var rows: Array = bd["rows"]
+		for r in rows.size():
+			var rw := HBoxContainer.new()
+			rw.add_theme_constant_override("separation", 6)
+			col.add_child(rw)
+			for n in rows[r]:
+				var id: String = n["id"]
+				var rank := int(talents_work.get(id, 0))
+				var bt := Button.new()
+				bt.custom_minimum_size = Vector2(172, 46)
+				bt.clip_text = true
+				bt.focus_mode = Control.FOCUS_NONE
+				bt.add_theme_font_size_override("font_size", 13)
+				bt.text = "%s  %d/%d\n%s" % [n["name"], rank, n["max"], n["desc"]]
+				bt.tooltip_text = "%s（第 %d 层）\n%s" % [n["name"], r + 1, n["desc"]]
+				var open := Talents.can_add(talents_work, id, level) or rank > 0
+				if rank >= int(n["max"]):
+					bt.add_theme_color_override("font_color", Color("#c9a227"))
+				elif rank > 0:
+					bt.add_theme_color_override("font_color", Color("#9ad0a0"))
+				elif not Talents.can_add(talents_work, id, level):
+					bt.modulate = Color(1, 1, 1, 0.45)
+				bt.disabled = not open
+				bt.pressed.connect(_talent_click.bind(id, 1, level))
+				bt.gui_input.connect(func(ev: InputEvent):
+					if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_RIGHT:
+						_talent_click(id, -1, level))
+				rw.add_child(bt)
+	talents_status = _label("", 16, Color("#cfc6ae"))
+	talents_status.custom_minimum_size = Vector2(0, 22)
+	box.add_child(talents_status)
+	var btns := _center_row(16)
+	var reset := _button("全部重置", Vector2(150, 44), 18)
+	reset.pressed.connect(func():
+		talents_work = {}
+		_build_talents()
+		talents_panel.visible = true)
+	var save := _button("保存", Vector2(160, 44), 22)
+	save.pressed.connect(func(): talents_saved.emit(talents_work.duplicate()))
+	var cancel := _button("返回  [Esc]", Vector2(160, 44), 18)
+	cancel.pressed.connect(func(): modal_closed.emit())
+	btns.add_child(reset)
+	btns.add_child(save)
+	btns.add_child(cancel)
+	box.add_child(btns)
+
+
+# ---------------------------------------------------------------------
+# 装备
+# ---------------------------------------------------------------------
+
+func show_gear() -> void:
+	gear_equip = Save.equip()
+	gear_discard = []
+	gear_drop_mode = false
+	_build_gear()
+	gear_panel.visible = true
+
+
+func hide_gear() -> void:
+	if gear_panel:
+		gear_panel.visible = false
+
+
+func set_gear_status(msg: String, is_error: bool) -> void:
+	if gear_status:
+		gear_status.text = msg
+		gear_status.add_theme_color_override("font_color", Color("#f08070") if is_error else Color("#9ad0a0"))
+
+
+func _gear_refresh() -> void:
+	_build_gear()
+	gear_panel.visible = true
+
+
+func _gear_item_click(code: String) -> void:
+	var slot := str(Gear.parse(code)["slot"])
+	if gear_drop_mode:
+		gear_discard.append(code)
+		if gear_equip.get(slot, "") == code:
+			gear_equip.erase(slot)
+	else:
+		gear_equip[slot] = code
+	_gear_refresh()
+
+
+func _gear_button(code: String, w_min: int, h_min: int, compact: bool = false) -> Button:
+	var it := Gear.make(code, Save.school())
+	var bt := Button.new()
+	bt.custom_minimum_size = Vector2(w_min, h_min)
+	bt.focus_mode = Control.FOCUS_NONE
+	bt.add_theme_font_size_override("font_size", 13)
+	var full := "【%s】%s（%s）\n%s" % [it["rarity_name"], it["name"], it["slot_name"], Gear.describe(it)]
+	var second := Gear.describe(it)
+	if compact:
+		var aff: Array = []
+		for a in it["affixes"]:
+			aff.append("★" + str(a["text"]))
+		second = "　".join(aff) if not aff.is_empty() else Gear.describe(it)
+	bt.text = "【%s】%s\n%s" % [it["rarity_name"], it["name"], second] if compact else full
+	bt.tooltip_text = full
+	bt.clip_text = true
+	var col := Color(str(it["color"]))
+	bt.add_theme_color_override("font_color", col)
+	bt.add_theme_color_override("font_hover_color", col)
+	return bt
+
+
+func _build_gear() -> void:
+	if gear_panel:
+		gear_panel.queue_free()
+	var pb := _panel_box()
+	gear_panel = pb[0]
+	var box: VBoxContainer = pb[1]
+	box.add_theme_constant_override("separation", 8)
+	box.add_child(_label("装备", 36))
+	box.add_child(_label("大 Boss（通关）掉落，只会是本流派的装备。★ 是特殊词条，强化某个招式或心法——没有对应招式 / 心法就用不上。", 15, Color("#cfc6ae")))
+	# 五个部位
+	var srow := _center_row(8)
+	var worn: Array = []
+	for slot in Gear.slot_ids():
+		var sd := Gear.slot_def(slot)
+		var bt: Button
+		if gear_equip.has(slot):
+			bt = _gear_button(str(gear_equip[slot]), 232, 74, true)
+			bt.pressed.connect(func():
+				gear_equip.erase(slot)
+				_gear_refresh())
+			worn.append(Gear.make(str(gear_equip[slot]), Save.school()))
+		else:
+			bt = _button("%s\n（空）" % sd["name"], Vector2(232, 74), 14)
+			bt.disabled = true
+		srow.add_child(bt)
+	box.add_child(srow)
+	var bon := Gear.bonuses(worn)
+	var tot: Array = []
+	for k in bon["stats"]:
+		tot.append(Gear.stat_text(str(k), float(bon["stats"][k])))
+	box.add_child(_label("已穿戴合计：" + ("　".join(tot) if not tot.is_empty() else "（无）") + "　　点击已穿戴的装备可卸下", 14, Color("#9ad0a0")))
+	# 背包
+	var inv: Array = []
+	for c in Save.items():
+		if not gear_discard.has(c):
+			inv.append(c)
+	inv.sort_custom(func(a, b): return int(Gear.parse(a)["rarity"]) > int(Gear.parse(b)["rarity"]))
+	box.add_child(_label("背包 %d / %d%s" % [inv.size(), int(Data.gear["inventory_max"]), "　【丢弃模式：点击装备即丢弃，保存后生效】" if gear_drop_mode else "　点击装备穿上"], 18,
+		Color("#f08070") if gear_drop_mode else Color("#c9a227")))
+	var sc := ScrollContainer.new()
+	sc.custom_minimum_size = Vector2(1210, 250)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 6)
+	sc.add_child(grid)
+	box.add_child(sc)
+	if inv.is_empty():
+		grid.add_child(_label("还没有装备。通关一次（击败大 Boss）就会掉落。", 16, Color("#8d8670")))
+	for c in inv:
+		var bt2 := _gear_button(str(c), 596, 52)
+		if gear_equip.values().has(c):
+			bt2.text = "✔ " + bt2.text
+		bt2.pressed.connect(_gear_item_click.bind(str(c)))
+		grid.add_child(bt2)
+	gear_status = _label("", 16, Color("#cfc6ae"))
+	gear_status.custom_minimum_size = Vector2(0, 22)
+	box.add_child(gear_status)
+	var btns := _center_row(16)
+	var dm := _button("丢弃模式：%s" % ("开" if gear_drop_mode else "关"), Vector2(170, 44), 16)
+	dm.pressed.connect(func():
+		gear_drop_mode = not gear_drop_mode
+		_gear_refresh())
+	var save := _button("保存", Vector2(160, 44), 22)
+	save.pressed.connect(func(): gear_saved.emit(gear_equip.duplicate(), gear_discard.duplicate()))
+	var cancel := _button("返回  [Esc]", Vector2(160, 44), 18)
+	cancel.pressed.connect(func(): modal_closed.emit())
+	btns.add_child(dm)
 	btns.add_child(save)
 	btns.add_child(cancel)
 	box.add_child(btns)
@@ -884,7 +1141,7 @@ func _draw_hud() -> void:
 		canvas.draw_line(Vector2(16 + 260 * float(t), 46), Vector2(16 + 260 * float(t), 66), Color(1, 1, 1, 0.9), 2.0)
 	var realm_txt := ""
 	match realm:
-		GameWorld.Realm.YING: realm_txt = "盈 · 伤害+%d%%　催动招式" % int(round((Data.T("ying_dmg") - 1.0) * 100.0))
+		GameWorld.Realm.YING: realm_txt = "盈 · 伤害+%d%%　催动招式" % int(round((Data.T("ying_dmg") + w.st("ying_dmg") - 1.0) * 100.0))
 		GameWorld.Realm.XU: realm_txt = "虚 · 回气加快"
 	if w.meditating():
 		realm_txt = (realm_txt + "　" if realm_txt != "" else "") + "入定"

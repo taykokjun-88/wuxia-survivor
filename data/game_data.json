@@ -25,7 +25,11 @@
     "damage_pct": 0,
     "luck": 0,
     "qg_cd_reduce": 0,
-    "ying_shift": 0
+    "ying_shift": 0,
+    "ying_dmg": 0,
+    "empower_cut": 0,
+    "med_regen": 0,
+    "med_reduce": 0
   },
   "tuning": {
     "spawn_base": 1.0,
@@ -793,5 +797,584 @@
     "damage_pct": 0.02,
     "max_hp": 4,
     "armor": 0.2
+  },
+  "talents": {
+    "row_gate": 3,
+    "branches": {
+      "gang": {
+        "name": "刚",
+        "desc": "催动与爆发：盈境伤害、暴击、破防",
+        "rows": [
+          [
+            {
+              "id": "gang_force",
+              "name": "刚劲",
+              "max": 3,
+              "stat": {
+                "damage_pct": 0.02
+              },
+              "desc": "招式伤害 +2%/级"
+            },
+            {
+              "id": "gang_body",
+              "name": "磐石",
+              "max": 2,
+              "stat": {
+                "max_hp": 10
+              },
+              "desc": "气血 +10/级"
+            }
+          ],
+          [
+            {
+              "id": "gang_crit",
+              "name": "劲透",
+              "max": 3,
+              "stat": {
+                "crit_chance": 0.02
+              },
+              "desc": "暴击率 +2%/级"
+            },
+            {
+              "id": "gang_armor",
+              "name": "铁臂",
+              "max": 2,
+              "stat": {
+                "armor": 0.6
+              },
+              "desc": "防御 +0.6/级"
+            }
+          ],
+          [
+            {
+              "id": "gang_ying",
+              "name": "盈劲",
+              "max": 3,
+              "stat": {
+                "ying_dmg": 0.05
+              },
+              "desc": "盈境伤害 +5%/级"
+            },
+            {
+              "id": "gang_hold",
+              "name": "蓄势",
+              "max": 2,
+              "stat": {
+                "ying_shift": -0.02
+              },
+              "desc": "盈境门槛 −2%/级"
+            }
+          ],
+          [
+            {
+              "id": "gang_cm",
+              "name": "破军",
+              "max": 3,
+              "stat": {
+                "crit_mult": 0.1
+              },
+              "desc": "暴击伤害 +10%/级"
+            },
+            {
+              "id": "gang_force2",
+              "name": "撼山",
+              "max": 2,
+              "stat": {
+                "damage_pct": 0.03
+              },
+              "desc": "招式伤害 +3%/级"
+            }
+          ],
+          [
+            {
+              "id": "gang_emp",
+              "name": "灌注",
+              "max": 3,
+              "stat": {
+                "empower_cut": 0.06
+              },
+              "desc": "催动消耗 −6%/级"
+            },
+            {
+              "id": "gang_shield",
+              "name": "金身",
+              "max": 2,
+              "stat": {
+                "shield_max": 10
+              },
+              "desc": "护盾上限 +10/级"
+            }
+          ],
+          [
+            {
+              "id": "gang_regen",
+              "name": "霸体",
+              "max": 2,
+              "stat": {
+                "neili_regen": 1.5
+              },
+              "desc": "回内力 +1.5/秒每级"
+            },
+            {
+              "id": "gang_ying2",
+              "name": "烈劲",
+              "max": 3,
+              "stat": {
+                "ying_dmg": 0.06
+              },
+              "desc": "盈境伤害 +6%/级"
+            }
+          ],
+          [
+            {
+              "id": "gang_peak",
+              "name": "刚极",
+              "max": 1,
+              "stat": {
+                "ying_dmg": 0.15
+              },
+              "desc": "盈境伤害 +15%"
+            },
+            {
+              "id": "gang_force3",
+              "name": "无坚不摧",
+              "max": 4,
+              "stat": {
+                "damage_pct": 0.03
+              },
+              "desc": "招式伤害 +3%/级"
+            }
+          ]
+        ]
+      },
+      "rou": {
+        "name": "柔",
+        "desc": "调息与生存：入定、回复、护体",
+        "rows": [
+          [
+            {
+              "id": "rou_regen",
+              "name": "调息",
+              "max": 3,
+              "stat": {
+                "hp_regen": 0.3
+              },
+              "desc": "气血回复 +0.3/秒每级"
+            },
+            {
+              "id": "rou_body",
+              "name": "柔骨",
+              "max": 2,
+              "stat": {
+                "max_hp": 8
+              },
+              "desc": "气血 +8/级"
+            }
+          ],
+          [
+            {
+              "id": "rou_neili",
+              "name": "养气",
+              "max": 3,
+              "stat": {
+                "max_neili": 6
+              },
+              "desc": "内力上限 +6/级"
+            },
+            {
+              "id": "rou_med",
+              "name": "静心",
+              "max": 2,
+              "stat": {
+                "med_reduce": 0.04
+              },
+              "desc": "入定减伤 +4%/级"
+            }
+          ],
+          [
+            {
+              "id": "rou_med2",
+              "name": "深定",
+              "max": 3,
+              "stat": {
+                "med_regen": 0.3
+              },
+              "desc": "入定回气 +0.3/级"
+            },
+            {
+              "id": "rou_shield",
+              "name": "绵甲",
+              "max": 2,
+              "stat": {
+                "shield_regen": 1.5
+              },
+              "desc": "护盾回复 +1.5/秒每级"
+            }
+          ],
+          [
+            {
+              "id": "rou_block",
+              "name": "卸力",
+              "max": 3,
+              "stat": {
+                "block_chance": 0.02
+              },
+              "desc": "格挡几率 +2%/级"
+            },
+            {
+              "id": "rou_nr",
+              "name": "绵长",
+              "max": 2,
+              "stat": {
+                "neili_regen": 1.2
+              },
+              "desc": "回内力 +1.2/秒每级"
+            }
+          ],
+          [
+            {
+              "id": "rou_heal",
+              "name": "回春",
+              "max": 3,
+              "stat": {
+                "pickup_heal": 0.3
+              },
+              "desc": "拾取回血 +0.3/级"
+            },
+            {
+              "id": "rou_thorn",
+              "name": "借劲",
+              "max": 2,
+              "stat": {
+                "thorns": 4
+              },
+              "desc": "受击反震 +4/级"
+            }
+          ],
+          [
+            {
+              "id": "rou_full",
+              "name": "太和",
+              "max": 2,
+              "stat": {
+                "full_hp_regen": 0.6
+              },
+              "desc": "充盈时气血回复 +0.6/秒每级"
+            },
+            {
+              "id": "rou_cut",
+              "name": "运功自如",
+              "max": 3,
+              "stat": {
+                "empower_cut": 0.05
+              },
+              "desc": "催动消耗 −5%/级"
+            }
+          ],
+          [
+            {
+              "id": "rou_peak",
+              "name": "柔极",
+              "max": 1,
+              "stat": {
+                "med_reduce": 0.1
+              },
+              "desc": "入定减伤 +10%"
+            },
+            {
+              "id": "rou_armor",
+              "name": "绵里藏针",
+              "max": 4,
+              "stat": {
+                "armor": 0.4
+              },
+              "desc": "防御 +0.4/级"
+            }
+          ]
+        ]
+      },
+      "ling": {
+        "name": "灵",
+        "desc": "身法与机缘：移速、冷却、暴击、福运",
+        "rows": [
+          [
+            {
+              "id": "ling_step",
+              "name": "轻灵",
+              "max": 3,
+              "stat": {
+                "speed_pct": 0.015
+              },
+              "desc": "移速 +1.5%/级"
+            },
+            {
+              "id": "ling_luck",
+              "name": "机缘",
+              "max": 2,
+              "stat": {
+                "luck": 0.03
+              },
+              "desc": "高档升级率 +3%/级"
+            }
+          ],
+          [
+            {
+              "id": "ling_cd",
+              "name": "迅捷",
+              "max": 3,
+              "stat": {
+                "cd_reduce": 0.015
+              },
+              "desc": "招式冷却 −1.5%/级"
+            },
+            {
+              "id": "ling_qg",
+              "name": "踏云",
+              "max": 2,
+              "stat": {
+                "qg_cd_reduce": 0.04
+              },
+              "desc": "轻功冷却 −4%/级"
+            }
+          ],
+          [
+            {
+              "id": "ling_crit",
+              "name": "慧眼",
+              "max": 3,
+              "stat": {
+                "crit_chance": 0.02
+              },
+              "desc": "暴击率 +2%/级"
+            },
+            {
+              "id": "ling_pick",
+              "name": "摄物",
+              "max": 2,
+              "stat": {
+                "pickup_range": 15
+              },
+              "desc": "拾取范围 +15/级"
+            }
+          ],
+          [
+            {
+              "id": "ling_exp",
+              "name": "悟性",
+              "max": 3,
+              "stat": {
+                "exp_pct": 0.03
+              },
+              "desc": "经验获取 +3%/级"
+            },
+            {
+              "id": "ling_dodge",
+              "name": "灵蛇",
+              "max": 2,
+              "stat": {
+                "dodge_chance": 0.02
+              },
+              "desc": "闪避几率 +2%/级"
+            }
+          ],
+          [
+            {
+              "id": "ling_cd2",
+              "name": "疾风",
+              "max": 3,
+              "stat": {
+                "cd_reduce": 0.015
+              },
+              "desc": "招式冷却 −1.5%/级"
+            },
+            {
+              "id": "ling_kill",
+              "name": "采气",
+              "max": 2,
+              "stat": {
+                "kill_neili": 0.5
+              },
+              "desc": "击杀回内力 +0.5/级"
+            }
+          ],
+          [
+            {
+              "id": "ling_luck2",
+              "name": "天机",
+              "max": 2,
+              "stat": {
+                "luck": 0.05
+              },
+              "desc": "高档升级率 +5%/级"
+            },
+            {
+              "id": "ling_cm",
+              "name": "灵犀一点",
+              "max": 3,
+              "stat": {
+                "crit_mult": 0.08
+              },
+              "desc": "暴击伤害 +8%/级"
+            }
+          ],
+          [
+            {
+              "id": "ling_peak",
+              "name": "灵极",
+              "max": 1,
+              "stat": {
+                "cd_reduce": 0.04
+              },
+              "desc": "招式冷却 −4%"
+            },
+            {
+              "id": "ling_step2",
+              "name": "凌波",
+              "max": 4,
+              "stat": {
+                "speed_pct": 0.015
+              },
+              "desc": "移速 +1.5%/级"
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "gear": {
+    "slots": [
+      {
+        "id": "weapon",
+        "name": "武器",
+        "names": [
+          "铁指套",
+          "龙纹拳套",
+          "裂石护腕",
+          "断岳手甲"
+        ],
+        "base": {
+          "damage_pct": 0.04
+        }
+      },
+      {
+        "id": "coat",
+        "name": "上衣",
+        "names": [
+          "粗麻劲装",
+          "青云长衫",
+          "玄铁软甲",
+          "流水道袍"
+        ],
+        "base": {
+          "max_hp": 14,
+          "armor": 0.5
+        }
+      },
+      {
+        "id": "pants",
+        "name": "裤子",
+        "names": [
+          "束脚布裤",
+          "踏风下裳",
+          "乌金护腿",
+          "云纹战裙"
+        ],
+        "base": {
+          "max_hp": 10,
+          "neili_regen": 0.8
+        }
+      },
+      {
+        "id": "boots",
+        "name": "鞋子",
+        "names": [
+          "草编短靴",
+          "追风快靴",
+          "踏雪云履",
+          "行云战靴"
+        ],
+        "base": {
+          "speed_pct": 0.02,
+          "qg_cd_reduce": 0.03
+        }
+      },
+      {
+        "id": "charm",
+        "name": "饰品",
+        "names": [
+          "平安玉佩",
+          "养气香囊",
+          "龙骨扳指",
+          "天机锦囊"
+        ],
+        "base": {
+          "crit_chance": 0.02,
+          "max_neili": 6
+        }
+      }
+    ],
+    "rarity": [
+      {
+        "name": "凡品",
+        "color": "#bdb7a4",
+        "weight": 40,
+        "mult": 1.0,
+        "subs": 0,
+        "affixes": 0
+      },
+      {
+        "name": "良品",
+        "color": "#6fbf73",
+        "weight": 30,
+        "mult": 1.3,
+        "subs": 1,
+        "affixes": 0
+      },
+      {
+        "name": "精品",
+        "color": "#5b9bd5",
+        "weight": 20,
+        "mult": 1.7,
+        "subs": 1,
+        "affixes": 1
+      },
+      {
+        "name": "极品",
+        "color": "#b074d8",
+        "weight": 8,
+        "mult": 2.2,
+        "subs": 2,
+        "affixes": 1
+      },
+      {
+        "name": "传说",
+        "color": "#e0a82e",
+        "weight": 2,
+        "mult": 3.0,
+        "subs": 2,
+        "affixes": 2
+      }
+    ],
+    "subs": {
+      "damage_pct": 0.02,
+      "max_hp": 8,
+      "crit_chance": 0.012,
+      "cd_reduce": 0.01,
+      "neili_regen": 0.6,
+      "armor": 0.3,
+      "luck": 0.02,
+      "exp_pct": 0.02,
+      "speed_pct": 0.01
+    },
+    "affix_skill": {
+      "damage": 12,
+      "cooldown": 6,
+      "range": 10,
+      "empower": 8
+    },
+    "affix_xinfa_chance": 0.3,
+    "inventory_max": 40,
+    "drops_per_win": 1,
+    "extra_drop_chance": 0.5
   }
 }

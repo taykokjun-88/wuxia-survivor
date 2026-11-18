@@ -5,7 +5,7 @@ extends Node
 const DEFAULT_PATH := "user://save.json"
 
 var path := DEFAULT_PATH
-var data: Dictionary = {"school": "", "session": {}, "meta": {"exp": 0, "alloc": {}, "won": false}}
+var data: Dictionary = {"school": "", "session": {}, "meta": {"exp": 0, "alloc": {}, "won": false, "talents": {}, "items": [], "equip": {}}}
 
 
 func _ready() -> void:
@@ -13,7 +13,7 @@ func _ready() -> void:
 
 
 func load_data() -> void:
-	data = {"school": "", "session": {}, "meta": {"exp": 0, "alloc": {}, "won": false}}
+	data = {"school": "", "session": {}, "meta": {"exp": 0, "alloc": {}, "won": false, "talents": {}, "items": [], "equip": {}}}
 	if not FileAccess.file_exists(path):
 		return
 	var f := FileAccess.open(path, FileAccess.READ)
@@ -124,3 +124,68 @@ func add_run_exp(summary: Dictionary) -> Dictionary:
 	save_data()
 	var lv := Meta.level_of(meta_exp())
 	return {"gained": gained, "exp": meta_exp(), "level": lv, "levelUp": lv > old_level}
+
+
+# ---------------------------------------------------------------------
+# 天赋 / 装备（登录时以服务器为准，本地缓存 + 单机存档）
+# ---------------------------------------------------------------------
+
+func meta_talents() -> Dictionary:
+	return Talents.clean(_meta().get("talents", {}))
+
+
+func set_meta_talents(t: Dictionary) -> void:
+	_meta()["talents"] = Talents.clean(t)
+	save_data()
+
+
+func items() -> Array:
+	var out := []
+	var v: Variant = _meta().get("items", [])
+	if v is Array:
+		for c in v:
+			if not Gear.parse(str(c)).is_empty():
+				out.append(str(c))
+	return out
+
+
+## 已穿戴：部位 → 编码（编码必须在背包里）
+func equip() -> Dictionary:
+	var out := {}
+	var inv := items()
+	var e: Variant = _meta().get("equip", {})
+	if e is Dictionary:
+		for slot in e:
+			var c := str(e[slot])
+			if inv.has(c) and str(Gear.parse(c).get("slot", "")) == str(slot):
+				out[str(slot)] = c
+	return out
+
+
+func set_gear(p_items: Array, p_equip: Dictionary) -> void:
+	var m := _meta()
+	m["items"] = p_items.duplicate()
+	m["equip"] = p_equip.duplicate()
+	save_data()
+
+
+## 单机：直接加入背包（超过上限时丢掉最低稀有度、最早的未穿戴装备）
+func add_items(codes: Array) -> void:
+	var inv := items()
+	var eq := equip()
+	for c in codes:
+		inv.append(str(c))
+	while inv.size() > int(Data.gear["inventory_max"]):
+		var worst := -1
+		var worst_r := 99
+		for i in inv.size():
+			if eq.values().has(inv[i]):
+				continue
+			var r := int(Gear.parse(inv[i])["rarity"])
+			if r < worst_r:
+				worst_r = r
+				worst = i
+		if worst < 0:
+			break
+		inv.remove_at(worst)
+	set_gear(inv, eq)

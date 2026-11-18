@@ -253,6 +253,73 @@ test('局外成长：属性分配校验、与 school 存档合并、重新登录
   assert.strictEqual(l1.alloc.pow, 10); assert.strictEqual(l1.alloc.agi, 5); assert.strictEqual(l1.school, 'fist');
 });
 
+const WIN = () => RUN({ won: true, seconds: 750, level: 38, kills: 6100, bosses: 4 });
+function levelUp(e, nick) { for (let i = 0; i < 4; i++) submit(e, nick, WIN()); return e.call({ action: 'login', nick: nick.nick, pin: '4815' }); }
+const saveSt = (e, who, state) => e.call({ action: 'saveState', nick: who.nick, token: who.token, state });
+
+test('天赋：节点表与 game_data.json 一致；校验规则', (e) => {
+  const d = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'game_data.json'), 'utf8'));
+  const want = {};
+  for (const [b, bd] of Object.entries(d.talents.branches)) bd.rows.forEach((row, r) => row.forEach((n) => { want[n.id] = [b, r, n.max]; }));
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(e.ctx.TALENTS)), want, '节点表不同步：运行 python3 tools/sync_talents.py');
+  assert.strictEqual(e.ctx.TALENT_GATE, d.talents.row_gate);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(e.ctx.GEAR.slots)), d.gear.slots.map((s) => s.id));
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(e.ctx.GEAR.weights)), d.gear.rarity.map((r) => r.weight));
+  const me = reg(e, '天赋君'); const l0 = levelUp(e, me);
+  const lv = l0.level; assert.ok(lv >= 10);
+  const ok1 = (t) => saveSt(e, l0, { school: 'fist', talents: t });
+  assert.ok(ok1({ gang_force: 3, gang_body: 2 }).ok, '第 0 层随便加');
+  assert.strictEqual(ok1({ gang_crit: 1 }).err, 'bad_state', '第 1 层需要更低层投入 ≥3');
+  assert.ok(ok1({ gang_force: 3, gang_crit: 3 }).ok, '低层 3 点解锁第 1 层');
+  assert.strictEqual(ok1({ gang_force: 4 }).err, 'bad_state', '超过节点上限');
+  assert.strictEqual(ok1({ nope: 1 }).err, 'bad_state', '未知节点');
+  assert.strictEqual(ok1({ gang_force: 1.5 }).err, 'bad_state');
+  assert.strictEqual(ok1({ gang_force: -1 }).err, 'bad_state');
+  assert.strictEqual(ok1({ gang_peak: 1 }).err, 'bad_state', '第 6 层需要低层 18 点');
+  assert.ok(ok1({ rou_regen: 3, ling_step: 3 }).ok, '三系可以同时加');
+  // 总点数不超过等级：把三系前几层都加满试探
+  const big = {}; let n = 0; for (const [id, v] of Object.entries(e.ctx.TALENTS)) { if (v[1] <= 2) { big[id] = v[2]; n += v[2]; } }
+  assert.ok(n > lv, '测试前提：这组点数应超过可用点数 ' + n + ' vs ' + lv);
+  assert.strictEqual(ok1(big).err, 'bad_state', '超过局外等级的总点数');
+  assert.strictEqual(e.call({ action: 'login', nick: '天赋君', pin: '4815' }).talents.rou_regen, 3, '随登录返回');
+  assert.ok(saveSt(e, e.call({ action: 'login', nick: '天赋君', pin: '4815' }), { school: 'fist' }).ok);
+  assert.strictEqual(e.call({ action: 'login', nick: '天赋君', pin: '4815' }).talents.ling_step, 3, '只带 school 不抹掉天赋');
+});
+
+test('装备：通关掉落（服务器发放）、穿戴 / 丢弃校验、不能伪造', (e) => {
+  const me = reg(e, '装备君');
+  const r0 = submit(e, me, RUN());
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(r0.drops)), [], '阵亡不掉落');
+  const w = submit(e, me, WIN());
+  assert.ok(w.drops.length >= 1 && w.drops.length <= 2, '通关掉 1~2 件');
+  w.drops.forEach((c) => assert.ok(e.ctx.gearValid(c), c));
+  let l = e.call({ action: 'login', nick: '装备君', pin: '4815' });
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(l.items)), JSON.parse(JSON.stringify(w.drops)), '背包 = 掉落');
+  const code = w.drops[0], slot = code.split('.')[0];
+  const s = (state) => saveSt(e, l, Object.assign({ school: 'fist' }, state));
+  const relog = () => { l = e.call({ action: 'login', nick: '装备君', pin: '4815' }); return l; };
+  assert.strictEqual(s({ equip: { [slot]: 'weapon.4.123456' } }).err, 'bad_state', '没发过的编码不能穿');
+  assert.strictEqual(s({ equip: { [slot === 'weapon' ? 'coat' : 'weapon']: code } }).err, 'bad_state', '不能穿到别的部位');
+  assert.strictEqual(s({ equip: { hat: code } }).err, 'bad_state', '没有这个部位');
+  assert.strictEqual(s({ items: ['weapon.4.1'] }).ok, true, '客户端发来的 items 被忽略');
+  assert.strictEqual(relog().items.length, w.drops.length, 'items 不能被客户端改写');
+  assert.ok(s({ equip: { [slot]: code } }).ok);
+  relog();
+  assert.strictEqual(l.equip[slot], code);
+  assert.strictEqual(s({ discard: ['weapon.0.999'] }).err, 'bad_state', '丢弃不存在的装备');
+  assert.ok(s({ discard: [code] }).ok);
+  relog();
+  assert.ok(!l.items.includes(code) && !l.equip[slot], '丢弃后也不再穿着');
+});
+
+test('装备：背包上限，超过时先丢最低稀有度的未穿戴装备', (e) => {
+  const me = reg(e, '背包君');
+  for (let i = 0; i < 30; i++) submit(e, me, WIN());
+  const l = e.call({ action: 'login', nick: '背包君', pin: '4815' });
+  assert.ok(l.items.length <= e.ctx.GEAR.invMax, '背包 ' + l.items.length);
+  assert.strictEqual(l.items.length, e.ctx.GEAR.invMax, '30 次通关 ≥ 30 件，应已满');
+});
+
 test('反馈：入表、类型兜底、限流', (e) => {
   const me = reg(e, '提意见');
   assert.strictEqual(e.call({ action: 'feedback', nick: '提意见', token: me.token, type: 'bug', comment: '' }).err, 'bad_feedback');

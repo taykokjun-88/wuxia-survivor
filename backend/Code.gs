@@ -44,7 +44,8 @@ var CFG = {
   MAX_SECONDS: 1800,
   SUBMIT_GAP_SEC: 20,
   FEEDBACK_PER_DAY: 20,
-  STATE_MAX: 2000
+  STATE_MAX: 2000,        // 客户端一次能发来的存档大小
+  STATE_STORE_MAX: 8000   // 服务器保存的存档总大小（含背包）
 };
 
 // 列下标（0 起）
@@ -215,6 +216,7 @@ function profile(row) {
   return {
     nick: row[P.nick], school: String(row[P.school] || ''), state: state,
     exp: xp, level: metaLevel(xp), alloc: state.alloc || {},
+    talents: state.talents || {}, items: state.items || [], equip: state.equip || {},
     invite: String(row[P.invite] || ''), group: groupName(row[P.invite]),
     bests: { score: Number(row[P.bestScore]) || 0, winSec: Number(row[P.bestWin]) || 0, level: Number(row[P.bestLevel]) || 0,
              runs: Number(row[P.runs]) || 0, wins: Number(row[P.wins]) || 0 }
@@ -323,6 +325,12 @@ function logout(req) {
   return ok({});
 }
 
+// BEGIN GENERATED (tools/sync_talents.py)
+var TALENT_GATE = 3;
+var TALENTS = {"gang_force":["gang",0,3],"gang_body":["gang",0,2],"gang_crit":["gang",1,3],"gang_armor":["gang",1,2],"gang_ying":["gang",2,3],"gang_hold":["gang",2,2],"gang_cm":["gang",3,3],"gang_force2":["gang",3,2],"gang_emp":["gang",4,3],"gang_shield":["gang",4,2],"gang_regen":["gang",5,2],"gang_ying2":["gang",5,3],"gang_peak":["gang",6,1],"gang_force3":["gang",6,4],"rou_regen":["rou",0,3],"rou_body":["rou",0,2],"rou_neili":["rou",1,3],"rou_med":["rou",1,2],"rou_med2":["rou",2,3],"rou_shield":["rou",2,2],"rou_block":["rou",3,3],"rou_nr":["rou",3,2],"rou_heal":["rou",4,3],"rou_thorn":["rou",4,2],"rou_full":["rou",5,2],"rou_cut":["rou",5,3],"rou_peak":["rou",6,1],"rou_armor":["rou",6,4],"ling_step":["ling",0,3],"ling_luck":["ling",0,2],"ling_cd":["ling",1,3],"ling_qg":["ling",1,2],"ling_crit":["ling",2,3],"ling_pick":["ling",2,2],"ling_exp":["ling",3,3],"ling_dodge":["ling",3,2],"ling_cd2":["ling",4,3],"ling_kill":["ling",4,2],"ling_luck2":["ling",5,2],"ling_cm":["ling",5,3],"ling_peak":["ling",6,1],"ling_step2":["ling",6,4]};
+var GEAR = {"slots":["weapon","coat","pants","boots","charm"],"weights":[40,30,20,8,2],"invMax":40,"drops":1,"extra":0.5};
+// END GENERATED
+
 // ---------------------------------------------------------------- 局外成长（scripts/meta.gd 里有同一份，共用 meta_vectors.json 测试）
 var META = { MAX_LEVEL: 50, PER_LEVEL: 3, ATTR_CAP: 99, EXP_CAP: 400, WIN_BONUS: 40, FIRST_WIN_BONUS: 100,
              ATTRS: ['pow', 'agi', 'vit', 'int', 'luk'] };
@@ -354,6 +362,62 @@ function cleanAlloc(a, level) {
     out[k] = v; sum += v;
   }
   return sum <= META.PER_LEVEL * (level - 1) ? out : null;
+}
+
+/** 天赋校验：节点存在、不超过上限；每个有点数的节点，本系「更低层」投入合计 ≥ 层号 × TALENT_GATE；总点数 ≤ 局外等级 */
+function cleanTalents(t, level) {
+  if (typeof t !== 'object' || t === null || Array.isArray(t)) return null;
+  var out = {}, total = 0, ids = Object.keys(t);
+  for (var i = 0; i < ids.length; i++) {
+    var id = ids[i], n = TALENTS[id], v = Number(t[id]);
+    if (!n || !(v >= 0 && v <= n[2]) || Math.floor(v) !== v) return null;
+    if (v > 0) { out[id] = v; total += v; }
+  }
+  if (total > level) return null;
+  var all = Object.keys(out);
+  for (var a = 0; a < all.length; a++) {
+    var na = TALENTS[all[a]], lower = 0;
+    for (var b = 0; b < all.length; b++) { var nb = TALENTS[all[b]]; if (nb[0] === na[0] && nb[1] < na[1]) lower += out[all[b]]; }
+    if (lower < na[1] * TALENT_GATE) return null;
+  }
+  return out;
+}
+
+/** 装备编码 "部位.稀有度.种子"（服务器只认自己发过的编码） */
+function gearValid(code) {
+  var p = String(code).split('.');
+  return p.length === 3 && GEAR.slots.indexOf(p[0]) >= 0 && /^\d+$/.test(p[1]) && Number(p[1]) < GEAR.weights.length && /^\d{1,7}$/.test(p[2]);
+}
+function gearRoll() {
+  var total = 0, i;
+  for (i = 0; i < GEAR.weights.length; i++) total += GEAR.weights[i];
+  var x = Math.random() * total, r = 0;
+  for (i = 0; i < GEAR.weights.length; i++) { x -= GEAR.weights[i]; if (x < 0) { r = i; break; } }
+  return GEAR.slots[Math.floor(Math.random() * GEAR.slots.length)] + '.' + r + '.' + (1 + Math.floor(Math.random() * 999999));
+}
+/** 胜利时掉落；返回新掉落的编码，并写进 state.items（超过上限先丢最低稀有度、最早的未穿戴装备） */
+function gearDrops(state) {
+  var n = GEAR.drops + (Math.random() < GEAR.extra ? 1 : 0), codes = [];
+  state.items = Array.isArray(state.items) ? state.items : [];
+  for (var i = 0; i < n; i++) { var c = gearRoll(); codes.push(c); state.items.push(c); }
+  var worn = {}, eq = state.equip || {};
+  Object.keys(eq).forEach(function (k) { worn[eq[k]] = true; });
+  while (state.items.length > GEAR.invMax) {
+    var worst = -1, wr = 99;
+    for (var j = 0; j < state.items.length; j++) {
+      if (worn[state.items[j]]) continue;
+      var r = Number(state.items[j].split('.')[1]);
+      if (r < wr) { wr = r; worst = j; }
+    }
+    if (worst < 0) break;
+    state.items.splice(worst, 1);
+  }
+  return codes;
+}
+function readState(row) {
+  var st = {};
+  try { st = JSON.parse(row[P.state] || '{}'); } catch (e) {}
+  return st && typeof st === 'object' ? st : {};
 }
 
 // ---------------------------------------------------------------- 成绩
@@ -408,6 +472,12 @@ function submitScore(req) {
     var bw = Number(row[P.bestWin]) || 0;
     if (bw === 0 || run.seconds < bw) row[P.bestWin] = Math.round(run.seconds);
   }
+  var drops = [];
+  if (run.won) {            // 大 Boss 被击败（通关）：掉落装备，写进服务器存档
+    var stt = readState(row);
+    drops = gearDrops(stt);
+    row[P.state] = JSON.stringify(stt);
+  }
   row[P.updated] = iso();
   row[P.lastSubmit] = iso();
   savePlayer(f);
@@ -418,7 +488,7 @@ function submitScore(req) {
     level: rankOf(row[P.nick], 'level')
   };
   var pr = profile(row);
-  return ok({ score: score, best: best, ranks: ranks, bests: pr.bests, gained: gained, exp: pr.exp, level: pr.level, levelUp: pr.level > oldLevel });
+  return ok({ score: score, best: best, ranks: ranks, bests: pr.bests, gained: gained, exp: pr.exp, level: pr.level, levelUp: pr.level > oldLevel, drops: drops });
 }
 
 // ---------------------------------------------------------------- 排行榜
@@ -467,29 +537,59 @@ function saveState(req) {
   var a = authed(req);
   if (a.err) return a.err;
   var st = req.state;
-  if (typeof st !== 'object' || st === null) return fail('bad_state', '存档格式不对');
-  var text = JSON.stringify(st);
-  if (text.length > CFG.STATE_MAX) return fail('bad_state', '存档太大');
-  var school = String(st.school || '');
-  if (school !== '' && !/^[a-z_]{1,16}$/.test(school)) return fail('bad_state', '存档格式不对');
+  if (typeof st !== 'object' || st === null || Array.isArray(st)) return fail('bad_state', '存档格式不对');
+  if (JSON.stringify(st).length > CFG.STATE_MAX) return fail('bad_state', '存档太大');
+  var row = a.found.row, old = readState(row);
+  var lv = metaLevel(Number(row[P.xp]) || 0);
+  var school = row[P.school];
+  if (st.school !== undefined) {
+    school = String(st.school || '');
+    if (school !== '' && !/^[a-z_]{1,16}$/.test(school)) return fail('bad_state', '存档格式不对');
+    old.school = school;
+  }
   if (st.alloc !== undefined) {
-    var lv = metaLevel(Number(a.found.row[P.xp]) || 0);
     var clean = cleanAlloc(st.alloc, lv);
     if (!clean) return fail('bad_state', '属性点分配不合法');
-    st.alloc = clean;
-    text = JSON.stringify(st);
+    old.alloc = clean;
   }
-  // 与已有存档合并：只带 school 的请求不会抹掉属性分配
-  var old = {};
-  try { old = JSON.parse(a.found.row[P.state] || '{}'); } catch (e) {}
-  Object.keys(st).forEach(function (k) { old[k] = st[k]; });
-  text = JSON.stringify(old);
-  if (text.length > CFG.STATE_MAX) return fail('bad_state', '存档太大');
-  a.found.row[P.state] = text;
-  a.found.row[P.school] = school;
-  a.found.row[P.updated] = iso();
+  if (st.talents !== undefined) {
+    var tl = cleanTalents(st.talents, lv);
+    if (!tl) return fail('bad_state', '天赋加点不合法');
+    old.talents = tl;
+  }
+  // 背包只能由服务器发放（通关掉落）；客户端只能「丢弃」和「穿戴」自己背包里已有的装备
+  var items = Array.isArray(old.items) ? old.items.slice() : [];
+  if (st.discard !== undefined) {
+    if (!Array.isArray(st.discard) || st.discard.length > GEAR.invMax) return fail('bad_state', '丢弃列表不对');
+    for (var i = 0; i < st.discard.length; i++) {
+      var at = items.indexOf(String(st.discard[i]));
+      if (at < 0) return fail('bad_state', '背包里没有这件装备');
+      items.splice(at, 1);
+    }
+    old.items = items;
+  }
+  var equip = old.equip && typeof old.equip === 'object' ? old.equip : {};
+  if (st.equip !== undefined) {
+    if (typeof st.equip !== 'object' || st.equip === null || Array.isArray(st.equip)) return fail('bad_state', '穿戴格式不对');
+    equip = {};
+    var slots = Object.keys(st.equip);
+    for (var j = 0; j < slots.length; j++) {
+      var code = String(st.equip[slots[j]]);
+      if (GEAR.slots.indexOf(slots[j]) < 0 || !gearValid(code) || code.split('.')[0] !== slots[j] || items.indexOf(code) < 0)
+        return fail('bad_state', '这件装备不能穿在这里');
+      equip[slots[j]] = code;
+    }
+  }
+  // 被丢掉的装备不能还穿着
+  Object.keys(equip).forEach(function (k) { if (items.indexOf(equip[k]) < 0) delete equip[k]; });
+  old.equip = equip;
+  var text = JSON.stringify(old);
+  if (text.length > CFG.STATE_STORE_MAX) return fail('bad_state', '存档太大');
+  row[P.state] = text;
+  row[P.school] = school;
+  row[P.updated] = iso();
   savePlayer(a.found);
-  return ok({});
+  return ok({ items: old.items || [], equip: equip });
 }
 
 function addFeedback(req) {

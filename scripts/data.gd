@@ -12,6 +12,8 @@ var directions: Dictionary = {}   # 升级方向
 var tiers: Array = []             # 升级档位：小成 / 中成 / 大成 / 灵机一动
 var max_upgrades := 11             # 技能最多升级次数（起始 1 层 → 最高 12 层）
 var enemies: Dictionary = {}
+var talents: Dictionary = {}      # 天赋树：{row_gate, branches}
+var gear: Dictionary = {}         # 装备：部位 / 稀有度 / 词条池
 var font_bold: Font               # 楷体粗体（"极"等需要突出的字）
 
 
@@ -32,6 +34,8 @@ func _ready() -> void:
 	tiers = d["tiers"]
 	max_upgrades = int(d["max_upgrades"])
 	enemies = d["enemies"]
+	talents = d["talents"]
+	gear = d["gear"]
 	_setup_input()
 	_load_font()
 

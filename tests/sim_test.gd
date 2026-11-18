@@ -19,6 +19,7 @@ func _ready() -> void:
 		await _net_test()
 		_meta_test()
 		_neili_test()
+		_build_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
 		_skill_matrix()
@@ -401,6 +402,115 @@ var net_calls: Array = []
 var fake_reply: Dictionary = {}
 
 
+func _build_test() -> void:
+	print("\n=== 天赋树 / 装备 ===")
+	# 天赋树结构：三系各 7 层、每层 5 点，共 35 点；节点属性都是已有的属性
+	var all := Talents.nodes()
+	for b in Talents.branches():
+		var sum := 0
+		for id in all:
+			if all[id]["branch"] == b:
+				sum += int(all[id]["max"])
+		_check(sum == 35, "%s 系应共 35 点（实际 %d）" % [b, sum])
+	for id in all:
+		for k in all[id]["stat"]:
+			_check(Data.player_base.has(k), "天赋 %s 用了不存在的属性 %s" % [id, k])
+	# 解锁规则
+	var t := {}
+	_check(Talents.can_add(t, "gang_force", 10) and not Talents.can_add(t, "gang_crit", 10), "第 1 层要先在更低层投入 3 点")
+	t = {"gang_force": 3}
+	_check(Talents.can_add(t, "gang_crit", 10), "低层 3 点后解锁第 1 层")
+	t = {"gang_force": 3, "gang_crit": 1}
+	_check(not Talents.can_remove(t, "gang_force", 10), "已有第 1 层点数时，不能把低层减到不足 3")
+	_check(Talents.can_remove(t, "gang_crit", 10), "可以减掉高层的点")
+	_check(not Talents.can_add({"gang_force": 3}, "gang_force", 10), "满级节点不能再加")
+	_check(not Talents.can_add({"gang_force": 3, "gang_body": 1}, "gang_body", 4), "总点数用完不能再加（等级 4）")
+	_check(Talents.valid({"gang_force": 3, "rou_regen": 3, "ling_step": 3}, 9) and not Talents.valid({"gang_force": 3, "rou_regen": 3, "ling_step": 3}, 8), "总点数 ≤ 局外等级；三系可同时加")
+	_check(Talents.clean({"gang_force": 99, "zzz": 5, "rou_regen": -2}) == {"gang_force": 3}, "天赋规范化")
+	var tst := Talents.stats_for({"gang_force": 2, "gang_ying": 0})
+	_check(absf(float(tst["damage_pct"]) - 0.04) < 1e-9, "天赋效果叠加")
+	# 装备：编码、确定性、稀有度、词条
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 5
+	var counts := [0, 0, 0, 0, 0]
+	var has_xinfa := false
+	var has_skill := false
+	for i in 3000:
+		var code := Gear.roll_code(rng)
+		var it := Gear.make(code)
+		_check(not it.is_empty() and Gear.make(code) == it, "装备应能由编码确定地展开：" + code)
+		counts[int(it["rarity"])] += 1
+		var rd := Gear.rarity_def(int(it["rarity"]))
+		_check(it["affixes"].size() <= int(rd["affixes"]) and it["affixes"].size() >= 1 or int(rd["affixes"]) == 0, "词条数量")
+		for a in it["affixes"]:
+			if str(a["kind"]) == "xinfa":
+				has_xinfa = true
+				_check(Data.xinfa.has(a["id"]), "心法词条指向存在的心法")
+			else:
+				has_skill = true
+				_check(str(Data.skills[a["id"]]["school"]) == "fist", "词条只会强化本流派的招式")
+		for k in it["stats"]:
+			_check(Data.player_base.has(k), "装备属性 %s 不存在" % k)
+	_check(counts[0] > counts[1] and counts[1] > counts[2] and counts[2] > counts[3] and counts[3] > counts[4] and counts[4] > 0, "稀有度分布递减：%s" % str(counts))
+	_check(has_xinfa and has_skill, "两类词条都应出现")
+	_check(Gear.parse("weapon.9.1").is_empty() and Gear.parse("hat.0.1").is_empty() and Gear.parse("weapon.1").is_empty() and not Gear.parse("weapon.1.77").is_empty(), "编码格式校验")
+	var legend := Gear.make("weapon.4.4242")
+	var common := Gear.make("weapon.0.4242")
+	_check(float(legend["stats"]["damage_pct"]) > float(common["stats"]["damage_pct"]) * 2.5, "传说的基础属性远高于凡品")
+	_check(legend["affixes"].size() == 2 and common["affixes"].is_empty(), "传说 2 条词条，凡品没有")
+	var dr := Gear.roll_drops(rng)
+	_check(dr.size() >= 1 and dr.size() <= 2, "通关掉落 1~2 件")
+	# 装备加成进入战斗属性：伤害、技能词条、心法词条
+	var w := _new_world(31, "chain_fist")
+	w.skills.clear()
+	var item := {"stats": {"damage_pct": 0.1, "max_hp": 20.0}, "affixes": [
+		{"kind": "skill", "id": "chain_fist", "dir": "damage", "v": 30.0},
+		{"kind": "skill", "id": "chain_fist", "dir": "empower", "v": 20.0},
+		{"kind": "xinfa", "id": "tiegu", "v": 2}]}
+	var hp0 := w.st("max_hp")
+	var gb := Gear.bonuses([item])
+	Build.merge(w.talent_stats, gb["stats"])
+	w.gear_skill_mods = gb["skill_mods"]
+	w.gear_xinfa = gb["xinfa"]
+	w.add_skill("chain_fist")
+	w.recalc()
+	_check(absf(w.st("max_hp") - (hp0 + 20.0)) < 0.01 and w.st("damage_pct") >= 0.1, "装备基础属性生效")
+	var sk: SkillBase = w.skills["chain_fist"]
+	var c0 := float(Data.skills["chain_fist"]["empower_cost"]) * Data.T("empower_cost_mult")
+	_check(absf(float(sk.mods["damage"]) - 0.3) < 1e-9 and absf(sk.empower_cost() - c0 * 0.8) < 1e-6, "技能词条：伤害 +30%、催动消耗 −20%")
+	w.xinfa["tiegu"] = 1
+	w.recalc()
+	_check(absf(w.st("block_chance") - float(Data.xinfa["tiegu"]["per_level"]["block_chance"]) * 3.0) < 1e-9, "心法词条：已学的心法 +2 级（1 → 3）")
+	w.xinfa.clear()
+	w.recalc()
+	_check(w.st("block_chance") == 0.0, "没学会的心法，词条不生效")
+	_free_world(w)
+	# 天赋 + 装备 + 属性点合成
+	var w2 := _new_world(32)
+	Build.apply_to(w2, {"pow": 10}, {"gang_force": 3}, {}, "fist")
+	_check(absf(float(w2.talent_stats["damage_pct"]) - (0.05 + 0.06)) < 1e-9, "属性点 + 天赋合并")
+	_free_world(w2)
+	# 存档：背包 / 穿戴；单机掉落；上限
+	var old_path: String = Save.path
+	Save.path = "user://test_gear_save.json"
+	Save.load_data()
+	Save.add_items(["weapon.0.1", "coat.1.2"])
+	Save.set_gear(Save.items(), {"weapon": "weapon.0.1", "coat": "pants.0.9"})
+	_check(Save.equip() == {"weapon": "weapon.0.1"}, "穿戴必须是背包里的、且部位对得上")
+	var many := []
+	for i in 60:
+		many.append("charm.0.%d" % (100 + i))
+	Save.add_items(many)
+	_check(Save.items().size() == int(Data.gear["inventory_max"]) and Save.items().has("weapon.0.1"), "背包有上限，穿着的不会被挤掉")
+	Save.set_meta_talents({"gang_force": 2, "zzz": 1})
+	Save.load_data()
+	_check(Save.meta_talents() == {"gang_force": 2} and Save.equip().has("weapon"), "天赋 / 装备持久化")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_gear_save.json"))
+	Save.path = old_path
+	Save.load_data()
+	print("  天赋结构 / 解锁规则 / 装备生成 / 词条生效 / 合成加成 / 存档与上限  OK")
+
+
 func _neili_test() -> void:
 	print("\n=== 内力：气海三境 / 催动 / 入定 ===")
 	var w := _new_world(5)
@@ -613,6 +723,11 @@ func _net_test() -> void:
 	var sv: Dictionary = await Net.save_alloc({"pow": 7, "hax": 99})
 	_check(bool(sv["ok"]) and net_calls[-1]["body"]["state"]["alloc"] == {"pow": 7, "agi": 0, "vit": 0, "int": 0, "luk": 0}
 		and net_calls[-1]["body"]["state"]["school"] == "fist", "保存属性点：只带五种属性、同时带流派")
+	var tv: Dictionary = await Net.save_talents({"gang_force": 3, "bogus": 2})
+	_check(bool(tv["ok"]) and net_calls[-1]["body"]["state"]["talents"] == {"gang_force": 3}, "保存天赋：只带有效节点")
+	var gv: Dictionary = await Net.save_gear({"weapon": "weapon.1.5"}, ["coat.0.1"])
+	_check(bool(gv["ok"]) and net_calls[-1]["body"]["state"]["equip"] == {"weapon": "weapon.1.5"}
+		and net_calls[-1]["body"]["state"]["discard"] == ["coat.0.1"], "保存装备：穿戴 + 丢弃列表")
 	# 排行榜：GET，不带令牌
 	await Net.board("score")
 	_check(net_calls[-1]["get"] and net_calls[-1]["body"]["kind"] == "score" and not net_calls[-1]["body"].has("token"), "读榜应为 GET 且不带令牌")

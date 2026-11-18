@@ -37,6 +37,10 @@ func _ready() -> void:
 	hud.modal_closed.connect(_close_modal)
 	hud.meta_open_requested.connect(_open_meta)
 	hud.meta_saved.connect(_on_meta_saved)
+	hud.talents_open_requested.connect(_open_talents)
+	hud.talents_saved.connect(_on_talents_saved)
+	hud.gear_open_requested.connect(_open_gear)
+	hud.gear_saved.connect(_on_gear_saved)
 	world.player_died.connect(_on_end.bind(false))
 	world.victory.connect(_on_end.bind(true))
 	_show_game(false)
@@ -151,7 +155,9 @@ func _on_auth_submitted(mode: String, nick: String, pin: String, code: String) -
 
 ## 登录成功：以云端流派为准；云端没有而本机有，则上传
 func _after_login() -> void:
-	Save.store_meta(Net.exp, Net.alloc)        # 修为 / 属性点以服务器为准
+	Save.store_meta(Net.exp, Net.alloc)        # 修为 / 属性点 / 天赋 / 装备以服务器为准
+	Save.set_meta_talents(Net.talents)
+	Save.set_gear(Net.items, Net.equip)
 	if Net.school != "":
 		Save.create_character(Net.school)
 	elif Save.has_character():
@@ -215,7 +221,7 @@ func _on_recreate() -> void:
 func _on_loadout(starter_id: String, qinggong_id: String) -> void:
 	if state != State.LOADOUT:
 		return
-	world.talent_stats = Meta.stats_for(Save.meta_alloc())
+	Build.apply_to(world, Save.meta_alloc(), Save.meta_talents(), Save.equip(), Save.school())
 	world.start_run(starter_id, qinggong_id)
 	hud.hide_loadout()
 	_show_game(true)
@@ -256,9 +262,15 @@ func _on_end(won: bool) -> void:
 	hud.hide_choices()
 	hud.show_end(won)
 	if not Net.configured():
-		# 单机：本地直接结算修为
+		# 单机：本地直接结算修为，通关掉落装备
 		if world.time >= 30.0:
-			hud.set_end_extra(_exp_line(Save.add_run_exp(world.run_summary())))
+			var local := Save.add_run_exp(world.run_summary())
+			if won:
+				var rng := RandomNumberGenerator.new()
+				rng.randomize()
+				local["drops"] = Gear.roll_drops(rng)
+				Save.add_items(local["drops"])
+			hud.set_end_extra(_exp_line(local))
 		return
 	if not Net.logged_in() or world.time < 30.0:
 		return
@@ -268,6 +280,8 @@ func _on_end(won: bool) -> void:
 		return
 	if bool(res.get("ok", false)):
 		Save.store_meta(Net.exp, Save.meta_alloc())
+		if won and res.get("drops", []) is Array:
+			Save.add_items(res["drops"])
 		var ranks: Dictionary = res.get("ranks", {})
 		var line := "已上榜：总分榜第 %d 名" % int(ranks.get("score", 0))
 		if bool(res.get("best", false)):
@@ -281,6 +295,14 @@ func _exp_line(r: Dictionary) -> String:
 	var line := "修为 +%d　局外 Lv%d" % [int(r.get("gained", 0)), int(r.get("level", 1))]
 	if bool(r.get("levelUp", false)):
 		line += "　升级了！获得 3 个属性点、1 个天赋点"
+	var drops: Variant = r.get("drops", [])
+	if drops is Array and not (drops as Array).is_empty():
+		var names: Array = []
+		for c in drops:
+			var it := Gear.make(str(c), Save.school())
+			if not it.is_empty():
+				names.append("【%s】%s" % [it["rarity_name"], it["name"]])
+		line += "\n大 Boss 掉落：" + "　".join(names) + "（开局界面「装备」里穿戴）"
 	return line
 
 
@@ -330,6 +352,51 @@ func _on_meta_saved(alloc: Dictionary) -> void:
 	_close_modal()
 
 
+func _open_talents() -> void:
+	if state != State.MODAL:
+		return
+	hud.hide_meta()
+	hud.show_talents()
+
+
+func _on_talents_saved(t: Dictionary) -> void:
+	if state != State.MODAL:
+		return
+	if Net.logged_in():
+		hud.set_talents_status("保存中…", false)
+		var res: Dictionary = await Net.save_talents(t)
+		if not bool(res.get("ok", false)):
+			hud.set_talents_status(str(res.get("msg", "保存失败，请稍后再试")), true)
+			return
+	Save.set_meta_talents(t)
+	_close_modal()
+
+
+func _open_gear() -> void:
+	if state != State.LOADOUT:
+		return
+	_open_modal()
+	hud.show_gear()
+
+
+func _on_gear_saved(equip: Dictionary, discard: Array) -> void:
+	if state != State.MODAL:
+		return
+	if Net.logged_in():
+		hud.set_gear_status("保存中…", false)
+		var res: Dictionary = await Net.save_gear(equip, discard)
+		if not bool(res.get("ok", false)):
+			hud.set_gear_status(str(res.get("msg", "保存失败，请稍后再试")), true)
+			return
+		Save.set_gear(Net.items, Net.equip)
+	else:
+		var inv := Save.items()
+		for c in discard:
+			inv.erase(c)
+		Save.set_gear(inv, equip)
+	_close_modal()
+
+
 func _open_feedback() -> void:
 	if state != State.LOADOUT:
 		return
@@ -355,6 +422,8 @@ func _close_modal() -> void:
 	hud.hide_board()
 	hud.hide_feedback()
 	hud.hide_meta()
+	hud.hide_talents()
+	hud.hide_gear()
 	state = modal_return
 	if modal_return == State.LOADOUT:
 		_enter_loadout()
