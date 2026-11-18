@@ -6,6 +6,7 @@ const path = require('path');
 const { makeEnv } = require('./harness');
 
 const vectors = JSON.parse(fs.readFileSync(path.join(__dirname, 'score_vectors.json'), 'utf8'));
+const mv = JSON.parse(fs.readFileSync(path.join(__dirname, 'meta_vectors.json'), 'utf8'));
 const cases = [];
 const test = (name, fn) => cases.push({ name, fn });
 
@@ -209,6 +210,47 @@ test('云存档：保存 / 随登录返回 / 校验', (e) => {
   assert.strictEqual(e.call({ action: 'saveState', nick: '存档君', token: 'bad', state: { school: 'fist' } }).err, 'bad_token');
   const l = e.call({ action: 'login', nick: '存档君', pin: '4815' });
   assert.strictEqual(l.school, 'fist'); assert.strictEqual(l.state.school, 'fist');
+});
+
+test('局外成长：公式与客户端一致（共用向量）', (e) => {
+  for (const v of mv.levels) assert.strictEqual(e.ctx.metaLevel(v.exp), v.level, JSON.stringify(v));
+  for (const v of mv.effective) assert.ok(Math.abs(e.ctx.metaEffective(v.points) - v.eff) < 1e-3, JSON.stringify(v));
+  for (const v of mv.runExp) assert.strictEqual(e.ctx.metaRunExp(v.score, v.won, v.first), v.exp, JSON.stringify(v));
+});
+
+test('局外成长：提交成绩得修为；首次通关额外奖励；升级', (e) => {
+  const me = reg(e, '修行者');
+  assert.strictEqual(me.exp, 0); assert.strictEqual(me.level, 1);
+  const r1 = submit(e, me, RUN({ level: 12, kills: 800, seconds: 300 }));   // 得分 2000 → 25 修为
+  assert.strictEqual(r1.gained, 25); assert.strictEqual(r1.exp, 25); assert.strictEqual(r1.level, 1); assert.strictEqual(r1.levelUp, false);
+  const r2 = submit(e, me, RUN({ level: 12, kills: 800, seconds: 300 }));   // +25 = 50 → Lv2
+  assert.strictEqual(r2.level, 2); assert.strictEqual(r2.levelUp, true);
+  const w1 = submit(e, me, RUN({ won: true, seconds: 750, level: 38, kills: 6100, bosses: 4 }));   // 20400 → 255 + 40 + 100
+  assert.strictEqual(w1.gained, 255 + 40 + 100);
+  const w2 = submit(e, me, RUN({ won: true, seconds: 750, level: 38, kills: 6100, bosses: 4 }));
+  assert.strictEqual(w2.gained, 255 + 40, '第二次通关没有首胜奖励');
+  const l = e.call({ action: 'login', nick: '修行者', pin: '4815' });
+  assert.strictEqual(l.exp, r2.exp + 395 + 295);
+});
+
+test('局外成长：属性分配校验、与 school 存档合并、重新登录返回', (e) => {
+  const me = reg(e, '分配君');
+  const save = (alloc) => e.call({ action: 'saveState', nick: '分配君', token: me.token, state: { school: 'fist', alloc } });
+  assert.strictEqual(save({ pow: 1 }).err, 'bad_state', '1 级没有属性点');
+  for (let i = 0; i < 4; i++) submit(e, me, RUN({ level: 38, kills: 6100, seconds: 750, won: true, bosses: 4 }));   // 大量修为 → 高等级
+  const l0 = e.call({ action: 'login', nick: '分配君', pin: '4815' });
+  assert.ok(l0.level >= 10);
+  const budget = 3 * (l0.level - 1);
+  assert.ok(e.call({ action: 'saveState', nick: '分配君', token: l0.token, state: { school: 'fist', alloc: { pow: 10, agi: 5, vit: 0, int: 0, luk: 0 } } }).ok);
+  assert.strictEqual(e.call({ action: 'saveState', nick: '分配君', token: l0.token, state: { school: 'fist', alloc: { pow: 100 } } }).err, 'bad_state', '单项上限 99');
+  assert.strictEqual(e.call({ action: 'saveState', nick: '分配君', token: l0.token, state: { school: 'fist', alloc: { pow: 1.5 } } }).err, 'bad_state');
+  assert.strictEqual(e.call({ action: 'saveState', nick: '分配君', token: l0.token, state: { school: 'fist', alloc: { pow: -1 } } }).err, 'bad_state');
+  assert.strictEqual(e.call({ action: 'saveState', nick: '分配君', token: l0.token, state: { school: 'fist', alloc: { pow: budget + 1 } } }).err, 'bad_state', '超过可用点数');
+  assert.strictEqual(e.call({ action: 'saveState', nick: '分配君', token: l0.token, state: { school: 'fist', alloc: { hax: 5 } } }).err, undefined, '多余的键被忽略');
+  assert.ok(e.call({ action: 'saveState', nick: '分配君', token: l0.token, state: { school: 'fist', alloc: { pow: 10, agi: 5 } } }).ok);
+  assert.ok(e.call({ action: 'saveState', nick: '分配君', token: l0.token, state: { school: 'fist' } }).ok);   // 只带 school：不抹掉分配
+  const l1 = e.call({ action: 'login', nick: '分配君', pin: '4815' });
+  assert.strictEqual(l1.alloc.pow, 10); assert.strictEqual(l1.alloc.agi, 5); assert.strictEqual(l1.school, 'fist');
 });
 
 test('反馈：入表、类型兜底、限流', (e) => {

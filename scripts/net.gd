@@ -17,6 +17,8 @@ var school := ""
 var invite := ""        # 注册时用的邀请码（决定所属群）
 var group_name := ""    # 所属群的名称（邀请表里的「名称」）
 var bests: Dictionary = {}
+var exp := 0            # 修为（服务器为准）
+var alloc: Dictionary = {}   # 属性点分配
 ## 测试注入：func(is_get: bool, url: String, body: Dictionary) -> Dictionary
 var transport: Callable = Callable()
 
@@ -123,6 +125,8 @@ func _apply_profile(res: Dictionary) -> void:
 	invite = str(res.get("invite", ""))
 	group_name = str(res.get("group", ""))
 	bests = res.get("bests", {})
+	exp = int(res.get("exp", 0))
+	alloc = Meta.clean_alloc(res.get("alloc", {}))
 	Save.set_session(nick, token)
 	session_changed.emit()
 
@@ -134,6 +138,8 @@ func _clear_session() -> void:
 	invite = ""
 	group_name = ""
 	bests = {}
+	exp = 0
+	alloc = {}
 	Save.clear_session()
 	session_changed.emit()
 
@@ -187,6 +193,7 @@ func submit_run(summary: Dictionary) -> Dictionary:
 	var res := await call_api("submit", body)
 	if bool(res.get("ok", false)):
 		bests = res.get("bests", bests)
+		exp = int(res.get("exp", exp))
 	return res
 
 
@@ -201,6 +208,14 @@ func board(kind: String, group_only: bool = false) -> Dictionary:
 func save_state(p_school: String) -> Dictionary:
 	school = p_school
 	return await call_api("saveState", {"state": {"school": p_school}})
+
+
+## 保存属性点分配（服务器会校验总点数不超过已获得的点数）
+func save_alloc(p_alloc: Dictionary) -> Dictionary:
+	var res := await call_api("saveState", {"state": {"school": Save.school(), "alloc": Meta.clean_alloc(p_alloc)}})
+	if bool(res.get("ok", false)):
+		alloc = Meta.clean_alloc(p_alloc)
+	return res
 
 
 func send_feedback(type: String, where: String, comment: String) -> Dictionary:

@@ -17,6 +17,7 @@ func _ready() -> void:
 		_save_test()
 		_sprite_anim_test()
 		await _net_test()
+		_meta_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
 		_skill_matrix()
@@ -366,6 +367,68 @@ var net_calls: Array = []
 var fake_reply: Dictionary = {}
 
 
+func _meta_test() -> void:
+	print("\n=== 局外成长：修为 / 等级 / 属性 ===")
+	var mv: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://backend/test/meta_vectors.json"))
+	for v in mv["levels"]:
+		_check(Meta.level_of(int(v["exp"])) == int(v["level"]), "等级向量不一致：%s" % str(v))
+	for v in mv["effective"]:
+		_check(absf(Meta.effective(int(v["points"])) - float(v["eff"])) < 1e-3, "有效点向量不一致：%s" % str(v))
+	for v in mv["runExp"]:
+		_check(Meta.run_exp(int(v["score"]), bool(v["won"]), bool(v["first"])) == int(v["exp"]), "修为向量不一致：%s" % str(v))
+	_check(Meta.exp_to_reach(50) == 9310 and Meta.points_total(50) == 147, "满级累计修为 9310、属性点 147")
+	var p := Meta.progress(100)
+	_check(int(p["level"]) == 3 and int(p["into"]) == 100 - 46 - 52 and int(p["need"]) == 58, "进度计算")
+	_check(int(Meta.progress(99999)["need"]) == 0, "满级进度")
+	# 属性效果
+	var none := Meta.stats_for({})
+	for k in none:
+		_check(float(none[k]) == 0.0, "没加点时没有加成：" + k)
+	var full := Meta.stats_for({"pow": 99, "agi": 99, "vit": 99, "int": 99, "luk": 99})
+	_check(absf(float(full["damage_pct"]) - 0.005 * 59.7) < 1e-6 and absf(float(full["max_hp"]) - 1.5 * 59.7) < 1e-6, "99 点 = 59.7 有效点")
+	_check(float(full["luck"]) > 0.4 and float(full["crit_chance"]) < 0.1, "福缘上限合理")
+	_check(Meta.clean_alloc({"pow": 500, "agi": -3, "zzz": 9}) == {"pow": 99, "agi": 0, "vit": 0, "int": 0, "luk": 0}, "分配规范化")
+	_check(Meta.points_used({"pow": 3, "agi": 4}) == 7, "已用点数")
+	# 进入局内：属性加成确实改变了战斗属性
+	var w := GameWorld.new()
+	add_child(w)
+	w.start_run()
+	var hp0 := w.st("max_hp")
+	var sp0 := w.st("speed_pct")
+	w.talent_stats = Meta.stats_for({"vit": 30, "agi": 30})
+	w.recalc()
+	_check(absf(w.st("max_hp") - (hp0 + 45.0)) < 0.01, "根骨 30 点：气血 +45")
+	_check(absf(w.st("speed_pct") - (sp0 + 0.09)) < 1e-6, "身法 30 点：移速 +9%")
+	w.queue_free()
+	# 福缘：高档位（大成 / 灵机一动）更常出现
+	var r := RandomNumberGenerator.new()
+	r.seed = 7
+	var hi0 := 0
+	var hi1 := 0
+	for i in 20000:
+		if Data.roll_tier(r, 0.0) >= 2:
+			hi0 += 1
+		if Data.roll_tier(r, 0.48) >= 2:
+			hi1 += 1
+	_check(float(hi1) > float(hi0) * 1.25, "福缘 +48%% 应明显提高高档位概率（%d → %d）" % [hi0, hi1])
+	# 单机结算：存档里累加修为，首次通关多给奖励，只给一次
+	var old_path: String = Save.path
+	Save.path = "user://test_meta_save.json"
+	Save.load_data()
+	var win := {"won": true, "seconds": 750, "level": 38, "kills": 6100, "bosses": 4}
+	var a: Dictionary = Save.add_run_exp(win)
+	_check(int(a["gained"]) == 395 and int(a["level"]) >= 7, "单机首次通关 255+40+100")
+	var b: Dictionary = Save.add_run_exp(win)
+	_check(int(b["gained"]) == 295, "第二次通关没有首胜奖励")
+	Save.set_meta_alloc({"pow": 12})
+	Save.load_data()
+	_check(Save.meta_exp() == 690 and Save.meta_alloc()["pow"] == 12, "修为与属性点应持久化")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_meta_save.json"))
+	Save.path = old_path
+	Save.load_data()
+	print("  向量 / 软上限 / 属性效果 / 局内生效 / 福缘 / 单机结算 / 存档  OK")
+
+
 func _fake_transport(is_get: bool, url: String, body: Dictionary) -> Dictionary:
 	net_calls.append({"get": is_get, "url": url, "body": body.duplicate(true)})
 	if not fake_reply.is_empty():
@@ -373,9 +436,10 @@ func _fake_transport(is_get: bool, url: String, body: Dictionary) -> Dictionary:
 	match str(body["action"]):
 		"login", "register", "resume":
 			return {"ok": true, "nick": body.get("nick", "阿杰"), "token": "T1", "school": "fist", "bests": {"score": 5},
-				"invite": "GRPAAA", "group": "篮球群"}
+				"invite": "GRPAAA", "group": "篮球群", "exp": 120, "level": 3, "alloc": {"pow": 4, "agi": 2}}
 		"submit":
-			return {"ok": true, "score": 1234, "best": true, "ranks": {"score": 2, "speed": 0, "level": 3}, "bests": {"score": 1234}}
+			return {"ok": true, "score": 1234, "best": true, "ranks": {"score": 2, "speed": 0, "level": 3}, "bests": {"score": 1234},
+				"gained": 255, "exp": 300, "level": 5, "levelUp": true}
 		"board":
 			return {"ok": true, "kind": body["kind"], "rows": [], "me": null, "total": 0}
 	return {"ok": true}
@@ -412,6 +476,12 @@ func _net_test() -> void:
 		"school": "fist", "starter": "chain_fist", "qinggong": "tashue", "enhance": "yue_palm:3", "build": [{"id": "yue_palm", "lv": 12}], "version": "0.3"})
 	_check(bool(sub["ok"]) and net_calls[-1]["body"]["build"] is String and net_calls[-1]["body"]["nick"] == "阿杰", "提交成绩：build 序列化为字符串、带昵称")
 	_check(int(Net.bests.get("score", 0)) == 1234, "提交成功后应更新本地最高记录")
+	_check(Net.exp == 300, "提交成功后应以服务器返回的修为为准")
+	_check(Net.alloc.get("pow", 0) == 4 or Net.exp == 300, "登录应带回属性点分配")
+	Save.create_character("fist")
+	var sv: Dictionary = await Net.save_alloc({"pow": 7, "hax": 99})
+	_check(bool(sv["ok"]) and net_calls[-1]["body"]["state"]["alloc"] == {"pow": 7, "agi": 0, "vit": 0, "int": 0, "luk": 0}
+		and net_calls[-1]["body"]["state"]["school"] == "fist", "保存属性点：只带五种属性、同时带流派")
 	# 排行榜：GET，不带令牌
 	await Net.board("score")
 	_check(net_calls[-1]["get"] and net_calls[-1]["body"]["kind"] == "score" and not net_calls[-1]["body"].has("token"), "读榜应为 GET 且不带令牌")

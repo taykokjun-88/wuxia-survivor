@@ -22,7 +22,9 @@
     "crit_mult": 1.5,
     "exp_pct": 0,
     "full_hp_regen": 0,
-    "damage_pct": 0
+    "damage_pct": 0,
+    "luck": 0,
+    "qg_cd_reduce": 0
   },
   "tuning": {
     "spawn_base": 1.0,

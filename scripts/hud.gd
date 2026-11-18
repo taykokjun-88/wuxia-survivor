@@ -13,6 +13,8 @@ signal feedback_open_requested
 signal feedback_submitted(type: String, comment: String)
 signal account_requested
 signal modal_closed
+signal meta_open_requested
+signal meta_saved(alloc: Dictionary)
 
 var world: GameWorld
 var canvas: Control
@@ -42,6 +44,9 @@ var board_group_only := false
 var board_grid: GridContainer
 var board_status: Label
 var feedback_panel: Control
+var meta_panel: Control
+var meta_work: Dictionary = {}
+var meta_status: Label
 var feedback_type: OptionButton
 var feedback_text: TextEdit
 var feedback_status: Label
@@ -304,6 +309,11 @@ func _build_loadout() -> void:
 	srow.add_theme_constant_override("separation", 16)
 	srow.add_child(start)
 	srow.add_child(redo)
+	var mp := Meta.progress(Save.meta_exp())
+	var free_pts: int = Meta.points_total(int(mp["level"])) - Meta.points_used(Save.meta_alloc())
+	var growth := _button("角色成长 Lv%d%s" % [mp["level"], ("　·%d点未分配" % free_pts) if free_pts > 0 else ""], Vector2(230, 48), 18)
+	growth.pressed.connect(func(): meta_open_requested.emit())
+	srow.add_child(growth)
 	box.add_child(srow)
 	if Net.configured():
 		var xrow := _center_row(12)
@@ -648,6 +658,108 @@ func set_feedback_status(msg: String, is_error: bool) -> void:
 	if feedback_status:
 		feedback_status.text = msg
 		feedback_status.add_theme_color_override("font_color", Color("#f08070") if is_error else Color("#9ad0a0"))
+
+
+# ---------------------------------------------------------------------
+# 角色成长：修为 / 等级 / 五种属性点分配
+# ---------------------------------------------------------------------
+
+func show_meta() -> void:
+	meta_work = Save.meta_alloc()
+	_build_meta()
+	meta_panel.visible = true
+
+
+func hide_meta() -> void:
+	if meta_panel:
+		meta_panel.visible = false
+
+
+func set_meta_status(msg: String, is_error: bool) -> void:
+	if meta_status:
+		meta_status.text = msg
+		meta_status.add_theme_color_override("font_color", Color("#f08070") if is_error else Color("#9ad0a0"))
+
+
+func _meta_add(attr_id: String, delta: int, free_pts: int) -> void:
+	var cur := int(meta_work[attr_id])
+	var d := clampi(delta, -cur, mini(free_pts, Meta.ATTR_CAP - cur)) if delta > 0 else maxi(delta, -cur)
+	meta_work[attr_id] = cur + d
+	_build_meta()
+	meta_panel.visible = true
+
+
+func _build_meta() -> void:
+	if meta_panel:
+		meta_panel.queue_free()
+	var pb := _panel_box()
+	meta_panel = pb[0]
+	var box: VBoxContainer = pb[1]
+	var exp := Save.meta_exp() if not Net.logged_in() else Net.exp
+	var mp := Meta.progress(exp)
+	var level: int = mp["level"]
+	var free_pts := Meta.points_total(level) - Meta.points_used(meta_work)
+	box.add_child(_label("角色成长", 44))
+	var head := "局外等级 Lv %d%s" % [level, "（满级）" if level >= Meta.MAX_LEVEL else ""]
+	box.add_child(_label(head, 24, Color("#c9a227")))
+	var bar := ProgressBar.new()
+	bar.custom_minimum_size = Vector2(560, 22)
+	bar.max_value = maxf(1.0, float(mp["need"]))
+	bar.value = float(mp["into"]) if level < Meta.MAX_LEVEL else bar.max_value
+	bar.show_percentage = false
+	var brow := _center_row()
+	brow.add_child(bar)
+	box.add_child(brow)
+	box.add_child(_label(("修为 %s / %s" % [_commas(mp["into"]), _commas(mp["need"])]) if level < Meta.MAX_LEVEL else "修为已满", 16, Color("#cfc6ae")))
+	box.add_child(_label("未分配属性点：%d　　天赋点：%d（天赋树开发中）" % [free_pts, level], 20,
+		Color("#9ad0a0") if free_pts > 0 else Color("#f3ead2")))
+	for a in Meta.ATTRS:
+		var id: String = a["id"]
+		var pts := int(meta_work[id])
+		var row := _center_row(8)
+		var nm := _label(str(a["name"]), 22)
+		nm.custom_minimum_size = Vector2(64, 0)
+		row.add_child(nm)
+		var pbar := ProgressBar.new()
+		pbar.custom_minimum_size = Vector2(150, 18)
+		pbar.max_value = Meta.ATTR_CAP
+		pbar.value = pts
+		pbar.show_percentage = false
+		var pc := CenterContainer.new()
+		pc.add_child(pbar)
+		row.add_child(pc)
+		var val := _label(str(pts), 22, Color("#c9a227"))
+		val.custom_minimum_size = Vector2(40, 0)
+		row.add_child(val)
+		for spec in [["−", -1], ["+", 1], ["+5", 5]]:
+			var d: int = spec[1]
+			var bt := _button(str(spec[0]), Vector2(48, 34), 18)
+			bt.disabled = (d < 0 and pts <= 0) or (d > 0 and (free_pts <= 0 or pts >= Meta.ATTR_CAP))
+			bt.pressed.connect(_meta_add.bind(id, d, free_pts))
+			row.add_child(bt)
+		var fx := _label(Meta.effect_text(id, pts), 15, Color("#cfc6ae"))
+		fx.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		fx.custom_minimum_size = Vector2(330, 0)
+		row.add_child(fx)
+		box.add_child(row)
+	box.add_child(_label("越往后每点效果越小：前 30 点满效，31~60 点 60%，61~99 点 30%。随时可以免费重置。", 15, Color("#8d8670")))
+	meta_status = _label("", 16, Color("#cfc6ae"))
+	meta_status.custom_minimum_size = Vector2(0, 24)
+	box.add_child(meta_status)
+	var btns := _center_row(16)
+	var reset := _button("全部重置", Vector2(150, 46), 18)
+	reset.pressed.connect(func():
+		meta_work = Meta.clean_alloc({})
+		_build_meta()
+		meta_panel.visible = true)
+	var save := _button("保存", Vector2(160, 46), 22)
+	save.pressed.connect(func(): meta_saved.emit(meta_work.duplicate()))
+	var cancel := _button("返回  [Esc]", Vector2(160, 46), 18)
+	cancel.pressed.connect(func(): modal_closed.emit())
+	btns.add_child(reset)
+	btns.add_child(save)
+	btns.add_child(cancel)
+	box.add_child(btns)
 
 
 func show_pause() -> void:

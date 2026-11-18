@@ -35,6 +35,8 @@ func _ready() -> void:
 	hud.feedback_submitted.connect(_on_feedback_submitted)
 	hud.account_requested.connect(_on_account_requested)
 	hud.modal_closed.connect(_close_modal)
+	hud.meta_open_requested.connect(_open_meta)
+	hud.meta_saved.connect(_on_meta_saved)
 	world.player_died.connect(_on_end.bind(false))
 	world.victory.connect(_on_end.bind(true))
 	_show_game(false)
@@ -149,6 +151,7 @@ func _on_auth_submitted(mode: String, nick: String, pin: String, code: String) -
 
 ## 登录成功：以云端流派为准；云端没有而本机有，则上传
 func _after_login() -> void:
+	Save.store_meta(Net.exp, Net.alloc)        # 修为 / 属性点以服务器为准
 	if Net.school != "":
 		Save.create_character(Net.school)
 	elif Save.has_character():
@@ -212,6 +215,7 @@ func _on_recreate() -> void:
 func _on_loadout(starter_id: String, qinggong_id: String) -> void:
 	if state != State.LOADOUT:
 		return
+	world.talent_stats = Meta.stats_for(Save.meta_alloc())
 	world.start_run(starter_id, qinggong_id)
 	hud.hide_loadout()
 	_show_game(true)
@@ -252,6 +256,9 @@ func _on_end(won: bool) -> void:
 	hud.hide_choices()
 	hud.show_end(won)
 	if not Net.configured():
+		# 单机：本地直接结算修为
+		if world.time >= 30.0:
+			hud.set_end_extra(_exp_line(Save.add_run_exp(world.run_summary())))
 		return
 	if not Net.logged_in() or world.time < 30.0:
 		return
@@ -260,13 +267,21 @@ func _on_end(won: bool) -> void:
 	if state != State.END:
 		return
 	if bool(res.get("ok", false)):
+		Save.store_meta(Net.exp, Save.meta_alloc())
 		var ranks: Dictionary = res.get("ranks", {})
 		var line := "已上榜：总分榜第 %d 名" % int(ranks.get("score", 0))
 		if bool(res.get("best", false)):
 			line += "　（个人最高分！）"
-		hud.set_end_extra(line)
+		hud.set_end_extra(line + "\n" + _exp_line(res))
 	else:
 		hud.set_end_extra("成绩没能上传：%s" % str(res.get("msg", "未知错误")))
+
+
+func _exp_line(r: Dictionary) -> String:
+	var line := "修为 +%d　局外 Lv%d" % [int(r.get("gained", 0)), int(r.get("level", 1))]
+	if bool(r.get("levelUp", false)):
+		line += "　升级了！获得 3 个属性点、1 个天赋点"
+	return line
 
 
 # ---------------------------------------------------------------------
@@ -295,6 +310,26 @@ func _load_board(kind: String) -> void:
 	hud.update_board(kind, res)
 
 
+func _open_meta() -> void:
+	if state != State.LOADOUT:
+		return
+	_open_modal()
+	hud.show_meta()
+
+
+func _on_meta_saved(alloc: Dictionary) -> void:
+	if state != State.MODAL:
+		return
+	if Net.logged_in():
+		hud.set_meta_status("保存中…", false)
+		var res: Dictionary = await Net.save_alloc(alloc)
+		if not bool(res.get("ok", false)):
+			hud.set_meta_status(str(res.get("msg", "保存失败，请稍后再试")), true)
+			return
+	Save.set_meta_alloc(alloc)
+	_close_modal()
+
+
 func _open_feedback() -> void:
 	if state != State.LOADOUT:
 		return
@@ -319,6 +354,7 @@ func _close_modal() -> void:
 		return
 	hud.hide_board()
 	hud.hide_feedback()
+	hud.hide_meta()
 	state = modal_return
 	if modal_return == State.LOADOUT:
 		_enter_loadout()

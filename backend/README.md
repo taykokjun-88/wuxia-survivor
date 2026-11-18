@@ -108,3 +108,10 @@ node backend/test/backend.test.js      # 15 个用例 × 2 种表格模式（见
 
 `test/mock_server.js` 是一个本地假的 Apps Script 网页应用（302 重定向、不支持 CORS 预检），
 用来对真实的游戏网页做端到端测试：`tests/e2e/run.sh`。
+
+
+## 局外成长（修为 / 属性点）
+
+- 提交成绩时，服务器按已校验的得分计算修为（`round(得分/80)` 封顶 400；通关 +40；首次通关再 +100）并累加到玩家的「修为 Exp」列，返回 `gained / exp / level / levelUp`。客户端不能直接上报修为。
+- `saveState` 的 `state.alloc` 为五种属性点（pow/agi/vit/int/luk），服务器校验：每项 0–99 的整数、总和不超过 `3 × (等级 − 1)`；与已有存档合并。
+- 升级到新版 Code.gs 后，请在表格里运行一次 `setup`，玩家表会多出「修为 Exp」列。

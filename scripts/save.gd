@@ -5,7 +5,7 @@ extends Node
 const DEFAULT_PATH := "user://save.json"
 
 var path := DEFAULT_PATH
-var data: Dictionary = {"school": "", "session": {}}
+var data: Dictionary = {"school": "", "session": {}, "meta": {"exp": 0, "alloc": {}, "won": false}}
 
 
 func _ready() -> void:
@@ -13,7 +13,7 @@ func _ready() -> void:
 
 
 func load_data() -> void:
-	data = {"school": "", "session": {}}
+	data = {"school": "", "session": {}, "meta": {"exp": 0, "alloc": {}, "won": false}}
 	if not FileAccess.file_exists(path):
 		return
 	var f := FileAccess.open(path, FileAccess.READ)
@@ -74,3 +74,53 @@ func clear_session() -> void:
 func reset_character() -> void:
 	data["school"] = ""
 	save_data()
+
+
+# ---------------------------------------------------------------------
+# 局外成长（修为 + 属性点分配）。登录时以服务器为准，本地只是缓存 / 单机存档。
+# ---------------------------------------------------------------------
+
+func _meta() -> Dictionary:
+	var m: Variant = data.get("meta", {})
+	if not m is Dictionary:
+		m = {}
+		data["meta"] = m
+	return m
+
+
+func meta_exp() -> int:
+	return maxi(0, int(_meta().get("exp", 0)))
+
+
+func meta_alloc() -> Dictionary:
+	return Meta.clean_alloc(_meta().get("alloc", {}))
+
+
+func meta_won() -> bool:
+	return bool(_meta().get("won", false))
+
+
+func store_meta(exp: int, alloc: Dictionary) -> void:
+	var m := _meta()
+	m["exp"] = maxi(0, exp)
+	m["alloc"] = Meta.clean_alloc(alloc)
+	save_data()
+
+
+func set_meta_alloc(alloc: Dictionary) -> void:
+	_meta()["alloc"] = Meta.clean_alloc(alloc)
+	save_data()
+
+
+## 单机结算：加修为，返回 {gained, exp, level, levelUp}
+func add_run_exp(summary: Dictionary) -> Dictionary:
+	var first := bool(summary.get("won", false)) and not meta_won()
+	var gained := Meta.run_exp(Score.compute(summary), bool(summary.get("won", false)), first)
+	var old_level := Meta.level_of(meta_exp())
+	var m := _meta()
+	m["exp"] = meta_exp() + gained
+	if bool(summary.get("won", false)):
+		m["won"] = true
+	save_data()
+	var lv := Meta.level_of(meta_exp())
+	return {"gained": gained, "exp": meta_exp(), "level": lv, "levelUp": lv > old_level}

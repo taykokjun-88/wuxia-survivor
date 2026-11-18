@@ -24,6 +24,14 @@ func _ready() -> void:
 	main.hud.confirm_create()
 	await _frames(3)
 	_snap("01_loadout")
+	# 角色成长界面：假装已有一些修为，并分配了一部分点数
+	Save.store_meta(1900, {"pow": 20, "vit": 9})
+	main._open_meta()
+	await _frames(3)
+	_snap("01b_meta")
+	main._close_modal()
+	Save.store_meta(0, {})
+	await _frames(2)
 
 	# 选择：连环拳 / 飞燕穿林
 	main.hud.sel_starter = "chain_fist"

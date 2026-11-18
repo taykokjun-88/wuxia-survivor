@@ -27,7 +27,7 @@ var HEADERS = {
              '昵称名单 Roster(可选，逗号分隔)', '到期 Expires(可选，填日期=当天有效)'],
   players:  ['昵称 Nickname', '邀请码 Invite', 'salt', 'pinHash', '建立 Created', '最后登入 Last login', 'token', 'tokenExp',
              'fails', 'lockUntil', '封禁 Banned', '最后更新 Updated', '局数 Runs', '通关 Wins', '最高分 BestScore',
-             '最快通关秒 BestWinSec', '最高等级 BestLevel', '总击杀 Kills', '流派 School', 'state', '最后提交 LastSubmit'],
+             '最快通关秒 BestWinSec', '最高等级 BestLevel', '总击杀 Kills', '流派 School', 'state', '最后提交 LastSubmit', '修为 Exp'],
   scores:   ['时间 Time', '昵称 Nickname', '结果 Result', '得分 Score', '用时秒 Seconds', '等级 Level', '击杀 Kills',
              '击败Boss数 Bosses', '流派 School', '起手 Starter', '轻功 Qinggong', '强化 Enhance', '构筑 Build', '版本 Version', '设备 Device'],
   logs:     ['时间 Time', '类型 Kind', '昵称 Nickname', '信息 Message', '位置 Where', '详情 Detail', '设备 Device'],
@@ -49,7 +49,7 @@ var CFG = {
 
 // 列下标（0 起）
 var P = { nick: 0, invite: 1, salt: 2, hash: 3, created: 4, last: 5, token: 6, exp: 7, fails: 8, lock: 9, banned: 10,
-          updated: 11, runs: 12, wins: 13, bestScore: 14, bestWin: 15, bestLevel: 16, kills: 17, school: 18, state: 19, lastSubmit: 20 };
+          updated: 11, runs: 12, wins: 13, bestScore: 14, bestWin: 15, bestLevel: 16, kills: 17, school: 18, state: 19, lastSubmit: 20, xp: 21 };
 
 // ---------------------------------------------------------------- 时间 / 工具
 function now() { return new Date().getTime(); }
@@ -211,8 +211,10 @@ function groupName(code) {
 function profile(row) {
   var state = {};
   try { state = JSON.parse(row[P.state] || '{}'); } catch (e) {}
+  var xp = Math.max(0, Math.floor(Number(row[P.xp]) || 0));
   return {
     nick: row[P.nick], school: String(row[P.school] || ''), state: state,
+    exp: xp, level: metaLevel(xp), alloc: state.alloc || {},
     invite: String(row[P.invite] || ''), group: groupName(row[P.invite]),
     bests: { score: Number(row[P.bestScore]) || 0, winSec: Number(row[P.bestWin]) || 0, level: Number(row[P.bestLevel]) || 0,
              runs: Number(row[P.runs]) || 0, wins: Number(row[P.wins]) || 0 }
@@ -321,6 +323,39 @@ function logout(req) {
   return ok({});
 }
 
+// ---------------------------------------------------------------- 局外成长（scripts/meta.gd 里有同一份，共用 meta_vectors.json 测试）
+var META = { MAX_LEVEL: 50, PER_LEVEL: 3, ATTR_CAP: 99, EXP_CAP: 400, WIN_BONUS: 40, FIRST_WIN_BONUS: 100,
+             ATTRS: ['pow', 'agi', 'vit', 'int', 'luk'] };
+function metaNeed(l) { return 40 + 6 * l; }
+function metaLevel(exp) {
+  var l = 1, t = 0;
+  while (l < META.MAX_LEVEL && t + metaNeed(l) <= exp) { t += metaNeed(l); l++; }
+  return l;
+}
+function metaRunExp(score, won, first) {
+  var x = Math.min(META.EXP_CAP, Math.round(score / 80));
+  if (won) x += META.WIN_BONUS + (first ? META.FIRST_WIN_BONUS : 0);
+  return x;
+}
+function metaEffective(p) {
+  p = Math.max(0, Math.min(META.ATTR_CAP, p));
+  var e = Math.min(p, 30);
+  if (p > 30) e += 0.6 * (Math.min(p, 60) - 30);
+  if (p > 60) e += 0.3 * (p - 60);
+  return e;
+}
+/** 属性分配校验：只能是五种属性、0~99 的整数、总和不超过已获得的点数。返回规范化结果或 null */
+function cleanAlloc(a, level) {
+  if (typeof a !== 'object' || a === null) return null;
+  var out = {}, sum = 0;
+  for (var i = 0; i < META.ATTRS.length; i++) {
+    var k = META.ATTRS[i], v = Number(a[k] || 0);
+    if (!(v >= 0 && v <= META.ATTR_CAP) || Math.floor(v) !== v) return null;
+    out[k] = v; sum += v;
+  }
+  return sum <= META.PER_LEVEL * (level - 1) ? out : null;
+}
+
 // ---------------------------------------------------------------- 成绩
 /** 得分公式（客户端 scripts/score.gd 里有同一份，测试用同一组向量校验） */
 function computeScore(s) {
@@ -360,6 +395,10 @@ function submitScore(req) {
                              run.bosses, school, starter, qg, enh, build, str(req.version, 12), str(req.device, 120)]);
 
   var best = score > (Number(row[P.bestScore]) || 0);
+  var firstWin = run.won && !(Number(row[P.wins]) > 0);
+  var gained = metaRunExp(score, run.won, firstWin);
+  var oldLevel = metaLevel(Number(row[P.xp]) || 0);
+  row[P.xp] = Math.max(0, Math.floor(Number(row[P.xp]) || 0)) + gained;
   row[P.runs] = (Number(row[P.runs]) || 0) + 1;
   row[P.kills] = (Number(row[P.kills]) || 0) + run.kills;
   if (best) row[P.bestScore] = score;
@@ -378,7 +417,8 @@ function submitScore(req) {
     speed: rankOf(row[P.nick], 'speed'),
     level: rankOf(row[P.nick], 'level')
   };
-  return ok({ score: score, best: best, ranks: ranks, bests: profile(row).bests });
+  var pr = profile(row);
+  return ok({ score: score, best: best, ranks: ranks, bests: pr.bests, gained: gained, exp: pr.exp, level: pr.level, levelUp: pr.level > oldLevel });
 }
 
 // ---------------------------------------------------------------- 排行榜
@@ -432,6 +472,19 @@ function saveState(req) {
   if (text.length > CFG.STATE_MAX) return fail('bad_state', '存档太大');
   var school = String(st.school || '');
   if (school !== '' && !/^[a-z_]{1,16}$/.test(school)) return fail('bad_state', '存档格式不对');
+  if (st.alloc !== undefined) {
+    var lv = metaLevel(Number(a.found.row[P.xp]) || 0);
+    var clean = cleanAlloc(st.alloc, lv);
+    if (!clean) return fail('bad_state', '属性点分配不合法');
+    st.alloc = clean;
+    text = JSON.stringify(st);
+  }
+  // 与已有存档合并：只带 school 的请求不会抹掉属性分配
+  var old = {};
+  try { old = JSON.parse(a.found.row[P.state] || '{}'); } catch (e) {}
+  Object.keys(st).forEach(function (k) { old[k] = st[k]; });
+  text = JSON.stringify(old);
+  if (text.length > CFG.STATE_MAX) return fail('bad_state', '存档太大');
   a.found.row[P.state] = text;
   a.found.row[P.school] = school;
   a.found.row[P.updated] = iso();

@@ -52,16 +52,21 @@ func lv(def: Dictionary, key: String, level: int) -> float:
 
 
 ## 按权重抽取升级档位，返回档位下标（0 小成 … 3 灵机一动）
-func roll_tier(rng: RandomNumberGenerator) -> int:
+## luck：福缘带来的高档位（大成 / 灵机一动）权重加成，0.48 即这两档的权重 ×1.48
+func roll_tier(rng: RandomNumberGenerator, luck: float = 0.0) -> int:
 	var total := 0.0
-	for t in tiers:
-		total += float(t["weight"])
+	for i in tiers.size():
+		total += _tier_weight(i, luck)
 	var r := rng.randf() * total
 	for i in tiers.size():
-		r -= float(tiers[i]["weight"])
+		r -= _tier_weight(i, luck)
 		if r < 0.0:
 			return i
 	return 0
+
+
+func _tier_weight(i: int, luck: float) -> float:
+	return float(tiers[i]["weight"]) * (1.0 + luck if i >= 2 else 1.0)
 
 
 func tags_text(id: String) -> String:

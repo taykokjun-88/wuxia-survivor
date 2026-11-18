@@ -274,7 +274,7 @@ func _update_player(dt: float) -> void:
 		dash_recharge -= dt
 		if dash_recharge <= 0.0:
 			dash_charges += 1
-			dash_recharge = float(qg["cd"])
+			dash_recharge = float(qg["cd"]) * maxf(0.4, 1.0 - st("qg_cd_reduce"))
 
 	var move := input_move
 	if move.length() > 1.0:
@@ -324,7 +324,7 @@ func _start_dash(move: Vector2, max_charges: int) -> void:
 	neili -= float(qg["cost"])
 	dash_charges -= 1
 	if dash_charges == max_charges - 1:
-		dash_recharge = float(qg["cd"])
+		dash_recharge = float(qg["cd"]) * maxf(0.4, 1.0 - st("qg_cd_reduce"))
 	var dir := move.normalized() if move.length() > 0.1 else facing
 	dash_hit.clear()
 	if qg.get("blink", false):
@@ -1122,7 +1122,7 @@ func roll_choices(n: int = 3) -> Array:
 		var dirs := s.available_dirs()
 		_shuffle(dirs)
 		for i in mini(2, dirs.size()):
-			var tier := Data.roll_tier(rng)
+			var tier := Data.roll_tier(rng, st("luck"))
 			pool.append({
 				"kind": "up_skill", "id": id, "dir": dirs[i], "tier": tier, "src": "level",
 				"tag": str(Data.tiers[tier]["name"]), "color": str(Data.tiers[tier]["color"]),

@@ -1,0 +1,132 @@
+{
+ "levels": [
+  {
+   "exp": 0,
+   "level": 1
+  },
+  {
+   "exp": 45,
+   "level": 1
+  },
+  {
+   "exp": 46,
+   "level": 2
+  },
+  {
+   "exp": 47,
+   "level": 2
+  },
+  {
+   "exp": 630,
+   "level": 10
+  },
+  {
+   "exp": 1900,
+   "level": 20
+  },
+  {
+   "exp": 3770,
+   "level": 30
+  },
+  {
+   "exp": 6240,
+   "level": 40
+  },
+  {
+   "exp": 9309,
+   "level": 49
+  },
+  {
+   "exp": 9310,
+   "level": 50
+  },
+  {
+   "exp": 99999,
+   "level": 50
+  }
+ ],
+ "effective": [
+  {
+   "points": 0,
+   "eff": 0
+  },
+  {
+   "points": 10,
+   "eff": 10
+  },
+  {
+   "points": 30,
+   "eff": 30
+  },
+  {
+   "points": 31,
+   "eff": 30.6
+  },
+  {
+   "points": 60,
+   "eff": 48.0
+  },
+  {
+   "points": 61,
+   "eff": 48.3
+  },
+  {
+   "points": 99,
+   "eff": 59.7
+  },
+  {
+   "points": 150,
+   "eff": 59.7
+  }
+ ],
+ "runExp": [
+  {
+   "score": 0,
+   "won": false,
+   "first": false,
+   "exp": 0
+  },
+  {
+   "score": 40,
+   "won": false,
+   "first": false,
+   "exp": 1
+  },
+  {
+   "score": 100,
+   "won": false,
+   "first": false,
+   "exp": 1
+  },
+  {
+   "score": 12000,
+   "won": false,
+   "first": false,
+   "exp": 150
+  },
+  {
+   "score": 40000,
+   "won": false,
+   "first": false,
+   "exp": 400
+  },
+  {
+   "score": 20400,
+   "won": true,
+   "first": false,
+   "exp": 295
+  },
+  {
+   "score": 20400,
+   "won": true,
+   "first": true,
+   "exp": 395
+  },
+  {
+   "score": 20,
+   "won": true,
+   "first": true,
+   "exp": 140
+  }
+ ]
+}
