@@ -20,6 +20,9 @@ func _ready() -> void:
 	main.set_physics_process(false)
 	w = main.world
 	await _frames(3)
+	_snap("00_create_character")
+	main.hud.confirm_create()
+	await _frames(3)
 	_snap("01_loadout")
 
 	# 选择：连环拳 / 飞燕穿林
@@ -78,6 +81,7 @@ func _ready() -> void:
 	w.time = 355.0
 	await _advance(25.0)
 	_snap("06_mini_boss")
+	Save.reset_character()   # 清理截图产生的存档
 	get_tree().quit()
 
 

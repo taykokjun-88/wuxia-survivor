@@ -3,13 +3,14 @@ extends Node
 
 var player_base: Dictionary = {}
 var tuning: Dictionary = {}
-var starters: Array = []
+var schools: Dictionary = {}      # 流派（创建角色时选择）：名称 / 是否可选 / 起手招式
+var level_growth: Dictionary = {} # 角色每升 1 级的基础属性成长
 var skills: Dictionary = {}
 var xinfa: Dictionary = {}
 var qinggong: Dictionary = {}
 var directions: Dictionary = {}   # 升级方向
 var tiers: Array = []             # 升级档位：小成 / 中成 / 大成 / 灵机一动
-var max_upgrades := 5
+var max_upgrades := 11             # 技能最多升级次数（起始 1 层 → 最高 12 层）
 var enemies: Dictionary = {}
 
 
@@ -21,7 +22,8 @@ func _ready() -> void:
 	var d: Dictionary = parsed
 	player_base = d["player"]
 	tuning = d["tuning"]
-	starters = d["starters"]
+	schools = d["schools"]
+	level_growth = d["level_growth"]
 	skills = d["skills"]
 	xinfa = d["xinfa"]
 	qinggong = d["qinggong"]

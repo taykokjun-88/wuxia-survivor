@@ -1,9 +1,9 @@
 extends Node
 ## 主控：状态机（开局选择 / 游戏 / 升级与秘籍选择 / 暂停 / 结算）、读取输入、驱动 GameWorld、相机跟随。
 
-enum State { LOADOUT, PLAY, CHOOSE, PAUSED, END }
+enum State { CREATE, LOADOUT, PLAY, CHOOSE, PAUSED, END }
 
-var state: State = State.LOADOUT
+var state: State = State.CREATE
 var world: GameWorld
 var cam: Camera2D
 var hud: GameHud
@@ -20,9 +20,14 @@ func _ready() -> void:
 	hud.setup(world)
 	hud.choice_selected.connect(_on_choice)
 	hud.loadout_confirmed.connect(_on_loadout)
+	hud.character_created.connect(_on_created)
+	hud.recreate_requested.connect(_on_recreate)
 	world.player_died.connect(_on_end.bind(false))
 	world.victory.connect(_on_end.bind(true))
-	hud.show_loadout()
+	if Save.has_character():
+		_enter_loadout()
+	else:
+		_enter_create()
 
 
 func _physics_process(dt: float) -> void:
@@ -48,6 +53,9 @@ func _process(_dt: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	match state:
+		State.CREATE:
+			if event.is_action_pressed("ui_accept"):
+				hud.confirm_create()
 		State.LOADOUT:
 			if event.is_action_pressed("ui_accept"):
 				hud.confirm_loadout()
@@ -67,6 +75,33 @@ func _unhandled_input(event: InputEvent) -> void:
 		State.END:
 			if event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and event.keycode == KEY_R):
 				get_tree().reload_current_scene()
+
+
+func _enter_create() -> void:
+	state = State.CREATE
+	hud.show_create()
+
+
+func _enter_loadout() -> void:
+	state = State.LOADOUT
+	hud.show_loadout(Save.school())
+
+
+## 创建角色：只在第一次（或重新创建时）出现，选定的流派写入存档
+func _on_created(school_id: String) -> void:
+	if state != State.CREATE:
+		return
+	Save.create_character(school_id)
+	hud.hide_create()
+	_enter_loadout()
+
+
+func _on_recreate() -> void:
+	if state != State.LOADOUT:
+		return
+	Save.reset_character()
+	hud.hide_loadout()
+	_enter_create()
 
 
 func _on_loadout(starter_id: String, qinggong_id: String) -> void:

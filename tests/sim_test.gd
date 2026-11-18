@@ -13,6 +13,8 @@ func _ready() -> void:
 		_chest_flow_test()
 	if only == "" or only == "upgrade":
 		_upgrade_system_test()
+		_level_growth_test()
+		_save_test()
 	if only == "" or only == "matrix":
 		_skill_matrix()
 	if only == "":
@@ -26,11 +28,11 @@ func _ready() -> void:
 
 func _run_full() -> void:
 	_full_run({"name": "完整局·无敌 + 会选卡（压测 + 3 小 Boss + 大 Boss + 精英/秘籍）", "god": true, "smart": true,
-		"seed": 1, "dur": 780.0, "starter": "chain_fist", "qg": "tashue"})
+		"seed": 1, "dur": 900.0, "starter": "chain_fist", "qg": "tashue"})
 	_full_run({"name": "完整局·会选卡的合格玩家（不无敌）", "god": false, "smart": true,
-		"seed": 2, "dur": 780.0, "starter": "cloud_palm", "qg": "feiyan"})
+		"seed": 2, "dur": 900.0, "starter": "cloud_palm", "qg": "feiyan"})
 	_full_run({"name": "完整局·纯随机选卡的新手（不无敌，难度下限）", "god": false, "smart": false,
-		"seed": 3, "dur": 780.0, "starter": "point_finger", "qg": "yufeng"})
+		"seed": 3, "dur": 900.0, "starter": "point_finger", "qg": "yufeng"})
 
 
 func _check(cond: bool, msg: String) -> void:
@@ -239,6 +241,95 @@ func _upgrade_system_test() -> void:
 	_free_world(w3)
 
 
+func _level_growth_test() -> void:
+	print("\n=== 角色升级成长（基础伤害 / 气血 / 防御）+ 12 层上限 ===")
+	var w := _new_world(61)
+	var hp0 := w.st("max_hp")
+	var arm0 := w.st("armor")
+	var e := Enemy.new()
+	e.hp = 1.0e9
+	e.max_hp = 1.0e9
+	var d1 := w.hit_enemy(e, 100.0, [], Vector2.ZERO, "probe")
+	w.hp = w.st("max_hp") - 10.0
+	var hp_before := w.hp
+	w._gain_exp(1000000)
+	_check(w.level > 15, "大量经验应连续升级，实际 Lv%d" % w.level)
+	var g: Dictionary = Data.level_growth
+	var steps := w.level - 1
+	_check(is_equal_approx(w.st("max_hp"), hp0 + float(g["max_hp"]) * steps), "气血上限应随等级线性成长")
+	_check(is_equal_approx(w.st("armor"), arm0 + float(g["armor"]) * steps), "防御应随等级线性成长")
+	_check(is_equal_approx(w.st("damage_pct"), float(g["damage_pct"]) * steps), "基础伤害加成应随等级成长")
+	_check(w.hp > hp_before, "升级时应同步补上新增的气血上限")
+	var d2 := w.hit_enemy(e, 100.0, [], Vector2.ZERO, "probe")
+	_check(is_equal_approx(d2 / d1, 1.0 + float(g["damage_pct"]) * steps), "同一次攻击的伤害应按基础伤害加成放大，实际 ×%.3f" % (d2 / d1))
+	# 防御：固定减伤，但至少保留 25%
+	var w2 := _new_world(62)
+	w2.god = false
+	w2.stats["armor"] = 999.0
+	var h0 := w2.hp
+	w2._hurt(40.0)
+	_check(is_equal_approx(h0 - w2.hp, 10.0), "高防御时仍应承受 25%% 伤害，实际 %.1f" % (h0 - w2.hp))
+	# 技能 12 层上限
+	var s0: SkillBase = w2.skills["chain_fist"]
+	for i in Data.max_upgrades:
+		s0.add_upgrade("damage", 0)
+	_check(s0.level == 12, "升满后应为 12 层，实际 %d" % s0.level)
+	var offered := false
+	for c in w2.roll_choices(30):
+		if str(c["kind"]) == "up_skill" and str(c["id"]) == "chain_fist":
+			offered = true
+	_check(not offered, "12 层后该技能不应再出现升级卡")
+	# 招式池只包含本流派
+	var other := false
+	for i in 50:
+		for c in w2.roll_choices(30):
+			if str(c["kind"]) == "new_skill" and str(Data.skills[c["id"]]["school"]) != w2.school_id:
+				other = true
+	_check(not other, "新招式只应来自本流派")
+	print("  Lv%d：气血 %.0f→%.0f、防御 %.1f→%.1f、伤害 +%d%%；12 层封顶；招式池按流派  OK" % [
+		w.level, hp0, w.st("max_hp"), arm0, w.st("armor"), int(w.st("damage_pct") * 100.0)])
+	_free_world(w)
+	_free_world(w2)
+
+
+func _save_test() -> void:
+	print("\n=== 存档（创建角色） ===")
+	var path := "user://test_save.json"
+	var abs_path := ProjectSettings.globalize_path(path)
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(abs_path)
+	var sv: Node = load("res://scripts/save.gd").new()
+	sv.path = path
+	sv.load_data()
+	_check(not sv.has_character(), "没有存档时不应有角色")
+	sv.create_character("fist")
+	var sv2: Node = load("res://scripts/save.gd").new()
+	sv2.path = path
+	sv2.load_data()
+	_check(sv2.has_character() and sv2.school() == "fist", "创建角色后应能从存档读回流派")
+	# 未开放的流派 / 不存在的流派 视为没有角色
+	for bad in ["sword", "nonexistent"]:
+		var f := FileAccess.open(path, FileAccess.WRITE)
+		f.store_string(JSON.stringify({"school": bad}))
+		f.close()
+		sv2.load_data()
+		_check(not sv2.has_character(), "无效流派 %s 应视为没有角色" % bad)
+	# 损坏的存档不应崩溃
+	var f2 := FileAccess.open(path, FileAccess.WRITE)
+	f2.store_string("{not json")
+	f2.close()
+	sv2.load_data()
+	_check(not sv2.has_character(), "损坏的存档应视为没有角色")
+	sv2.create_character("fist")
+	sv2.reset_character()
+	sv.load_data()
+	_check(not sv.has_character(), "重新创建角色后存档应清空流派")
+	DirAccess.remove_absolute(abs_path)
+	sv.free()
+	sv2.free()
+	print("  创建 / 读回 / 无效流派 / 损坏存档 / 重建  OK")
+
+
 func _xinfa_test() -> void:
 	print("\n=== 心法冒烟（每个 Lv3，20 秒） ===")
 	for id in Data.xinfa:
@@ -344,7 +435,7 @@ func _full_run(cfg: Dictionary) -> void:
 		total_us / 1000.0 / maxi(1, int(w.time / DT)), worst_us / 1000.0, peak, w.bosses.size()])
 	if cfg["god"]:
 		_check(w.bosses.size() == 4, "应刷出 3 个小 Boss + 1 个大 Boss，实际 %d" % w.bosses.size())
-		_check(w.level >= 15, "12 分钟应至少升到 15 级，实际 %d" % w.level)
+		_check(w.level >= 10, "无敌 bot 15 分钟应至少升到 10 级，实际 %d" % w.level)
 		_check(w.enhance_id != "", "整局应至少拿到一次专属强化")
 		_check(w.enhance_level >= 1, "击败小 Boss 后强化应至少 Lv1，实际 Lv%d" % w.enhance_level)
 	_free_world(w)

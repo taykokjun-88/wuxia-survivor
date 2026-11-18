@@ -4,13 +4,8 @@ extends CanvasLayer
 
 signal choice_selected(index: int)
 signal loadout_confirmed(starter_id: String, qinggong_id: String)
-
-const SCHOOLS := [
-	{"name": "拳掌", "enabled": true},
-	{"name": "剑", "enabled": false},
-	{"name": "刀", "enabled": false},
-	{"name": "长兵", "enabled": false},
-]
+signal character_created(school_id: String)
+signal recreate_requested
 
 var world: GameWorld
 var canvas: Control
@@ -21,6 +16,9 @@ var levelup_panel: Control
 var choice_title: Label
 var choice_buttons: Array[Button] = []
 var loadout_panel: Control
+var create_panel: Control
+var sel_school := "fist"
+var school := "fist"          # 当前角色的流派
 var sel_starter := "chain_fist"
 var sel_qg := "tashue"
 
@@ -34,7 +32,6 @@ func setup(w: GameWorld) -> void:
 	add_child(canvas)
 	_build_overlay()
 	_build_levelup()
-	_build_loadout()
 
 
 func _process(_dt: float) -> void:
@@ -107,37 +104,71 @@ func _build_levelup() -> void:
 		choice_buttons.append(b)
 
 
-func _build_loadout() -> void:
-	loadout_panel = Control.new()
-	loadout_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-	loadout_panel.visible = false
-	add_child(loadout_panel)
-	loadout_panel.add_child(_dim())
+func _panel_box() -> Array:
+	var panel := Control.new()
+	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	panel.visible = false
+	add_child(panel)
+	panel.add_child(_dim())
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	loadout_panel.add_child(center)
+	panel.add_child(center)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 12)
+	box.add_theme_constant_override("separation", 14)
 	center.add_child(box)
+	return [panel, box]
 
-	box.add_child(_label("武侠幸存者", 52))
-	box.add_child(_label("WASD 移动（自动攻击）　空格 轻功　E 真气爆发　内力 ≥ 50% 伤害 +25%", 16, Color("#cfc6ae")))
 
-	# 流派（仅拳掌可选，其余占位）
-	box.add_child(_label("流派", 20, Color("#c9a227")))
-	var school_row := HBoxContainer.new()
-	school_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	school_row.add_theme_constant_override("separation", 10)
-	box.add_child(school_row)
-	for s in SCHOOLS:
+## 创建角色（只在第一次进入游戏时出现）：选择武学流派
+func _build_create() -> void:
+	if create_panel:
+		create_panel.queue_free()
+	var pb := _panel_box()
+	create_panel = pb[0]
+	var box: VBoxContainer = pb[1]
+	box.add_child(_label("创建角色", 52))
+	box.add_child(_label("选择你的武学流派。流派决定可学的招式，创建后不可在局内更改。", 18, Color("#cfc6ae")))
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 14)
+	box.add_child(row)
+	var group := ButtonGroup.new()
+	for id in Data.schools:
+		var sd: Dictionary = Data.schools[id]
+		var enabled := bool(sd["enabled"])
 		var b := Button.new()
-		b.text = s["name"] if s["enabled"] else "%s（敬请期待）" % s["name"]
-		b.custom_minimum_size = Vector2(150, 40)
-		b.disabled = not s["enabled"]
+		b.text = "%s\n%s" % [sd["name"], str(sd["desc"]) if enabled else "敬请期待"]
+		b.custom_minimum_size = Vector2(200, 110)
+		b.disabled = not enabled
 		b.toggle_mode = true
-		b.button_pressed = s["enabled"]
+		b.button_group = group
+		b.button_pressed = id == sel_school
 		b.focus_mode = Control.FOCUS_NONE
-		school_row.add_child(b)
+		b.add_theme_font_size_override("font_size", 20)
+		b.pressed.connect(func(): sel_school = id)
+		row.add_child(b)
+	var ok := Button.new()
+	ok.text = "创建角色  [Enter]"
+	ok.custom_minimum_size = Vector2(260, 48)
+	ok.focus_mode = Control.FOCUS_NONE
+	ok.add_theme_font_size_override("font_size", 22)
+	ok.pressed.connect(confirm_create)
+	var srow := HBoxContainer.new()
+	srow.alignment = BoxContainer.ALIGNMENT_CENTER
+	srow.add_child(ok)
+	box.add_child(srow)
+
+
+## 每局开局：起手招式 + 轻功（流派已在创建角色时确定）
+func _build_loadout() -> void:
+	if loadout_panel:
+		loadout_panel.queue_free()
+	var pb := _panel_box()
+	loadout_panel = pb[0]
+	var box: VBoxContainer = pb[1]
+	box.add_child(_label("武侠幸存者", 52))
+	box.add_child(_label("角色流派：%s　　WASD 移动（自动攻击）　空格 轻功　E 真气爆发　内力 ≥ 50%% 伤害 +25%%" % Data.schools[school]["name"],
+		16, Color("#cfc6ae")))
 
 	# 起手招式（3 选 1）。天赋加点（刚/柔/灵）是独立的局外系统，不在这里选。
 	box.add_child(_label("起手招式（3 选 1）", 20, Color("#c9a227")))
@@ -146,7 +177,7 @@ func _build_loadout() -> void:
 	starter_row.add_theme_constant_override("separation", 10)
 	box.add_child(starter_row)
 	var sgroup := ButtonGroup.new()
-	for id in Data.starters:
+	for id in Data.schools[school]["starters"]:
 		var sd: Dictionary = Data.skills[id]
 		var b := Button.new()
 		b.text = "%s　【%s】\n%s" % [sd["name"], Data.tags_text(id), sd["desc"]]
@@ -186,23 +217,51 @@ func _build_loadout() -> void:
 	start.focus_mode = Control.FOCUS_NONE
 	start.add_theme_font_size_override("font_size", 22)
 	start.pressed.connect(confirm_loadout)
+	var redo := Button.new()
+	redo.text = "重新创建角色"
+	redo.custom_minimum_size = Vector2(150, 48)
+	redo.focus_mode = Control.FOCUS_NONE
+	redo.pressed.connect(func(): recreate_requested.emit())
 	var srow := HBoxContainer.new()
 	srow.alignment = BoxContainer.ALIGNMENT_CENTER
+	srow.add_theme_constant_override("separation", 16)
 	srow.add_child(start)
+	srow.add_child(redo)
 	box.add_child(srow)
+
+
+func confirm_create() -> void:
+	character_created.emit(sel_school)
 
 
 func confirm_loadout() -> void:
 	loadout_confirmed.emit(sel_starter, sel_qg)
 
 
-func show_loadout() -> void:
+func show_create() -> void:
+	_build_create()
+	create_panel.visible = true
+	overlay.visible = false
+
+
+func hide_create() -> void:
+	if create_panel:
+		create_panel.visible = false
+
+
+func show_loadout(school_id: String) -> void:
+	school = school_id
+	var starters: Array = Data.schools[school]["starters"]
+	if not starters.has(sel_starter):
+		sel_starter = str(starters[0])
+	_build_loadout()
 	loadout_panel.visible = true
 	overlay.visible = false
 
 
 func hide_loadout() -> void:
-	loadout_panel.visible = false
+	if loadout_panel:
+		loadout_panel.visible = false
 
 
 func show_pause() -> void:
@@ -287,6 +346,8 @@ func _draw_hud() -> void:
 		canvas.draw_string(font, Vector2(286, 35), "护盾 %d" % int(w.shield), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#2a6f9a"))
 
 	canvas.draw_string(font, Vector2(16, 90), "Lv %d" % w.level, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, ink)
+	canvas.draw_string(font, Vector2(86, 90), "攻击 +%d%%　防御 %.1f" % [int(w.st("damage_pct") * 100.0), w.st("armor")],
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#6a5a3a"))
 
 	# 计时 / 击杀
 	canvas.draw_string(font, Vector2(vw * 0.5 - 60, 40), _fmt_time(w.time), HORIZONTAL_ALIGNMENT_CENTER, 120, 32, ink)
@@ -307,7 +368,7 @@ func _draw_hud() -> void:
 	y += 20.0
 	for s: SkillBase in w.skills.values():
 		var star := " ★%d" % w.enhance_level if w.enhance_id == s.id else ""
-		var txt := "%s Lv%d%s" % [s.def["name"], s.level, star]
+		var txt := "%s Lv%d%s%s" % [s.def["name"], s.level, "满" if s.upgrades.size() >= Data.max_upgrades else "", star]
 		canvas.draw_string(font, Vector2(16, y), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 16,
 			GameWorld.VERMILION if star != "" else Color("#2a2a2a"))
 		y += 21.0

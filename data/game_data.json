@@ -21,13 +21,14 @@
     "crit_chance": 0,
     "crit_mult": 1.5,
     "exp_pct": 0,
-    "full_hp_regen": 0
+    "full_hp_regen": 0,
+    "damage_pct": 0
   },
   "tuning": {
     "spawn_base": 1.0,
-    "spawn_slope": 0.015,
-    "hp_scale_t": 300,
-    "dmg_scale_t": 500,
+    "spawn_slope": 0.02,
+    "hp_scale_t": 200,
+    "dmg_scale_t": 350,
     "max_enemies": 800,
     "burst_interval": 45,
     "elite_first": 100,
@@ -44,11 +45,6 @@
     ],
     "boss_time": 720
   },
-  "starters": [
-    "chain_fist",
-    "point_finger",
-    "cloud_palm"
-  ],
   "skills": {
     "yue_palm": {
       "name": "裂岳掌",
@@ -602,7 +598,7 @@
       "color": "#f0c050"
     }
   ],
-  "max_upgrades": 5,
+  "max_upgrades": 11,
   "directions": {
     "damage": {
       "name": "加强伤害",
@@ -704,5 +700,40 @@
         30
       ]
     }
+  },
+  "schools": {
+    "fist": {
+      "name": "拳掌",
+      "enabled": true,
+      "desc": "近身重拳与掌风，刚柔并济",
+      "starters": [
+        "chain_fist",
+        "point_finger",
+        "cloud_palm"
+      ]
+    },
+    "sword": {
+      "name": "剑",
+      "enabled": false,
+      "desc": "",
+      "starters": []
+    },
+    "blade": {
+      "name": "刀",
+      "enabled": false,
+      "desc": "",
+      "starters": []
+    },
+    "spear": {
+      "name": "长兵",
+      "enabled": false,
+      "desc": "枪、棍",
+      "starters": []
+    }
+  },
+  "level_growth": {
+    "damage_pct": 0.02,
+    "max_hp": 4,
+    "armor": 0.2
   }
 }

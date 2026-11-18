@@ -38,6 +38,7 @@ var rng := RandomNumberGenerator.new()
 
 # ---- 装备 ----
 var starter_id := "chain_fist"
+var school_id := "fist"           # 创建角色时选定，决定可学的招式池
 var qinggong_id := "tashue"
 var qg: Dictionary = {}
 var skills: Dictionary = {}       # id -> SkillBase（最多 4 个）
@@ -116,6 +117,8 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue") 
 	enhance_id = ""
 	enhance_level = 0
 	deferred_upgrades = 0
+	level = 1
+	school_id = str(Data.skills[starter_id]["school"])
 	add_skill(starter_id)
 	stats = {}
 	recalc()
@@ -123,7 +126,6 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue") 
 	neili = float(stats["max_neili"])
 	shield = 0.0
 	player_pos = Vector2.ZERO
-	level = 1
 	exp_now = 0
 	exp_next = _exp_for(1)
 	pending_levels = 0
@@ -180,6 +182,9 @@ func recalc() -> void:
 		var per: Dictionary = def["per_level"]
 		for k in per:
 			stats[k] = st(k) + float(per[k]) * l
+	# 角色等级成长：每升 1 级，基础伤害 / 气血 / 防御小幅提升（见 data 的 level_growth）
+	for k in Data.level_growth:
+		stats[k] = st(k) + float(Data.level_growth[k]) * (level - 1)
 	var qs: Dictionary = qg.get("stats", {})
 	for k in qs:
 		stats[k] = st(k) + float(qs[k])
@@ -652,7 +657,7 @@ func _hurt(amount: float) -> void:
 	var dmg := amount
 	for s: SkillBase in skills.values():
 		dmg = s.on_hurt(dmg)
-	dmg = maxf(1.0, dmg - st("armor"))
+	dmg = maxf(maxf(1.0, dmg * 0.25), dmg - st("armor"))
 	since_hit = 0.0
 	invuln = 0.6
 	if st("thorns") > 0.0:
@@ -751,7 +756,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 	var m := 1.0
 	for tg in tags:
 		m += float(tag_bonus.get(tg, 0.0))
-	m *= dmg_mult()
+	m *= dmg_mult() * (1.0 + st("damage_pct"))
 	var sk: SkillBase = skills.get(sid)
 	var crit_p := st("crit_chance") + (float(sk.mods["crit"]) if sk != null else 0.0)
 	var crit := force_crit or rng.randf() < crit_p
@@ -1014,11 +1019,17 @@ func _update_gems(dt: float) -> void:
 
 func _gain_exp(v: int) -> void:
 	exp_now += int(ceil(v * (1.0 + st("exp_pct"))))
+	var leveled := false
 	while exp_now >= exp_next:
 		exp_now -= exp_next
 		level += 1
 		exp_next = _exp_for(level)
 		pending_levels += 1
+		leveled = true
+	if leveled:
+		var old_max := st("max_hp")
+		recalc()
+		hp += maxf(0.0, st("max_hp") - old_max)
 
 
 ## 小 Boss 掉落「秘籍」：首次拾取三选一专属强化；之后每次拾取把该强化升一级（最高 3 级），满级后改为回复奖励。
@@ -1089,7 +1100,7 @@ func roll_choices(n: int = 3) -> Array:
 			})
 	for id in Data.skills:
 		var def: Dictionary = Data.skills[id]
-		if skills.has(id):
+		if skills.has(id) or str(def["school"]) != school_id:
 			continue
 		if skills.size() < MAX_SKILLS:
 			pool.append({
