@@ -25,6 +25,9 @@ var choice_title: Label
 var choice_buttons: Array[Button] = []
 var loadout_panel: Control
 var create_panel: Control
+var create_portrait: TextureRect
+var create_preview: SpritePreview
+var create_desc: Label
 var sel_school := "fist"
 var auth_panel: Control
 var auth_mode := "login"
@@ -146,43 +149,91 @@ func _panel_box() -> Array:
 
 
 ## 创建角色（只在第一次进入游戏时出现）：选择武学流派
+func _school_portrait(school_id: String) -> Texture2D:
+	var path := str(Data.schools[school_id].get("portrait", ""))
+	if path != "" and ResourceLoader.exists(path):
+		return load(path)
+	return null
+
+
+func _on_school_selected(id: String) -> void:
+	sel_school = id
+	if create_portrait:
+		create_portrait.texture = _school_portrait(id)
+	if create_preview:
+		create_preview.setup(id)
+	if create_desc:
+		create_desc.text = str(Data.schools[id]["desc"])
+
+
+## 创建角色（只在第一次进入游戏时出现）：立绘 + 选择流派 + 像素形象预览
 func _build_create() -> void:
 	if create_panel:
 		create_panel.queue_free()
 	var pb := _panel_box()
 	create_panel = pb[0]
 	var box: VBoxContainer = pb[1]
-	box.add_child(_label("创建角色", 52))
-	box.add_child(_label("选择你的武学流派。流派决定可学的招式，创建后不可在局内更改。", 18, Color("#cfc6ae")))
+	box.add_theme_constant_override("separation", 10)
+	box.add_child(_label("创建角色", 40))
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 14)
+	row.add_theme_constant_override("separation", 30)
 	box.add_child(row)
+
+	# 左：立绘
+	var frame := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#10141a")
+	sb.border_color = Color("#c9a227")
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(6)
+	sb.set_content_margin_all(4)
+	frame.add_theme_stylebox_override("panel", sb)
+	create_portrait = TextureRect.new()
+	create_portrait.custom_minimum_size = Vector2(390, 520)
+	create_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	create_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	create_portrait.texture = _school_portrait(sel_school)
+	frame.add_child(create_portrait)
+	row.add_child(frame)
+
+	# 右：流派 + 像素形象 + 创建
+	var right := VBoxContainer.new()
+	right.custom_minimum_size = Vector2(560, 0)
+	right.add_theme_constant_override("separation", 12)
+	row.add_child(right)
+	var hint := _label("选择你的武学流派。流派决定可学的招式，创建后不可在局内更改。", 16, Color("#cfc6ae"))
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.custom_minimum_size = Vector2(560, 0)
+	right.add_child(hint)
+	var srow := _center_row(10)
+	right.add_child(srow)
 	var group := ButtonGroup.new()
 	for id in Data.schools:
 		var sd: Dictionary = Data.schools[id]
 		var enabled := bool(sd["enabled"])
 		var b := Button.new()
-		b.text = "%s\n%s" % [sd["name"], str(sd["desc"]) if enabled else "敬请期待"]
-		b.custom_minimum_size = Vector2(200, 110)
+		b.text = "%s\n%s" % [sd["name"], "可选" if enabled else "敬请期待"]
+		b.custom_minimum_size = Vector2(128, 70)
 		b.disabled = not enabled
 		b.toggle_mode = true
 		b.button_group = group
 		b.button_pressed = id == sel_school
 		b.focus_mode = Control.FOCUS_NONE
-		b.add_theme_font_size_override("font_size", 20)
-		b.pressed.connect(func(): sel_school = id)
-		row.add_child(b)
-	var ok := Button.new()
-	ok.text = "创建角色  [Enter]"
-	ok.custom_minimum_size = Vector2(260, 48)
-	ok.focus_mode = Control.FOCUS_NONE
-	ok.add_theme_font_size_override("font_size", 22)
+		b.add_theme_font_size_override("font_size", 18)
+		b.pressed.connect(_on_school_selected.bind(id))
+		srow.add_child(b)
+	create_desc = _label(str(Data.schools[sel_school]["desc"]), 18, Color("#f3ead2"))
+	right.add_child(create_desc)
+	create_preview = SpritePreview.new()
+	create_preview.custom_minimum_size = Vector2(560, 330)
+	create_preview.setup(sel_school)
+	right.add_child(create_preview)
+	var ok := _button("创建角色  [Enter]", Vector2(260, 48), 22)
 	ok.pressed.connect(confirm_create)
-	var srow := HBoxContainer.new()
-	srow.alignment = BoxContainer.ALIGNMENT_CENTER
-	srow.add_child(ok)
-	box.add_child(srow)
+	var brow := _center_row()
+	brow.add_child(ok)
+	right.add_child(brow)
 
 
 ## 每局开局：起手招式 + 轻功（流派已在创建角色时确定）

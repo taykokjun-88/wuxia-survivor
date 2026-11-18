@@ -719,25 +719,33 @@
         "chain_fist",
         "point_finger",
         "cloud_palm"
-      ]
+      ],
+      "portrait": "res://assets/portraits/fist_hero.jpg",
+      "sprite_dir": "res://assets/sprites/player"
     },
     "sword": {
       "name": "剑",
       "enabled": false,
       "desc": "",
-      "starters": []
+      "starters": [],
+      "portrait": "",
+      "sprite_dir": ""
     },
     "blade": {
       "name": "刀",
       "enabled": false,
       "desc": "",
-      "starters": []
+      "starters": [],
+      "portrait": "",
+      "sprite_dir": ""
     },
     "spear": {
       "name": "长兵",
       "enabled": false,
       "desc": "枪、棍",
-      "starters": []
+      "starters": [],
+      "portrait": "",
+      "sprite_dir": ""
     }
   },
   "level_growth": {

@@ -62,7 +62,7 @@ func anim_length(name: String) -> float:
 
 
 ## foot：脚底中心（世界坐标）；flip：水平翻转（面朝左）
-func draw(ci: CanvasItem, name: String, t: float, foot: Vector2, flip: bool, tint: Color = Color.WHITE) -> bool:
+func draw(ci: CanvasItem, name: String, t: float, foot: Vector2, flip: bool, tint: Color = Color.WHITE, zoom: float = 1.0) -> bool:
 	var key := resolve(name)
 	if key == "":
 		return false
@@ -70,7 +70,7 @@ func draw(ci: CanvasItem, name: String, t: float, foot: Vector2, flip: bool, tin
 	var tex: Texture2D = a["tex"]
 	var src := Rect2(frame_index(key, t) * cell, 0, cell, cell)
 	# 条带里角色脚底距格子底部 4px
-	ci.draw_set_transform(Vector2(foot.x, foot.y + 4.0 - cell), 0.0, Vector2(-1.0 if flip else 1.0, 1.0))
+	ci.draw_set_transform(Vector2(foot.x, foot.y + (4.0 - cell) * zoom), 0.0, Vector2((-1.0 if flip else 1.0) * zoom, zoom))
 	ci.draw_texture_rect_region(tex, Rect2(-cell * 0.5, 0, cell, cell), src, tint)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	return true
