@@ -30,6 +30,24 @@
       "frames": 3,
       "fps": 14.0,
       "loop": false
+    },
+    "ult": {
+      "file": "ult.png",
+      "frames": 4,
+      "fps": 8.0,
+      "loop": false
+    },
+    "death": {
+      "file": "death.png",
+      "frames": 4,
+      "fps": 6.0,
+      "loop": false
+    },
+    "hurt": {
+      "file": "hurt.png",
+      "frames": 2,
+      "fps": 10.0,
+      "loop": false
     }
   }
 }

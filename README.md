@@ -128,19 +128,22 @@ AI 出的洋红底条带 → `tools/process_sprites.py` → 游戏用 sprite（�
 ```bash
 pip install pillow numpy scipy
 S=assets/sprites/source
-python3 tools/process_sprites.py palette $S/*.jpg --colors 28            # 用全部素材建共用调色板
+python3 tools/process_sprites.py palette $S/*.jpg --colors 32            # 用全部素材建共用调色板（加新素材后要重建并重跑全部动画）
 python3 tools/process_sprites.py strip $S/idle.jpg  idle  --frames 4 --use 1,3,4,3 --fps 4
 python3 tools/process_sprites.py strip $S/walk.jpg  walk  --frames 6 --use 5,6 --ref-frame 5 --fps 6
 python3 tools/process_sprites.py strip $S/punch.jpg punch --frames 4 --fps 16 --once
 python3 tools/process_sprites.py strip $S/palm.jpg  palm  --frames 4 --use 1,3,4 --fps 12 --once --scale-mode image
 python3 tools/process_sprites.py strip $S/dash.jpg  dash  --frames 3 --fps 14 --once --scale-mode image --align keep
+python3 tools/process_sprites.py strip $S/ult.jpg   ult   --frames 4 --fps 8  --once --scale-mode image
+python3 tools/process_sprites.py strip $S/death.jpg death --frames 4 --fps 6  --once --scale-mode image
+python3 tools/process_sprites.py strip $S/hurt.jpg  hurt  --frames 2 --fps 10 --once --scale-mode image
 ```
 
 - `--use 1,3,4,3`：只用并重排其中几帧（跳过出坏的帧）；`--ref-frame`：缩放参考帧，应选**站姿**的那一帧；
   `--scale-mode image`：没有站姿的动画按图高比例缩放；`--align keep`：保留帧间高低（冲刺腾空）。
 - 主角约 56 像素高，格子 96×96（出拳的手臂会伸出 64 的格子）。
 
-**当前动画状态**：idle ✅　punch ✅　palm ✅（跳过了第 2 帧）　dash ✅　walk ⚠️（只用了第 5、6 帧，等重出）　hurt / death / ult ❌（未出，回退到待机）
+**当前动画状态**：idle ✅　punch ✅　palm ✅（跳过了第 2 帧）　dash ✅　hurt ✅　death ✅　ult ✅　walk ⚠️（源图前 4 帧腿被拖影盖住，只用了第 5、6 帧，等重出）
 
 动画名：`idle walk dash hurt death punch palm ult`。游戏自动选择：静止 idle、移动 walk、冲刺 dash、受击 hurt、
 阵亡 death；连环拳 / 撼地拳 / 金刚拳出招播放 punch，其余拳掌技能播放 palm，真气爆发播放 ult。
