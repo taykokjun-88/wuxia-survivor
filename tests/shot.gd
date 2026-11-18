@@ -34,6 +34,18 @@ func _ready() -> void:
 	# 升级选择界面（真实 roll_choices）
 	w.pending_levels = 1
 	main._check_pending()
+	# 强制三张卡覆盖三种档位，检查配色与排版
+	var s0: SkillBase = w.skills.values()[0]
+	var demo: Array = []
+	for t in [1, 2, 3]:
+		var dirs := s0.available_dirs()
+		demo.append({
+			"kind": "up_skill", "id": s0.id, "dir": dirs[t], "tier": t, "src": "level",
+			"tag": str(Data.tiers[t]["name"]), "color": str(Data.tiers[t]["color"]),
+			"title": "%s · %s" % [s0.def["name"], Data.directions[dirs[t]]["name"]],
+			"desc": "%s　（已升级 %d/%d）" % [s0.upgrade_text(dirs[t], t), s0.upgrades.size(), Data.max_upgrades]})
+	main.choices = demo
+	main.hud.show_choices(demo, "突破！选择一项领悟（按 1 / 2 / 3 或点击）")
 	await _frames(3)
 	_snap("03_levelup")
 	main._on_choice(0)
@@ -43,7 +55,9 @@ func _ready() -> void:
 		if not w.skills.has(id):
 			w.add_skill(id)
 	for s: SkillBase in w.skills.values():
-		s.level = 4
+		for dir in ["damage", "cooldown", "range", "crit"]:
+			if s.available_dirs().has(dir):
+				s.add_upgrade(dir, 2)
 	w.xinfa["chunyang"] = 2
 	w.xinfa["lingxi"] = 1
 	w.enhance_id = "cloud_palm"

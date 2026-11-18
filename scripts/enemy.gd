@@ -26,6 +26,7 @@ var chain := false       # 被"连锁"点穴：死亡时爆炸
 var is_elite := false
 var is_boss := false
 var is_final := false
+var born := 0.0           # 出生时间（统计 Boss 击杀耗时）
 var boss_name := ""
 var boss_bolts := 14
 var boss_state := "chase"   # chase | windup | charge

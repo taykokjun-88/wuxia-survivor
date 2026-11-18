@@ -1,17 +1,15 @@
 extends Node
 ## 全局数据（Autoload: Data）：读取 data/game_data.json，注册输入映射，加载可选字体。
 
-const STAT_NAMES := {
-	"damage": "伤害", "cooldown": "冷却", "count": "数量", "pierce": "穿透",
-	"radius": "范围", "reach": "距离", "stun": "定身", "absorb": "化解",
-}
-
 var player_base: Dictionary = {}
 var tuning: Dictionary = {}
 var starters: Array = []
 var skills: Dictionary = {}
 var xinfa: Dictionary = {}
 var qinggong: Dictionary = {}
+var directions: Dictionary = {}   # 升级方向
+var tiers: Array = []             # 升级档位：小成 / 中成 / 大成 / 灵机一动
+var max_upgrades := 5
 var enemies: Dictionary = {}
 
 
@@ -27,6 +25,9 @@ func _ready() -> void:
 	skills = d["skills"]
 	xinfa = d["xinfa"]
 	qinggong = d["qinggong"]
+	directions = d["directions"]
+	tiers = d["tiers"]
+	max_upgrades = int(d["max_upgrades"])
 	enemies = d["enemies"]
 	_setup_input()
 	_load_font()
@@ -47,17 +48,17 @@ func lv(def: Dictionary, key: String, level: int) -> float:
 	return float(v)
 
 
-## 技能升级提示（根据数值表自动生成）。
-func skill_upgrade_text(id: String, new_level: int) -> String:
-	var def: Dictionary = skills[id]
-	var parts: PackedStringArray = []
-	for key in STAT_NAMES:
-		if def.get(key) is Array:
-			var a := lv(def, key, new_level - 1)
-			var b := lv(def, key, new_level)
-			if not is_equal_approx(a, b):
-				parts.append("%s %s→%s" % [STAT_NAMES[key], _fmt(a), _fmt(b)])
-	return "，".join(parts)
+## 按权重抽取升级档位，返回档位下标（0 小成 … 3 灵机一动）
+func roll_tier(rng: RandomNumberGenerator) -> int:
+	var total := 0.0
+	for t in tiers:
+		total += float(t["weight"])
+	var r := rng.randf() * total
+	for i in tiers.size():
+		r -= float(tiers[i]["weight"])
+		if r < 0.0:
+			return i
+	return 0
 
 
 func tags_text(id: String) -> String:

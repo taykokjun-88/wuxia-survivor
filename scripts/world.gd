@@ -86,6 +86,7 @@ var chests: Array[Vector2] = []
 var effects: Array[Dictionary] = []
 var bosses: Array[Enemy] = []
 var skill_dmg: Dictionary = {}    # 统计：技能 id -> 累计伤害
+var boss_log: Array[String] = []   # 统计：Boss 击杀耗时
 var grid: Dictionary = {}
 var spawn_acc := 0.0
 var next_burst := 45.0
@@ -147,6 +148,7 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue") 
 	effects.clear()
 	bosses.clear()
 	skill_dmg.clear()
+	boss_log.clear()
 	dash_count = 0
 	spawn_acc = 0.0
 	next_burst = Data.T("burst_interval")
@@ -396,6 +398,7 @@ func _spawn_enemy(type: String, at: Vector2) -> Enemy:
 	var e := Enemy.new()
 	e.uid = next_uid
 	next_uid += 1
+	e.born = time
 	e.type_id = type
 	e.pos = at
 	e.max_hp = float(def["hp"]) * (1.0 + time / Data.T("hp_scale_t"))
@@ -471,15 +474,28 @@ func _query(center: Vector2, r: float) -> Array[Enemy]:
 	return out
 
 
+## 自动瞄准：Boss / 精英在射程内时优先（有效距离 ×0.35），否则打最近的
+func _target_weight(e: Enemy) -> float:
+	if e.is_boss:
+		return 0.12
+	if e.is_elite:
+		return 0.4
+	return 1.0
+
+
 func nearest_enemy(max_dist: float) -> Enemy:
 	var best: Enemy = null
-	var bd := max_dist * max_dist
+	var lim := max_dist * max_dist
+	var bd := INF
 	for e in enemies:
 		if not e.alive:
 			continue
 		var d2 := player_pos.distance_squared_to(e.pos)
-		if d2 < bd:
-			bd = d2
+		if d2 >= lim:
+			continue
+		var score := d2 * _target_weight(e)
+		if score < bd:
+			bd = score
 			best = e
 	return best
 
@@ -495,6 +511,7 @@ func nearest_n(max_dist: float, n: int) -> Array[Enemy]:
 		var d2 := player_pos.distance_squared_to(e.pos)
 		if d2 >= lim:
 			continue
+		d2 *= _target_weight(e)
 		if best.size() < n or d2 < dists[best.size() - 1]:
 			var i := best.size()
 			while i > 0 and dists[i - 1] > d2:
@@ -681,6 +698,8 @@ func _kill(e: Enemy) -> void:
 	if e.is_elite:
 		hp = minf(st("max_hp"), hp + st("max_hp") * 0.15)
 		add_fx("text", e.pos + Vector2(0, -30), 1.0, {"text": "精英已破：气血回复", "size": 18, "color": GOLD})
+	if e.is_boss:
+		boss_log.append("%s %.0fs" % [e.boss_name, time - e.born])
 	if e.is_boss and not e.is_final:
 		chests.append(e.pos)
 	if e.is_final:
@@ -733,13 +752,19 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 	for tg in tags:
 		m += float(tag_bonus.get(tg, 0.0))
 	m *= dmg_mult()
-	var crit := force_crit or rng.randf() < st("crit_chance")
+	var sk: SkillBase = skills.get(sid)
+	var crit_p := st("crit_chance") + (float(sk.mods["crit"]) if sk != null else 0.0)
+	var crit := force_crit or rng.randf() < crit_p
 	if crit:
 		m *= st("crit_mult")
 	var amount := base * m
 	var hs := st("hit_slow")
+	if sk != null and float(sk.mods["debuff"]) > 0.0:
+		hs = maxf(hs, float(sk.mods["debuff"]))
 	if hs > 0.0:
 		slow_enemy(e, 1.0 - minf(0.6, hs), 1.5)
+	if sk != null and float(sk.mods["heal"]) > 0.0:
+		hp = minf(st("max_hp"), hp + minf(3.0, amount * float(sk.mods["heal"])))
 	skill_dmg[sid] = float(skill_dmg.get(sid, 0.0)) + amount
 	damage_enemy(e, amount, knock_vec, crit)
 	return amount
@@ -1047,17 +1072,26 @@ func roll_chest_choices() -> Array:
 ## 升级三选一：已有技能/心法的升级，以及槽位未满时的新技能/新心法。
 func roll_choices(n: int = 3) -> Array:
 	var pool: Array = []
+	# 已有技能：每个技能给 2 张升级卡（不同方向，档位随机）
+	for id in skills:
+		var s: SkillBase = skills[id]
+		if s.upgrades.size() >= Data.max_upgrades:
+			continue
+		var dirs := s.available_dirs()
+		_shuffle(dirs)
+		for i in mini(2, dirs.size()):
+			var tier := Data.roll_tier(rng)
+			pool.append({
+				"kind": "up_skill", "id": id, "dir": dirs[i], "tier": tier, "src": "level",
+				"tag": str(Data.tiers[tier]["name"]), "color": str(Data.tiers[tier]["color"]),
+				"title": "%s · %s" % [s.def["name"], Data.directions[dirs[i]]["name"]],
+				"desc": "%s　（已升级 %d/%d）" % [s.upgrade_text(dirs[i], tier), s.upgrades.size(), Data.max_upgrades],
+			})
 	for id in Data.skills:
 		var def: Dictionary = Data.skills[id]
 		if skills.has(id):
-			var s: SkillBase = skills[id]
-			if s.level < int(def["max_level"]):
-				pool.append({
-					"kind": "up_skill", "id": id, "tag": "招式", "src": "level",
-					"title": "%s Lv%d→%d" % [def["name"], s.level, s.level + 1],
-					"desc": Data.skill_upgrade_text(id, s.level + 1),
-				})
-		elif skills.size() < MAX_SKILLS:
+			continue
+		if skills.size() < MAX_SKILLS:
 			pool.append({
 				"kind": "new_skill", "id": id, "tag": "招式", "src": "level",
 				"title": "领悟：%s" % def["name"],
@@ -1103,7 +1137,7 @@ func apply_choice(c: Dictionary) -> void:
 			add_skill(id)
 		"up_skill":
 			var s: SkillBase = skills[id]
-			s.level += 1
+			s.add_upgrade(str(c["dir"]), int(c["tier"]))
 		"new_xinfa":
 			xinfa[id] = 1
 		"up_xinfa":

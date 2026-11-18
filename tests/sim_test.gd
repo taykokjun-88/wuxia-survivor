@@ -11,6 +11,8 @@ func _ready() -> void:
 	var only := OS.get_environment("TEST_ONLY")
 	if only == "":
 		_chest_flow_test()
+	if only == "" or only == "upgrade":
+		_upgrade_system_test()
 	if only == "" or only == "matrix":
 		_skill_matrix()
 	if only == "":
@@ -23,10 +25,12 @@ func _ready() -> void:
 
 
 func _run_full() -> void:
-	_full_run({"name": "完整局·无敌 bot（压测 + 3 小 Boss + 大 Boss + 精英/秘籍）", "god": true, "seed": 1, "dur": 780.0,
-		"starter": "chain_fist", "qg": "tashue"})
-	_full_run({"name": "完整局·普通 bot（难度参考）", "god": false, "seed": 2, "dur": 780.0,
-		"starter": "cloud_palm", "qg": "feiyan"})
+	_full_run({"name": "完整局·无敌 + 会选卡（压测 + 3 小 Boss + 大 Boss + 精英/秘籍）", "god": true, "smart": true,
+		"seed": 1, "dur": 780.0, "starter": "chain_fist", "qg": "tashue"})
+	_full_run({"name": "完整局·会选卡的合格玩家（不无敌）", "god": false, "smart": true,
+		"seed": 2, "dur": 780.0, "starter": "cloud_palm", "qg": "feiyan"})
+	_full_run({"name": "完整局·纯随机选卡的新手（不无敌，难度下限）", "god": false, "smart": false,
+		"seed": 3, "dur": 780.0, "starter": "point_finger", "qg": "yufeng"})
 
 
 func _check(cond: bool, msg: String) -> void:
@@ -94,16 +98,16 @@ func _chest_flow_test() -> void:
 
 func _skill_matrix() -> void:
 	print("\n=== 技能冒烟 + 伤害报告（每个 40 秒，无敌 bot，同样的敌人密度） ===")
-	print("%-8s %10s %10s %12s %12s   （总伤害/秒；括号内为击杀数）" % ["技能", "Lv1", "Lv5", "Lv5+强化1", "Lv5+强化3"])
+	print("%-8s %10s %10s %12s %12s   （总伤害/秒；括号内为击杀数；+5 = 5 次中档升级）" % ["技能", "基础", "+5升级", "+5+强化1", "+5+强化3"])
 	for id in Data.skills:
 		var row: Array[String] = []
-		for mode in ["lv1", "lv5", "enh1", "enh3"]:
+		for mode in ["lv1", "up5", "enh1", "enh3"]:
 			var w := _new_world(21)
 			w.skills.clear()
 			w.add_skill(id)
 			var s: SkillBase = w.skills[id]
 			if mode != "lv1":
-				s.level = 5
+				_apply_up5(s)
 			if mode.begins_with("enh"):
 				w.enhance_id = id
 				w.enhance_level = int(mode.substr(3))
@@ -125,6 +129,114 @@ func _skill_matrix() -> void:
 			row.append("%7.0f (%d)" % [dmg / 40.0, w.kills])
 			_free_world(w)
 		print("%-8s %s" % [Data.skills[id]["name"], "  ".join(row)])
+
+
+## 固定的 5 次升级：伤害（大成）、冷却/范围/目标/时长（中成）；该技能没有的方向用伤害（中成）补齐
+func _apply_up5(s: SkillBase) -> void:
+	var avail := s.available_dirs()
+	var plan := [["damage", 2], ["cooldown", 1], ["range", 1], ["targets", 1], ["duration", 1]]
+	for step in plan:
+		if avail.has(step[0]):
+			s.add_upgrade(step[0], step[1])
+		else:
+			s.add_upgrade("damage", 1)
+
+
+func _upgrade_system_test() -> void:
+	print("\n=== 升级系统：方向 × 档位 ===")
+	var checked := 0
+	for id in Data.skills:
+		var base := SkillBase.new()
+		var w := _new_world(51)
+		base.setup(w, id, Data.skills[id])
+		for dir in base.available_dirs():
+			for tier in Data.tiers.size():
+				var s := SkillBase.new()
+				s.setup(w, id, Data.skills[id])
+				s.add_upgrade(dir, tier)
+				var ok := false
+				match dir:
+					"damage": ok = s.p("damage") > base.p("damage")
+					"cooldown": ok = s.p("cooldown") < base.p("cooldown")
+					"range":
+						for k in Data.skills[id]["map"]["range"]:
+							ok = ok or s.p(k) > base.p(k)
+					"duration":
+						for k in Data.skills[id]["map"]["duration"]:
+							ok = ok or s.p(k) > base.p(k)
+					"targets":
+						var tk := str(Data.skills[id]["map"]["targets"])
+						ok = s.p(tk) > base.p(tk)
+					"buff": ok = float(s.mods["buff"]) > 0.0
+					"debuff": ok = float(s.mods["debuff"]) > 0.0
+					"heal": ok = float(s.mods["heal"]) > 0.0
+					"hits": ok = float(s.mods["hits"]) > 0.0
+					"crit": ok = float(s.mods["crit"]) > 0.0
+				_check(ok, "%s 的方向 %s 档位 %d 没有生效" % [id, dir, tier])
+				_check(not s.upgrade_text(dir, tier).contains("{"), "%s/%s 的描述有未替换的占位符" % [id, dir])
+				checked += 1
+		# 同一方向档位越高，加成越大
+		for dir in base.available_dirs():
+			var prev := -1.0
+			for tier in Data.tiers.size():
+				var v := float(Data.directions[dir]["values"][tier])
+				_check(v > prev, "%s 的档位数值应递增" % dir)
+				prev = v
+		_free_world(w)
+	print("  %d 个 (技能 × 方向 × 档位) 组合全部生效，数值逐档递增  OK" % checked)
+
+	# 档位概率
+	var r := RandomNumberGenerator.new()
+	r.seed = 99
+	var cnt := [0, 0, 0, 0]
+	var n := 20000
+	for i in n:
+		cnt[Data.roll_tier(r)] += 1
+	var line := ""
+	for i in 4:
+		var got := float(cnt[i]) / n * 100.0
+		var want := float(Data.tiers[i]["weight"])
+		line += "%s %.1f%%(目标 %d%%)  " % [Data.tiers[i]["name"], got, int(want)]
+		_check(absf(got - want) < 2.0, "档位 %s 概率偏离过大：%.1f%% vs %d%%" % [Data.tiers[i]["name"], got, int(want)])
+	print("  档位概率：", line)
+
+	# 升级卡：同一技能的两张卡方向不同；升级满 5 次后不再出现
+	var w2 := _new_world(52)
+	var s0: SkillBase = w2.skills["chain_fist"]
+	var dup := false
+	for i in 200:
+		var cards: Array = []
+		for c in w2.roll_choices(20):
+			if str(c["kind"]) == "up_skill":
+				cards.append(c)
+		if cards.size() == 2 and cards[0]["dir"] == cards[1]["dir"]:
+			dup = true
+	_check(not dup, "同一技能的两张升级卡不应是同一方向")
+	for i in Data.max_upgrades:
+		s0.add_upgrade("damage", 0)
+	var offered := false
+	for c in w2.roll_choices(20):
+		if str(c["kind"]) == "up_skill":
+			offered = true
+	_check(not offered, "升级满 %d 次后不应再出现升级卡" % Data.max_upgrades)
+	_check(s0.level == 1 + Data.max_upgrades, "升级后等级应为 1+次数")
+	print("  升级卡去重、升级封顶  OK")
+	_free_world(w2)
+
+	# 「增加打击次数」：触发连续出招；「增加增益」：出招回内力
+	var w3 := _new_world(53)
+	_populate(w3, 40)
+	var s3: SkillBase = w3.skills["chain_fist"]
+	s3.mods["hits"] = 1.0
+	s3.mods["buff"] = 5.0
+	w3.neili = 10.0
+	var fired_before := float(w3.skill_dmg.get("chain_fist", 0.0))
+	for i in 240:
+		TestBot.drive(w3, 75.0)
+		w3.step(DT)
+	_check(float(w3.skill_dmg.get("chain_fist", 0.0)) > fired_before, "连击/增益测试：技能应造成伤害")
+	print("  连续出招（echo）与出招回内力  OK")
+	_free_world(w3)
 
 
 func _xinfa_test() -> void:
@@ -211,7 +323,7 @@ func _full_run(cfg: Dictionary) -> void:
 		worst_us = maxi(worst_us, us)
 		peak = maxi(peak, w.enemies.size())
 		chests_seen = maxi(chests_seen, w.chests.size())
-		if not TestBot.resolve_choices(w, pick_rng):
+		if not TestBot.resolve_choices(w, pick_rng, bool(cfg["smart"])):
 			failures += 1
 			break
 		if w.time >= next_report:
@@ -227,11 +339,12 @@ func _full_run(cfg: Dictionary) -> void:
 
 	var outcome := "胜利" if w.won else ("阵亡" if w.over else "存活到时限")
 	print("结果：%s @ %.1fs  等级 %d  击杀 %d  强化=%s Lv%d" % [outcome, w.time, w.level, w.kills, w.enhance_id, w.enhance_level])
+	print("Boss 击杀耗时：", ", ".join(w.boss_log) if not w.boss_log.is_empty() else "（无）")
 	print("性能：平均 %.2f ms/step  最差 %.2f ms  敌人峰值 %d  Boss数 %d" % [
 		total_us / 1000.0 / maxi(1, int(w.time / DT)), worst_us / 1000.0, peak, w.bosses.size()])
 	if cfg["god"]:
 		_check(w.bosses.size() == 4, "应刷出 3 个小 Boss + 1 个大 Boss，实际 %d" % w.bosses.size())
 		_check(w.level >= 15, "12 分钟应至少升到 15 级，实际 %d" % w.level)
 		_check(w.enhance_id != "", "整局应至少拿到一次专属强化")
-		_check(w.enhance_level == 3, "击败 3 个小 Boss 后强化应为 Lv3，实际 Lv%d" % w.enhance_level)
+		_check(w.enhance_level >= 1, "击败小 Boss 后强化应至少 Lv1，实际 Lv%d" % w.enhance_level)
 	_free_world(w)

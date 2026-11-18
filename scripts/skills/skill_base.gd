@@ -2,12 +2,25 @@ class_name SkillBase
 extends RefCounted
 ## 攻击技能基类。具体行为在 fist_skills.gd 等文件里继承实现。
 ## 约定：技能只通过 GameWorld 提供的服务（spawn_proj / area_hit / cone_hit ...）造成影响。
+##
+## 升级系统：技能没有固定的等级表。每次升级是「一个方向 × 一个档位」（见 Data.directions / Data.tiers），
+## 效果累积在 mods 里，p() 取值时自动套用，所以具体技能的行为代码不用关心升级。
+
+const ECHO_MULT := 0.6          # 「增加打击次数」触发的第二次出招的伤害倍率
+const ECHO_DELAY := 0.22
 
 var id := ""
 var def: Dictionary = {}
-var level := 1
+var level := 1                   # = 1 + 已升级次数
 var cd := 0.3
 var w: GameWorld
+var upgrades: Array[Dictionary] = []   # [{dir, tier}]
+var mods: Dictionary = {
+	"damage": 0.0, "cooldown": 0.0, "range": 0.0, "targets": 0.0, "buff": 0.0,
+	"debuff": 0.0, "duration": 0.0, "heal": 0.0, "hits": 0.0, "crit": 0.0,
+}
+var echoing := false
+var echo_t := -1.0
 
 
 func setup(world: GameWorld, skill_id: String, skill_def: Dictionary) -> void:
@@ -16,9 +29,23 @@ func setup(world: GameWorld, skill_id: String, skill_def: Dictionary) -> void:
 	def = skill_def
 
 
-## 当前等级的数值（数组按等级取值，标量直接返回）
+## 当前数值 = Lv1 基础值 × 升级方向加成
 func p(key: String) -> float:
-	return Data.lv(def, key, level)
+	var v := Data.lv(def, key, 1)
+	if key == "damage":
+		v *= 1.0 + float(mods["damage"])
+		if echoing:
+			v *= ECHO_MULT
+	elif key == "cooldown":
+		v *= maxf(0.35, 1.0 - float(mods["cooldown"]))
+	var m: Dictionary = def["map"]
+	if (m["range"] as Array).has(key):
+		v *= 1.0 + float(mods["range"])
+	if (m["duration"] as Array).has(key):
+		v *= 1.0 + float(mods["duration"])
+	if str(m["targets"]) == key:
+		v += float(mods["targets"])
+	return v
 
 
 func tags() -> Array:
@@ -43,13 +70,83 @@ func ev(a: float, b: float, c: float) -> float:
 	return c
 
 
+# ---------------------------------------------------------------------
+# 升级方向
+# ---------------------------------------------------------------------
+
+## 该技能可以抽到的升级方向
+func available_dirs() -> Array[String]:
+	var out: Array[String] = []
+	var m: Dictionary = def["map"]
+	var banned: Array = def.get("no_dirs", [])
+	for dir in Data.directions:
+		if banned.has(dir):
+			continue
+		if dir == "range" and (m["range"] as Array).is_empty():
+			continue
+		if dir == "duration" and (m["duration"] as Array).is_empty():
+			continue
+		if dir == "targets" and str(m["targets"]) == "":
+			continue
+		out.append(dir)
+	return out
+
+
+## 「增加目标」对不同技能的实际加成：穿透 +n；弹体数量 +ceil(n/2)
+func target_gain(n: float) -> float:
+	return n if str(def["map"]["targets"]) == "pierce" else ceilf(n / 2.0)
+
+
+func add_upgrade(dir: String, tier: int) -> void:
+	var v := float(Data.directions[dir]["values"][tier])
+	upgrades.append({"dir": dir, "tier": tier})
+	level = 1 + upgrades.size()
+	match dir:
+		"damage": mods["damage"] += v / 100.0
+		"cooldown": mods["cooldown"] = minf(0.6, float(mods["cooldown"]) + v / 100.0)
+		"range": mods["range"] += v / 100.0
+		"targets": mods["targets"] += target_gain(v)
+		"buff": mods["buff"] += v
+		"debuff": mods["debuff"] = minf(0.6, float(mods["debuff"]) + v / 100.0)
+		"duration": mods["duration"] += v / 100.0
+		"heal": mods["heal"] += v / 100.0
+		"hits": mods["hits"] = minf(0.8, float(mods["hits"]) + v / 100.0)
+		"crit": mods["crit"] += v / 100.0
+
+
+## 升级卡片上的效果文字
+func upgrade_text(dir: String, tier: int) -> String:
+	var d: Dictionary = Data.directions[dir]
+	var v := float(d["values"][tier])
+	var n := target_gain(v)
+	return str(d["fmt"]).replace("{v}", Data._fmt(v)).replace("{n}", Data._fmt(n))
+
+
+# ---------------------------------------------------------------------
+# 出招
+# ---------------------------------------------------------------------
+
 func tick(dt: float) -> void:
+	if echo_t >= 0.0:
+		echo_t -= dt
+		if echo_t < 0.0:
+			echoing = true
+			fire()
+			echoing = false
 	cd -= dt
 	if cd <= 0.0:
 		if fire():
 			cd = p("cooldown") * w.cd_mult()
+			_after_fire()
 		else:
 			cd = 0.12
+
+
+func _after_fire() -> void:
+	if float(mods["buff"]) > 0.0:
+		w.neili = minf(w.st("max_neili"), w.neili + float(mods["buff"]))
+	if float(mods["hits"]) > 0.0 and w.rng.randf() < float(mods["hits"]):
+		echo_t = ECHO_DELAY
 
 
 ## 返回 true 表示成功出手（进入冷却）；false 表示条件不满足（稍后重试）

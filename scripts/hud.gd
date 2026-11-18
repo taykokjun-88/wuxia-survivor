@@ -231,6 +231,13 @@ func show_choices(choices: Array, title: String) -> void:
 		if i < choices.size():
 			var c: Dictionary = choices[i]
 			b.text = "[%d] 【%s】%s\n      %s" % [i + 1, c["tag"], c["title"], c["desc"]]
+			if c.has("color"):
+				var col := Color(str(c["color"]))
+				b.add_theme_color_override("font_color", col)
+				b.add_theme_color_override("font_hover_color", col)
+			else:
+				b.remove_theme_color_override("font_color")
+				b.remove_theme_color_override("font_hover_color")
 			b.visible = true
 		else:
 			b.visible = false
