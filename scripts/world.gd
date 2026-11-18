@@ -3,25 +3,25 @@ extends Node2D
 ## 游戏世界：模拟 + 绘制。
 ## 所有实体（敌人/弹体/经验）都是轻量数据，由本节点统一更新并在一次 _draw 中绘制。
 ## step(dt) 与渲染无关，可在 headless 下做自动化测试。
+##
+## 技能（scripts/skills/）通过本类提供的服务造成影响：
+##   spawn_proj / area_hit / cone_hit / add_zone / stun_enemy / add_shield ...
 
 signal player_died
 signal victory
 
 const PLAYER_RADIUS := 12.0
-const DASH_TIME := 0.18
-const DASH_SPEED := 1200.0
 const SPAWN_DIST := 780.0
 const RELOCATE_DIST := 1300.0
-const MAX_ENEMIES := 700
 const MAX_GEMS := 400
 const MAX_EFFECTS := 160
-const BOSS_TIME := 240.0
-const BURST_INTERVAL := 40.0
-const ULT_RADIUS := 300.0
-const ULT_DAMAGE := 90.0
 const CELL := 64.0
+const MAX_SKILLS := 4
+const MAX_XINFA := 2
 const NEILI_BONUS_THRESHOLD := 0.5
 const NEILI_BONUS_MULT := 1.25
+const ULT_RADIUS := 300.0
+const ULT_DAMAGE := 90.0
 
 const INK := Color("#1d2a35")
 const VERMILION := Color("#b33a2a")
@@ -36,24 +36,40 @@ var god := false
 var rng_seed := 0
 var rng := RandomNumberGenerator.new()
 
+# ---- 装备 ----
+var starter_id := "chain_fist"
+var qinggong_id := "tashue"
+var qg: Dictionary = {}
+var skills: Dictionary = {}       # id -> SkillBase（最多 4 个）
+var xinfa: Dictionary = {}        # id -> 等级（最多 2 个）
+var enhance_id := ""              # 本局唯一的专属强化所属技能
+var enhance_level := 0            # 强化等级 1~3：首个小 Boss 选择强化，之后每个小 Boss 升一级
+var deferred_upgrades := 0
+var talent_stats: Dictionary = {} # 天赋加成（局外成长，M5 接入）
+
 # ---- 玩家状态 ----
 var stats: Dictionary = {}
-var owned: Dictionary = {}      # 武学/心法 id -> 等级
-var skill_cd: Dictionary = {}
-var hp_penalty := 1.0
-var neili_bonus := 0.0
+var tag_bonus: Dictionary = {}    # 标签 -> 心法提供的伤害加成
 var player_pos := Vector2.ZERO
 var facing := Vector2.RIGHT
 var hp := 100.0
 var neili := 100.0
+var shield := 0.0
 var level := 1
 var exp_now := 0
 var exp_next := 12
 var pending_levels := 0
+var pending_chests := 0
 var invuln := 0.0
+var since_hit := 99.0
 var dash_t := 0.0
-var dash_cd_t := 0.0
 var dash_dir := Vector2.RIGHT
+var dash_charges := 1
+var dash_recharge := 0.0
+var dash_hit := {}
+var stealth_t := 0.0
+var stealth_pos := Vector2.ZERO
+var buff_t := 0.0
 var shake := 0.0
 
 # ---- 世界状态 ----
@@ -63,17 +79,23 @@ var over := false
 var won := false
 var enemies: Array[Enemy] = []
 var projs: Array[Projectile] = []
+var zones: Array[Dictionary] = []
 var gem_pos: Array[Vector2] = []
 var gem_val: Array[int] = []
+var chests: Array[Vector2] = []
 var effects: Array[Dictionary] = []
-var orbit_blades: Array[Vector2] = []
-var orbit_blade_r := 16.0
-var orbit_angle := 0.0
-var boss: Enemy = null
+var bosses: Array[Enemy] = []
+var skill_dmg: Dictionary = {}    # 统计：技能 id -> 累计伤害
 var grid: Dictionary = {}
 var spawn_acc := 0.0
-var next_burst := BURST_INTERVAL
+var next_burst := 45.0
+var next_elite := 100.0
+var mini_idx := 0
+var boss_spawned := false
 var next_uid := 1
+var chain_depth := 0
+var dash_count := 0
+var max_enemies := 800
 
 
 func _ready() -> void:
@@ -84,60 +106,106 @@ func _ready() -> void:
 	start_run()
 
 
-func start_run() -> void:
-	owned = {"liyue_palm": 1}
-	skill_cd = {"liyue_palm": 0.3}
-	hp_penalty = 1.0
-	neili_bonus = 0.0
+func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue") -> void:
+	starter_id = p_starter
+	qinggong_id = p_qinggong
+	qg = Data.qinggong[qinggong_id]
+	skills.clear()
+	xinfa.clear()
+	enhance_id = ""
+	enhance_level = 0
+	deferred_upgrades = 0
+	add_skill(starter_id)
+	stats = {}
 	recalc()
-	hp = stats["max_hp"]
-	neili = stats["max_neili"]
+	hp = float(stats["max_hp"])
+	neili = float(stats["max_neili"])
+	shield = 0.0
 	player_pos = Vector2.ZERO
 	level = 1
 	exp_now = 0
 	exp_next = _exp_for(1)
 	pending_levels = 0
+	pending_chests = 0
+	invuln = 0.0
+	since_hit = 99.0
+	dash_t = 0.0
+	dash_charges = int(qg.get("charges", 1))
+	dash_recharge = 0.0
+	stealth_t = 0.0
+	buff_t = 0.0
 	time = 0.0
 	kills = 0
 	over = false
 	won = false
 	enemies.clear()
 	projs.clear()
+	zones.clear()
 	gem_pos.clear()
 	gem_val.clear()
+	chests.clear()
 	effects.clear()
-	boss = null
-	next_burst = BURST_INTERVAL
+	bosses.clear()
+	skill_dmg.clear()
+	dash_count = 0
+	spawn_acc = 0.0
+	next_burst = Data.T("burst_interval")
+	next_elite = Data.T("elite_first")
+	mini_idx = 0
+	boss_spawned = false
+	max_enemies = int(Data.T("max_enemies"))
 
 
 # =====================================================================
-# 属性
+# 装备 / 属性
 # =====================================================================
+
+func add_skill(id: String) -> void:
+	var s := FistSkills.create(id)
+	s.setup(self, id, Data.skills[id])
+	skills[id] = s
+
+
+func st(key: String) -> float:
+	return float(stats.get(key, 0.0))
+
 
 func recalc() -> void:
 	stats = Data.player_base.duplicate()
-	for id in owned:
-		var def: Dictionary = Data.skills[id]
-		if def.get("kind") == "passive":
-			var l: int = owned[id]
-			var per: Dictionary = def["per_level"]
-			for k in per:
-				stats[k] = float(stats.get(k, 0.0)) + float(per[k]) * l
-	stats["max_hp"] = float(stats["max_hp"]) * hp_penalty
-	stats["max_neili"] = float(stats["max_neili"]) + neili_bonus
-	stats["dash_cost"] = maxf(8.0, float(stats["dash_cost"]))
-	stats["dash_cd"] = maxf(0.25, float(stats["dash_cd"]))
-	hp = minf(hp, stats["max_hp"])
-	neili = minf(neili, stats["max_neili"])
+	for id in xinfa:
+		var def: Dictionary = Data.xinfa[id]
+		var l: int = xinfa[id]
+		var per: Dictionary = def["per_level"]
+		for k in per:
+			stats[k] = st(k) + float(per[k]) * l
+	var qs: Dictionary = qg.get("stats", {})
+	for k in qs:
+		stats[k] = st(k) + float(qs[k])
+	for k in talent_stats:
+		stats[k] = st(k) + float(talent_stats[k])
+	# 标签加成：心法每升 1 级，加成 ×(1 + 0.5 × (等级-1))
+	tag_bonus.clear()
+	for id in xinfa:
+		var def2: Dictionary = Data.xinfa[id]
+		var scale := 1.0 + 0.5 * (int(xinfa[id]) - 1)
+		var b: Dictionary = def2["bonus"]
+		for tg in b:
+			tag_bonus[tg] = float(tag_bonus.get(tg, 0.0)) + float(b[tg]) * scale
+	hp = minf(hp, st("max_hp"))
+	neili = minf(neili, st("max_neili"))
 
 
 func _exp_for(l: int) -> int:
-	return int(4 + l * 4 + l * l * 0.5)
+	return int(6 + 4.0 * l + 0.5 * l * l)
+
+
+func cd_mult() -> float:
+	return maxf(0.4, 1.0 - st("cd_reduce"))
 
 
 ## 内力充盈（≥50%）时全部伤害 +25%
 func dmg_mult() -> float:
-	return NEILI_BONUS_MULT if neili >= float(stats["max_neili"]) * NEILI_BONUS_THRESHOLD else 1.0
+	return NEILI_BONUS_MULT if neili >= st("max_neili") * NEILI_BONUS_THRESHOLD else 1.0
 
 
 # =====================================================================
@@ -155,9 +223,12 @@ func step(dt: float) -> void:
 	_spawn(dt)
 	_rebuild_grid()
 	_update_enemies(dt)
-	_update_skills(dt)
+	for s: SkillBase in skills.values():
+		s.tick(dt)
 	_update_projectiles(dt)
+	_update_zones(dt)
 	_update_gems(dt)
+	_update_chests()
 	_compact_enemies()
 	_update_effects(dt)
 	queue_redraw()
@@ -165,7 +236,17 @@ func step(dt: float) -> void:
 
 func _update_player(dt: float) -> void:
 	invuln = maxf(0.0, invuln - dt)
-	dash_cd_t = maxf(0.0, dash_cd_t - dt)
+	since_hit += dt
+	stealth_t = maxf(0.0, stealth_t - dt)
+	buff_t = maxf(0.0, buff_t - dt)
+
+	# 轻功次数恢复
+	var max_charges := int(qg.get("charges", 1))
+	if dash_charges < max_charges:
+		dash_recharge -= dt
+		if dash_recharge <= 0.0:
+			dash_charges += 1
+			dash_recharge = float(qg["cd"])
 
 	var move := input_move
 	if move.length() > 1.0:
@@ -173,68 +254,126 @@ func _update_player(dt: float) -> void:
 	if move.length() > 0.1:
 		facing = move.normalized()
 
-	# 轻功：短距离无敌冲刺，消耗内力
-	if input_dash and dash_t <= 0.0 and dash_cd_t <= 0.0 and neili >= float(stats["dash_cost"]):
-		dash_t = DASH_TIME
-		dash_dir = move.normalized() if move.length() > 0.1 else facing
-		neili -= float(stats["dash_cost"])
-		dash_cd_t = float(stats["dash_cd"])
-		invuln = maxf(invuln, DASH_TIME + 0.08)
+	if input_dash and dash_t <= 0.0 and dash_charges > 0 and neili >= float(qg["cost"]):
+		_start_dash(move, max_charges)
 	input_dash = false
 
 	if dash_t > 0.0:
 		dash_t -= dt
-		player_pos += dash_dir * DASH_SPEED * dt
-		_add_fx("trail", player_pos, 0.25)
+		player_pos += dash_dir * float(qg["dash_speed"]) * dt
+		add_fx("trail", player_pos, 0.25)
+		var pd := float(qg.get("path_dmg", 0.0))
+		if pd > 0.0:
+			for e in _query(player_pos, 36.0):
+				if e.alive and not dash_hit.has(e.uid) and e.pos.distance_to(player_pos) < 36.0 + e.radius:
+					dash_hit[e.uid] = true
+					hit_enemy(e, pd, [], dash_dir * float(qg["path_knock"]), "qinggong")
+		if dash_t <= 0.0:
+			_end_dash()
 	else:
-		player_pos += move * float(stats["move_speed"]) * dt
+		var spd_pct := st("speed_pct") + (float(qg.get("buff_speed", 0.0)) if buff_t > 0.0 else 0.0)
+		player_pos += move * st("move_speed") * (1.0 + spd_pct) * dt
 
-	neili = minf(stats["max_neili"], neili + float(stats["neili_regen"]) * dt)
-	hp = minf(stats["max_hp"], hp + float(stats["hp_regen"]) * dt)
+	# 内力 / 气血 / 护盾
+	var max_n := st("max_neili")
+	var regen := st("neili_regen") * (1.0 + (float(qg.get("buff_regen", 0.0)) if buff_t > 0.0 else 0.0))
+	neili = minf(max_n, neili + regen * dt)
+	var hr := st("hp_regen") + (st("full_hp_regen") if neili >= max_n - 0.01 else 0.0)
+	hp = minf(st("max_hp"), hp + hr * dt)
+	if since_hit > 2.0 and shield < st("shield_max"):
+		shield = minf(st("shield_max"), shield + st("shield_regen") * dt)
 
 	# 真气爆发：消耗满内力的范围大招
-	var ult_cost := minf(float(stats["ult_cost"]), float(stats["max_neili"]))
+	var ult_cost := minf(st("ult_cost"), max_n)
 	if input_ult and neili >= ult_cost:
 		neili -= ult_cost
 		_ult()
 	input_ult = false
 
 
+func _start_dash(move: Vector2, max_charges: int) -> void:
+	dash_count += 1
+	neili -= float(qg["cost"])
+	dash_charges -= 1
+	if dash_charges == max_charges - 1:
+		dash_recharge = float(qg["cd"])
+	var dir := move.normalized() if move.length() > 0.1 else facing
+	dash_hit.clear()
+	if qg.get("blink", false):
+		var from := player_pos
+		player_pos += dir * float(qg["blink_dist"])
+		for i in 6:
+			add_fx("trail", from.lerp(player_pos, i / 5.0), 0.3)
+		invuln = maxf(invuln, 0.25)
+		var ld := float(qg.get("land_dmg", 0.0))
+		if ld > 0.0:
+			var lr := float(qg["land_radius"])
+			area_hit_raw(player_pos, lr, ld, [], "qinggong", 250.0)
+			add_fx("ring", player_pos, 0.3, {"r0": 10.0, "r1": lr, "color": JADE})
+		_end_dash()
+	else:
+		dash_t = float(qg["dash_time"])
+		dash_dir = dir
+		invuln = maxf(invuln, dash_t + 0.08)
+
+
+func _end_dash() -> void:
+	if qg.has("stealth"):
+		stealth_t = float(qg["stealth"])
+		stealth_pos = player_pos
+	if qg.has("buff_time"):
+		buff_t = float(qg["buff_time"])
+
+
 func _ult() -> void:
-	var dmg := ULT_DAMAGE * dmg_mult()
-	for e in _query(player_pos, ULT_RADIUS):
-		if e.alive and e.pos.distance_to(player_pos) < ULT_RADIUS + e.radius:
-			var out := (e.pos - player_pos).normalized()
-			damage_enemy(e, dmg, out * 600.0)
+	area_hit_raw(player_pos, ULT_RADIUS, ULT_DAMAGE, [], "ult", 600.0)
 	for p in projs:
 		if p.hostile and p.pos.distance_to(player_pos) < ULT_RADIUS:
 			p.life = 0.0
-	_add_fx("ring", player_pos, 0.45, {"r0": 20.0, "r1": ULT_RADIUS, "color": JADE})
+	add_fx("ring", player_pos, 0.45, {"r0": 20.0, "r1": ULT_RADIUS, "color": JADE})
 	shake = 10.0
 
 
+func add_shield(v: float) -> void:
+	shield = minf(maxf(st("shield_max"), 30.0), shield + v)
+
+
 # =====================================================================
-# 敌人
+# 刷怪
 # =====================================================================
 
 func _spawn(dt: float) -> void:
-	var rate := 1.3 + time * 0.04
-	if time >= BOSS_TIME:
+	var rate := Data.T("spawn_base") + time * Data.T("spawn_slope")
+	if _boss_alive():
 		rate *= 0.5
 	spawn_acc += rate * dt
 	while spawn_acc >= 1.0:
 		spawn_acc -= 1.0
-		if enemies.size() < MAX_ENEMIES:
+		if enemies.size() < max_enemies:
 			_spawn_enemy(_pick_type(), _ring_pos())
 	# 合围：定时在四周刷出一圈敌人
 	if time >= next_burst:
-		next_burst += BURST_INTERVAL
+		next_burst += Data.T("burst_interval")
 		for i in 24:
-			if enemies.size() < MAX_ENEMIES:
-				var a := TAU * i / 24.0
-				_spawn_enemy("bandit", player_pos + Vector2.from_angle(a) * SPAWN_DIST)
-	if time >= BOSS_TIME and boss == null:
-		_spawn_boss()
+			if enemies.size() < max_enemies:
+				_spawn_enemy("bandit", player_pos + Vector2.from_angle(TAU * i / 24.0) * SPAWN_DIST)
+	if time >= next_elite:
+		next_elite += Data.T("elite_interval")
+		_spawn_elite()
+	var mini_times: Array = Data.tuning["mini_boss_times"]
+	if mini_idx < mini_times.size() and time >= float(mini_times[mini_idx]):
+		mini_idx += 1
+		_spawn_boss("mini_boss_%d" % mini_idx, false)
+	if not boss_spawned and time >= Data.T("boss_time"):
+		boss_spawned = true
+		_spawn_boss("boss", true)
+
+
+func _boss_alive() -> bool:
+	for b in bosses:
+		if b.alive:
+			return true
+	return false
 
 
 func _ring_pos() -> Vector2:
@@ -242,8 +381,8 @@ func _ring_pos() -> Vector2:
 
 
 func _pick_type() -> String:
-	var w_blade := clampf((time - 30.0) / 120.0, 0.0, 0.8)
-	var w_soldier := clampf((time - 70.0) / 150.0, 0.0, 0.6)
+	var w_blade := clampf((time - 30.0) / 180.0, 0.0, 0.8)
+	var w_soldier := clampf((time - 90.0) / 240.0, 0.0, 0.7)
 	var r := rng.randf() * (1.0 + w_blade + w_soldier)
 	if r < 1.0:
 		return "bandit"
@@ -259,11 +398,10 @@ func _spawn_enemy(type: String, at: Vector2) -> Enemy:
 	next_uid += 1
 	e.type_id = type
 	e.pos = at
-	var scale := 1.0 + time / 150.0
-	e.max_hp = float(def["hp"]) * scale
+	e.max_hp = float(def["hp"]) * (1.0 + time / Data.T("hp_scale_t"))
 	e.hp = e.max_hp
-	e.speed = float(def["speed"]) * (1.0 + minf(time / 600.0, 0.3)) * rng.randf_range(0.9, 1.1)
-	e.damage = float(def["damage"]) * (1.0 + time / 400.0)
+	e.speed = float(def["speed"]) * (1.0 + minf(time / 900.0, 0.3)) * rng.randf_range(0.9, 1.1)
+	e.damage = float(def["damage"]) * (1.0 + time / Data.T("dmg_scale_t"))
 	e.radius = float(def["radius"])
 	e.exp_value = int(def["exp"])
 	e.color = Color(str(def["color"]))
@@ -271,15 +409,36 @@ func _spawn_enemy(type: String, at: Vector2) -> Enemy:
 	return e
 
 
-func _spawn_boss() -> void:
-	boss = _spawn_enemy("boss", _ring_pos())
-	boss.is_boss = true
-	# Boss 不随时间缩放血量，保持固定的战斗时长
-	boss.max_hp = float(Data.enemies["boss"]["hp"])
-	boss.hp = boss.max_hp
-	boss.damage = float(Data.enemies["boss"]["damage"])
-	_add_fx("text", player_pos + Vector2(0, -80), 2.0, {"text": "海岛剑尊 现身！", "size": 28, "color": VERMILION})
+func _spawn_elite() -> void:
+	var e := _spawn_enemy("soldier" if rng.randf() < 0.6 else "blade", _ring_pos())
+	e.is_elite = true
+	e.max_hp *= Data.T("elite_hp")
+	e.hp = e.max_hp
+	e.radius *= Data.T("elite_radius")
+	e.speed *= Data.T("elite_speed")
+	e.damage *= Data.T("elite_dmg")
+	e.exp_value = int(Data.T("elite_exp"))
+	add_fx("text", player_pos + Vector2(0, -80), 1.6, {"text": "精英现身！", "size": 26, "color": GOLD})
 
+
+func _spawn_boss(id: String, final: bool) -> void:
+	var def: Dictionary = Data.enemies[id]
+	var e := _spawn_enemy(id, _ring_pos())
+	e.is_boss = true
+	e.is_final = final
+	e.boss_name = str(def["name"])
+	e.max_hp = float(def["hp"])   # Boss 不随时间缩放血量，保持固定的战斗时长
+	e.hp = e.max_hp
+	e.speed = float(def["speed"])
+	e.damage = float(def["damage"])
+	e.boss_bolts = int(def["bolts"])
+	bosses.append(e)
+	add_fx("text", player_pos + Vector2(0, -80), 2.0, {"text": "%s 现身！" % e.boss_name, "size": 28, "color": VERMILION})
+
+
+# =====================================================================
+# 空间查询
+# =====================================================================
 
 func _rebuild_grid() -> void:
 	grid.clear()
@@ -289,8 +448,8 @@ func _rebuild_grid() -> void:
 			var cell: Array[Enemy] = grid[k]
 			cell.append(e)
 		else:
-			var cell: Array[Enemy] = [e]
-			grid[k] = cell
+			var cell2: Array[Enemy] = [e]
+			grid[k] = cell2
 
 
 func _key(p: Vector2) -> int:
@@ -299,7 +458,7 @@ func _key(p: Vector2) -> int:
 
 func _query(center: Vector2, r: float) -> Array[Enemy]:
 	var out: Array[Enemy] = []
-	var rr := r + 44.0  # 留出最大敌人半径（Boss）的余量
+	var rr := r + 66.0  # 留出最大敌人半径（Boss/精英）的余量
 	var x0 := int(floorf((center.x - rr) / CELL))
 	var x1 := int(floorf((center.x + rr) / CELL))
 	var y0 := int(floorf((center.y - rr) / CELL))
@@ -312,7 +471,7 @@ func _query(center: Vector2, r: float) -> Array[Enemy]:
 	return out
 
 
-func _nearest(max_dist: float) -> Enemy:
+func nearest_enemy(max_dist: float) -> Enemy:
 	var best: Enemy = null
 	var bd := max_dist * max_dist
 	for e in enemies:
@@ -325,26 +484,69 @@ func _nearest(max_dist: float) -> Enemy:
 	return best
 
 
+## 最近的 n 个敌人（按距离升序）
+func nearest_n(max_dist: float, n: int) -> Array[Enemy]:
+	var best: Array[Enemy] = []
+	var dists: Array[float] = []
+	var lim := max_dist * max_dist
+	for e in enemies:
+		if not e.alive:
+			continue
+		var d2 := player_pos.distance_squared_to(e.pos)
+		if d2 >= lim:
+			continue
+		if best.size() < n or d2 < dists[best.size() - 1]:
+			var i := best.size()
+			while i > 0 and dists[i - 1] > d2:
+				i -= 1
+			best.insert(i, e)
+			dists.insert(i, d2)
+			if best.size() > n:
+				best.pop_back()
+				dists.pop_back()
+	return best
+
+
+func any_enemy_within(center: Vector2, r: float) -> bool:
+	for e in _query(center, r):
+		if e.alive and e.pos.distance_to(center) < r + e.radius:
+			return true
+	return false
+
+
+# =====================================================================
+# 敌人
+# =====================================================================
+
 func _update_enemies(dt: float) -> void:
 	for e in enemies:
 		if not e.alive:
 			continue
-		e.orbit_cd -= dt
 		e.flash = maxf(0.0, e.flash - dt)
+		e.slow_t = maxf(0.0, e.slow_t - dt)
 		var to := player_pos - e.pos
 		var d := to.length()
 		if d > RELOCATE_DIST and not e.is_boss:
 			e.pos = _ring_pos()
 			continue
 		var dir := to / d if d > 0.001 else Vector2.ZERO
-		var vel := dir * e.speed
-		if e.is_boss:
+		var vel := Vector2.ZERO
+		if e.stun > 0.0:
+			e.stun -= dt
+		elif e.is_boss:
 			vel = _boss_ai(e, dt, dir)
 		else:
+			var spd := e.speed * (e.slow_mult if e.slow_t > 0.0 else 1.0)
+			if stealth_t > 0.0:
+				# 轻功隐匿：敌人只会慢慢走向玩家消失的位置
+				var tp := stealth_pos - e.pos
+				vel = tp.normalized() * spd * 0.35 if tp.length() > 8.0 else Vector2.ZERO
+			else:
+				vel = dir * spd
 			vel += _separation(e) * 90.0
 		e.pos += (vel + e.knock) * dt
 		e.knock *= maxf(0.0, 1.0 - 7.0 * dt)
-		if d < e.radius + PLAYER_RADIUS and invuln <= 0.0:
+		if e.stun <= 0.0 and d < e.radius + PLAYER_RADIUS and invuln <= 0.0:
 			_hurt(e.damage)
 
 
@@ -381,11 +583,11 @@ func _boss_ai(e: Enemy, dt: float, dir: Vector2) -> Vector2:
 			if e.bolt_timer <= 0.0:
 				var rage := e.hp < e.max_hp * 0.5
 				e.bolt_timer = 2.2 if rage else 3.0
-				_boss_radial(e, 22 if rage else 14)
+				_boss_radial(e, int(e.boss_bolts * (1.5 if rage else 1.0)))
 			if e.boss_timer >= 6.0:
 				e.boss_state = "windup"
 				e.boss_timer = 0.0
-			return dir * e.speed
+			return dir * e.speed * (e.slow_mult if e.slow_t > 0.0 else 1.0)
 		"windup":
 			e.charge_dir = dir
 			if e.boss_timer >= 0.9:
@@ -420,11 +622,33 @@ func _boss_radial(e: Enemy, n: int) -> void:
 func _hurt(amount: float) -> void:
 	if god:
 		return
-	var dmg := maxf(1.0, amount - float(stats["armor"]))
-	hp -= dmg
+	# 闪避（灵蛇步）与免伤（铁骨诀）
+	if st("dodge_chance") > 0.0 and neili >= float(qg.get("dodge_cost", 0.0)) and rng.randf() < st("dodge_chance"):
+		neili -= float(qg.get("dodge_cost", 0.0))
+		invuln = 0.3
+		add_fx("text", player_pos + Vector2(0, -24), 0.6, {"text": "闪", "size": 24, "color": JADE})
+		return
+	if rng.randf() < st("block_chance"):
+		invuln = 0.3
+		add_fx("text", player_pos + Vector2(0, -24), 0.6, {"text": "挡", "size": 24, "color": JADE})
+		return
+	var dmg := amount
+	for s: SkillBase in skills.values():
+		dmg = s.on_hurt(dmg)
+	dmg = maxf(1.0, dmg - st("armor"))
+	since_hit = 0.0
 	invuln = 0.6
+	if st("thorns") > 0.0:
+		area_hit_raw(player_pos, 90.0, st("thorns"), [], "thorns", 150.0)
+	if shield > 0.0:
+		var absorbed := minf(shield, dmg)
+		shield -= absorbed
+		dmg -= absorbed
+	if dmg <= 0.0:
+		return
+	hp -= dmg
 	shake = 8.0
-	_add_fx("text", player_pos + Vector2(0, -24), 0.7, {"text": "-%d" % int(dmg), "size": 22, "color": VERMILION})
+	add_fx("text", player_pos + Vector2(0, -24), 0.7, {"text": "-%d" % int(dmg), "size": 22, "color": VERMILION})
 	if hp <= 0.0 and not over:
 		hp = 0.0
 		over = true
@@ -432,18 +656,16 @@ func _hurt(amount: float) -> void:
 		player_died.emit()
 
 
-func damage_enemy(e: Enemy, amount: float, knock_vec: Vector2) -> void:
+func damage_enemy(e: Enemy, amount: float, knock_vec: Vector2, crit: bool = false) -> void:
 	if not e.alive:
 		return
 	e.hp -= amount
 	e.flash = 0.08
-	if not e.is_boss:
-		e.knock += knock_vec
-	else:
-		e.knock += knock_vec * 0.1
+	e.knock += knock_vec * (0.1 if e.is_boss else (0.4 if e.is_elite else 1.0))
 	if effects.size() < MAX_EFFECTS:
-		_add_fx("text", e.pos + Vector2(rng.randf_range(-8, 8), -e.radius), 0.5,
-			{"text": str(int(amount)), "size": 14, "color": INK})
+		var big := crit
+		add_fx("text", e.pos + Vector2(rng.randf_range(-8, 8), -e.radius), 0.55 if big else 0.45,
+			{"text": str(int(amount)), "size": 20 if big else 14, "color": GOLD if big else INK})
 	if e.hp <= 0.0:
 		_kill(e)
 
@@ -451,13 +673,33 @@ func damage_enemy(e: Enemy, amount: float, knock_vec: Vector2) -> void:
 func _kill(e: Enemy) -> void:
 	e.alive = false
 	kills += 1
+	neili = minf(st("max_neili"), neili + st("kill_neili"))
 	_drop_gem(e.pos, e.exp_value)
-	_add_fx("splat", e.pos, 0.6, {"r": e.radius * 1.4, "color": e.color})
-	if e.is_boss:
+	add_fx("splat", e.pos, 0.6, {"r": e.radius * 1.4, "color": e.color})
+	if e.chain:
+		_chain_explode(e)
+	if e.is_elite:
+		hp = minf(st("max_hp"), hp + st("max_hp") * 0.15)
+		add_fx("text", e.pos + Vector2(0, -30), 1.0, {"text": "精英已破：气血回复", "size": 18, "color": GOLD})
+	if e.is_boss and not e.is_final:
+		chests.append(e.pos)
+	if e.is_final:
 		over = true
 		won = true
 		shake = 14.0
 		victory.emit()
+
+
+func _chain_explode(e: Enemy) -> void:
+	var s: SkillBase = skills.get("point_finger")
+	if s == null or chain_depth >= 6:
+		return
+	chain_depth += 1
+	var lv := clampi(enhance_level, 1, 3) - 1
+	var er: float = [85.0, 110.0, 140.0][lv]
+	area_hit(s, e.pos, er, s.p("damage") * [1.2, 1.6, 2.0][lv], 100.0, [0.8, 1.0, 1.2][lv], true)
+	add_fx("ring", e.pos, 0.3, {"r0": 10.0, "r1": er, "color": GOLD})
+	chain_depth -= 1
 
 
 func _compact_enemies() -> void:
@@ -469,87 +711,152 @@ func _compact_enemies() -> void:
 	enemies.resize(j)
 
 
+func stun_enemy(e: Enemy, t: float, chain: bool = false) -> void:
+	var f := 0.2 if e.is_boss else (0.4 if e.is_elite else 1.0)
+	e.stun = maxf(e.stun, t * f)
+	if chain:
+		e.chain = true
+
+
+func slow_enemy(e: Enemy, mult: float, t: float) -> void:
+	e.slow_mult = mult
+	e.slow_t = maxf(e.slow_t, t)
+
+
 # =====================================================================
-# 武学
+# 技能服务
 # =====================================================================
 
-func _update_skills(dt: float) -> void:
-	orbit_blades.clear()
-	for id in owned:
-		var def: Dictionary = Data.skills[id]
-		var l: int = owned[id]
-		match str(def["type"]):
-			"wave", "bolt":
-				skill_cd[id] = float(skill_cd.get(id, 0.0)) - dt
-				if skill_cd[id] <= 0.0:
-					if _fire(def, l):
-						skill_cd[id] = Data.lv(def, "cooldown", l)
-					else:
-						skill_cd[id] = 0.15
-			"orbit":
-				_update_orbit(def, l, dt)
+## 统一结算一次命中：标签加成 × 内力加成 × 暴击。返回最终伤害。
+func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: String, force_crit: bool = false) -> float:
+	var m := 1.0
+	for tg in tags:
+		m += float(tag_bonus.get(tg, 0.0))
+	m *= dmg_mult()
+	var crit := force_crit or rng.randf() < st("crit_chance")
+	if crit:
+		m *= st("crit_mult")
+	var amount := base * m
+	var hs := st("hit_slow")
+	if hs > 0.0:
+		slow_enemy(e, 1.0 - minf(0.6, hs), 1.5)
+	skill_dmg[sid] = float(skill_dmg.get(sid, 0.0)) + amount
+	damage_enemy(e, amount, knock_vec, crit)
+	return amount
 
 
-func _fire(def: Dictionary, l: int) -> bool:
-	# 瞄准距离 = 弹体实际射程，避免"打出去够不着"
-	var reach := Data.lv(def, "speed", l) * Data.lv(def, "life", l)
-	var target := _nearest(reach)
-	if target == null:
-		return false
-	var base := (target.pos - player_pos).angle()
-	var dmg := Data.lv(def, "damage", l) * dmg_mult()
-	if str(def["type"]) == "wave":
-		_spawn_proj("wave", base, def, l, dmg)
-		if def.get("both_sides", false):
-			_spawn_proj("wave", base + PI, def, l, dmg)
-	else:
-		var n := int(Data.lv(def, "count", l))
-		var spread := Data.lv(def, "spread", l)
-		for i in n:
-			var a := base
-			if str(def.get("pattern", "spread")) == "radial":
-				a = base + TAU * i / n
-			else:
-				a = base + (i - (n - 1) * 0.5) * spread
-			_spawn_proj("bolt", a, def, l, dmg)
-	return true
+func area_hit_raw(center: Vector2, radius: float, base: float, tags: Array, sid: String,
+		knock: float = 0.0, stun: float = 0.0, chain: bool = false, force_crit: bool = false) -> void:
+	for e in _query(center, radius):
+		if not e.alive:
+			continue
+		var d := e.pos.distance_to(center)
+		if d < radius + e.radius:
+			var out := (e.pos - center) / d if d > 0.01 else Vector2.from_angle(rng.randf() * TAU)
+			hit_enemy(e, base, tags, out * knock, sid, force_crit)
+			if stun > 0.0:
+				stun_enemy(e, stun, chain)
 
 
-func _spawn_proj(kind: String, angle: float, def: Dictionary, l: int, dmg: float) -> void:
-	var p := Projectile.new()
+func area_hit(s: SkillBase, center: Vector2, radius: float, base: float,
+		knock: float = 0.0, stun: float = 0.0, chain: bool = false) -> void:
+	area_hit_raw(center, radius, base, s.tags(), s.id, knock, stun, chain)
+
+
+## 扇形近战判定
+func cone_hit(s: SkillBase, origin: Vector2, angle: float, half_arc: float, reach: float,
+		base: float, knock: float, force_crit: bool = false) -> void:
+	for e in _query(origin, reach):
+		if not e.alive:
+			continue
+		var to := e.pos - origin
+		var d := to.length()
+		if d >= reach + e.radius:
+			continue
+		if d > 20.0 and absf(wrapf(to.angle() - angle, -PI, PI)) > half_arc + 0.15:
+			continue
+		var out := to / d if d > 0.01 else Vector2.from_angle(angle)
+		hit_enemy(e, base, s.tags(), out * knock, s.id, force_crit)
+
+
+func spawn_proj(s: SkillBase, angle: float, o: Dictionary = {}) -> Projectile:
+	var pr := Projectile.new()
 	var dir := Vector2.from_angle(angle)
-	p.kind = kind
-	p.angle = angle
-	p.pos = player_pos + dir * 18.0
-	p.vel = dir * Data.lv(def, "speed", l)
-	p.radius = Data.lv(def, "radius", l)
-	p.damage = dmg
-	p.pierce = int(Data.lv(def, "pierce", l))
-	p.life = Data.lv(def, "life", l)
-	p.knock = Data.lv(def, "knock", l)
-	projs.append(p)
+	pr.kind = str(s.def.get("proj_kind", "bolt"))
+	pr.skill_id = s.id
+	pr.tags = s.tags()
+	pr.angle = angle
+	pr.pos = o.get("pos", player_pos + dir * 18.0)
+	pr.speed = float(o.get("speed", s.p("speed")))
+	pr.vel = dir * pr.speed
+	pr.radius = float(o.get("radius", s.p("radius")))
+	pr.damage = float(o.get("damage", s.p("damage")))
+	pr.pierce = int(o.get("pierce", s.p("pierce")))
+	pr.life = float(o.get("life", s.p("life")))
+	pr.knock = float(o.get("knock", s.p("knock")))
+	pr.homing = bool(o.get("homing", false))
+	pr.turn = float(o.get("turn", 0.0))
+	pr.split = int(o.get("split", 0))
+	pr.boomerang = bool(o.get("boomerang", false))
+	pr.stun = float(o.get("stun", 0.0))
+	pr.chain = bool(o.get("chain", false))
+	projs.append(pr)
+	return pr
 
 
-func _update_orbit(def: Dictionary, l: int, dt: float) -> void:
-	orbit_angle += Data.lv(def, "speed", l) * dt
-	var n := int(Data.lv(def, "count", l))
-	var orbit_r := Data.lv(def, "orbit_radius", l)
-	orbit_blade_r = Data.lv(def, "radius", l)
-	var dmg := Data.lv(def, "damage", l) * dmg_mult()
-	for i in n:
-		var a := orbit_angle + TAU * i / n
-		var bp := player_pos + Vector2.from_angle(a) * orbit_r
-		orbit_blades.append(bp)
-		for e in _query(bp, orbit_blade_r):
-			if e.alive and e.orbit_cd <= 0.0 and bp.distance_to(e.pos) < orbit_blade_r + e.radius:
-				e.orbit_cd = 0.4
-				damage_enemy(e, dmg, (e.pos - player_pos).normalized() * 120.0)
+func add_zone(z: Dictionary) -> void:
+	if not z.has("pos"):
+		z["pos"] = player_pos
+	zones.append(z)
+
+
+func fx_slash(at: Vector2, angle: float, reach: float, arc: float, heavy: bool) -> void:
+	add_fx("slash", at, 0.2, {"angle": angle, "r": reach, "arc": arc, "heavy": heavy})
+
+
+# =====================================================================
+# 弹体 / 区域
+# =====================================================================
+
+func _nearest_from(pos: Vector2, max_dist: float, exclude: Dictionary) -> Enemy:
+	var best: Enemy = null
+	var bd := max_dist * max_dist
+	for e in enemies:
+		if not e.alive or exclude.has(e.uid):
+			continue
+		var d2 := pos.distance_squared_to(e.pos)
+		if d2 < bd:
+			bd = d2
+			best = e
+	return best
 
 
 func _update_projectiles(dt: float) -> void:
 	var j := 0
 	for p in projs:
 		p.life -= dt
+		if p.life <= 0.0 and p.boomerang and not p.returning:
+			p.returning = true
+			p.homing = false
+			p.life = 3.0
+			p.hit.clear()
+			p.pierce = maxi(p.pierce, 2 + enhance_level)
+			p.damage *= 1.6 + 0.3 * (enhance_level - 1)
+		if p.returning:
+			var back := player_pos - p.pos
+			if back.length() < 22.0:
+				p.life = 0.0
+			else:
+				p.vel = back.normalized() * p.speed * 1.3
+				p.angle = p.vel.angle()
+		elif p.homing:
+			if p.target == null or not p.target.alive or p.hit.has(p.target.uid):
+				p.target = _nearest_from(p.pos, 420.0, p.hit)
+			if p.target != null:
+				var diff := wrapf((p.target.pos - p.pos).angle() - p.vel.angle(), -PI, PI)
+				var rot := clampf(diff, -p.turn * dt, p.turn * dt)
+				p.vel = p.vel.rotated(rot)
+				p.angle = p.vel.angle()
 		p.pos += p.vel * dt
 		var keep := p.life > 0.0
 		if keep:
@@ -563,10 +870,18 @@ func _update_projectiles(dt: float) -> void:
 						continue
 					if p.pos.distance_to(e.pos) < p.radius + e.radius:
 						p.hit[e.uid] = true
-						damage_enemy(e, p.damage, p.vel.normalized() * p.knock)
+						hit_enemy(e, p.damage, p.tags, p.vel.normalized() * p.knock, p.skill_id)
+						if p.stun > 0.0:
+							stun_enemy(e, p.stun, p.chain)
+						if p.split > 0:
+							_split(p)
+							p.split = 0
 						p.pierce -= 1
 						if p.pierce <= 0:
-							keep = false
+							if p.boomerang and not p.returning:
+								p.life = 0.0   # 回旋：穿透耗尽时不消失，转为折返
+							else:
+								keep = false
 							break
 		if keep:
 			projs[j] = p
@@ -574,8 +889,74 @@ func _update_projectiles(dt: float) -> void:
 	projs.resize(j)
 
 
+func _split(p: Projectile) -> void:
+	var s: SkillBase = skills.get(p.skill_id)
+	if s == null:
+		return
+	var n := p.split
+	for i in n:
+		var child := spawn_proj(s, p.angle + (i - (n - 1) * 0.5) * 0.5, {
+			"pos": p.pos, "damage": p.damage * (0.7 + 0.1 * enhance_level), "radius": p.radius * 0.7,
+			"pierce": 3, "life": 0.65, "speed": p.speed * 0.9, "knock": p.knock * 0.5})
+		child.hit = p.hit.duplicate()
+
+
+func _update_zones(dt: float) -> void:
+	var j := 0
+	for z in zones:
+		var keep := true
+		z["t"] = float(z["t"]) + dt
+		var zpos: Vector2 = z["pos"]
+		var zr: float = z["r"]
+		match str(z["kind"]):
+			"impact":
+				if z["t"] >= z["delay"]:
+					var s: SkillBase = z["skill"]
+					area_hit(s, zpos, zr, z["dmg"], 250.0, z["stun"])
+					add_fx("ring", zpos, 0.3, {"r0": 10.0, "r1": zr, "color": VERMILION})
+					shake = maxf(shake, 5.0)
+					if z["crack"]:
+						var cl: int = z["elv"]
+						add_zone({"kind": "crack", "skill": s, "pos": zpos, "r": zr * (0.8 + 0.15 * (cl - 1)),
+							"t": 0.0, "life": 3.0 + (cl - 1), "tick": 0.0, "dmg": float(z["dmg"]) * (0.5 + 0.2 * (cl - 1))})
+					keep = false
+			"crack":
+				if z["t"] >= z["life"]:
+					keep = false
+				else:
+					z["tick"] = float(z["tick"]) - dt
+					if z["tick"] <= 0.0:
+						z["tick"] = 0.5
+						var s2: SkillBase = z["skill"]
+						area_hit(s2, zpos, zr, z["dmg"])
+						for e in _query(zpos, zr):
+							if e.alive and e.pos.distance_to(zpos) < zr + e.radius:
+								slow_enemy(e, 0.6, 0.7)
+			"vortex":
+				z["pos"] = player_pos
+				zpos = player_pos
+				if z["t"] >= z["life"]:
+					keep = false
+					# 旋涡收束：把聚拢的敌人再轰一次
+					if z.has("skill"):
+						area_hit(z["skill"], zpos, zr * 0.6, z["dmg"], 200.0)
+						add_fx("ring", zpos, 0.3, {"r0": 10.0, "r1": zr * 0.6, "color": INK})
+				else:
+					for e in _query(zpos, zr):
+						if not e.alive or e.is_boss:
+							continue
+						var to := zpos - e.pos
+						var d := to.length()
+						if d > 24.0 and d < zr:
+							e.pos += to / d * float(z["pull"]) * dt
+		if keep:
+			zones[j] = z
+			j += 1
+	zones.resize(j)
+
+
 # =====================================================================
-# 经验 / 升级
+# 经验 / 秘籍 / 升级
 # =====================================================================
 
 func _drop_gem(at: Vector2, value: int) -> void:
@@ -588,12 +969,13 @@ func _drop_gem(at: Vector2, value: int) -> void:
 
 
 func _update_gems(dt: float) -> void:
-	var pull := float(stats["pickup_range"])
+	var pull := st("pickup_range")
 	var i := 0
 	while i < gem_pos.size():
 		var d := gem_pos[i].distance_to(player_pos)
 		if d < 14.0:
 			_gain_exp(gem_val[i])
+			hp = minf(st("max_hp"), hp + st("pickup_heal"))
 			var last := gem_pos.size() - 1
 			gem_pos[i] = gem_pos[last]
 			gem_val[i] = gem_val[last]
@@ -606,7 +988,7 @@ func _update_gems(dt: float) -> void:
 
 
 func _gain_exp(v: int) -> void:
-	exp_now += v
+	exp_now += int(ceil(v * (1.0 + st("exp_pct"))))
 	while exp_now >= exp_next:
 		exp_now -= exp_next
 		level += 1
@@ -614,48 +996,94 @@ func _gain_exp(v: int) -> void:
 		pending_levels += 1
 
 
-## 生成升级三选一：进化优先，其次随机的新武学/升级，小概率混入奇遇。
-func roll_choices(n: int = 3) -> Array:
-	var out: Array = []
-	for evo in Data.evolutions:
-		var from_id: String = evo["from"]
-		var to_id: String = evo["to"]
-		var from_def: Dictionary = Data.skills[from_id]
-		if owned.has(from_id) and owned[from_id] >= int(from_def["max_level"]) and owned.has(evo["requires"]):
-			var to_def: Dictionary = Data.skills[to_id]
-			out.append({
-				"kind": "evolve", "id": to_id, "from": from_id, "tag": "进化",
-				"title": "%s → %s" % [from_def["name"], to_def["name"]], "desc": to_def["desc"],
-			})
+## 小 Boss 掉落「秘籍」：首次拾取三选一专属强化；之后每次拾取把该强化升一级（最高 3 级），满级后改为回复奖励。
+func _update_chests() -> void:
+	var i := 0
+	while i < chests.size():
+		if chests[i].distance_to(player_pos) < 30.0:
+			var at := chests[i]
+			chests.remove_at(i)
+			if enhance_id == "":
+				if pending_chests == 0:
+					pending_chests += 1
+				else:
+					deferred_upgrades += 1   # 还没来得及选强化又拾到第二本：选完后直接升级
+			elif enhance_level < 3:
+				enhance_level += 1
+				_enhance_upgraded(at)
+			else:
+				hp = minf(st("max_hp"), hp + st("max_hp") * 0.3)
+				exp_now += int(exp_next * 0.4)
+				add_fx("text", at + Vector2(0, -30), 1.2, {"text": "强化已圆满：气血回复、修为精进", "size": 20, "color": GOLD})
+			continue
+		i += 1
 
+
+func _enhance_upgraded(at: Vector2) -> void:
+	var def: Dictionary = Data.skills[enhance_id]
+	var en: Dictionary = def["enhance"]
+	add_fx("ring", player_pos, 0.8, {"r0": 10.0, "r1": 240.0, "color": GOLD})
+	add_fx("text", at + Vector2(0, -40), 2.0, {
+		"text": "「%s」升华至 Lv%d" % [en["name"], enhance_level], "size": 26, "color": GOLD})
+	shake = maxf(shake, 6.0)
+
+
+func roll_chest_choices() -> Array:
+	var ids: Array = skills.keys()
+	_shuffle(ids)
+	var out: Array = []
+	for id in ids:
+		if out.size() >= 3:
+			break
+		var def: Dictionary = Data.skills[id]
+		var en: Dictionary = def["enhance"]
+		out.append({
+			"kind": "enhance", "id": id, "tag": "秘籍", "src": "chest",
+			"title": "%s · %s" % [def["name"], en["name"]], "desc": en["desc"],
+		})
+	return out
+
+
+## 升级三选一：已有技能/心法的升级，以及槽位未满时的新技能/新心法。
+func roll_choices(n: int = 3) -> Array:
 	var pool: Array = []
 	for id in Data.skills:
 		var def: Dictionary = Data.skills[id]
-		if def.get("evolved", false):
-			continue
-		var tag := "心法" if def["kind"] == "passive" else "招式"
-		if owned.has(id):
-			if owned[id] < int(def["max_level"]):
-				var nl: int = owned[id] + 1
+		if skills.has(id):
+			var s: SkillBase = skills[id]
+			if s.level < int(def["max_level"]):
 				pool.append({
-					"kind": "upgrade", "id": id, "tag": tag,
-					"title": "%s Lv%d→%d" % [def["name"], owned[id], nl], "desc": Data.upgrade_text(id, nl),
+					"kind": "up_skill", "id": id, "tag": "招式", "src": "level",
+					"title": "%s Lv%d→%d" % [def["name"], s.level, s.level + 1],
+					"desc": Data.skill_upgrade_text(id, s.level + 1),
 				})
-		else:
+		elif skills.size() < MAX_SKILLS:
 			pool.append({
-				"kind": "new", "id": id, "tag": tag,
-				"title": "领悟：%s" % def["name"], "desc": def["desc"],
+				"kind": "new_skill", "id": id, "tag": "招式", "src": "level",
+				"title": "领悟：%s" % def["name"],
+				"desc": "%s　【%s】" % [def["desc"], Data.tags_text(id)],
+			})
+	for id in Data.xinfa:
+		var def2: Dictionary = Data.xinfa[id]
+		if xinfa.has(id):
+			if xinfa[id] < int(def2["max_level"]):
+				pool.append({
+					"kind": "up_xinfa", "id": id, "tag": "心法", "src": "level",
+					"title": "%s Lv%d→%d" % [def2["name"], xinfa[id], xinfa[id] + 1],
+					"desc": "标签加成与被动效果提升",
+				})
+		elif xinfa.size() < MAX_XINFA:
+			pool.append({
+				"kind": "new_xinfa", "id": id, "tag": "心法", "src": "level",
+				"title": "修习：%s" % def2["name"], "desc": def2["desc"],
 			})
 	_shuffle(pool)
-
-	if rng.randf() < 0.2:
-		var adv := _roll_adventure()
-		if not adv.is_empty():
-			pool.append(adv)  # 末尾，优先被取出
+	var out: Array = []
 	while out.size() < n and not pool.is_empty():
 		out.append(pool.pop_back())
 	if out.is_empty():
-		out.append({"kind": "heal", "id": "", "tag": "调息", "title": "运功疗伤", "desc": "回复 30% 气血"})
+		out.append({"kind": "heal", "id": "", "tag": "调息", "src": "level", "title": "运功疗伤", "desc": "回复 40% 气血"})
+		out.append({"kind": "elixir", "id": "", "tag": "调息", "src": "level", "title": "凝神静气", "desc": "获得相当于当前升级所需 60% 的修为"})
 	return out
 
 
@@ -667,68 +1095,44 @@ func _shuffle(arr: Array) -> void:
 		arr[j] = t
 
 
-func _roll_adventure() -> Dictionary:
-	var ids: Array = Data.adventures.keys()
-	var id: String = ids[rng.randi() % ids.size()]
-	if id == "cliff" and _cliff_candidates().is_empty():
-		id = "master"
-	var def: Dictionary = Data.adventures[id]
-	return {"kind": "adventure", "id": id, "tag": "奇遇", "title": def["name"], "desc": def["desc"]}
-
-
-func _cliff_candidates() -> Array:
-	var c: Array = []
-	for id in owned:
-		var def: Dictionary = Data.skills[id]
-		if not def.get("evolved", false) and owned[id] < int(def["max_level"]):
-			c.append(id)
-	return c
-
-
 func apply_choice(c: Dictionary) -> void:
-	var old_max := float(stats["max_hp"])
+	var old_max := st("max_hp")
 	var id: String = c["id"]
 	match str(c["kind"]):
-		"new":
-			owned[id] = 1
-			skill_cd[id] = 0.2
-		"upgrade":
-			owned[id] = int(owned[id]) + 1
-		"evolve":
-			var from_id: String = c["from"]
-			owned.erase(from_id)
-			skill_cd.erase(from_id)
-			owned[id] = 1
-			skill_cd[id] = 0.2
-			_add_fx("ring", player_pos, 0.8, {"r0": 10.0, "r1": 220.0, "color": GOLD})
-		"adventure":
-			_apply_adventure(id)
+		"new_skill":
+			add_skill(id)
+		"up_skill":
+			var s: SkillBase = skills[id]
+			s.level += 1
+		"new_xinfa":
+			xinfa[id] = 1
+		"up_xinfa":
+			xinfa[id] = int(xinfa[id]) + 1
+		"enhance":
+			enhance_id = id
+			enhance_level = mini(3, 1 + deferred_upgrades)
+			deferred_upgrades = 0
+			add_fx("ring", player_pos, 0.8, {"r0": 10.0, "r1": 220.0, "color": GOLD})
 		"heal":
-			hp = minf(float(stats["max_hp"]), hp + float(stats["max_hp"]) * 0.3)
+			hp = minf(st("max_hp"), hp + st("max_hp") * 0.4)
+		"elixir":
+			exp_now += int(exp_next * 0.6)
 	recalc()
-	hp += maxf(0.0, float(stats["max_hp"]) - old_max)
-	pending_levels = maxi(0, pending_levels - 1)
-
-
-func _apply_adventure(id: String) -> void:
-	match id:
-		"cliff":
-			var c := _cliff_candidates()
-			if not c.is_empty():
-				var pick: String = c[rng.randi() % c.size()]
-				owned[pick] = int(owned[pick]) + 1
-				hp_penalty *= 0.85
-		"master":
-			neili_bonus += 30.0
-			recalc()
-			neili = float(stats["max_neili"])
+	hp += maxf(0.0, st("max_hp") - old_max)
+	if str(c["src"]) == "chest":
+		pending_chests = maxi(0, pending_chests - 1)
+	else:
+		pending_levels = maxi(0, pending_levels - 1)
+	# 额外的修为可能再触发升级
+	if exp_now >= exp_next:
+		_gain_exp(0)
 
 
 # =====================================================================
 # 特效 & 绘制
 # =====================================================================
 
-func _add_fx(kind: String, at: Vector2, life: float, extra: Dictionary = {}) -> void:
+func add_fx(kind: String, at: Vector2, life: float, extra: Dictionary = {}) -> void:
 	var fx := {"kind": kind, "pos": at, "t": 0.0, "life": life}
 	fx.merge(extra)
 	effects.append(fx)
@@ -752,21 +1156,24 @@ func _vis(p: Vector2, margin: float = 40.0) -> bool:
 
 func _draw() -> void:
 	_draw_background()
+	_draw_zones()
 	for i in gem_pos.size():
 		var g := gem_pos[i]
 		if _vis(g):
 			draw_colored_polygon(PackedVector2Array([
 				g + Vector2(0, -6), g + Vector2(5, 0), g + Vector2(0, 6), g + Vector2(-5, 0)]), GOLD)
+	for c in chests:
+		if _vis(c):
+			var bob := sin(time * 4.0) * 3.0
+			draw_rect(Rect2(c + Vector2(-11, -8 + bob), Vector2(22, 16)), Color("#8a5a1f"))
+			draw_rect(Rect2(c + Vector2(-11, -8 + bob), Vector2(22, 16)), GOLD, false, 2.0)
+			draw_arc(c + Vector2(0, bob), 20.0, 0.0, TAU, 20, Color(GOLD, 0.4 + 0.3 * sin(time * 5.0)), 2.0)
 	for e in enemies:
 		if _vis(e.pos, 60.0):
 			_draw_enemy(e)
 	for p in projs:
 		if _vis(p.pos):
 			_draw_proj(p)
-	for bp in orbit_blades:
-		draw_circle(bp, orbit_blade_r, Color(INK, 0.25))
-		draw_arc(bp, orbit_blade_r, 0.0, TAU, 14, INK, 3.0)
-		draw_line(bp - facing * 0.0 - Vector2(0, orbit_blade_r), bp + Vector2(0, orbit_blade_r), Color("#e8e8e8"), 2.0)
 	_draw_player()
 	_draw_effects()
 
@@ -797,28 +1204,61 @@ func _draw_background() -> void:
 						draw_line(b, b + Vector2(-4 + k * 3, -13), Color(0.12, 0.3, 0.2, 0.28), 2.0)
 
 
+func _draw_zones() -> void:
+	for z in zones:
+		var zpos: Vector2 = z["pos"]
+		var zr: float = z["r"]
+		match str(z["kind"]):
+			"impact":
+				var f := clampf(float(z["t"]) / float(z["delay"]), 0.0, 1.0)
+				draw_circle(zpos, zr, Color(VERMILION, 0.10))
+				draw_circle(zpos, zr * f, Color(VERMILION, 0.18))
+				draw_arc(zpos, zr, 0.0, TAU, 32, Color(VERMILION, 0.6), 2.0)
+			"crack":
+				var a := 1.0 - float(z["t"]) / float(z["life"])
+				draw_circle(zpos, zr, Color(0.1, 0.08, 0.06, 0.12 * a + 0.04))
+				for k in 7:
+					var ang := TAU * k / 7.0 + 0.4
+					var mid := zpos + Vector2.from_angle(ang) * zr * 0.5 + Vector2.from_angle(ang + 1.2) * 8.0
+					draw_line(zpos, mid, Color(0.1, 0.06, 0.04, 0.7 * a), 2.0)
+					draw_line(mid, zpos + Vector2.from_angle(ang) * zr * 0.95, Color(0.1, 0.06, 0.04, 0.7 * a), 2.0)
+			"vortex":
+				var a2 := 1.0 - float(z["t"]) / float(z["life"])
+				for k in 3:
+					var rot := float(z["t"]) * 6.0 + k * 2.1
+					draw_arc(zpos, zr * (0.35 + 0.2 * k), rot, rot + 2.0, 16, Color(INK, 0.4 * a2), 3.0)
+
+
 func _draw_enemy(e: Enemy) -> void:
 	var c := Color.WHITE if e.flash > 0.0 else e.color
 	var r := e.radius
 	draw_circle(e.pos + Vector2(0, r * 0.8), r * 0.8, Color(0, 0, 0, 0.10))
 	if e.is_boss and e.boss_state == "windup":
-		# 冲锋预警线
-		var end := e.pos + e.charge_dir * 260.0
-		draw_line(e.pos, end, Color(VERMILION, 0.3), r * 1.6)
+		draw_line(e.pos, e.pos + e.charge_dir * 260.0, Color(VERMILION, 0.3), r * 1.6)
 	draw_circle(e.pos, r, c)
 	draw_arc(e.pos, r, 0.0, TAU, 22, Color(0.04, 0.04, 0.05, 0.9), 2.0)
-	match e.type_id:
-		"bandit":
-			draw_line(e.pos + Vector2(-r * 0.85, -r * 0.35), e.pos + Vector2(r * 0.85, -r * 0.35), VERMILION, 3.0)
-		"blade":
-			draw_line(e.pos + Vector2(r * 0.6, -r * 0.1), e.pos + Vector2(r * 1.7, -r * 1.2), Color("#d8d8d8"), 3.0)
-		"soldier":
-			draw_colored_polygon(PackedVector2Array([
-				e.pos + Vector2(-r * 0.8, -r * 0.3), e.pos + Vector2(0, -r * 1.3), e.pos + Vector2(r * 0.8, -r * 0.3)]),
-				Color("#9aa7b4"))
-		"boss":
-			draw_arc(e.pos, r + 8.0, 0.0, TAU, 32, Color(VERMILION, 0.6), 3.0)
-			draw_line(e.pos + Vector2(r * 0.4, 0), e.pos + Vector2(r * 1.9, -r * 0.9), Color("#e8e8e8"), 5.0)
+	if e.is_boss:
+		draw_arc(e.pos, r + 8.0, 0.0, TAU, 32, Color(VERMILION, 0.6), 3.0)
+		draw_line(e.pos + Vector2(r * 0.4, 0), e.pos + Vector2(r * 1.9, -r * 0.9), Color("#e8e8e8"), 5.0)
+	else:
+		match e.type_id:
+			"bandit":
+				draw_line(e.pos + Vector2(-r * 0.85, -r * 0.35), e.pos + Vector2(r * 0.85, -r * 0.35), VERMILION, 3.0)
+			"blade":
+				draw_line(e.pos + Vector2(r * 0.6, -r * 0.1), e.pos + Vector2(r * 1.7, -r * 1.2), Color("#d8d8d8"), 3.0)
+			"soldier":
+				draw_colored_polygon(PackedVector2Array([
+					e.pos + Vector2(-r * 0.8, -r * 0.3), e.pos + Vector2(0, -r * 1.3), e.pos + Vector2(r * 0.8, -r * 0.3)]),
+					Color("#9aa7b4"))
+	if e.is_elite:
+		draw_arc(e.pos, r + 5.0, 0.0, TAU, 26, GOLD, 3.0)
+	if e.stun > 0.0:
+		var ang := time * 8.0
+		for k in 3:
+			var sp := e.pos + Vector2(0, -r - 8.0) + Vector2.from_angle(ang + k * 2.09) * 9.0
+			draw_circle(sp, 2.5, GOLD)
+	if e.slow_t > 0.0:
+		draw_arc(e.pos, r + 2.0, 0.0, TAU, 20, Color("#5aa7d8", 0.8), 2.0)
 
 
 func _draw_proj(p: Projectile) -> void:
@@ -826,27 +1266,41 @@ func _draw_proj(p: Projectile) -> void:
 	if p.hostile:
 		draw_circle(p.pos, p.radius, Color(VERMILION, 0.85))
 		draw_arc(p.pos, p.radius, 0.0, TAU, 12, Color(0.1, 0.0, 0.0, 0.8), 2.0)
-	elif p.kind == "wave":
-		# 墨色新月形掌风，带三层拖尾
-		for k in 3:
-			var off := p.pos - dir * (k * 14.0)
-			draw_arc(off, p.radius, p.angle - 1.0, p.angle + 1.0, 18, Color(INK, 0.55 - k * 0.17), 6.0 - k * 1.5)
-	else:
-		draw_line(p.pos - dir * 18.0, p.pos, Color(INK, 0.5), 3.0)
-		draw_circle(p.pos, p.radius * 0.6, INK)
+		return
+	match p.kind:
+		"wave":
+			for k in 3:
+				var off := p.pos - dir * (k * 14.0)
+				draw_arc(off, p.radius, p.angle - 1.0, p.angle + 1.0, 18, Color(INK, 0.55 - k * 0.17), 6.0 - k * 1.5)
+		"finger":
+			draw_line(p.pos - dir * 26.0, p.pos, Color(GOLD, 0.6), 3.0)
+			draw_circle(p.pos, p.radius * 0.7, GOLD)
+		"palm":
+			draw_circle(p.pos, p.radius, Color(JADE, 0.35))
+			draw_arc(p.pos, p.radius, 0.0, TAU, 14, JADE, 2.5)
+			draw_line(p.pos - dir * 16.0, p.pos, Color(JADE, 0.4), 4.0)
+		_:
+			draw_line(p.pos - dir * 18.0, p.pos, Color(INK, 0.5), 3.0)
+			draw_circle(p.pos, p.radius * 0.6, INK)
 
 
 func _draw_player() -> void:
 	var blink := invuln > 0.0 and dash_t <= 0.0 and int(time * 24.0) % 2 == 0
 	if blink:
 		return
+	var alpha := 0.45 if stealth_t > 0.0 else 1.0
 	draw_circle(player_pos + Vector2(0, 9), 10.0, Color(0, 0, 0, 0.12))
-	if neili >= float(stats["max_neili"]) * NEILI_BONUS_THRESHOLD:
-		draw_arc(player_pos, 19.0, 0.0, TAU, 28, Color(JADE, 0.45), 2.0)
-	draw_circle(player_pos, PLAYER_RADIUS, JADE)
-	draw_arc(player_pos, PLAYER_RADIUS, 0.0, TAU, 20, Color(0.03, 0.08, 0.08), 2.0)
-	draw_circle(player_pos + Vector2(0, -9), 6.0, Color("#1c1c1c"))
-	draw_line(player_pos, player_pos + facing * 28.0, Color("#eeeeee"), 3.0)
+	if neili >= st("max_neili") * NEILI_BONUS_THRESHOLD:
+		draw_arc(player_pos, 19.0, 0.0, TAU, 28, Color(JADE, 0.45 * alpha), 2.0)
+	if shield > 0.0:
+		draw_arc(player_pos, 24.0, 0.0, TAU, 28, Color("#7fc8e8", 0.8), 3.0)
+	draw_circle(player_pos, PLAYER_RADIUS, Color(JADE, alpha))
+	draw_arc(player_pos, PLAYER_RADIUS, 0.0, TAU, 20, Color(0.03, 0.08, 0.08, alpha), 2.0)
+	draw_circle(player_pos + Vector2(0, -9), 6.0, Color(0.11, 0.11, 0.11, alpha))
+	# 双拳
+	var perp := facing.orthogonal()
+	draw_circle(player_pos + facing * 16.0 + perp * 7.0, 4.5, Color("#e8c9a0", alpha))
+	draw_circle(player_pos + facing * 16.0 - perp * 7.0, 4.5, Color("#e8c9a0", alpha))
 
 
 func _draw_effects() -> void:
@@ -859,7 +1313,7 @@ func _draw_effects() -> void:
 		match str(fx["kind"]):
 			"text":
 				var col: Color = fx["color"]
-				draw_string(font, at - Vector2(40, 0), str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, 80.0,
+				draw_string(font, at - Vector2(60, 0), str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, 120.0,
 					int(fx["size"]), Color(col, a))
 			"ring":
 				var r := lerpf(float(fx["r0"]), float(fx["r1"]), t / life)
@@ -870,3 +1324,10 @@ func _draw_effects() -> void:
 				draw_circle(at, float(fx["r"]) * (1.0 + t), Color(col3, a * 0.35))
 			"trail":
 				draw_circle(at, PLAYER_RADIUS * a, Color(JADE, a * 0.4))
+			"slash":
+				var ang: float = fx["angle"]
+				var arc: float = fx["arc"]
+				var rr: float = fx["r"]
+				var wdt := (16.0 if fx["heavy"] else 10.0) * a + 2.0
+				draw_arc(at, rr * 0.7, ang - arc * 0.5, ang + arc * 0.5, 16, Color(INK, a * 0.7), wdt)
+				draw_arc(at, rr * 0.9, ang - arc * 0.4, ang + arc * 0.4, 16, Color(1, 1, 1, a * 0.6), wdt * 0.4)

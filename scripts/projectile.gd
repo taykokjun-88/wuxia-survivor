@@ -1,15 +1,30 @@
 class_name Projectile
 extends RefCounted
-## 弹体：玩家的掌风/剑气，以及 Boss 的敌方弹幕（hostile）。
+## 弹体：玩家的掌风/剑气/掌印，以及 Boss 的敌方弹幕（hostile）。
+## damage 是未乘加成的基础伤害，命中时才结算（心法标签加成、内力、暴击）。
 
 var pos := Vector2.ZERO
 var vel := Vector2.ZERO
+var speed := 0.0
 var radius := 10.0
 var damage := 10.0
 var pierce := 1
 var life := 1.0
-var kind := "bolt"      # wave | bolt
+var kind := "bolt"      # wave | bolt | palm | finger
 var knock := 0.0
 var hostile := false
 var angle := 0.0
 var hit := {}           # 已命中敌人 uid，避免同一弹体重复伤害
+
+var skill_id := ""
+var tags: Array = []
+
+# 特殊机制
+var homing := false
+var turn := 0.0
+var target: Enemy = null
+var split := 0          # >0：首次命中后分裂成两道小弹体
+var boomerang := false
+var returning := false
+var stun := 0.0
+var chain := false

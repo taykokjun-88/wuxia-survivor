@@ -2,14 +2,16 @@ extends Node
 ## 全局数据（Autoload: Data）：读取 data/game_data.json，注册输入映射，加载可选字体。
 
 const STAT_NAMES := {
-	"damage": "伤害", "cooldown": "冷却", "count": "数量",
-	"pierce": "穿透", "radius": "范围",
+	"damage": "伤害", "cooldown": "冷却", "count": "数量", "pierce": "穿透",
+	"radius": "范围", "reach": "距离", "stun": "定身", "absorb": "化解",
 }
 
 var player_base: Dictionary = {}
+var tuning: Dictionary = {}
+var starters: Array = []
 var skills: Dictionary = {}
-var evolutions: Array = []
-var adventures: Dictionary = {}
+var xinfa: Dictionary = {}
+var qinggong: Dictionary = {}
 var enemies: Dictionary = {}
 
 
@@ -20,12 +22,18 @@ func _ready() -> void:
 	assert(parsed is Dictionary, "game_data.json 解析失败")
 	var d: Dictionary = parsed
 	player_base = d["player"]
+	tuning = d["tuning"]
+	starters = d["starters"]
 	skills = d["skills"]
-	evolutions = d["evolutions"]
-	adventures = d["adventures"]
+	xinfa = d["xinfa"]
+	qinggong = d["qinggong"]
 	enemies = d["enemies"]
 	_setup_input()
 	_load_font()
+
+
+func T(key: String) -> float:
+	return float(tuning[key])
 
 
 ## 取按等级分档的数值：数组按 (level-1) 取值，标量直接返回。
@@ -39,11 +47,9 @@ func lv(def: Dictionary, key: String, level: int) -> float:
 	return float(v)
 
 
-## 升级提示文字（自动根据数值表生成）。
-func upgrade_text(id: String, new_level: int) -> String:
+## 技能升级提示（根据数值表自动生成）。
+func skill_upgrade_text(id: String, new_level: int) -> String:
 	var def: Dictionary = skills[id]
-	if def.get("kind") == "passive":
-		return str(def["desc"])
 	var parts: PackedStringArray = []
 	for key in STAT_NAMES:
 		if def.get(key) is Array:
@@ -52,6 +58,14 @@ func upgrade_text(id: String, new_level: int) -> String:
 			if not is_equal_approx(a, b):
 				parts.append("%s %s→%s" % [STAT_NAMES[key], _fmt(a), _fmt(b)])
 	return "，".join(parts)
+
+
+func tags_text(id: String) -> String:
+	var t: Array = skills[id]["tags"]
+	var out: PackedStringArray = []
+	for x in t:
+		out.append(str(x))
+	return " ".join(out)
 
 
 func _fmt(x: float) -> String:

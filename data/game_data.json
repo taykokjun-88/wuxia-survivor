@@ -1,82 +1,195 @@
 {
   "player": {
     "max_hp": 100, "max_neili": 100, "neili_regen": 8, "hp_regen": 0,
-    "move_speed": 200, "dash_cost": 25, "dash_cd": 0.6, "armor": 0,
-    "pickup_range": 90, "ult_cost": 100
+    "move_speed": 200, "speed_pct": 0, "pickup_range": 90, "ult_cost": 100, "armor": 0,
+    "block_chance": 0, "dodge_chance": 0, "kill_neili": 0, "hit_slow": 0, "thorns": 0,
+    "cd_reduce": 0, "pickup_heal": 0, "shield_max": 0, "shield_regen": 0,
+    "crit_chance": 0, "crit_mult": 1.5, "exp_pct": 0, "full_hp_regen": 0
   },
 
+  "tuning": {
+    "spawn_base": 1.0, "spawn_slope": 0.020,
+    "hp_scale_t": 150, "dmg_scale_t": 500,
+    "max_enemies": 800, "burst_interval": 45,
+    "elite_first": 100, "elite_interval": 80,
+    "elite_hp": 9, "elite_radius": 1.5, "elite_speed": 0.85, "elite_dmg": 1.5, "elite_exp": 15,
+    "mini_boss_times": [180, 390, 600], "boss_time": 720
+  },
+
+  "starters": ["chain_fist", "point_finger", "cloud_palm"],
+
   "skills": {
-    "liyue_palm": {
-      "name": "裂岳掌", "kind": "skill", "type": "wave", "max_level": 5,
-      "desc": "掌风前冲，贯穿并击退敌人（类降龙掌）",
-      "damage": [14, 18, 23, 29, 36], "cooldown": [1.5, 1.4, 1.3, 1.2, 1.1],
+    "yue_palm": {
+      "name": "裂岳掌", "school": "fist", "max_level": 5, "tags": ["贯穿", "远程"], "proj_kind": "wave",
+      "desc": "向最近的敌人打出贯穿掌风，击退（类降龙掌）",
+      "damage": [18, 23, 29, 37, 46], "cooldown": [1.3, 1.25, 1.2, 1.15, 1.1],
       "pierce": [3, 3, 4, 4, 6], "radius": [26, 28, 30, 32, 36],
-      "speed": 380, "life": 0.9, "knock": 260, "both_sides": false
+      "speed": 380, "life": 0.9, "knock": 260,
+      "enhance": { "name": "分身掌", "desc": "掌风首次命中后分裂为两道小掌风", "up": "Lv2/3：分裂为 3 / 4 道，分裂伤害提高" }
     },
-    "chuanyun": {
-      "name": "穿云指", "kind": "skill", "type": "bolt", "max_level": 5,
-      "desc": "指力化作剑气，穿透射击（类六脉神剑）",
-      "damage": [9, 9, 12, 12, 15], "cooldown": [1.1, 1.0, 1.0, 0.9, 0.8],
-      "count": [1, 2, 2, 3, 4], "pierce": [2, 2, 3, 3, 4], "radius": 8,
-      "speed": 650, "life": 0.9, "knock": 60, "pattern": "spread", "spread": 0.14
+    "chain_fist": {
+      "name": "连环拳", "school": "fist", "max_level": 5, "tags": ["近战", "连击"],
+      "desc": "近身三连击，第三拳伤害更高、击退更强",
+      "damage": [16, 20, 25, 31, 38], "cooldown": [0.6, 0.56, 0.52, 0.48, 0.44],
+      "reach": [80, 84, 88, 92, 100], "arc": 1.9,
+      "enhance": { "name": "破军", "desc": "第三拳必定暴击，并释放一圈冲击波", "up": "Lv2/3：冲击波范围与伤害大幅提高" }
     },
-    "huifeng": {
-      "name": "回风剑", "kind": "skill", "type": "orbit", "max_level": 5,
-      "desc": "飞剑环身，护体并切割近敌（类乾坤护体）",
-      "damage": [8, 10, 12, 14, 18], "count": [2, 2, 3, 3, 4],
-      "orbit_radius": 90, "radius": 16, "speed": 2.8
+    "quake_fist": {
+      "name": "撼地拳", "school": "fist", "max_level": 5, "tags": ["范围", "控制"],
+      "desc": "重拳砸向远处敌人，落点范围伤害并击晕",
+      "damage": [30, 36, 43, 51, 60], "cooldown": [2.4, 2.3, 2.1, 2.0, 1.8],
+      "radius": [75, 82, 90, 98, 110], "stun": [0.6, 0.7, 0.8, 0.9, 1.0], "range": 320,
+      "enhance": { "name": "裂地", "desc": "落点留下 3 秒的裂痕，持续伤害并减速敌人", "up": "Lv2/3：裂痕更持久、伤害更高、范围更大" }
     },
-
-    "kanglong": {
-      "name": "亢龙破天", "kind": "skill", "type": "wave", "max_level": 1, "evolved": true,
-      "desc": "裂岳掌大成：前后双向龙形劲气，贯穿一切",
-      "damage": [95], "cooldown": [1.3], "pierce": [99], "radius": [60],
-      "speed": 440, "life": 1.0, "knock": 420, "both_sides": true
+    "whirl_palm": {
+      "name": "回风掌", "school": "fist", "max_level": 5, "tags": ["范围", "近战"],
+      "desc": "环身一圈掌风，近身清场并击退",
+      "damage": [24, 29, 34, 40, 46], "cooldown": [2.0, 1.9, 1.8, 1.7, 1.5],
+      "radius": [95, 105, 115, 125, 140], "knock": 300,
+      "enhance": { "name": "旋涡", "desc": "掌风过后形成旋涡，把敌人吸拢并在收束时再轰一次", "up": "Lv2/3：旋涡范围、吸力与收束伤害提高" }
     },
-    "chuanyun_liekong": {
-      "name": "穿云裂空", "kind": "skill", "type": "bolt", "max_level": 1, "evolved": true,
-      "desc": "穿云指大成：十道剑气四面迸发，无物不穿",
-      "damage": [24], "cooldown": [0.9], "count": [10], "pierce": [99], "radius": 9,
-      "speed": 700, "life": 1.1, "knock": 80, "pattern": "radial", "spread": 0.0
+    "point_finger": {
+      "name": "点穴指", "school": "fist", "max_level": 5, "tags": ["控制", "远程"], "proj_kind": "finger",
+      "desc": "指力点穴，命中的敌人被定身",
+      "damage": [20, 22, 25, 29, 31], "cooldown": [1.0, 0.95, 0.9, 0.85, 0.8],
+      "pierce": [1, 1, 2, 2, 3], "stun": [1.0, 1.1, 1.2, 1.4, 1.6], "count": [2, 2, 2, 2, 3],
+      "radius": 7, "speed": 850, "life": 0.7, "knock": 40,
+      "enhance": { "name": "连锁", "desc": "被点穴的敌人死亡时爆炸，并定身周围敌人（可连锁）", "up": "Lv2/3：爆炸范围、伤害与定身时间提高" }
     },
-    "huifeng_luanwu": {
-      "name": "回风乱舞", "kind": "skill", "type": "orbit", "max_level": 1, "evolved": true,
-      "desc": "回风剑大成：六柄飞剑，范围更广，转速更快",
-      "damage": [30], "count": [6], "orbit_radius": 120, "radius": 22, "speed": 3.8
+    "vajra_fist": {
+      "name": "金刚拳", "school": "fist", "max_level": 5, "tags": ["蓄力", "近战"],
+      "desc": "重击消耗内力，当前内力越满伤害越高",
+      "damage": [35, 43, 52, 62, 73], "cooldown": [1.9, 1.8, 1.7, 1.6, 1.4],
+      "reach": [95, 100, 105, 110, 120], "arc": 2.4, "cost": [12, 12, 14, 14, 16], "knock": 420,
+      "enhance": { "name": "不坏", "desc": "内力 ≥90% 时出拳不耗内力、伤害 +30%，并获得护盾", "up": "Lv2/3：触发门槛降至 80% / 70%，护盾更厚" }
     },
-
-    "chunyang": {
-      "name": "纯阳诀", "kind": "passive", "type": "passive", "max_level": 5,
-      "desc": "内力上限+20，内力回复+2.5/秒，气血回复+0.3/秒（类九阳神功）",
-      "per_level": { "max_neili": 20, "neili_regen": 2.5, "hp_regen": 0.3 }
+    "cloud_palm": {
+      "name": "流云掌", "school": "fist", "max_level": 5, "tags": ["追踪", "远程"], "proj_kind": "palm",
+      "desc": "发出会自动追敌的掌印",
+      "damage": [22, 25, 29, 34, 40], "cooldown": [1.2, 1.15, 1.1, 1.05, 1.0],
+      "count": [2, 2, 2, 3, 3], "pierce": [1, 1, 1, 2, 2],
+      "radius": 11, "speed": 300, "turn": 5.0, "life": 2.0, "knock": 90,
+      "enhance": { "name": "回旋", "desc": "掌印飞出后会折返，可再次命中敌人", "up": "Lv2/3：回程穿透与伤害提高" }
     },
-    "qingshen": {
-      "name": "轻身诀", "kind": "passive", "type": "passive", "max_level": 5,
-      "desc": "移速+12，轻功消耗-2.5，轻功冷却-0.06秒",
-      "per_level": { "move_speed": 12, "dash_cost": -2.5, "dash_cd": -0.06 }
+    "eight_waste": {
+      "name": "八荒拳", "school": "fist", "max_level": 5, "tags": ["多向", "远程"], "proj_kind": "bolt",
+      "desc": "向四面八方同时打出拳气",
+      "damage": [12, 15, 19, 24, 30], "cooldown": [2.0, 1.9, 1.8, 1.7, 1.5],
+      "count": [8, 8, 8, 12, 12], "pierce": [2, 2, 3, 3, 4],
+      "radius": 8, "speed": 520, "life": 0.8, "knock": 70,
+      "enhance": { "name": "螺旋", "desc": "连发三轮拳气，每轮偏转角度，形成旋转弹幕", "up": "Lv2/3：连发 4 / 5 轮" }
     },
-    "tiebu": {
-      "name": "铁布衫", "kind": "passive", "type": "passive", "max_level": 5,
-      "desc": "气血上限+15，受击减伤+1.5",
-      "per_level": { "max_hp": 15, "armor": 1.5 }
+    "taiji": {
+      "name": "太极劲", "school": "fist", "max_level": 5, "tags": ["防御"],
+      "desc": "受击时化解一部分伤害，并以掌力反击；平时周身有微弱劲气",
+      "damage": [30, 38, 47, 58, 72], "cooldown": [4.0, 3.8, 3.6, 3.3, 3.0],
+      "absorb": [0.35, 0.4, 0.45, 0.5, 0.6], "radius": [110, 120, 130, 140, 160],
+      "enhance": { "name": "借力", "desc": "化解的伤害 ×4 转为反击伤害，反击范围 +50%", "up": "Lv2/3：转化倍率 ×6 / ×8，反击范围更大" }
     }
   },
 
-  "evolutions": [
-    { "from": "liyue_palm", "to": "kanglong", "requires": "chunyang" },
-    { "from": "chuanyun", "to": "chuanyun_liekong", "requires": "qingshen" },
-    { "from": "huifeng", "to": "huifeng_luanwu", "requires": "tiebu" }
-  ],
+  "xinfa": {
+    "chunyang": {
+      "name": "纯阳诀", "max_level": 3,
+      "desc": "蓄力+30% 范围+15%｜内力上限与回复提升；内力满时缓慢回血",
+      "bonus": { "蓄力": 0.30, "范围": 0.15 },
+      "per_level": { "max_neili": 15, "neili_regen": 2, "full_hp_regen": 1.2 }
+    },
+    "tiegu": {
+      "name": "铁骨诀", "max_level": 3,
+      "desc": "近战+30% 连击+15%｜气血上限提升；受击时有几率免伤",
+      "bonus": { "近战": 0.30, "连击": 0.15 },
+      "per_level": { "max_hp": 10, "block_chance": 0.06 }
+    },
+    "tunhai": {
+      "name": "吞海诀", "max_level": 3,
+      "desc": "贯穿+25% 追踪+20%｜击杀敌人回复内力",
+      "bonus": { "贯穿": 0.25, "追踪": 0.20 },
+      "per_level": { "kill_neili": 1.5 }
+    },
+    "hanshuang": {
+      "name": "寒霜诀", "max_level": 3,
+      "desc": "控制+30% 范围+15%｜攻击使敌人减速",
+      "bonus": { "控制": 0.30, "范围": 0.15 },
+      "per_level": { "hit_slow": 0.15 }
+    },
+    "jieli": {
+      "name": "借力诀", "max_level": 3,
+      "desc": "防御+40% 近战+10%｜受击时对周围敌人造成反震伤害",
+      "bonus": { "防御": 0.40, "近战": 0.10 },
+      "per_level": { "thorns": 12 }
+    },
+    "wuxiang": {
+      "name": "无相诀", "max_level": 3,
+      "desc": "多向+30% 远程+20%｜所有技能冷却缩短",
+      "bonus": { "多向": 0.30, "远程": 0.20 },
+      "per_level": { "cd_reduce": 0.06 }
+    },
+    "changsheng": {
+      "name": "长生诀", "max_level": 3,
+      "desc": "防御+20% 控制+15%｜气血回复提升；拾取经验时回血",
+      "bonus": { "防御": 0.20, "控制": 0.15 },
+      "per_level": { "hp_regen": 0.6, "pickup_heal": 0.4 }
+    },
+    "gangqi": {
+      "name": "罡气诀", "max_level": 3,
+      "desc": "范围+30% 近战+15%｜获得可再生的护盾",
+      "bonus": { "范围": 0.30, "近战": 0.15 },
+      "per_level": { "shield_max": 15, "shield_regen": 2 }
+    },
+    "lingxi": {
+      "name": "灵犀诀", "max_level": 3,
+      "desc": "追踪+25% 连击+25%｜暴击率与暴击伤害提升",
+      "bonus": { "追踪": 0.25, "连击": 0.25 },
+      "per_level": { "crit_chance": 0.06, "crit_mult": 0.15 }
+    },
+    "puti": {
+      "name": "菩提诀", "max_level": 3,
+      "desc": "控制+25% 蓄力+20%｜经验获取提升，拾取范围扩大",
+      "bonus": { "控制": 0.25, "蓄力": 0.20 },
+      "per_level": { "exp_pct": 0.08, "pickup_range": 20 }
+    }
+  },
 
-  "adventures": {
-    "cliff": { "name": "断崖奇遇", "desc": "坠崖得秘籍：随机一门武学+1级，但气血上限永久-15%" },
-    "master": { "name": "高人指点", "desc": "内力上限永久+30，并立即回满内力" }
+  "qinggong": {
+    "tashue": {
+      "name": "踏雪无痕", "desc": "标准冲刺｜移速 +15%；冲刺后 1 秒内敌人失去目标",
+      "charges": 1, "dash_time": 0.18, "dash_speed": 1200, "cd": 0.6, "cost": 25,
+      "stats": { "speed_pct": 0.15 }, "stealth": 1.0
+    },
+    "feiyan": {
+      "name": "飞燕穿林", "desc": "可连续冲刺 2 段｜冲刺冷却更短",
+      "charges": 2, "dash_time": 0.16, "dash_speed": 1200, "cd": 0.5, "cost": 22
+    },
+    "yunti": {
+      "name": "云梯步", "desc": "冲刺撞开路径上的敌人并造成伤害",
+      "charges": 1, "dash_time": 0.2, "dash_speed": 1100, "cd": 0.8, "cost": 28,
+      "path_dmg": 35, "path_knock": 500
+    },
+    "suodi": {
+      "name": "缩地诀", "desc": "瞬移｜落点产生小范围冲击",
+      "charges": 1, "blink": true, "blink_dist": 300, "cd": 1.5, "cost": 30,
+      "land_dmg": 45, "land_radius": 100
+    },
+    "lingshe": {
+      "name": "灵蛇步", "desc": "短距快速冲刺｜30% 几率自动闪避攻击（消耗少量内力）",
+      "charges": 1, "dash_time": 0.1, "dash_speed": 1200, "cd": 0.25, "cost": 14,
+      "stats": { "dodge_chance": 0.30 }, "dodge_cost": 8
+    },
+    "yufeng": {
+      "name": "御风诀", "desc": "冲刺后 3 秒移速 +40%、内力回复 +50%",
+      "charges": 1, "dash_time": 0.18, "dash_speed": 1200, "cd": 0.6, "cost": 25,
+      "buff_time": 3.0, "buff_speed": 0.40, "buff_regen": 0.5
+    }
   },
 
   "enemies": {
-    "bandit":  { "name": "山贼",       "hp": 12,   "speed": 70, "damage": 6,  "radius": 12, "exp": 1,  "color": "#6b5a48" },
+    "bandit":  { "name": "山贼",       "hp": 12,   "speed": 70,  "damage": 6,  "radius": 12, "exp": 1,  "color": "#6b5a48" },
     "blade":   { "name": "刀客",       "hp": 26,   "speed": 115, "damage": 8,  "radius": 11, "exp": 2,  "color": "#8a2f2f" },
     "soldier": { "name": "官兵",       "hp": 70,   "speed": 52,  "damage": 12, "radius": 16, "exp": 3,  "color": "#2f4a6a" },
-    "boss":    { "name": "海岛剑尊",   "hp": 3500, "speed": 55,  "damage": 22, "radius": 40, "exp": 50, "color": "#3a1f4a" }
+    "mini_boss_1": { "name": "铁掌帮主", "hp": 3000, "speed": 60, "damage": 18, "radius": 32, "exp": 80,  "color": "#5a3a1f", "bolts": 10 },
+    "mini_boss_2": { "name": "黑风寨主", "hp": 5000, "speed": 65, "damage": 22, "radius": 34, "exp": 100, "color": "#4a1f1f", "bolts": 12 },
+    "mini_boss_3": { "name": "寒山剑客", "hp": 7500, "speed": 70, "damage": 26, "radius": 34, "exp": 120, "color": "#1f3a4a", "bolts": 14 },
+    "boss":        { "name": "海岛剑尊", "hp": 12000, "speed": 55, "damage": 22, "radius": 40, "exp": 50,  "color": "#3a1f4a", "bolts": 14 }
   }
 }

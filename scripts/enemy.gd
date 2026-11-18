@@ -14,11 +14,20 @@ var exp_value := 1
 var color := Color.WHITE
 var knock := Vector2.ZERO
 var flash := 0.0
-var orbit_cd := 0.0
 var alive := true
 
-# Boss 专用
+# 状态
+var stun := 0.0          # 定身/击晕剩余时间
+var slow_t := 0.0        # 减速剩余时间
+var slow_mult := 1.0
+var chain := false       # 被"连锁"点穴：死亡时爆炸
+
+# 精英 / Boss
+var is_elite := false
 var is_boss := false
+var is_final := false
+var boss_name := ""
+var boss_bolts := 14
 var boss_state := "chase"   # chase | windup | charge
 var boss_timer := 0.0
 var bolt_timer := 2.0

@@ -1,9 +1,9 @@
 extends Node
-## 主控：状态机（菜单 / 游戏 / 升级选择 / 暂停 / 结算）、读取输入、驱动 GameWorld、相机跟随。
+## 主控：状态机（开局选择 / 游戏 / 升级与秘籍选择 / 暂停 / 结算）、读取输入、驱动 GameWorld、相机跟随。
 
-enum State { MENU, PLAY, LEVELUP, PAUSED, END }
+enum State { LOADOUT, PLAY, CHOOSE, PAUSED, END }
 
-var state: State = State.MENU
+var state: State = State.LOADOUT
 var world: GameWorld
 var cam: Camera2D
 var hud: GameHud
@@ -19,9 +19,10 @@ func _ready() -> void:
 	add_child(hud)
 	hud.setup(world)
 	hud.choice_selected.connect(_on_choice)
+	hud.loadout_confirmed.connect(_on_loadout)
 	world.player_died.connect(_on_end.bind(false))
 	world.victory.connect(_on_end.bind(true))
-	hud.show_menu()
+	hud.show_loadout()
 
 
 func _physics_process(dt: float) -> void:
@@ -33,8 +34,8 @@ func _physics_process(dt: float) -> void:
 	if Input.is_action_just_pressed("ult"):
 		world.input_ult = true
 	world.step(dt)
-	if not world.over and world.pending_levels > 0:
-		_open_levelup()
+	if not world.over:
+		_check_pending()
 
 
 func _process(_dt: float) -> void:
@@ -47,10 +48,9 @@ func _process(_dt: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	match state:
-		State.MENU:
+		State.LOADOUT:
 			if event.is_action_pressed("ui_accept"):
-				state = State.PLAY
-				hud.hide_overlay()
+				hud.confirm_loadout()
 		State.PLAY:
 			if event.is_action_pressed("ui_cancel"):
 				state = State.PAUSED
@@ -59,7 +59,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if event.is_action_pressed("ui_cancel"):
 				state = State.PLAY
 				hud.hide_overlay()
-		State.LEVELUP:
+		State.CHOOSE:
 			if event is InputEventKey and event.pressed and not event.echo:
 				var idx := int(event.keycode) - int(KEY_1)
 				if idx >= 0 and idx < 3:
@@ -69,21 +69,33 @@ func _unhandled_input(event: InputEvent) -> void:
 				get_tree().reload_current_scene()
 
 
-func _open_levelup() -> void:
-	state = State.LEVELUP
-	choices = world.roll_choices()
-	hud.show_choices(choices)
+func _on_loadout(starter_id: String, qinggong_id: String) -> void:
+	if state != State.LOADOUT:
+		return
+	world.start_run(starter_id, qinggong_id)
+	hud.hide_loadout()
+	state = State.PLAY
+
+
+## 秘籍（小 Boss 掉落）优先于普通升级
+func _check_pending() -> void:
+	if world.pending_chests > 0:
+		choices = world.roll_chest_choices()
+		hud.show_choices(choices, "击败小 Boss，获得秘籍！选择本局的专属强化（按 1 / 2 / 3 或点击）")
+		state = State.CHOOSE
+	elif world.pending_levels > 0:
+		choices = world.roll_choices()
+		hud.show_choices(choices, "突破！选择一项领悟（按 1 / 2 / 3 或点击）")
+		state = State.CHOOSE
 
 
 func _on_choice(i: int) -> void:
-	if state != State.LEVELUP or i >= choices.size():
+	if state != State.CHOOSE or i >= choices.size():
 		return
 	world.apply_choice(choices[i])
 	hud.hide_choices()
-	if world.pending_levels > 0:
-		_open_levelup()
-	else:
-		state = State.PLAY
+	state = State.PLAY
+	_check_pending()
 
 
 func _on_end(won: bool) -> void:
