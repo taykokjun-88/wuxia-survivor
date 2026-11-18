@@ -25,7 +25,11 @@ class YuePalm extends SkillBase:
 		if t == null:
 			return false
 		var a := (t.pos - w.player_pos).angle()
-		w.spawn_proj(self, a, {"split": int(ev(2, 3, 4)) if enhanced() else 0})
+		var o := {"split": int(ev(2, 3, 4)) if enhanced() else 0}
+		if empowered:    # 催动：龙形掌风
+			o["radius"] = p("radius") * 1.8
+			o["pierce"] = p("pierce") + 3.0
+		w.spawn_proj(self, a, o)
 		return true
 
 
@@ -40,11 +44,13 @@ class ChainFist extends SkillBase:
 			return false
 		var a := (t.pos - w.player_pos).angle()
 		combo += 1
-		var third := combo % 3 == 0
+		var third := combo % 3 == 0 or empowered
 		var base := p("damage") * (2.2 if third else 1.0)
 		var knock := 320.0 if third else 160.0
 		w.fx_slash(w.player_pos, a, reach, p("arc"), third)
 		w.cone_hit(self, w.player_pos, a, p("arc") * 0.5, reach, base, knock, third and enhanced())
+		if empowered:    # 催动：末拳震晕前方敌人
+			w.area_hit(self, w.player_pos + Vector2.from_angle(a) * reach * 0.6, 70.0, base * 0.4, 0.0, 0.8)
 		if third and enhanced():
 			var sr := ev(140.0, 170.0, 200.0)
 			w.area_hit(self, w.player_pos, sr, p("damage") * ev(1.2, 1.6, 2.0), 300.0)
@@ -58,20 +64,28 @@ class QuakeFist extends SkillBase:
 		var t := w.nearest_enemy(p("range"))
 		if t == null:
 			return false
-		w.add_zone({
+		var z := {
 			"kind": "impact", "skill": self, "pos": t.pos, "r": p("radius"),
 			"delay": 0.35, "t": 0.0, "dmg": p("damage"), "stun": p("stun"), "crack": enhanced(), "elv": elv(),
-		})
+		}
+		w.add_zone(z)
+		if empowered:    # 催动：落点追加一圈更大的冲击波
+			var z2 := z.duplicate()
+			z2["r"] = float(z["r"]) * 1.6
+			z2["delay"] = 0.6
+			z2["dmg"] = float(z["dmg"]) * 0.6
+			z2["crack"] = false
+			w.add_zone(z2)
 		return true
 
 
 ## 回风掌：环身掌风。强化「旋涡」：掌风过后把周围敌人吸拢。
 class WhirlPalm extends SkillBase:
 	func fire() -> bool:
-		var r := p("radius")
+		var r := p("radius") * (1.5 if empowered else 1.0)
 		if not w.any_enemy_within(w.player_pos, r + 20.0):
 			return false
-		w.area_hit(self, w.player_pos, r, p("damage"), p("knock"))
+		w.area_hit(self, w.player_pos, r, p("damage"), p("knock") * (2.0 if empowered else 1.0))
 		w.add_fx("ring", w.player_pos, 0.3, {"r0": 15.0, "r1": r, "color": GameWorld.INK})
 		if enhanced():
 			w.add_zone({"kind": "vortex", "skill": self, "dmg": p("damage") * ev(1.2, 1.6, 2.0), "r": r * ev(1.8, 2.1, 2.4),
@@ -88,7 +102,7 @@ class PointFinger extends SkillBase:
 			return false
 		for t in targets:
 			var a := (t.pos - w.player_pos).angle()
-			w.spawn_proj(self, a, {"stun": p("stun"), "chain": enhanced()})
+			w.spawn_proj(self, a, {"stun": p("stun") * (2.0 if empowered else 1.0), "chain": enhanced()})
 		return true
 
 
@@ -100,7 +114,7 @@ class VajraFist extends SkillBase:
 		if t == null:
 			return false
 		var max_n := float(w.stats["max_neili"])
-		var ratio := w.neili / max_n
+		var ratio := 1.0 if empowered else w.neili / max_n
 		var mult := 0.8 + 1.2 * ratio
 		if enhanced() and ratio >= ev(0.9, 0.8, 0.7):
 			w.add_shield(ev(25.0, 40.0, 55.0))
@@ -119,7 +133,7 @@ class CloudPalm extends SkillBase:
 		var t := w.nearest_enemy(520.0)
 		if t == null:
 			return false
-		var n := int(p("count"))
+		var n := int(p("count")) + (2 if empowered else 0)
 		var base := (t.pos - w.player_pos).angle()
 		for i in n:
 			var a := base + (i - (n - 1) * 0.5) * 0.5
@@ -132,6 +146,7 @@ class EightWaste extends SkillBase:
 	var bursts_left := 0
 	var burst_t := 0.0
 	var rot := 0.0
+	var emp_burst := false
 
 	func tick(dt: float) -> void:
 		if bursts_left > 0:
@@ -146,6 +161,7 @@ class EightWaste extends SkillBase:
 	func fire() -> bool:
 		if w.nearest_enemy(450.0) == null:
 			return false
+		emp_burst = empowered
 		_burst()
 		if enhanced():
 			bursts_left = int(ev(2, 3, 4))
@@ -153,7 +169,7 @@ class EightWaste extends SkillBase:
 		return true
 
 	func _burst() -> void:
-		var n := int(p("count"))
+		var n := 16 if emp_burst else int(p("count"))
 		for i in n:
 			w.spawn_proj(self, rot + TAU * i / n)
 		rot += 0.3 if enhanced() else 0.2
@@ -176,10 +192,17 @@ class Taiji extends SkillBase:
 	func on_hurt(amount: float) -> float:
 		if guard_cd > 0.0:
 			return amount
-		guard_cd = p("cooldown") * w.cd_mult()
+		var emp := w.can_empower(empower_cost())    # 催动：反击不进冷却，反击伤害大增
+		if emp:
+			w.pay_empower(empower_cost())
+		else:
+			guard_cd = p("cooldown") * w.cd_mult()
 		var absorbed := amount * p("absorb")
 		var r := p("radius") * (ev(1.5, 1.7, 1.9) if enhanced() else 1.0)
-		var dmg := p("damage") + absorbed * (ev(4.0, 6.0, 8.0) if enhanced() else 1.0)
+		var mult := ev(4.0, 6.0, 8.0) if enhanced() else 1.0
+		if emp:
+			mult = maxf(mult * 1.5, 3.0)
+		var dmg := p("damage") + absorbed * mult
 		w.area_hit(self, w.player_pos, r, dmg, 400.0, 0.5)
 		w.add_fx("ring", w.player_pos, 0.45, {"r0": 15.0, "r1": r, "color": GameWorld.JADE})
 		return amount - absorbed

@@ -2,7 +2,7 @@
   "player": {
     "max_hp": 100,
     "max_neili": 100,
-    "neili_regen": 8,
+    "neili_regen": 12,
     "hp_regen": 0,
     "move_speed": 200,
     "speed_pct": 0,
@@ -24,7 +24,8 @@
     "full_hp_regen": 0,
     "damage_pct": 0,
     "luck": 0,
-    "qg_cd_reduce": 0
+    "qg_cd_reduce": 0,
+    "ying_shift": 0
   },
   "tuning": {
     "spawn_base": 1.0,
@@ -46,7 +47,16 @@
       600
     ],
     "boss_time": 720,
-    "exp_mult": 1.4
+    "exp_mult": 1.4,
+    "ying_at": 0.65,
+    "xu_below": 0.25,
+    "ying_dmg": 1.7,
+    "ying_leak": 0.02,
+    "xu_regen": 1.5,
+    "meditate_after": 1.5,
+    "meditate_regen": 2.5,
+    "meditate_reduce": 0.15,
+    "empower_cost_mult": 1.0
   },
   "skills": {
     "yue_palm": {
@@ -79,7 +89,9 @@
         ],
         "targets": "pierce"
       },
-      "anim": "palm"
+      "anim": "palm",
+      "empower_cost": 10,
+      "empower": "龙形掌风：范围 ×1.8，贯穿 +3"
     },
     "chain_fist": {
       "name": "连环拳",
@@ -105,7 +117,9 @@
         "duration": [],
         "targets": ""
       },
-      "anim": "punch"
+      "anim": "punch",
+      "empower_cost": 7,
+      "empower": "末拳变重击：额外震晕前方敌人"
     },
     "quake_fist": {
       "name": "撼地拳",
@@ -134,7 +148,9 @@
         ],
         "targets": ""
       },
-      "anim": "punch"
+      "anim": "punch",
+      "empower_cost": 12,
+      "empower": "落点追加一圈更大的冲击波"
     },
     "whirl_palm": {
       "name": "回风掌",
@@ -160,7 +176,9 @@
         "duration": [],
         "targets": ""
       },
-      "anim": "palm"
+      "anim": "palm",
+      "empower_cost": 9,
+      "empower": "半径 ×1.5，击退 ×2"
     },
     "point_finger": {
       "name": "点穴指",
@@ -193,7 +211,9 @@
         ],
         "targets": "count"
       },
-      "anim": "palm"
+      "anim": "palm",
+      "empower_cost": 6,
+      "empower": "定身时间 ×2"
     },
     "vajra_fist": {
       "name": "金刚拳",
@@ -221,7 +241,9 @@
         "duration": [],
         "targets": ""
       },
-      "anim": "punch"
+      "anim": "punch",
+      "empower_cost": 8,
+      "empower": "按内力 100% 计算威力"
     },
     "cloud_palm": {
       "name": "流云掌",
@@ -255,7 +277,9 @@
         ],
         "targets": "count"
       },
-      "anim": "palm"
+      "anim": "palm",
+      "empower_cost": 8,
+      "empower": "掌印数量 +2"
     },
     "eight_waste": {
       "name": "八荒拳",
@@ -288,7 +312,9 @@
         ],
         "targets": "count"
       },
-      "anim": "palm"
+      "anim": "palm",
+      "empower_cost": 15,
+      "empower": "十六方向齐发"
     },
     "taiji": {
       "name": "太极劲",
@@ -315,7 +341,9 @@
       },
       "no_dirs": [
         "hits"
-      ]
+      ],
+      "empower_cost": 12,
+      "empower": "反击不进冷却，反击伤害大增"
     }
   },
   "xinfa": {
@@ -330,7 +358,8 @@
       "per_level": {
         "max_neili": 15,
         "neili_regen": 2,
-        "full_hp_regen": 1.2
+        "full_hp_regen": 1.2,
+        "ying_shift": -0.05
       }
     },
     "tiegu": {
@@ -709,6 +738,16 @@
         12,
         18,
         30
+      ]
+    },
+    "empower": {
+      "name": "运功",
+      "fmt": "催动消耗 -{v}%",
+      "values": [
+        10,
+        20,
+        30,
+        50
       ]
     }
   },

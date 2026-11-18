@@ -18,6 +18,7 @@ func _ready() -> void:
 		_sprite_anim_test()
 		await _net_test()
 		_meta_test()
+		_neili_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
 		_skill_matrix()
@@ -28,8 +29,40 @@ func _ready() -> void:
 		_run_full()
 	if only == "levels":
 		_levels_report()
+	if only == "survive":
+		_survive_report()
 	print("\nRESULT: %s" % ("FAIL (%d)" % failures if failures > 0 else "OK"))
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+## 平衡用：不无敌、会选卡的 bot 多个种子，看存活时间 / 通关率 / 气海三境占比
+func _survive_report() -> void:
+	print("\n=== 多种子存活报告（会选卡 bot，不无敌）===")
+	var wins := 0
+	var tsum := 0.0
+	var rsum := [0.0, 0.0, 0.0]
+	var seeds := [21, 22, 23, 24, 25, 26, 27, 28]
+	for sd in seeds:
+		var w := GameWorld.new()
+		w.rng_seed = sd
+		add_child(w)
+		w.start_run(["chain_fist", "point_finger", "cloud_palm"][sd % 3], ["tashue", "feiyan", "yufeng", "lingshe"][sd % 4])
+		var pick_rng := RandomNumberGenerator.new()
+		pick_rng.seed = sd
+		for i in int(900.0 / DT):
+			TestBot.drive(w, TestBot.engage_for(w))
+			w.step(DT)
+			TestBot.resolve_choices(w, pick_rng, true)
+			if w.over:
+				break
+		wins += 1 if w.won else 0
+		tsum += w.time
+		for k in 3:
+			rsum[k] += float(w.realm_time[k])
+		_free_world(w)
+	var tot: float = rsum[0] + rsum[1] + rsum[2]
+	print("  通关 %d/%d　平均存活 %ds　气海 虚 %d%% / 平 %d%% / 盈 %d%%" % [wins, seeds.size(), int(tsum / seeds.size()),
+		int(rsum[0] / tot * 100.0), int(rsum[1] / tot * 100.0), int(rsum[2] / tot * 100.0)])
 
 
 ## 测量「打完一局」的角色等级：会选卡的无敌 bot（≈ 理想玩家）多个种子，打到大 Boss 被击败为止
@@ -207,6 +240,7 @@ func _upgrade_system_test() -> void:
 					"heal": ok = float(s.mods["heal"]) > 0.0
 					"hits": ok = float(s.mods["hits"]) > 0.0
 					"crit": ok = float(s.mods["crit"]) > 0.0
+					"empower": ok = s.empower_cost() < base.empower_cost()
 				_check(ok, "%s 的方向 %s 档位 %d 没有生效" % [id, dir, tier])
 				_check(not s.upgrade_text(dir, tier).contains("{"), "%s/%s 的描述有未替换的占位符" % [id, dir])
 				checked += 1
@@ -365,6 +399,103 @@ func _save_test() -> void:
 
 var net_calls: Array = []
 var fake_reply: Dictionary = {}
+
+
+func _neili_test() -> void:
+	print("\n=== 内力：气海三境 / 催动 / 入定 ===")
+	var w := _new_world(5)
+	w.skills.clear()
+	var mx := w.st("max_neili")
+	# 三境判定与伤害加成
+	w.neili = mx * 0.9
+	_check(w.realm() == GameWorld.Realm.YING and is_equal_approx(w.dmg_mult(), Data.T("ying_dmg")), "达到盈境门槛为盈，伤害加成")
+	w.neili = mx * 0.5
+	_check(w.realm() == GameWorld.Realm.PING and is_equal_approx(w.dmg_mult(), 1.0), "平境无加成")
+	w.neili = mx * 0.2
+	_check(w.realm() == GameWorld.Realm.XU, "低于 25% 为虚")
+	# 纯阳诀降低盈境门槛
+	w.xinfa["chunyang"] = 2
+	w.recalc()
+	_check(absf(w.ying_at() - (Data.T("ying_at") - 0.1)) < 1e-6, "纯阳诀 Lv2：盈境门槛降低 10%%（实际 %.2f）" % w.ying_at())
+	w.xinfa.clear()
+	w.recalc()
+	# 虚境回气更快（对比同样时间内的回复量）
+	var wa := _new_world(6)
+	var wb := _new_world(6)
+	for x in [wa, wb]:
+		x.skills.clear()
+	wa.neili = wa.st("max_neili") * 0.1
+	wb.neili = wb.st("max_neili") * 0.5
+	var na := wa.neili
+	var nb := wb.neili
+	for i in 60:
+		wa.step(DT)
+		wb.step(DT)
+	_check((wa.neili - na) > (wb.neili - nb) * 1.3, "虚境回气应比平境快（%.2f vs %.2f）" % [wa.neili - na, wb.neili - nb])
+	# 盈境外泄：满内力时不会无限囤积，但仍然能保持盈
+	wb.neili = wb.st("max_neili")
+	for i in 600:
+		wb.step(DT)
+	_check(wb.realm() == GameWorld.Realm.YING, "满内力静止 10 秒仍应处于盈境")
+	# 入定：站住 1.5 秒后回气 ×2.5、减伤
+	var wm := _new_world(7)
+	wm.skills.clear()
+	wm.neili = wm.st("max_neili") * 0.4
+	wm.input_move = Vector2.ZERO
+	for i in int(1.0 / DT):
+		wm.step(DT)
+	_check(not wm.meditating(), "站立不足 1.5 秒不入定")
+	for i in int(1.0 / DT):
+		wm.step(DT)
+	_check(wm.meditating(), "站立 ≥1.5 秒入定")
+	wm.god = false
+	var h0 := wm.hp
+	wm._hurt(10.0)
+	_check(absf((h0 - wm.hp) - 10.0 * (1.0 - Data.T("meditate_reduce"))) < 0.01, "入定减伤 15%%（实际受伤 %.2f）" % (h0 - wm.hp))
+	wm.input_move = Vector2.RIGHT
+	wm.step(DT)
+	_check(not wm.meditating(), "一移动就退出入定")
+	_free_world(wm)
+	# 九个招式的催动版：能出手、消耗内力、效果与普通版不同
+	for id in Data.skills:
+		var w2 := _new_world(11)
+		w2.skills.clear()
+		w2.add_skill(id)
+		var sk: SkillBase = w2.skills[id]
+		_populate(w2, 40)
+		w2.neili = w2.st("max_neili")
+		var before := w2.empower_count
+		for i in int(8.0 / DT):
+			TestBot.drive(w2, 75.0 if sk.tags().has("近战") else 240.0)
+			w2.step(DT)
+			if id == "taiji" and i % 90 == 0:
+				sk.on_hurt(20.0)
+		_check(w2.empower_count > before, "%s：盈境下应触发催动" % Data.skills[id]["name"])
+		_check(float(w2.skill_dmg.get(id, 0.0)) > 0.0, "%s：催动版应造成伤害" % Data.skills[id]["name"])
+		_free_world(w2)
+	# 催动的具体效果
+	var we := _new_world(12)
+	we.skills.clear()
+	we.add_skill("eight_waste")
+	var ew: SkillBase = we.skills["eight_waste"]
+	_populate(we, 20)
+	we.projs.clear()
+	ew.empowered = true
+	ew.fire()
+	_check(we.projs.size() == 16, "八荒拳催动：十六方向（实际 %d）" % we.projs.size())
+	we.projs.clear()
+	ew.empowered = false
+	ew.emp_burst = false
+	ew.fire()
+	_check(we.projs.size() == int(ew.p("count")), "八荒拳普通版：%d 方向" % int(ew.p("count")))
+	_free_world(we)
+	# 运功升级：催动消耗递减
+	var sb := SkillBase.new()
+	sb.setup(_new_world(1), "yue_palm", Data.skills["yue_palm"])
+	var c0 := sb.empower_cost()
+	sb.add_upgrade("empower", 3)
+	_check(absf(sb.empower_cost() - c0 * 0.5) < 1e-6, "运功·灵机一动：催动消耗 −50%")
+	print("  三境 / 门槛心法 / 回气 / 外泄 / 入定 / 9 招催动 / 运功  OK")
 
 
 func _meta_test() -> void:
@@ -705,6 +836,10 @@ func _full_run(cfg: Dictionary) -> void:
 
 	var outcome := "胜利" if w.won else ("阵亡" if w.over else "存活到时限")
 	print("结果：%s @ %.1fs  等级 %d  击杀 %d  强化=%s Lv%d" % [outcome, w.time, w.level, w.kills, w.enhance_id, w.enhance_level])
+	var rt: Array = w.realm_time
+	var rsum := maxf(1.0, float(rt[0]) + float(rt[1]) + float(rt[2]))
+	print("气海：虚 %d%% / 平 %d%% / 盈 %d%%　催动 %d 次" % [int(float(rt[0]) / rsum * 100.0), int(float(rt[1]) / rsum * 100.0),
+		int(float(rt[2]) / rsum * 100.0), w.empower_count])
 	print("Boss 击杀耗时：", ", ".join(w.boss_log) if not w.boss_log.is_empty() else "（无）")
 	print("性能：平均 %.2f ms/step  最差 %.2f ms  敌人峰值 %d  Boss数 %d" % [
 		total_us / 1000.0 / maxi(1, int(w.time / DT)), worst_us / 1000.0, peak, w.bosses.size()])

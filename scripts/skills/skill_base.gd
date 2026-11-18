@@ -17,9 +17,10 @@ var w: GameWorld
 var upgrades: Array[Dictionary] = []   # [{dir, tier}]
 var mods: Dictionary = {
 	"damage": 0.0, "cooldown": 0.0, "range": 0.0, "targets": 0.0, "buff": 0.0,
-	"debuff": 0.0, "duration": 0.0, "heal": 0.0, "hits": 0.0, "crit": 0.0,
+	"debuff": 0.0, "duration": 0.0, "heal": 0.0, "hits": 0.0, "crit": 0.0, "empower": 0.0,
 }
 var echoing := false
+var empowered := false           # 本次出手是否催动（盈境 + 内力够）
 var echo_t := -1.0
 
 
@@ -46,6 +47,11 @@ func p(key: String) -> float:
 	if str(m["targets"]) == key:
 		v += float(mods["targets"])
 	return v
+
+
+## 催动消耗的内力（运功升级可降低，最多 −70%）
+func empower_cost() -> float:
+	return float(def.get("empower_cost", 8.0)) * Data.T("empower_cost_mult") * (1.0 - float(mods["empower"]))
 
 
 func tags() -> Array:
@@ -112,6 +118,7 @@ func add_upgrade(dir: String, tier: int) -> void:
 		"heal": mods["heal"] += v / 100.0
 		"hits": mods["hits"] = minf(0.8, float(mods["hits"]) + v / 100.0)
 		"crit": mods["crit"] += v / 100.0
+		"empower": mods["empower"] = minf(0.7, float(mods["empower"]) + v / 100.0)
 
 
 ## 升级卡片上的效果文字
@@ -135,11 +142,15 @@ func tick(dt: float) -> void:
 			echoing = false
 	cd -= dt
 	if cd <= 0.0:
+		empowered = w.can_empower(empower_cost())
 		if fire():
+			if empowered:
+				w.pay_empower(empower_cost())
 			cd = p("cooldown") * w.cd_mult()
 			_after_fire()
 		else:
 			cd = 0.12
+		empowered = false
 
 
 func _after_fire() -> void:

@@ -19,8 +19,8 @@ const MAX_EFFECTS := 160
 const CELL := 64.0
 const MAX_SKILLS := 4
 const MAX_XINFA := 2
-const NEILI_BONUS_THRESHOLD := 0.5
-const NEILI_BONUS_MULT := 1.25
+# 气海三境：盈（真气外放，伤害加成、可催动招式）/ 平 / 虚（回气加快）。数值见 data 的 tuning。
+enum Realm { XU, PING, YING }
 const ULT_RADIUS := 300.0
 const ULT_DAMAGE := 90.0
 
@@ -56,6 +56,9 @@ var player_pos := Vector2.ZERO
 var facing := Vector2.RIGHT
 var hp := 100.0
 var neili := 100.0
+var still_t := 0.0                # 连续站立不动的时间（入定）
+var realm_time := [0.0, 0.0, 0.0] # 虚 / 平 / 盈 各停留了多久（测试与平衡用）
+var empower_count := 0
 var shield := 0.0
 var level := 1
 var exp_now := 0
@@ -136,6 +139,9 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue") 
 	recalc()
 	hp = float(stats["max_hp"])
 	neili = float(stats["max_neili"])
+	still_t = 0.0
+	realm_time = [0.0, 0.0, 0.0]
+	empower_count = 0
 	shield = 0.0
 	player_pos = Vector2.ZERO
 	exp_now = 0
@@ -229,7 +235,37 @@ func cd_mult() -> float:
 
 ## 内力充盈（≥50%）时全部伤害 +25%
 func dmg_mult() -> float:
-	return NEILI_BONUS_MULT if neili >= st("max_neili") * NEILI_BONUS_THRESHOLD else 1.0
+	return Data.T("ying_dmg") if realm() == Realm.YING else 1.0
+
+
+## 盈境的门槛（纯阳诀等心法可以调低）
+func ying_at() -> float:
+	return clampf(Data.T("ying_at") + st("ying_shift"), 0.5, 0.95)
+
+
+func realm() -> int:
+	var r := neili / maxf(1.0, st("max_neili"))
+	if r >= ying_at():
+		return Realm.YING
+	if r < Data.T("xu_below"):
+		return Realm.XU
+	return Realm.PING
+
+
+## 入定：站立不动一小会儿，回气加快并减伤
+func meditating() -> bool:
+	return still_t >= Data.T("meditate_after")
+
+
+## 催动：处于盈境且内力够用时，招式出手会消耗内力并打出灌注版
+func can_empower(cost: float) -> bool:
+	return realm() == Realm.YING and neili >= cost
+
+
+func pay_empower(cost: float) -> void:
+	neili = maxf(0.0, neili - cost)
+	empower_count += 1
+	add_fx("ring", player_pos, 0.25, {"r0": 10.0, "r1": 34.0, "color": Color("#4fe0d0")})
 
 
 # =====================================================================
@@ -305,7 +341,19 @@ func _update_player(dt: float) -> void:
 	# 内力 / 气血 / 护盾
 	var max_n := st("max_neili")
 	var regen := st("neili_regen") * (1.0 + (float(qg.get("buff_regen", 0.0)) if buff_t > 0.0 else 0.0))
-	neili = minf(max_n, neili + regen * dt)
+	var rl := realm()
+	realm_time[rl] += dt
+	if move.length() < 0.1 and dash_t <= 0.0:
+		still_t += dt
+	else:
+		still_t = 0.0
+	if rl == Realm.XU:
+		regen *= Data.T("xu_regen")
+	if meditating():
+		regen *= Data.T("meditate_regen")
+	if rl == Realm.YING:
+		regen -= Data.T("ying_leak") * max_n      # 真气外放：盈境每秒外泄一点，防止囤着不用
+	neili = clampf(neili + regen * dt, 0.0, max_n)
 	var hr := st("hp_regen") + (st("full_hp_regen") if neili >= max_n - 0.01 else 0.0)
 	hp = minf(st("max_hp"), hp + hr * dt)
 	if since_hit > 2.0 and shield < st("shield_max"):
@@ -680,6 +728,8 @@ func _hurt(amount: float) -> void:
 	for s: SkillBase in skills.values():
 		dmg = s.on_hurt(dmg)
 	dmg = maxf(maxf(1.0, dmg * 0.25), dmg - st("armor"))
+	if meditating():
+		dmg *= 1.0 - Data.T("meditate_reduce")
 	since_hit = 0.0
 	invuln = 0.6
 	if st("thorns") > 0.0:
@@ -1412,8 +1462,11 @@ func _draw_player() -> void:
 		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	else:
 		draw_circle(player_pos + Vector2(0, 9), 10.0, Color(0, 0, 0, 0.12))
-	if neili >= st("max_neili") * NEILI_BONUS_THRESHOLD:
-		draw_arc(player_pos, 19.0, 0.0, TAU, 28, Color(JADE, 0.45 * alpha), 2.0)
+	if realm() == Realm.YING:
+		draw_arc(player_pos, 19.0, 0.0, TAU, 28, Color("#4fe0d0", 0.55 * alpha), 2.0)
+	if meditating():
+		var pulse := 0.5 + 0.5 * sin(time * 4.0)
+		draw_arc(player_pos, 30.0 + 2.0 * pulse, 0.0, TAU, 36, Color(GOLD, 0.35 + 0.3 * pulse), 2.0)
 	if shield > 0.0:
 		draw_arc(player_pos, 24.0, 0.0, TAU, 28, Color("#7fc8e8", 0.8), 3.0)
 	if has_sprite:

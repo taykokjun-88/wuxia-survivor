@@ -249,8 +249,10 @@ func _build_loadout() -> void:
 	loadout_panel = pb[0]
 	var box: VBoxContainer = pb[1]
 	box.add_child(_label("武侠幸存者", 52))
-	box.add_child(_label("角色流派：%s　　WASD 移动（自动攻击）　空格 轻功　E 真气爆发　内力 ≥ 50%% 伤害 +25%%" % Data.schools[school]["name"],
-		16, Color("#cfc6ae")))
+	box.add_child(_label("角色流派：%s　　WASD 移动（自动攻击）　空格 轻功　E 真气爆发" % Data.schools[school]["name"], 16, Color("#cfc6ae")))
+	box.add_child(_label("内力盈（≥%d%%）：伤害 +%d%%，招式自动「催动」（消耗内力）　·　站定不动 %.1f 秒入定：回气更快、减伤" % [
+		int(round(Data.T("ying_at") * 100.0)), int(round((Data.T("ying_dmg") - 1.0) * 100.0)), Data.T("meditate_after")],
+		15, Color("#9ad0a0")))
 
 	# 起手招式（3 选 1）。天赋加点（刚/柔/灵）是独立的局外系统，不在这里选。
 	box.add_child(_label("起手招式（3 选 1）", 20, Color("#c9a227")))
@@ -874,10 +876,20 @@ func _draw_hud() -> void:
 	var max_hp := w.st("max_hp")
 	var max_n := w.st("max_neili")
 	_bar(Vector2(16, 20), Vector2(260, 20), w.hp / max_hp, GameWorld.VERMILION, "气血 %d/%d" % [int(w.hp), int(max_hp)])
-	_bar(Vector2(16, 46), Vector2(260, 20), w.neili / max_n, Color("#3aa6a0"), "内力 %d/%d" % [int(w.neili), int(max_n)])
-	canvas.draw_line(Vector2(16 + 130, 46), Vector2(16 + 130, 66), Color(1, 1, 1, 0.9), 2.0)
-	if w.neili >= max_n * GameWorld.NEILI_BONUS_THRESHOLD:
-		canvas.draw_string(font, Vector2(286, 61), "内力充盈 伤害+25%", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#1f6f6a"))
+	var realm := w.realm()
+	var realm_col: Color = [Color("#6f86a8"), Color("#3aa6a0"), Color("#3fe0cf")][realm]
+	_bar(Vector2(16, 46), Vector2(260, 20), w.neili / max_n, realm_col, "内力 %d/%d" % [int(w.neili), int(max_n)])
+	# 三境分界线：虚 | 平 | 盈
+	for t in [Data.T("xu_below"), w.ying_at()]:
+		canvas.draw_line(Vector2(16 + 260 * float(t), 46), Vector2(16 + 260 * float(t), 66), Color(1, 1, 1, 0.9), 2.0)
+	var realm_txt := ""
+	match realm:
+		GameWorld.Realm.YING: realm_txt = "盈 · 伤害+%d%%　催动招式" % int(round((Data.T("ying_dmg") - 1.0) * 100.0))
+		GameWorld.Realm.XU: realm_txt = "虚 · 回气加快"
+	if w.meditating():
+		realm_txt = (realm_txt + "　" if realm_txt != "" else "") + "入定"
+	if realm_txt != "":
+		canvas.draw_string(font, Vector2(286, 61), realm_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#1f6f6a"))
 	if w.shield > 0.0:
 		canvas.draw_string(font, Vector2(286, 35), "护盾 %d" % int(w.shield), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#2a6f9a"))
 
