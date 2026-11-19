@@ -13,6 +13,7 @@ var id := ""
 var def: Dictionary = {}
 var level := 1                   # = 1 + 已升级次数
 var cd := 0.3
+var cd_total := 0.0              # 本次冷却的总时长（HUD 的冷却转圈用；0 = 没有在冷却）
 var w: GameWorld
 var upgrades: Array[Dictionary] = []   # [{dir, tier}]
 var mods: Dictionary = {
@@ -56,6 +57,17 @@ func p(key: String) -> float:
 ## 催动消耗的内力（运功升级可降低，最多 −70%）
 func empower_cost() -> float:
 	return float(def.get("empower_cost", 8.0)) * Data.T("empower_cost_mult") * maxf(0.25, 1.0 - float(mods["empower"]) - w.st("empower_cut"))
+
+
+## HUD 冷却转圈：还剩多少比例（1 = 刚出手，0 = 可以再出手）和剩余秒数
+func cd_frac() -> float:
+	if cd_total <= 0.2 or cd <= 0.0:
+		return 0.0
+	return clampf(cd / cd_total, 0.0, 1.0)
+
+
+func cd_secs() -> float:
+	return maxf(0.0, cd) if cd_total > 0.2 else 0.0
 
 
 func tags() -> Array:
@@ -151,9 +163,11 @@ func tick(dt: float) -> void:
 			if empowered:
 				w.pay_empower(empower_cost())
 			cd = p("cooldown") * w.cd_mult()
+			cd_total = cd
 			_after_fire()
 		else:
 			cd = 0.12
+			cd_total = 0.0        # 只是在等目标出现，不算冷却
 		empowered = false
 
 

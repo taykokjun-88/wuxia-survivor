@@ -137,6 +137,15 @@ func _ready() -> void:
 	w.recalc()
 	await _advance(70.0)
 	_snap("04_play_full_build")
+	# 冷却转圈：把四个技能的冷却设成不同进度
+	var fr := [0.25, 0.5, 0.75, 0.95]
+	var i_sk := 0
+	for sk2: SkillBase in w.skills.values():
+		sk2.cd_total = 4.0
+		sk2.cd = 4.0 * float(fr[i_sk % 4])
+		i_sk += 1
+	await _frames(2)
+	_snap("04a_cd_sweep")
 	main.hud.toggle_hud()
 	await _frames(3)
 	_snap("04b_hud_expanded")

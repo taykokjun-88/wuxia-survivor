@@ -178,6 +178,7 @@ class EightWaste extends SkillBase:
 ## 乾坤大挪移：受击时化解部分伤害并反击；平时周身有微弱劲气。强化「颠倒乾坤」：化解的伤害 ×4 转为反击。
 class Taiji extends SkillBase:
 	var guard_cd := 0.0
+	var guard_total := 0.0
 	var pulse_t := 2.0
 
 	func tick(dt: float) -> void:
@@ -189,6 +190,12 @@ class Taiji extends SkillBase:
 				w.area_hit(self, w.player_pos, 90.0, p("damage") * 0.4, 120.0)
 				w.add_fx("ring", w.player_pos, 0.3, {"r0": 12.0, "r1": 90.0, "color": GameWorld.JADE})
 
+	func cd_frac() -> float:
+		return clampf(guard_cd / guard_total, 0.0, 1.0) if guard_total > 0.2 and guard_cd > 0.0 else 0.0
+
+	func cd_secs() -> float:
+		return guard_cd if guard_total > 0.2 else 0.0
+
 	func on_hurt(amount: float) -> float:
 		if guard_cd > 0.0:
 			return amount
@@ -197,6 +204,7 @@ class Taiji extends SkillBase:
 			w.pay_empower(empower_cost())
 		else:
 			guard_cd = p("cooldown") * w.cd_mult()
+			guard_total = guard_cd
 		var absorbed := amount * p("absorb")
 		var r := p("radius") * (ev(1.5, 1.7, 1.9) if enhanced() else 1.0)
 		var mult := ev(4.0, 6.0, 8.0) if enhanced() else 1.0

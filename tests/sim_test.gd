@@ -28,6 +28,7 @@ func _ready() -> void:
 		_burst_pill_test()
 		_absorb_test()
 		_starter_trait_test()
+		_cd_sweep_test()
 		await _town_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
@@ -522,6 +523,50 @@ func _town_test() -> void:
 	Save.load_data()
 	Net.api_url = old_url
 	print("  村子数据 / 走动 / 碰撞 / 图鉴 / 创建→进村→驿站→地图→开局→返回→出发  OK")
+
+
+func _cd_sweep_test() -> void:
+	print("\n=== 技能图标冷却转圈 ===")
+	var w := _new_world(131)
+	w.skills.clear()
+	w.add_skill("chain_fist")
+	var sk: SkillBase = w.skills["chain_fist"]
+	_check(sk.cd_frac() == 0.0 and sk.cd_secs() == 0.0, "没出过手：没有冷却阴影")
+	var en := Enemy.new()
+	en.hp = 1.0e9
+	en.max_hp = 1.0e9
+	en.uid = 5
+	en.pos = w.player_pos + Vector2(40, 0)
+	w.enemies.append(en)
+	w._rebuild_grid()
+	sk.cd = 0.0
+	for i in 3:
+		w.step(1.0 / 60.0)
+	_check(sk.cd_total > 0.5 and sk.cd_frac() > 0.8, "出手后：阴影接近满圈（%.2f）" % sk.cd_frac())
+	var f1 := sk.cd_frac()
+	for i in 20:
+		w.step(1.0 / 60.0)
+	_check(sk.cd_frac() < f1 and sk.cd_secs() < sk.cd_total, "随时间转开（%.2f → %.2f）" % [f1, sk.cd_frac()])
+	# 等不到目标时只是重试，不显示冷却
+	var w2 := _new_world(132)
+	w2.skills.clear()
+	w2.add_skill("chain_fist")
+	var s2: SkillBase = w2.skills["chain_fist"]
+	for i in 30:
+		w2.step(1.0 / 60.0)
+	_check(s2.cd_frac() == 0.0, "没有目标时不显示冷却")
+	# 乾坤大挪移：反击后进入冷却
+	var w3 := _new_world(133)
+	w3.skills.clear()
+	w3.add_skill("taiji")
+	var s3: SkillBase = w3.skills["taiji"]
+	w3.neili = 0.0
+	s3.on_hurt(20.0)
+	_check(s3.cd_frac() > 0.9, "乾坤大挪移反击后冷却满圈")
+	_free_world(w)
+	_free_world(w2)
+	_free_world(w3)
+	print("  冷却比例 / 随时间转开 / 无目标不显示 / 反击技能  OK")
 
 
 func _starter_trait_test() -> void:

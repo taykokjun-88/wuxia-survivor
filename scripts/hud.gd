@@ -1301,6 +1301,7 @@ func _draw_skill_icon(pos: Vector2, s: SkillBase, maxed: bool) -> void:
 		var glyph := str(s.def["name"]).substr(0, 1)
 		canvas.draw_string_outline(bold, pos + Vector2(0, 31), glyph, HORIZONTAL_ALIGNMENT_CENTER, ICON, 28, 3, Color(0, 0, 0, 0.55))
 		canvas.draw_string(bold, pos + Vector2(0, 31), glyph, HORIZONTAL_ALIGNMENT_CENTER, ICON, 28, Color("#f3ead2"))
+	_draw_cd_sweep(r, s.cd_frac(), s.cd_secs())
 	if maxed:
 		# 12 层：右下角的层数数字直接换成「极」（楷体粗体，金字黑边）
 		var p := pos + Vector2(ICON - 24, ICON - 3)
@@ -1375,6 +1376,32 @@ func _draw_minimap(pos: Vector2, size: float) -> void:
 func _plate(r: Rect2) -> void:
 	canvas.draw_rect(r, Color("#e8dcc0", 0.82))
 	canvas.draw_rect(r, Color("#3a2f1a", 0.55), false, 2.0)
+
+
+## RO 式冷却转圈：深色阴影从 12 点钟方向开始，顺时针一点点转开；剩余秒数写在中间
+func _draw_cd_sweep(r: Rect2, frac: float, secs: float) -> void:
+	if frac <= 0.0:
+		return
+	var c := r.get_center()
+	var big := r.size.x * 1.2
+	var a0 := -PI * 0.5 + (1.0 - frac) * TAU        # 阴影剩下的部分：从这里转到一圈结束
+	var pts := PackedVector2Array([c])
+	var n := maxi(3, int(frac * 36.0))
+	for i in n + 1:
+		var ang := a0 + (-PI * 0.5 + TAU - a0) * float(i) / float(n)
+		pts.append(c + Vector2.from_angle(ang) * big)
+	var square := PackedVector2Array([r.position, r.position + Vector2(r.size.x, 0), r.end, r.position + Vector2(0, r.size.y)])
+	for poly in Geometry2D.intersect_polygons(pts, square):
+		canvas.draw_colored_polygon(poly, Color(0, 0, 0, 0.62))
+	# 转圈的前沿线：像时钟指针，让「转到哪了」更清楚
+	var dir := Vector2.from_angle(a0)
+	var edge := r.size.x * 0.5 / maxf(absf(dir.x), absf(dir.y))        # 指针只画到图标边缘
+	canvas.draw_line(c, c + dir * edge, Color(1, 1, 1, 0.4), 1.0)
+	if secs >= 0.3:
+		var txt := "%.1f" % secs if secs < 10.0 else str(int(secs))
+		var f := Data.font_bold
+		canvas.draw_string_outline(f, r.position + Vector2(0, r.size.y * 0.5 + 6.0), txt, HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 14, 4, Color(0, 0, 0, 0.9))
+		canvas.draw_string(f, r.position + Vector2(0, r.size.y * 0.5 + 6.0), txt, HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 14, Color("#f3ead2"))
 
 
 func _draw_hud() -> void:
