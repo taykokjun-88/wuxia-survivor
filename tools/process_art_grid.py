@@ -27,7 +27,7 @@ def load(path: str) -> np.ndarray:
     return np.asarray(Image.open(path).convert("RGB")).astype(np.int32)
 
 
-def masks(rgb: np.ndarray, shadow: bool):
+def masks(rgb: np.ndarray, shadow: bool, smear: bool = False):
     border = np.concatenate([rgb[0], rgb[-1], rgb[:, 0], rgb[:, -1]])
     bg = np.median(border, axis=0)
     d = np.abs(rgb - bg).sum(axis=2)
@@ -37,6 +37,8 @@ def masks(rgb: np.ndarray, shadow: bool):
     if shadow:   # 紫色影子：不是背景、绿通道很低、红蓝都明显高于绿且接近
         sh = (~is_bg) & (np.minimum(r, b) - g > 70) & (g < 90) & (np.abs(r - b) < 90) & (np.minimum(r, b) > 70)
     fg = ~is_bg & ~sh
+    if smear:   # AI 出图常见的洋红 / 紫色动态拖影：红蓝都明显高于绿且接近的，当作背景（皮肤、红头巾、蓝灰衣服都不满足）
+        fg &= ~((r - g > 22) & (b - g > 22) & (np.abs(r - b) < 70))
     # 削掉洋红晕边
     fg = ndi.binary_erosion(fg, iterations=2)
     # 去掉小碎块（保留面积 >= 最大块 3% 的）
@@ -45,6 +47,18 @@ def masks(rgb: np.ndarray, shadow: bool):
         sizes = ndi.sum(fg, lab, range(1, n + 1))
         keep = np.isin(lab, [i + 1 for i, s in enumerate(sizes) if s >= max(30, 0.03 * sizes.max())])
         fg = keep
+    if smear and fg.any():
+        # 只保留和主体相连（或几乎相连）的部分：脱离身体飘在旁边的拖影块 / 碎片去掉；武器、披风、长矛都和身体连着，不受影响
+        lab2, n2 = ndi.label(fg, structure=np.ones((3, 3)))
+        sizes2 = ndi.sum(fg, lab2, range(1, n2 + 1))
+        main = lab2 == (int(np.argmax(sizes2)) + 1)
+        near = ndi.binary_dilation(main, iterations=5)
+        keep2 = np.zeros_like(fg)
+        for i in range(1, n2 + 1):
+            comp = lab2 == i
+            if (comp & near).any():
+                keep2 |= comp
+        fg = keep2
     sh = sh & ~ndi.binary_dilation(fg, iterations=0)
     return fg, sh
 
@@ -99,9 +113,12 @@ def run(a) -> None:
         # 一条横向的行走循环：每帧抠图；所有帧用同一个缩放（按最高的那帧到目标身高），脚底对齐格子底边，
         # 横向用「各帧重心的平均值」对齐，这样身体不会抖、挥动的武器也不会被裁掉
         frames = []
-        for idx, (x0, y0, x1, y1) in cells_of(arr, a.cols, 1):
+        keep_idx = [int(x) - 1 for x in a.use.split(",")] if a.use else list(range(a.cols))
+        all_cells = list(cells_of(arr, a.cols, 1))
+        for idx in keep_idx:
+            _, (x0, y0, x1, y1) = all_cells[idx]
             cell = arr[y0:y1, x0:x1]
-            fg, _ = masks(cell, False)
+            fg, _ = masks(cell, False, smear=True)
             if not fg.any():
                 sys.exit(f"第 {idx + 1} 帧是空的")
             frames.append((cell, fg))
@@ -177,6 +194,7 @@ def main() -> None:
     ap.add_argument("--scale", type=float, default=0.3)
     ap.add_argument("--height", type=float, default=60.0)
     ap.add_argument("--fps", type=float, default=8.0)
+    ap.add_argument("--use", default="", help="怪物模式：只用并重排其中几帧，如 1,3,4,3（从 1 数起；某帧有重影 / 拖影时用）")
     run(ap.parse_args())
 
 

@@ -1,0 +1,37 @@
+{
+ "bandit": {
+  "file": "bandit.png",
+  "frames": 4,
+  "fps": 8.0,
+  "w": 50,
+  "h": 46
+ },
+ "blade": {
+  "file": "blade.png",
+  "frames": 4,
+  "fps": 8.0,
+  "w": 46,
+  "h": 46
+ },
+ "soldier": {
+  "file": "soldier.png",
+  "frames": 4,
+  "fps": 8.0,
+  "w": 58,
+  "h": 54
+ },
+ "elite": {
+  "file": "elite.png",
+  "frames": 4,
+  "fps": 7.0,
+  "w": 78,
+  "h": 72
+ },
+ "boss": {
+  "file": "boss.png",
+  "frames": 4,
+  "fps": 6.0,
+  "w": 134,
+  "h": 126
+ }
+}

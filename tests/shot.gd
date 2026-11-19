@@ -214,7 +214,8 @@ func _ready() -> void:
 	var sim2 = load("res://tests/sim_test.gd").new()
 	for id in ["bandit", "blade", "soldier", "elite", "boss"]:
 		var hh: int = {"bandit": 42, "blade": 42, "soldier": 50, "elite": 66, "boss": 120}[id]
-		w.enemy_art.add(id, sim2.fake_strip(4, hh, Color("#ff8040")), 4, 8.0, hh, hh)
+		if not w.enemy_art.has(id):
+			w.enemy_art.add(id, sim2.fake_strip(4, hh, Color("#ff8040")), 4, 8.0, hh, hh)
 	sim2.free()
 	w.skills.clear()
 	for e in w.enemies:
@@ -234,7 +235,6 @@ func _ready() -> void:
 	w.bosses[w.bosses.size() - 1].speed = 0.0
 	await _frames(3)
 	_snap("06j_enemy_sprites")
-	w.enemy_art.sprites.clear()
 	for e in w.enemies:
 		e.alive = false
 	w._compact_enemies()
