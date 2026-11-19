@@ -272,65 +272,73 @@ func _build_create() -> void:
 	right.add_child(brow)
 
 
-## 每局开局：起手招式 + 轻功（流派已在创建角色时确定）
+## 每局开局：左边是关卡（背景 + Boss + 会出现的怪物），右边是起手招式 / 轻功 / 难度
 func _build_loadout() -> void:
 	if loadout_panel:
 		loadout_panel.queue_free()
 	var pb := _panel_box()
 	loadout_panel = pb[0]
-	var box: VBoxContainer = pb[1]
-	box.add_child(_label("出发：%s" % str(Data.maps[loadout_map]["name"]), 52))
-	box.add_child(_label("角色流派：%s　　WASD 移动（自动攻击）　空格 轻功　E 真气爆发" % Data.schools[school]["name"], 16, Color("#cfc6ae")))
-	box.add_child(_label("内力盈（≥%d%%）：伤害 +%d%%，招式自动「催动」（消耗内力）　·　站定不动 %.1f 秒入定：回气更快、减伤" % [
-		int(round(Data.T("ying_at") * 100.0)), int(round((Data.T("ying_dmg") - 1.0) * 100.0)), Data.T("meditate_after")],
-		15, Color("#9ad0a0")))
+	var outer: VBoxContainer = pb[1]
+	var cols := HBoxContainer.new()
+	cols.add_theme_constant_override("separation", 26)
+	outer.add_child(cols)
+	var left := VBoxContainer.new()
+	left.add_theme_constant_override("separation", 8)
+	left.custom_minimum_size = Vector2(580, 0)
+	cols.add_child(left)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 8)
+	box.custom_minimum_size = Vector2(600, 0)
+	cols.add_child(box)
+	_build_stage_info(left)
+
+	box.add_child(_label("角色流派：%s　　WASD 移动（自动攻击）　空格 轻功　E 真气爆发" % Data.schools[school]["name"], 14, Color("#cfc6ae")))
 
 	# 起手招式（3 选 1）。天赋加点（刚/柔/灵）是独立的局外系统，不在这里选。
 	box.add_child(_label("起手招式（3 选 1）", 20, Color("#c9a227")))
-	var starter_row := HBoxContainer.new()
-	starter_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	starter_row.add_theme_constant_override("separation", 10)
-	box.add_child(starter_row)
 	var sgroup := ButtonGroup.new()
 	for id in Data.schools[school]["starters"]:
 		var sd: Dictionary = Data.skills[id]
 		var b := Button.new()
 		b.text = "%s　【%s】\n%s" % [sd["name"], Data.tags_text(id), sd["desc"]]
-		b.custom_minimum_size = Vector2(340, 72)
+		b.custom_minimum_size = Vector2(600, 58)
 		b.toggle_mode = true
 		b.button_group = sgroup
 		b.button_pressed = id == sel_starter
 		b.focus_mode = Control.FOCUS_NONE
-		b.add_theme_font_size_override("font_size", 15)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.add_theme_font_size_override("font_size", 14)
 		b.pressed.connect(func(): sel_starter = id)
-		starter_row.add_child(b)
+		box.add_child(b)
 
 	# 轻功
 	box.add_child(_label("轻功（6 选 1）", 20, Color("#c9a227")))
 	var grid := GridContainer.new()
-	grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 8)
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 6)
 	box.add_child(grid)
 	var qgroup := ButtonGroup.new()
 	for id in Data.qinggong:
 		var qd: Dictionary = Data.qinggong[id]
 		var b := Button.new()
-		b.text = "%s\n%s" % [qd["name"], qd["desc"]]
-		b.custom_minimum_size = Vector2(330, 64)
+		b.text = "%s　%s" % [qd["name"], qd["desc"]]
+		b.custom_minimum_size = Vector2(296, 44)
 		b.toggle_mode = true
 		b.button_group = qgroup
 		b.button_pressed = id == sel_qg
 		b.focus_mode = Control.FOCUS_NONE
-		b.add_theme_font_size_override("font_size", 14)
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.clip_text = true
+		b.add_theme_font_size_override("font_size", 13)
 		b.pressed.connect(func(): sel_qg = id)
 		grid.add_child(b)
 
 	# 难度调节：三个滑条（怪物数量 / 血量 / 移动速度），100% ~ 300%
 	_load_difficulty()
 	box.add_child(_label("难度调节（100% = 标准）", 20, Color("#c9a227")))
-	var drow := _center_row(26)
-	var sum_lbl := _label("", 16, Color("#cfc6ae"))
+	var drow := _center_row(14)
+	var sum_lbl := _label("", 15, Color("#cfc6ae"))
 	var upd := func():
 		var avg := (float(diff["count"]) + float(diff["hp"]) + float(diff["speed"])) / 300.0
 		var rew := ""
@@ -341,14 +349,14 @@ func _build_loadout() -> void:
 		var key: String = spec[0]
 		var col := VBoxContainer.new()
 		col.add_theme_constant_override("separation", 2)
-		var val := _label("%s　%d%%" % [spec[1], int(diff[key])], 17, Color("#f3ead2"))
+		var val := _label("%s　%d%%" % [spec[1], int(diff[key])], 16, Color("#f3ead2"))
 		col.add_child(val)
 		var sl := HSlider.new()
 		sl.min_value = 100
 		sl.max_value = 300
 		sl.step = 10
 		sl.value = int(diff[key])
-		sl.custom_minimum_size = Vector2(250, 22)
+		sl.custom_minimum_size = Vector2(186, 22)
 		sl.focus_mode = Control.FOCUS_NONE
 		var track := StyleBoxFlat.new()
 		track.bg_color = Color("#4a4438")
@@ -369,6 +377,8 @@ func _build_loadout() -> void:
 		drow.add_child(col)
 	box.add_child(drow)
 	upd.call()
+	sum_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	sum_lbl.custom_minimum_size = Vector2(600, 0)
 	box.add_child(sum_lbl)
 	var start := Button.new()
 	start.text = "开始闯荡  [Enter]"
@@ -384,6 +394,151 @@ func _build_loadout() -> void:
 	srow.add_child(start)
 	srow.add_child(back)
 	box.add_child(srow)
+
+
+# ---------------------------------------------------------------------
+# 关卡信息：背景图 + Boss + 会出现的怪物
+# ---------------------------------------------------------------------
+
+var _stage_earts: EnemyArt = null
+
+
+func _stage_art() -> EnemyArt:
+	if _stage_earts == null:
+		_stage_earts = EnemyArt.new()
+		_stage_earts.load_dir("res://assets/enemies")
+	return _stage_earts
+
+
+func _load_tex(path: String) -> Texture2D:
+	if path != "" and ResourceLoader.exists(path):
+		return load(path)
+	return null
+
+
+## 怪物 / Boss 的图：优先高清立绘（assets/maps/<地图>/portrait_<id>.png），其次像素精灵第一帧，最后是色块占位
+func _monster_icon(map_id: String, id: String, size: Vector2) -> Control:
+	var tex := _load_tex("res://assets/maps/%s/portrait_%s.png" % [map_id, id])
+	if tex == null:
+		var ea := _stage_art()
+		if ea.has(id):
+			var d: Dictionary = ea.sprites[id]
+			var at := AtlasTexture.new()
+			at.atlas = d["tex"]
+			at.region = Rect2(0, 0, int(d["w"]), int(d["h"]))
+			tex = at
+	if tex != null:
+		var tr := TextureRect.new()
+		tr.texture = tex
+		tr.custom_minimum_size = size
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		return tr
+	# 没有素材：用敌人的代表色画一个剪影圆
+	var col := Color("#6b5a48")
+	if Data.enemies.has(id):
+		col = Color(str(Data.enemies[id]["color"]))
+	elif id == "elite":
+		col = Color("#c9a227")
+	var holder := Control.new()
+	holder.custom_minimum_size = size
+	var d2 := minf(size.x, size.y) * 0.8
+	var ph := Panel.new()
+	ph.size = Vector2(d2, d2)
+	ph.position = (size - ph.size) * 0.5
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(col, 0.85)
+	sb.set_corner_radius_all(int(d2 * 0.5))
+	sb.set_border_width_all(2)
+	sb.border_color = Color("#1d1d1d")
+	ph.add_theme_stylebox_override("panel", sb)
+	var q := _label("?", int(d2 * 0.5), Color("#f3ead2"))
+	q.set_anchors_preset(Control.PRESET_FULL_RECT)
+	q.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	ph.add_child(q)
+	holder.add_child(ph)
+	return holder
+
+
+func _build_stage_info(left: VBoxContainer) -> void:
+	var m: Dictionary = Data.maps[loadout_map]
+	# 横幅：地图背景 + 三个 Boss 的立绘 + 关卡名
+	var banner := Control.new()
+	banner.custom_minimum_size = Vector2(580, 270)
+	banner.clip_contents = true
+	left.add_child(banner)
+	var bg := TextureRect.new()
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	var full := _load_tex(str(m.get("banner", "")))
+	var composed := full == null
+	if full != null:
+		bg.texture = full
+		bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	else:
+		bg.texture = _load_tex("res://assets/maps/%s/stage_bg.jpg" % loadout_map)
+		if bg.texture != null:
+			bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		else:
+			bg.texture = _load_tex("res://assets/maps/%s/ground_0.png" % loadout_map)
+			bg.stretch_mode = TextureRect.STRETCH_TILE
+	banner.add_child(bg)
+	var shade := ColorRect.new()
+	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
+	shade.color = Color(0.05, 0.04, 0.03, 0.55 if composed else 0.25)
+	banner.add_child(shade)
+	if composed:
+		var ids: Array = m.get("banner_bosses", [])
+		var x := 580.0 - 150.0 * ids.size() - 10.0
+		for i in ids.size():
+			var ic := _monster_icon(loadout_map, str(ids[i]), Vector2(150, 190))
+			ic.position = Vector2(x + 150.0 * i, 70.0 + (0.0 if i == 1 else 14.0))
+			banner.add_child(ic)
+	var title := _label(str(m["name"]), 46)
+	title.position = Vector2(18, 10)
+	banner.add_child(title)
+	var stars := _label("★".repeat(int(m["stars"])) + "☆".repeat(maxi(0, 5 - int(m["stars"]))), 22, Color("#c9a227"))
+	stars.position = Vector2(20, 68)
+	banner.add_child(stars)
+	var desc := _label(str(m["desc"]), 15, Color("#e8dfc8"))
+	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	desc.custom_minimum_size = Vector2(250, 0)
+	desc.size = Vector2(250, 80)
+	desc.position = Vector2(20, 104)
+	banner.add_child(desc)
+
+	left.add_child(_label("会出现的怪物", 20, Color("#c9a227")))
+	var grid := GridContainer.new()
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	left.add_child(grid)
+	for mon in m.get("monsters", []):
+		var md: Dictionary = mon
+		var card := PanelContainer.new()
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = Color(0.1, 0.09, 0.08, 0.8)
+		sb.set_border_width_all(1)
+		sb.border_color = Color("#6a5a3a") if str(md["id"]).find("boss") < 0 else Color("#a33a2a")
+		sb.set_corner_radius_all(4)
+		sb.set_content_margin_all(4)
+		card.add_theme_stylebox_override("panel", sb)
+		card.custom_minimum_size = Vector2(139, 128)
+		var v := VBoxContainer.new()
+		v.add_theme_constant_override("separation", 2)
+		card.add_child(v)
+		var ic2 := _monster_icon(loadout_map, str(md["id"]), Vector2(120, 62))
+		v.add_child(ic2)
+		var nm := _label(str(md["name"]), 14, Color("#f3ead2"))
+		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		v.add_child(nm)
+		var tg := _label(str(md["tag"]), 11, Color("#b8ad90"))
+		tg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		v.add_child(tg)
+		grid.add_child(card)
 
 
 func confirm_create() -> void:

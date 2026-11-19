@@ -21,6 +21,9 @@ func _ready() -> void:
 	await _frames(2)
 	Save.create_character("sword")
 	main.state = main.State.LOADOUT
+	main.hud.show_loadout("sword", "black_wind")
+	await _frames(3)
+	_snap("s0_loadout")
 	main._on_loadout("dugu", "tashue")
 	w.god = true
 	w.time = 130.0

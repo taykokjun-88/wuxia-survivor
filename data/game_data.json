@@ -963,7 +963,7 @@
       "color": "#2f4a6a"
     },
     "mini_boss_1": {
-      "name": "铜尸·陈玄风",
+      "name": "铜尸·陈大风",
       "hp": 3000,
       "speed": 60,
       "damage": 18,
@@ -973,7 +973,7 @@
       "bolts": 10
     },
     "mini_boss_2": {
-      "name": "铁尸·梅超风",
+      "name": "铁尸·梅小风",
       "hp": 5000,
       "speed": 65,
       "damage": 22,
@@ -983,7 +983,7 @@
       "bolts": 12
     },
     "mini_boss_3": {
-      "name": "铁掌帮主·裘千仞",
+      "name": "银尸·裘千米",
       "hp": 7500,
       "speed": 70,
       "damage": 26,
@@ -2365,7 +2365,55 @@
       "desc": "盘踞山腰的山贼窝，入门难度。三名头领与黑风寨主镇守。",
       "enabled": true,
       "min_meta_level": 1,
-      "stars": 1
+      "stars": 1,
+      "banner": "res://assets/maps/black_wind/stage_banner.jpg",
+      "banner_bosses": [
+        "mini_boss_1",
+        "mini_boss_2",
+        "boss"
+      ],
+      "monsters": [
+        {
+          "id": "bandit",
+          "name": "山贼",
+          "tag": "小怪"
+        },
+        {
+          "id": "blade",
+          "name": "刀客",
+          "tag": "小怪 · 30 秒后"
+        },
+        {
+          "id": "soldier",
+          "name": "铁甲喽啰",
+          "tag": "小怪 · 1:30 后"
+        },
+        {
+          "id": "elite",
+          "name": "精英",
+          "tag": "金圈 · 掉还丹"
+        },
+        {
+          "id": "mini_boss_1",
+          "name": "铜尸·陈大风",
+          "tag": "小 Boss 3:00"
+        },
+        {
+          "id": "mini_boss_2",
+          "name": "铁尸·梅小风",
+          "tag": "小 Boss 6:30"
+        },
+        {
+          "id": "mini_boss_3",
+          "name": "银尸·裘千米",
+          "tag": "小 Boss 10:00"
+        },
+        {
+          "id": "boss",
+          "name": "黑风寨主",
+          "tag": "大 Boss 12:00"
+        }
+      ]
     },
     "huashan": {
       "name": "华山",
