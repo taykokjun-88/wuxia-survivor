@@ -324,13 +324,16 @@ func _draw_stall(n: Dictionary, r: Rect2) -> void:
 
 func _draw_npc(n: Dictionary, near: bool) -> void:
 	var pos: Vector2 = n["pos"]
-	_px_circle(pos + Vector2(0, 2), 15.0, Color(0, 0, 0, 0.22))
+	Depth.shadow(self, pos + Vector2(0, 1), 34.0)
 	var tex: Texture2D = n["tex"]
 	var top := pos.y - 62.0
 	if tex != null:
 		var sz := tex.get_size()
-		var bob := 1.0 if int(time * 2.0 + pos.x * 0.01) % 2 == 0 else 0.0
-		draw_texture_rect(tex, Rect2(pos.x - sz.x * 0.5, pos.y - sz.y + 4.0 - bob, sz.x, sz.y), false)
+		# 呼吸：以脚底为支点，身体极轻微地胀缩，NPC 才不会像贴在地上的纸片
+		var breathe := 1.0 + 0.018 * sin(time * 2.2 + pos.x * 0.02)
+		draw_set_transform(pos + Vector2(0, 4), 0.0, Vector2(2.0 - breathe, breathe))
+		draw_texture_rect(tex, Rect2(-sz.x * 0.5, -sz.y, sz.x, sz.y), false)
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 		top = pos.y - sz.y - 8.0
 	else:
 		draw_rect(Rect2(pos.x - 10, pos.y - 44, 20, 44), Color("#8a6a45"))
@@ -346,16 +349,18 @@ func _draw_npc(n: Dictionary, near: bool) -> void:
 
 
 func _draw_player() -> void:
-	_px_circle(player_pos + Vector2(0, 2), 14.0, Color(0, 0, 0, 0.22))
+	var bob := Depth.bob(time, 2.0, 12.0) if moving else 0.0
+	Depth.shadow(self, player_pos + Vector2(0, 3), 30.0, bob)
 	if hero_art != null:
 		# 村子专用素材：按朝向选 正面 / 背面 / 侧面；站着不动时停在第一帧
 		var key := "hero_side"
 		if absf(facing.y) > absf(facing.x):
 			key = "hero_down" if facing.y > 0.0 else "hero_up"
 		if hero_art.has(key):
-			hero_art.draw(self, key, time if moving else 0.0, player_pos + Vector2(0, 4), facing.x < 0.0 and key == "hero_side")
+			var lean := 0.06 * signf(facing.x) if (moving and key == "hero_side") else 0.0
+			hero_art.draw(self, key, time if moving else 0.0, player_pos + Vector2(0, 4.0 - bob), facing.x < 0.0 and key == "hero_side", Color.WHITE, lean, 1.0 + (0.025 * sin(time * 24.0) if moving else 0.0))
 			return
 	if sprite_anim != null:
-		if sprite_anim.draw(self, "walk" if moving else "idle", time, player_pos + Vector2(0, 14), facing.x < 0.0):
+		if sprite_anim.draw(self, "walk" if moving else "idle", time, player_pos + Vector2(0, 14.0 - bob), facing.x < 0.0):
 			return
 	draw_circle(player_pos + Vector2(0, -14), 10.0, Color("#3aa6a0"))

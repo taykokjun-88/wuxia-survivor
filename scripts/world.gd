@@ -1573,16 +1573,6 @@ func _vis(p: Vector2, margin: float = 40.0) -> bool:
 
 func _draw() -> void:
 	_draw_background()
-	var back_props: Array = []
-	var front_props: Array = []
-	if map_art != null:
-		for pr in map_art.visible_props(player_pos, Vector2(700.0, 420.0)):
-			if (pr["pos"] as Vector2).y <= player_pos.y:
-				back_props.append(pr)
-			else:
-				front_props.append(pr)
-		back_props.sort_custom(func(a, b): return a["pos"].y < b["pos"].y)
-		front_props.sort_custom(func(a, b): return a["pos"].y < b["pos"].y)
 	_draw_zones()
 	for i in gem_pos.size():
 		var g := gem_pos[i]
@@ -1601,17 +1591,26 @@ func _draw() -> void:
 			draw_rect(Rect2(c + Vector2(-11, -8 + bob), Vector2(22, 16)), Color("#8a5a1f"))
 			draw_rect(Rect2(c + Vector2(-11, -8 + bob), Vector2(22, 16)), GOLD, false, 2.0)
 			draw_arc(c + Vector2(0, bob), 20.0, 0.0, TAU, 20, Color(GOLD, 0.4 + 0.3 * sin(time * 5.0)), 2.0)
-	for pr in back_props:
-		map_art.draw_prop(self, pr)
+	# 角色、怪物、场景物件按「脚底的 y」从上到下排序再画：靠下的盖住靠上的，前后关系才对
+	var ents: Array = []
 	for e in enemies:
 		if _vis(e.pos, 60.0):
-			_draw_enemy(e)
+			var key := _enemy_art_key(e)
+			var fy := e.pos.y + (enemy_art.height_of(key) * 0.42 if enemy_art != null and enemy_art.has(key) else e.radius)
+			ents.append([fy, 0, e])
+	if map_art != null:
+		for pr in map_art.visible_props(player_pos, Vector2(700.0, 420.0)):
+			ents.append([(pr["pos"] as Vector2).y, 1, pr])
+	ents.append([player_pos.y + 14.0, 2, null])
+	ents.sort_custom(func(a, b): return a[0] < b[0])
+	for it in ents:
+		match int(it[1]):
+			0: _draw_enemy(it[2])
+			1: map_art.draw_prop(self, it[2])
+			2: _draw_player()
 	for p in projs:
 		if _vis(p.pos):
 			_draw_proj(p)
-	_draw_player()
-	for pr in front_props:
-		map_art.draw_prop(self, pr)
 	_draw_effects()
 
 
@@ -1762,9 +1761,18 @@ func _draw_enemy(e: Enemy) -> void:
 func _draw_enemy_sprite(e: Enemy, key: String) -> void:
 	var h := enemy_art.height_of(key)
 	var feet := e.pos + Vector2(0, h * 0.42)
-	draw_set_transform(feet + Vector2(0, -2), 0.0, Vector2(1.0, 0.32))
-	draw_circle(Vector2.ZERO, h * 0.32, Color(0, 0, 0, 0.25))
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	var flip := player_pos.x < e.pos.x
+	var walking := e.stun <= 0.0
+	var ph := float(e.uid % 11)
+	# 素材每帧几乎一样：用起伏 / 前倾 / 轻微挤压补出「走路」的体积感；被打中时被压扁一下
+	var big := e.is_boss
+	var bob := Depth.bob(time, (2.0 if big else 1.5 + h * 0.03), 5.0 if big else 9.0, ph) if walking else 0.0
+	var lean := (-0.06 if flip else 0.06) if walking else 0.0
+	var sq := 1.0 + 0.03 * sin(time * 17.0 + ph)
+	if e.flash > 0.0:
+		sq = 0.86
+		lean = (0.12 if flip else -0.12)           # 挨打后仰
+	Depth.shadow(self, feet + Vector2(0, -1), h * 0.7, bob)
 	if e.is_boss and e.boss_state == "windup":
 		draw_line(e.pos, e.pos + e.charge_dir * 260.0, Color(VERMILION, 0.3), e.radius * 1.6)
 	var tint := Color.WHITE
@@ -1774,7 +1782,7 @@ func _draw_enemy_sprite(e: Enemy, key: String) -> void:
 		tint = Color(0.72, 0.88, 1.0)
 	elif e.stun > 0.0:
 		tint = Color(0.85, 0.85, 0.85)
-	enemy_art.draw(self, key, time + float(e.uid % 7) * 0.13, feet, player_pos.x < e.pos.x, tint)
+	enemy_art.draw(self, key, time + ph * 0.13, feet - Vector2(0, bob), flip, tint, lean, sq)
 	var r := e.radius
 	if e.is_elite:
 		draw_arc(e.pos + Vector2(0, h * 0.1), h * 0.5, 0.0, TAU, 26, Color(GOLD, 0.8), 2.0)
@@ -1856,6 +1864,13 @@ func _player_anim_state() -> Array:
 	return ["idle", anim_clock]
 
 
+## 走路时每一步的上下起伏（站着 / 冲刺时为 0）
+func _player_bob() -> float:
+	if dash_t > 0.0 or input_move.length() <= 0.1:
+		return 0.0
+	return Depth.bob(time, 2.4, 12.0)
+
+
 func _draw_player() -> void:
 	var blink := invuln > 0.0 and dash_t <= 0.0 and int(time * 24.0) % 2 == 0
 	if blink:
@@ -1863,10 +1878,8 @@ func _draw_player() -> void:
 	var alpha := 0.45 if stealth_t > 0.0 else 1.0
 	var has_sprite := sprite_anim != null
 	if has_sprite:
-		# 脚下的扁椭圆影子（角色脚底在 player_pos 下方 14px）
-		draw_set_transform(player_pos + Vector2(0, 13), 0.0, Vector2(1.0, 0.35))
-		draw_circle(Vector2.ZERO, 15.0, Color(0, 0, 0, 0.18))
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		# 脚下的接触影子（角色脚底在 player_pos 下方 14px）；走路起伏时影子随之变小
+		Depth.shadow(self, player_pos + Vector2(0, 14), 30.0, _player_bob())
 	else:
 		draw_circle(player_pos + Vector2(0, 9), 10.0, Color(0, 0, 0, 0.12))
 	if realm() == Realm.YING:
@@ -1879,7 +1892,15 @@ func _draw_player() -> void:
 	if has_sprite:
 		var state := _player_anim_state()
 		var tint := Color(1.0, 0.55, 0.55, alpha) if since_hit < 0.08 else Color(1.0, 1.0, 1.0, alpha)
-		if sprite_anim.draw(self, str(state[0]), float(state[1]), player_pos + Vector2(0, 14), facing.x < 0.0, tint):
+		var lean := 0.0
+		var sq := 1.0
+		if dash_t > 0.0:
+			lean = 0.2 * signf(dash_dir.x)        # 冲刺：身体前倾、拉长
+			sq = 0.92
+		elif input_move.length() > 0.1:
+			lean = 0.07 * clampf(input_move.x, -1.0, 1.0)
+			sq = 1.0 + 0.025 * sin(time * 26.0)
+		if sprite_anim.draw(self, str(state[0]), float(state[1]), player_pos + Vector2(0, 14.0 - _player_bob()), facing.x < 0.0, tint, 1.0, lean, sq):
 			return
 	draw_circle(player_pos, PLAYER_RADIUS, Color(JADE, alpha))
 	draw_arc(player_pos, PLAYER_RADIUS, 0.0, TAU, 20, Color(0.03, 0.08, 0.08, alpha), 2.0)

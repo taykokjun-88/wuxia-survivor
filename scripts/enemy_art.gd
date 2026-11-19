@@ -35,12 +35,12 @@ func height_of(id: String) -> float:
 
 
 ## feet：脚底中心（世界坐标）；flip：朝左
-func draw(ci: CanvasItem, id: String, t: float, feet: Vector2, flip: bool, tint: Color = Color.WHITE) -> void:
+func draw(ci: CanvasItem, id: String, t: float, feet: Vector2, flip: bool, tint: Color = Color.WHITE, rot: float = 0.0, squash: float = 1.0) -> void:
 	var d: Dictionary = sprites[id]
 	var w: int = d["w"]
 	var h: int = d["h"]
 	var f := int(maxf(t, 0.0) * float(d["fps"])) % int(d["frames"])
 	var tex: Texture2D = d["tex"]
-	ci.draw_set_transform(feet, 0.0, Vector2(-1.0 if flip else 1.0, 1.0))
+	ci.draw_set_transform(feet, rot, Depth.scale_of(squash, flip))
 	ci.draw_texture_rect_region(tex, Rect2(-w * 0.5, -h, w, h), Rect2(f * w, 0, w, h), tint)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
