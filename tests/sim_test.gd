@@ -24,6 +24,7 @@ func _ready() -> void:
 		_vfx_test()
 		_p2_test()
 		_synergy_test()
+		_burst_pill_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
 		_skill_matrix()
@@ -404,6 +405,166 @@ func _save_test() -> void:
 
 var net_calls: Array = []
 var fake_reply: Dictionary = {}
+
+
+func _burst_pill_test() -> void:
+	print("\n=== 真气爆发 / 还丹 ===")
+	# --- 爆发：消耗全部内力，消耗越多越强；次数有限 ---
+	var base_w := _new_world(91)
+	base_w.skills.clear()
+	_check(base_w.burst_max() == 1 and base_w.burst_left() == 1, "基础 1 次爆发")
+	base_w.neili = base_w.st("max_neili") * 0.05
+	_check(not base_w.can_burst(), "内力低于 10% 不能爆发")
+	var dmg_at := {}
+	for f in [0.3, 1.0]:
+		var w := _new_world(92)
+		w.skills.clear()
+		w.stats["crit_chance"] = 0.0
+		var en := Enemy.new()
+		en.hp = 1.0e12
+		en.max_hp = 1.0e12
+		en.pos = w.player_pos + Vector2(60, 0)
+		w.enemies.append(en)
+		w._rebuild_grid()
+		w.neili = w.st("max_neili") * f
+		w.input_ult = true
+		var hp0 := en.hp
+		w.step(1.0 / 60.0)
+		dmg_at[f] = hp0 - en.hp
+		_check(w.neili < 5.0 and w.burst_used == 1 and w.burst_left() == 0, "爆发消耗全部内力，次数 −1（f=%.1f）" % f)
+		# 第二次不能爆发
+		w.neili = w.st("max_neili")
+		w.input_ult = true
+		var hp1 := en.hp
+		w.step(1.0 / 60.0)
+		_check(w.burst_used == 1, "没有次数时不能再爆发")
+		_free_world(w)
+	_check(float(dmg_at[1.0]) > float(dmg_at[0.3]) * 2.5, "消耗越多威力越大（30%% 内力 %.0f → 满内力 %.0f）" % [dmg_at[0.3], dmg_at[1.0]])
+	# --- 内力属性 + 天赋 ---
+	var wn := _new_world(93)
+	wn.skills.clear()
+	wn.xinfa = {"wuxiang": 1, "tiegu": 1}
+	wn.recalc()
+	_check(wn.nature() == "yang", "双阳 = 阳性内力")
+	wn.xinfa = {"hanshuang": 1, "tunhai": 1}
+	_check(wn.nature() == "yin", "双阴 = 阴性内力")
+	wn.xinfa = {"hanshuang": 1, "tiegu": 1}
+	_check(wn.nature() == "harmony", "一阴一阳 = 调和内力")
+	wn.xinfa = {"hanshuang": 1}
+	_check(wn.nature() == "", "只有一个心法没有属性")
+	# 调和归元：次数 ×2；没有天赋不加
+	wn.xinfa = {"hanshuang": 1, "tiegu": 1}
+	_check(wn.burst_max() == 1, "没有天赋：调和内力也只有 1 次")
+	wn.talent_stats = {"burst_harmony": 1.0}
+	wn.recalc()
+	_check(wn.burst_max() == 2, "调和归元：2 次")
+	wn.xinfa = {"wuxiang": 1, "tiegu": 1}
+	wn.recalc()
+	_check(wn.burst_max() == 1, "调和归元只对调和内力有效")
+	_free_world(wn)
+	# 阴性：爆发回血 + 攻速
+	var wy := _new_world(94)
+	wy.skills.clear()
+	wy.god = false
+	wy.xinfa = {"hanshuang": 1, "tunhai": 1}
+	wy.talent_stats = {"burst_yin": 1.0}
+	wy.recalc()
+	wy.hp = wy.st("max_hp") * 0.3
+	var cd0 := wy.cd_mult()
+	wy.neili = wy.st("max_neili")
+	wy.input_ult = true
+	var hp_before := wy.hp
+	wy.step(1.0 / 60.0)
+	_check(wy.hp > hp_before + wy.st("max_hp") * 0.3, "阴性爆发额外回血（%.0f → %.0f）" % [hp_before, wy.hp])
+	_check(wy.cd_mult() < cd0 - 0.2 and wy.atk_buff_t > 7.0, "阴性爆发后攻速提升")
+	for i in int(9.0 / DT):
+		wy.step(DT)
+	_check(absf(wy.cd_mult() - cd0) < 1e-6, "攻速提升 8 秒后结束")
+	_free_world(wy)
+	# 阳性：回内力更快；内力满时生成护盾（≤50% 气血）；护盾在时反弹 30%
+	var wa := _new_world(95)
+	wa.skills.clear()
+	wa.god = false
+	wa.xinfa = {"wuxiang": 1, "tiegu": 1}
+	wa.talent_stats = {"burst_yang": 1.0}
+	wa.recalc()
+	var wb := _new_world(95)
+	wb.skills.clear()
+	wb.xinfa = {"wuxiang": 1, "tiegu": 1}
+	wb.recalc()
+	wa.neili = 10.0
+	wb.neili = 10.0
+	for i in 60:
+		wa.step(DT)
+		wb.step(DT)
+	_check(wa.neili - 10.0 > (wb.neili - 10.0) * 1.3, "阳性回内力更快（%.1f vs %.1f）" % [wa.neili - 10.0, wb.neili - 10.0])
+	wa.neili = wa.st("max_neili")
+	wa.since_hit = 5.0
+	wa.god = true
+	for i in int(12.0 / DT):
+		wa.step(DT)
+		wa.neili = wa.st("max_neili")
+	_check(absf(wa.shield - wa.st("max_hp") * 0.5) < 1.0, "内力满：护盾涨到 50%% 气血（%.0f / %.0f）" % [wa.shield, wa.st("max_hp") * 0.5])
+	wa.god = false
+	var refl := Enemy.new()
+	refl.hp = 1.0e9
+	refl.max_hp = 1.0e9
+	refl.pos = wa.player_pos + Vector2(40, 0)
+	wa.enemies.append(refl)
+	wa._rebuild_grid()
+	wa.invuln = 0.0
+	var rh := refl.hp
+	wa._hurt(100.0)
+	_check(rh - refl.hp > 20.0, "护盾在时反弹受击伤害（反弹 %.0f）" % (rh - refl.hp))
+	_free_world(wa)
+	_free_world(wb)
+	# --- 还丹 ---
+	var wp := _new_world(96)
+	wp.skills.clear()
+	wp.god = false
+	wp.hp = wp.st("max_hp") * 0.4
+	var el := Enemy.new()
+	el.is_elite = true
+	el.hp = 1.0
+	el.max_hp = 1.0
+	el.pos = wp.player_pos + Vector2(400, 0)
+	wp.enemies.append(el)
+	var h0 := wp.hp
+	wp.damage_enemy(el, 10.0, Vector2.ZERO)
+	_check(wp.pills.size() >= 1 and wp.pills[0]["kind"] == "small" and absf(wp.hp - h0) < 0.01, "精英掉小还丹，不再直接回血")
+	var large_seen := 0
+	for i in 200:
+		var e2 := Enemy.new()
+		e2.is_elite = true
+		e2.hp = 1.0
+		e2.max_hp = 1.0
+		wp.enemies.append(e2)
+		var before := wp.pills.size()
+		wp.damage_enemy(e2, 10.0, Vector2.ZERO)
+		for k in range(before, wp.pills.size()):
+			large_seen += 1 if wp.pills[k]["kind"] == "large" else 0
+		wp.pills.clear()
+	_check(large_seen > 30 and large_seen < 90, "精英约 30%% 掉大还丹（200 次中 %d）" % large_seen)
+	wp.pills.clear()
+	wp._drop_pill(wp.player_pos, "small")
+	wp._drop_pill(wp.player_pos + Vector2(2, 0), "large")
+	wp.gem_pos.clear()
+	wp.gem_val.clear()
+	wp.gem_age.clear()
+	var h1 := wp.hp
+	wp.step(1.0 / 60.0)
+	_check(wp.pills.is_empty() and absf(wp.hp - (h1 + wp.st("max_hp") * (Data.T("pill_small") + Data.T("pill_large")))) < 1.0, "捡到小 / 大还丹分别回 12%% / 35%% 气血（%.1f → %.1f，期望 +%.1f，剩余丹药 %d）" % [h1, wp.hp, wp.st("max_hp") * (Data.T("pill_small") + Data.T("pill_large")), wp.pills.size()])
+	_free_world(wp)
+	# 小 Boss 必掉大还丹
+	var wm := _new_world(97)
+	wm.skills.clear()
+	wm._spawn_boss("mini_boss_1", false)
+	var mb: Enemy = wm.bosses[0]
+	wm.pills.clear()
+	wm.damage_enemy(mb, 1.0e9, Vector2.ZERO)
+	_check(wm.pills.size() == 1 and wm.pills[0]["kind"] == "large", "小 Boss 掉大还丹")
+	_free_world(wm)
+	print("  爆发（消耗全部 / 威力随内力 / 次数）/ 内力属性 / 三种天赋效果 / 还丹  OK")
 
 
 func _synergy_test() -> void:

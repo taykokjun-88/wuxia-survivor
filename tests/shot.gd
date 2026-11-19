@@ -15,6 +15,7 @@ func _ready() -> void:
 	if dir == "":
 		dir = "user://"
 	pick.seed = 3
+	Net.api_url = ""      # 截图走单机流程，不去登录真实后端
 	main = load("res://scenes/main.tscn").instantiate()
 	add_child(main)
 	main.set_physics_process(false)
@@ -209,6 +210,16 @@ func _ready() -> void:
 		await _frames(3)
 		_snap("06g_oneshots_%d" % int(prog * 100))
 	w.effects.clear()
+	# 还丹 + 经验条
+	w.effects.clear()
+	w.pills.clear()
+	w._drop_pill(w.player_pos + Vector2(70, 20), "small")
+	w._drop_pill(w.player_pos + Vector2(-70, 30), "large")
+	w.exp_now = int(w.exp_next * 0.62)
+	w.input_move = Vector2.ZERO
+	await _frames(3)
+	_snap("06i_pills")
+	w.pills.clear()
 	# 真实战斗里的刀光：大金刚拳 / 太祖长拳，敌人在右边近处
 	for sid in ["chain_fist", "vajra_fist"]:
 		w.skills.clear()

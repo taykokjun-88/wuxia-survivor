@@ -21,8 +21,6 @@ const MAX_SKILLS := 4
 const MAX_XINFA := 2
 # 气海三境：盈（真气外放，伤害加成、可催动招式）/ 平 / 虚（回气加快）。数值见 data 的 tuning。
 enum Realm { XU, PING, YING }
-const ULT_RADIUS := 300.0
-const ULT_DAMAGE := 90.0
 
 const INK := Color("#1d2a35")
 const VERMILION := Color("#b33a2a")
@@ -33,6 +31,9 @@ const GOLD := Color("#c9a227")
 var input_move := Vector2.ZERO
 var input_dash := false
 var input_ult := false
+var burst_used := 0                # 本局已用的真气爆发次数
+var atk_buff_t := 0.0              # 阴性爆发：攻速提升的剩余时间
+var pills: Array = []              # 掉落的还丹：[{pos, kind: small|large, age}]
 var god := false
 var rng_seed := 0
 var rng := RandomNumberGenerator.new()
@@ -157,6 +158,9 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue") 
 	empower_count = 0
 	break_count = 0
 	_emp_ctx = -1
+	burst_used = 0
+	atk_buff_t = 0.0
+	pills.clear()
 	shield = 0.0
 	player_pos = Vector2.ZERO
 	exp_now = 0
@@ -306,7 +310,7 @@ func _exp_for(l: int) -> int:
 
 
 func cd_mult() -> float:
-	return maxf(0.4, 1.0 - st("cd_reduce"))
+	return maxf(0.4, 1.0 - st("cd_reduce") - (Data.T("burst_yin_cd") if atk_buff_t > 0.0 else 0.0))
 
 
 ## 内力充盈（≥50%）时全部伤害 +25%
@@ -368,6 +372,7 @@ func step(dt: float) -> void:
 	_update_projectiles(dt)
 	_update_zones(dt)
 	_update_gems(dt)
+	_update_pills(dt)
 	_update_chests()
 	_compact_enemies()
 	_update_effects(dt)
@@ -417,6 +422,8 @@ func _update_player(dt: float) -> void:
 	# 内力 / 气血 / 护盾
 	var max_n := st("max_neili")
 	var regen := st("neili_regen") * (1.0 + (float(qg.get("buff_regen", 0.0)) if buff_t > 0.0 else 0.0))
+	if nature() == "yang" and st("burst_yang") > 0.0:
+		regen *= Data.T("yang_regen_mult")
 	var rl := realm()
 	realm_time[rl] += dt
 	_burn_tick(dt)
@@ -436,12 +443,14 @@ func _update_player(dt: float) -> void:
 	if since_hit > 2.0 and shield < st("shield_max"):
 		shield = minf(st("shield_max"), shield + st("shield_regen") * dt)
 
-	# 真气爆发：消耗满内力的范围大招
-	var ult_cost := minf(st("ult_cost"), max_n)
-	if input_ult and neili >= ult_cost:
-		neili -= ult_cost
-		_ult()
+	# 真气爆发：消耗全部内力，消耗越多威力越大；每局只能爆发有限次数（见 burst_max）
+	if input_ult and can_burst():
+		_burst()
 	input_ult = false
+	atk_buff_t = maxf(0.0, atk_buff_t - dt)
+	# 阳性内力（天赋）：内力满时生成护盾
+	if nature() == "yang" and st("burst_yang") > 0.0 and neili >= max_n * 0.97 and since_hit > 0.5:
+		shield = minf(Data.T("yang_shield_frac") * st("max_hp"), shield + Data.T("yang_shield_rate") * st("max_hp") * dt)
 
 
 func _start_dash(move: Vector2, max_charges: int) -> void:
@@ -478,14 +487,58 @@ func _end_dash() -> void:
 		buff_t = float(qg["buff_time"])
 
 
-func _ult() -> void:
+## 内力属性：由两个心法的阴阳决定（见 Data.yinyang_of）。不满两个心法时没有属性。
+func nature() -> String:
+	var ids: Array = xinfa.keys()
+	if ids.size() < 2:
+		return ""
+	var yy := Data.yinyang_of(ids[0], ids[1])
+	return {"harmony": "harmony", "double_yang": "yang", "double_yin": "yin"}.get(yy, "")
+
+
+## 本局最多能爆发几次：基础 1 次；调和内力 + 天赋「调和归元」再 +1；另有 burst_extra（装备 / 其他来源）
+func burst_max() -> int:
+	var n := 1 + int(st("burst_extra"))
+	if nature() == "harmony" and st("burst_harmony") > 0.0:
+		n += 1
+	return n
+
+
+func burst_left() -> int:
+	return maxi(0, burst_max() - burst_used)
+
+
+func can_burst() -> bool:
+	return burst_left() > 0 and neili >= maxf(1.0, st("max_neili") * Data.T("burst_min_frac"))
+
+
+## 真气爆发的威力系数（0~1）：当前内力占上限的比例
+func burst_power() -> float:
+	return clampf(neili / maxf(1.0, st("max_neili")), 0.0, 1.0)
+
+
+func _burst() -> void:
+	var f := burst_power()
+	burst_used += 1
+	neili = 0.0                                   # 消耗全部内力
 	play_anim("ult", 0.5)
-	area_hit_raw(player_pos, ULT_RADIUS, ULT_DAMAGE, [], "ult", 600.0)
+	var radius := lerpf(Data.T("burst_radius_min"), Data.T("burst_radius_max"), f)
+	var dmg := Data.T("burst_damage") * (0.4 + 4.6 * f)
+	area_hit_raw(player_pos, radius, dmg, [], "ult", 300.0 + 500.0 * f, 1.5 if f >= 0.5 else 0.0)
 	for p in projs:
-		if p.hostile and p.pos.distance_to(player_pos) < ULT_RADIUS:
+		if p.hostile and p.pos.distance_to(player_pos) < radius:
 			p.life = 0.0
-	add_fx("ring", player_pos, 0.45, {"r0": 20.0, "r1": ULT_RADIUS, "color": JADE, "vfx": "burst_ult"})
-	shake = 10.0
+	if f >= 0.3:
+		invuln = maxf(invuln, 0.8)
+	# 阴性内力（天赋）：额外回血 + 攻速提升
+	if nature() == "yin" and st("burst_yin") > 0.0:
+		var heal := st("max_hp") * Data.T("burst_yin_heal") * f
+		hp = minf(st("max_hp"), hp + heal)
+		atk_buff_t = Data.T("burst_yin_time")
+		add_fx("text", player_pos + Vector2(0, -50), 1.2, {"text": "阴柔回春 +%d" % int(heal), "size": 22, "color": JADE})
+	add_fx("ring", player_pos, 0.45, {"r0": 20.0, "r1": radius, "color": JADE, "vfx": "burst_ult"})
+	add_fx("text", player_pos + Vector2(0, -70), 1.0, {"text": "真气爆发 %d%%" % int(f * 100.0), "size": 26, "color": GOLD})
+	shake = 6.0 + 8.0 * f
 
 
 func add_shield(v: float) -> void:
@@ -822,6 +875,8 @@ func _hurt(amount: float) -> void:
 	invuln = 0.6
 	if st("thorns") > 0.0:
 		area_hit_raw(player_pos, 90.0, st("thorns"), [], "thorns", 150.0)
+	if shield > 0.0 and nature() == "yang" and st("burst_yang") > 0.0:    # 阳性内力：护盾在时反弹所受伤害的 30%
+		area_hit_raw(player_pos, 100.0, dmg * Data.T("yang_reflect"), [], "reflect", 180.0)
 	if shield > 0.0:
 		var absorbed := minf(shield, dmg)
 		shield -= absorbed
@@ -867,12 +922,15 @@ func _kill(e: Enemy) -> void:
 	if e.chain:
 		_chain_explode(e)
 	if e.is_elite:
-		hp = minf(st("max_hp"), hp + st("max_hp") * 0.15)
-		add_fx("text", e.pos + Vector2(0, -30), 1.0, {"text": "精英已破：气血回复", "size": 18, "color": GOLD})
+		_drop_pill(e.pos, "small")
+		if rng.randf() < Data.T("elite_large_pill_chance"):
+			_drop_pill(e.pos + Vector2(18, 6), "large")
+		add_fx("text", e.pos + Vector2(0, -30), 1.0, {"text": "精英已破", "size": 18, "color": GOLD})
 	if e.is_boss:
 		boss_log.append("%s %.0fs" % [e.boss_name, time - e.born])
 	if e.is_boss and not e.is_final:
 		chests.append(e.pos)
+		_drop_pill(e.pos + Vector2(-26, 10), "large")
 	if e.is_final:
 		over = true
 		won = true
@@ -1202,6 +1260,31 @@ func _update_zones(dt: float) -> void:
 # 经验 / 秘籍 / 升级
 # =====================================================================
 
+## 还丹：小还丹回 12% 气血，大还丹回 35%（精英必掉小还丹，有几率掉大还丹；小 Boss 必掉大还丹）
+func _drop_pill(at: Vector2, kind: String) -> void:
+	if pills.size() >= 30:
+		pills.pop_front()
+	pills.append({"pos": at, "kind": kind, "age": 0.0})
+
+
+func _update_pills(dt: float) -> void:
+	var i := 0
+	while i < pills.size():
+		var pl: Dictionary = pills[i]
+		var d: float = (pl["pos"] as Vector2).distance_to(player_pos)
+		pl["age"] = float(pl["age"]) + dt
+		if d < 20.0:
+			var frac := Data.T("pill_large") if pl["kind"] == "large" else Data.T("pill_small")
+			var heal := st("max_hp") * frac
+			hp = minf(st("max_hp"), hp + heal)
+			add_fx("text", player_pos + Vector2(0, -34), 1.0, {"text": "%s +%d" % ["大还丹" if pl["kind"] == "large" else "小还丹", int(heal)], "size": 20, "color": VERMILION})
+			pills.remove_at(i)
+			continue
+		if d < st("pickup_range") * 0.7 or float(pl["age"]) > 6.0:
+			pl["pos"] = (pl["pos"] as Vector2) + (player_pos - (pl["pos"] as Vector2)).normalized() * 300.0 * dt
+		i += 1
+
+
 func _drop_gem(at: Vector2, value: int) -> void:
 	if gem_pos.size() >= MAX_GEMS:
 		var i := rng.randi() % gem_pos.size()
@@ -1430,6 +1513,9 @@ func _draw() -> void:
 		if _vis(g):
 			draw_colored_polygon(PackedVector2Array([
 				g + Vector2(0, -6), g + Vector2(5, 0), g + Vector2(0, 6), g + Vector2(-5, 0)]), GOLD)
+	for pl in pills:
+		if _vis(pl["pos"]):
+			_draw_pill(pl)
 	for c in chests:
 		if _vis(c):
 			var bob := sin(time * 4.0) * 3.0
@@ -1444,6 +1530,28 @@ func _draw() -> void:
 			_draw_proj(p)
 	_draw_player()
 	_draw_effects()
+
+
+## 还丹：像素风小葫芦丹——小的红褐色，大的金色带光晕
+func _draw_pill(pl: Dictionary) -> void:
+	var at: Vector2 = pl["pos"]
+	var big: bool = pl["kind"] == "large"
+	var bob := sin(time * 5.0 + at.x * 0.1) * 2.0
+	var c := at + Vector2(0, bob)
+	var u := 3.0 if big else 2.2                 # 一个像素块的边长
+	var body := Color("#e0a82e") if big else Color("#c2452d")
+	var dark := Color("#7a4a12") if big else Color("#6e1f12")
+	var hi := Color("#fff2b0") if big else Color("#f08c70")
+	if big:
+		draw_circle(c, 14.0, Color(GOLD, 0.18 + 0.1 * sin(time * 6.0)))
+	# 葫芦：上小下大，像素块拼出
+	draw_rect(Rect2(c + Vector2(-1.0, -4.0) * u, Vector2(2.0, 1.0) * u), dark)                 # 瓶塞
+	draw_rect(Rect2(c + Vector2(-1.5, -3.0) * u, Vector2(3.0, 2.0) * u), body)                 # 上腹
+	draw_rect(Rect2(c + Vector2(-2.5, -1.0) * u, Vector2(5.0, 3.0) * u), body)                 # 下腹
+	draw_rect(Rect2(c + Vector2(-1.5, 2.0) * u, Vector2(3.0, 1.0) * u), body)
+	draw_rect(Rect2(c + Vector2(-2.5, -1.0) * u, Vector2(1.0, 3.0) * u), dark)                  # 左侧暗边
+	draw_rect(Rect2(c + Vector2(1.0, -3.0) * u, Vector2(1.0, 1.0) * u), dark)
+	draw_rect(Rect2(c + Vector2(0.5, -0.5) * u, Vector2(1.0, 1.0) * u), hi)                     # 高光
 
 
 func _hash(cx: int, cy: int) -> int:

@@ -66,7 +66,7 @@ static func drive(w: GameWorld, engage: float = 220.0) -> void:
 
 	if crowd >= 3 and w.invuln <= 0.0:
 		w.input_dash = true
-	if crowd > 10 and w.neili >= w.st("max_neili"):
+	if crowd > 10 and w.neili >= w.st("max_neili") * 0.7 and w.can_burst():
 		w.input_ult = true
 
 

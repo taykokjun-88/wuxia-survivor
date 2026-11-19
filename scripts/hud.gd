@@ -1151,18 +1151,23 @@ func _draw_hud() -> void:
 	var ink := Color("#1d2a35")
 
 	# 经验条（顶部通栏）
-	canvas.draw_rect(Rect2(0, 0, vw, 8), Color(0, 0, 0, 0.25))
-	canvas.draw_rect(Rect2(0, 0, vw * float(w.exp_now) / float(w.exp_next), 8), GameWorld.GOLD)
+	var exp_frac := clampf(float(w.exp_now) / float(maxi(1, w.exp_next)), 0.0, 1.0)
+	canvas.draw_rect(Rect2(0, 0, vw, 18), Color(0.1, 0.08, 0.05, 0.55))
+	canvas.draw_rect(Rect2(0, 0, vw * exp_frac, 18), GameWorld.GOLD)
+	canvas.draw_rect(Rect2(0, 0, vw * exp_frac, 6), Color(1, 0.95, 0.7, 0.35))
+	canvas.draw_rect(Rect2(0, 0, vw, 18), Color(0.2, 0.15, 0.05, 0.9), false, 1.0)
+	canvas.draw_string(font, Vector2(0, 14), "Lv %d　经验 %d / %d　（%d%%）" % [w.level, w.exp_now, w.exp_next, int(exp_frac * 100.0)],
+		HORIZONTAL_ALIGNMENT_CENTER, vw, 13, Color("#2a1d05"))
 
 	var max_hp := w.st("max_hp")
 	var max_n := w.st("max_neili")
-	_bar(Vector2(16, 20), Vector2(260, 20), w.hp / max_hp, GameWorld.VERMILION, "气血 %d/%d" % [int(w.hp), int(max_hp)])
+	_bar(Vector2(16, 26), Vector2(260, 20), w.hp / max_hp, GameWorld.VERMILION, "气血 %d/%d" % [int(w.hp), int(max_hp)])
 	var realm := w.realm()
 	var realm_col: Color = [Color("#6f86a8"), Color("#3aa6a0"), Color("#3fe0cf")][realm]
-	_bar(Vector2(16, 46), Vector2(260, 20), w.neili / max_n, realm_col, "内力 %d/%d" % [int(w.neili), int(max_n)])
+	_bar(Vector2(16, 52), Vector2(260, 20), w.neili / max_n, realm_col, "内力 %d/%d" % [int(w.neili), int(max_n)])
 	# 三境分界线：虚 | 平 | 盈
 	for t in [Data.T("xu_below"), w.ying_at()]:
-		canvas.draw_line(Vector2(16 + 260 * float(t), 46), Vector2(16 + 260 * float(t), 66), Color(1, 1, 1, 0.9), 2.0)
+		canvas.draw_line(Vector2(16 + 260 * float(t), 52), Vector2(16 + 260 * float(t), 72), Color(1, 1, 1, 0.9), 2.0)
 	var realm_txt := ""
 	match realm:
 		GameWorld.Realm.YING: realm_txt = "盈 · 伤害+%d%%　催动招式" % int(round((Data.T("ying_dmg") + w.st("ying_dmg") - 1.0) * 100.0))
@@ -1170,12 +1175,12 @@ func _draw_hud() -> void:
 	if w.meditating():
 		realm_txt = (realm_txt + "　" if realm_txt != "" else "") + "入定"
 	if realm_txt != "":
-		canvas.draw_string(font, Vector2(286, 61), realm_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#1f6f6a"))
+		canvas.draw_string(font, Vector2(286, 67), realm_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#1f6f6a"))
 	if w.shield > 0.0:
-		canvas.draw_string(font, Vector2(286, 35), "护盾 %d" % int(w.shield), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#2a6f9a"))
+		canvas.draw_string(font, Vector2(286, 41), "护盾 %d" % int(w.shield), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#2a6f9a"))
 
-	canvas.draw_string(font, Vector2(16, 90), "Lv %d" % w.level, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, ink)
-	canvas.draw_string(font, Vector2(86, 90), "攻击 +%d%%　防御 %.1f" % [int(w.st("damage_pct") * 100.0), w.st("armor")],
+	canvas.draw_string(font, Vector2(16, 98), "Lv %d" % w.level, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, ink)
+	canvas.draw_string(font, Vector2(86, 98), "攻击 +%d%%　防御 %.1f" % [int(w.st("damage_pct") * 100.0), w.st("armor")],
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#6a5a3a"))
 
 	# 计时 / 击杀
@@ -1198,7 +1203,7 @@ func _draw_hud() -> void:
 			by += 30.0
 
 	# 装备栏：技能 / 心法 / 轻功
-	var y := 118.0
+	var y := 126.0
 	canvas.draw_string(font, Vector2(16, y), "招式 %d/%d" % [w.skills.size(), GameWorld.MAX_SKILLS],
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#7a6a3a"))
 	y += 20.0
@@ -1234,6 +1239,8 @@ func _draw_hud() -> void:
 	for i in charges:
 		var c := Vector2(112 + i * 20, canvas.size.y - 22)
 		canvas.draw_circle(c, 7.0, Color("#3aa6a0") if i < w.dash_charges else Color(0.3, 0.3, 0.3, 0.4))
-	var ult_ok := w.neili >= minf(w.st("ult_cost"), max_n)
-	canvas.draw_string(font, Vector2(112 + charges * 20 + 12, canvas.size.y - 16),
-		"真气爆发 [E] %s" % ("就绪" if ult_ok else "内力不足"), HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#444444"))
+	var burst_txt := "真气爆发 [E]　剩余 %d / %d 次" % [w.burst_left(), w.burst_max()]
+	if w.burst_left() > 0:
+		burst_txt += "　（消耗全部内力，当前威力 %d%%）" % int(w.burst_power() * 100.0) if w.can_burst() else "　（内力太少）"
+	canvas.draw_string(font, Vector2(112 + charges * 20 + 12, canvas.size.y - 16), burst_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 16,
+		Color("#a0521d") if w.can_burst() else Color("#444444"))

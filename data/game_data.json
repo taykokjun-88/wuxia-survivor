@@ -34,7 +34,11 @@
     "ping_widen": 0,
     "no_meditate": 0,
     "crit_neili": 0,
-    "burn": 0
+    "burn": 0,
+    "burst_extra": 0,
+    "burst_yang": 0,
+    "burst_yin": 0,
+    "burst_harmony": 0
   },
   "tuning": {
     "spawn_base": 1.0,
@@ -74,7 +78,21 @@
     "guard_empower_mult": 3.0,
     "break_t": 4.0,
     "break_dmg": 1.5,
-    "guard_regen_t": 12.0
+    "guard_regen_t": 12.0,
+    "pill_small": 0.12,
+    "pill_large": 0.35,
+    "elite_large_pill_chance": 0.3,
+    "burst_damage": 100.0,
+    "burst_min_frac": 0.1,
+    "burst_radius_min": 170.0,
+    "burst_radius_max": 360.0,
+    "burst_yin_heal": 0.5,
+    "burst_yin_cd": 0.3,
+    "burst_yin_time": 8.0,
+    "yang_regen_mult": 1.5,
+    "yang_shield_frac": 0.5,
+    "yang_shield_rate": 0.15,
+    "yang_reflect": 0.3
   },
   "skills": {
     "yue_palm": {
@@ -952,12 +970,12 @@
           [
             {
               "id": "gang_peak",
-              "name": "刚极",
+              "name": "阳刚护体",
               "max": 1,
               "stat": {
-                "ying_dmg": 0.15
+                "burst_yang": 1
               },
-              "desc": "盈境伤害 +15%"
+              "desc": "阳性内力（双阳）：回内力 +50%；内力满时生成护盾（上限 50% 气血），护盾在时反弹所受伤害的 30%"
             },
             {
               "id": "gang_force3",
@@ -1098,12 +1116,12 @@
           [
             {
               "id": "rou_peak",
-              "name": "柔极",
+              "name": "阴柔回春",
               "max": 1,
               "stat": {
-                "med_reduce": 0.1
+                "burst_yin": 1
               },
-              "desc": "入定减伤 +10%"
+              "desc": "阴性内力（双阴）：真气爆发时额外回血，并获得 8 秒攻速 +30%"
             },
             {
               "id": "rou_armor",
@@ -1244,12 +1262,12 @@
           [
             {
               "id": "ling_peak",
-              "name": "灵极",
+              "name": "调和归元",
               "max": 1,
               "stat": {
-                "cd_reduce": 0.04
+                "burst_harmony": 1
               },
-              "desc": "招式冷却 −4%"
+              "desc": "调和内力（一阴一阳）：真气爆发次数 ×2（本局可爆发 2 次）"
             },
             {
               "id": "ling_step2",
