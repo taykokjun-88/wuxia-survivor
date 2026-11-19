@@ -43,6 +43,7 @@ var rng := RandomNumberGenerator.new()
 
 # ---- 装备 ----
 var starter_id := "chain_fist"
+var difficulty := {"count": 1.0, "hp": 1.0, "speed": 1.0}   # 开局前选择的难度倍率（1.0 ~ 3.0）
 var map_id := "black_wind"       # 当前地图（见 data 的 maps）
 var school_id := "fist"           # 创建角色时选定，决定可学的招式池
 var qinggong_id := "tashue"
@@ -149,8 +150,9 @@ func _ready() -> void:
 	start_run()
 
 
-func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", p_map: String = "black_wind") -> void:
+func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", p_map: String = "black_wind", p_diff: Dictionary = {}) -> void:
 	map_id = p_map
+	set_difficulty(p_diff)
 	starter_id = p_starter
 	qinggong_id = p_qinggong
 	qg = Data.qinggong[qinggong_id]
@@ -569,8 +571,19 @@ func add_shield(v: float) -> void:
 # 刷怪
 # =====================================================================
 
+## 难度调节：怪物数量 / 血量 / 移动速度，各 100% ~ 300%（传入的是倍率 1.0 ~ 3.0，越界会被夹住）
+func set_difficulty(d: Dictionary) -> void:
+	difficulty = {
+		"count": clampf(float(d.get("count", 1.0)), 1.0, 3.0),
+		"hp": clampf(float(d.get("hp", 1.0)), 1.0, 3.0),
+		"speed": clampf(float(d.get("speed", 1.0)), 1.0, 3.0),
+	}
+	# 怪多了，同屏上限也跟着放宽一些（最多 +50%），否则 300% 的数量会被上限卡住
+	max_enemies = int(Data.T("max_enemies") * lerpf(1.0, 1.5, (float(difficulty["count"]) - 1.0) / 2.0))
+
+
 func _spawn(dt: float) -> void:
-	var rate := Data.T("spawn_base") + time * Data.T("spawn_slope")
+	var rate := (Data.T("spawn_base") + time * Data.T("spawn_slope")) * float(difficulty["count"])
 	if _boss_alive():
 		rate *= 0.5
 	spawn_acc += rate * dt
@@ -581,9 +594,10 @@ func _spawn(dt: float) -> void:
 	# 合围：定时在四周刷出一圈敌人
 	if time >= next_burst:
 		next_burst += Data.T("burst_interval")
-		for i in 24:
+		var ring_n := int(round(24.0 * float(difficulty["count"])))
+		for i in ring_n:
 			if enemies.size() < max_enemies:
-				_spawn_enemy("bandit", player_pos + Vector2.from_angle(TAU * i / 24.0) * SPAWN_DIST)
+				_spawn_enemy("bandit", player_pos + Vector2.from_angle(TAU * i / float(ring_n)) * SPAWN_DIST)
 	if time >= next_elite:
 		next_elite += Data.T("elite_interval")
 		_spawn_elite()
@@ -626,9 +640,9 @@ func _spawn_enemy(type: String, at: Vector2) -> Enemy:
 	e.born = time
 	e.type_id = type
 	e.pos = at
-	e.max_hp = float(def["hp"]) * (1.0 + time / Data.T("hp_scale_t"))
+	e.max_hp = float(def["hp"]) * (1.0 + time / Data.T("hp_scale_t")) * float(difficulty["hp"])
 	e.hp = e.max_hp
-	e.speed = float(def["speed"]) * (1.0 + minf(time / 900.0, 0.3)) * rng.randf_range(0.9, 1.1)
+	e.speed = float(def["speed"]) * (1.0 + minf(time / 900.0, 0.3)) * rng.randf_range(0.9, 1.1) * float(difficulty["speed"])
 	e.damage = float(def["damage"]) * (1.0 + time / Data.T("dmg_scale_t"))
 	e.radius = float(def["radius"])
 	e.exp_value = int(def["exp"])
@@ -655,9 +669,9 @@ func _spawn_boss(id: String, final: bool) -> void:
 	e.is_boss = true
 	e.is_final = final
 	e.boss_name = str(def["name"])
-	e.max_hp = float(def["hp"])   # Boss 不随时间缩放血量，保持固定的战斗时长
+	e.max_hp = float(def["hp"]) * float(difficulty["hp"])   # Boss 不随时间缩放血量，保持固定的战斗时长（难度倍率照样生效）
 	e.hp = e.max_hp
-	e.speed = float(def["speed"])
+	e.speed = float(def["speed"]) * float(difficulty["speed"])
 	e.damage = float(def["damage"])
 	e.boss_bolts = int(def["bolts"])
 	e.guard_max = e.max_hp * Data.T("boss_guard_pct")
@@ -1836,7 +1850,7 @@ func run_summary() -> Dictionary:
 		build.append({"id": s.id, "lv": s.level})
 	return {
 		"won": won, "seconds": int(time), "level": level, "kills": kills, "bosses": bosses_killed,
-		"school": school_id, "map": map_id, "starter": starter_id, "qinggong": qinggong_id,
+		"school": school_id, "map": map_id, "difficulty": {"count": int(round(float(difficulty["count"]) * 100.0)), "hp": int(round(float(difficulty["hp"]) * 100.0)), "speed": int(round(float(difficulty["speed"]) * 100.0))}, "starter": starter_id, "qinggong": qinggong_id,
 		"enhance": "%s:%d" % [enhance_id, enhance_level] if enhance_id != "" else "",
 		"build": build, "version": str(ProjectSettings.get_setting("application/config/version", "0")),
 	}

@@ -81,6 +81,7 @@ const FEEDBACK_TYPES := ["bug", "balance", "idea", "other"]
 var school := "fist"          # 当前角色的流派
 var sel_starter := "chain_fist"
 var sel_qg := "tashue"
+var diff := {"count": 100, "hp": 100, "speed": 100}     # 难度（百分比，100 ~ 300，步长 10）
 
 
 func setup(w: GameWorld) -> void:
@@ -325,6 +326,47 @@ func _build_loadout() -> void:
 		b.pressed.connect(func(): sel_qg = id)
 		grid.add_child(b)
 
+	# 难度调节：三个滑条（怪物数量 / 血量 / 移动速度），100% ~ 300%
+	_load_difficulty()
+	box.add_child(_label("难度调节（100% = 标准）", 20, Color("#c9a227")))
+	var drow := _center_row(26)
+	var sum_lbl := _label("", 16, Color("#cfc6ae"))
+	var upd := func():
+		var avg := (float(diff["count"]) + float(diff["hp"]) + float(diff["speed"])) / 300.0
+		sum_lbl.text = "综合难度 ×%.1f%s" % [avg, "" if avg <= 1.0 else "　（数量越多、越硬、越快，越难）"]
+	for spec in [["count", "怪物数量"], ["hp", "怪物血量"], ["speed", "移动速度"]]:
+		var key: String = spec[0]
+		var col := VBoxContainer.new()
+		col.add_theme_constant_override("separation", 2)
+		var val := _label("%s　%d%%" % [spec[1], int(diff[key])], 17, Color("#f3ead2"))
+		col.add_child(val)
+		var sl := HSlider.new()
+		sl.min_value = 100
+		sl.max_value = 300
+		sl.step = 10
+		sl.value = int(diff[key])
+		sl.custom_minimum_size = Vector2(250, 22)
+		sl.focus_mode = Control.FOCUS_NONE
+		var track := StyleBoxFlat.new()
+		track.bg_color = Color("#4a4438")
+		track.set_corner_radius_all(3)
+		track.content_margin_top = 4
+		track.content_margin_bottom = 4
+		var fill := StyleBoxFlat.new()
+		fill.bg_color = Color("#c9a227")
+		fill.set_corner_radius_all(3)
+		sl.add_theme_stylebox_override("slider", track)
+		sl.add_theme_stylebox_override("grabber_area", fill)
+		sl.add_theme_stylebox_override("grabber_area_highlight", fill)
+		sl.value_changed.connect(func(v: float):
+			diff[key] = int(v)
+			val.text = "%s　%d%%" % [spec[1], int(v)]
+			upd.call())
+		col.add_child(sl)
+		drow.add_child(col)
+	box.add_child(drow)
+	upd.call()
+	box.add_child(sum_lbl)
 	var start := Button.new()
 	start.text = "开始闯荡  [Enter]"
 	start.custom_minimum_size = Vector2(260, 48)
@@ -345,7 +387,30 @@ func confirm_create() -> void:
 	character_created.emit(sel_school)
 
 
+## 难度百分比 → 倍率
+func difficulty_factors() -> Dictionary:
+	return {"count": float(diff["count"]) / 100.0, "hp": float(diff["hp"]) / 100.0, "speed": float(diff["speed"]) / 100.0}
+
+
+func _load_difficulty() -> void:
+	var ui: Variant = Save.data.get("ui", {})
+	if ui is Dictionary and (ui as Dictionary).get("difficulty") is Dictionary:
+		var d: Dictionary = (ui as Dictionary)["difficulty"]
+		for k in ["count", "hp", "speed"]:
+			diff[k] = clampi(int(round(float(d.get(k, 100)) / 10.0)) * 10, 100, 300)
+
+
+func _save_difficulty() -> void:
+	var ui: Variant = Save.data.get("ui", {})
+	if not ui is Dictionary:
+		ui = {}
+	(ui as Dictionary)["difficulty"] = diff.duplicate()
+	Save.data["ui"] = ui
+	Save.save_data()
+
+
 func confirm_loadout() -> void:
+	_save_difficulty()
 	loadout_confirmed.emit(sel_starter, sel_qg)
 
 
@@ -1219,6 +1284,9 @@ func show_end(won: bool) -> void:
 	end_base = "%s\n\n存活 %s　等级 %d　击杀 %d\n本局得分 %s" % [
 		"击败黑风寨主，名动江湖。" if won else "侠士请重新来过。",
 		_fmt_time(w.time), w.level, w.kills, _commas(Score.compute(w.run_summary()))]
+	var dd: Dictionary = w.run_summary()["difficulty"]
+	if int(dd["count"]) != 100 or int(dd["hp"]) != 100 or int(dd["speed"]) != 100:
+		end_base += "\n难度：数量 %d%% · 血量 %d%% · 速度 %d%%" % [dd["count"], dd["hp"], dd["speed"]]
 	set_end_extra("")
 	overlay.visible = true
 

@@ -29,6 +29,7 @@ func _ready() -> void:
 		_absorb_test()
 		_starter_trait_test()
 		_cd_sweep_test()
+		_difficulty_test()
 		await _town_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
@@ -523,6 +524,62 @@ func _town_test() -> void:
 	Save.load_data()
 	Net.api_url = old_url
 	print("  村子数据 / 走动 / 碰撞 / 图鉴 / 创建→进村→驿站→地图→开局→返回→出发  OK")
+
+
+func _difficulty_test() -> void:
+	print("\n=== 难度调节（怪物数量 / 血量 / 移速，100%~300%）===")
+	var w0 := _new_world(141)
+	w0.set_difficulty({"count": 5.0, "hp": 0.2, "speed": 2.0})
+	_check(w0.difficulty["count"] == 3.0 and w0.difficulty["hp"] == 1.0 and w0.difficulty["speed"] == 2.0, "倍率夹在 1.0 ~ 3.0")
+	_free_world(w0)
+	# 血量 / 移速：同一种怪，300% 就是 3 倍
+	var a := _new_world(142)
+	var b := _new_world(142)
+	b.set_difficulty({"count": 1.0, "hp": 3.0, "speed": 2.0})
+	var ea := a._spawn_enemy("bandit", Vector2(500, 0))
+	var eb := b._spawn_enemy("bandit", Vector2(500, 0))
+	_check(absf(eb.max_hp / ea.max_hp - 3.0) < 1e-6, "怪物血量 ×3（%.0f vs %.0f）" % [eb.max_hp, ea.max_hp])
+	_check(absf(eb.speed / ea.speed - 2.0) < 1e-6, "怪物移速 ×2（%.0f vs %.0f）" % [eb.speed, ea.speed])
+	a._spawn_boss("boss", true)
+	b._spawn_boss("boss", true)
+	_check(absf(b.bosses[0].max_hp / a.bosses[0].max_hp - 3.0) < 1e-6 and absf(b.bosses[0].speed / a.bosses[0].speed - 2.0) < 1e-6, "Boss 同样吃难度倍率")
+	_check(absf(b.bosses[0].guard_max / b.bosses[0].max_hp - Data.T("boss_guard_pct")) < 1e-6, "Boss 罡气仍是血量的固定比例")
+	_free_world(a)
+	_free_world(b)
+	# 数量：同样 30 秒，300% 的怪明显更多
+	var counts := []
+	for m in [1.0, 3.0]:
+		var w := _new_world(143)
+		w.skills.clear()
+		w.god = true
+		w.set_difficulty({"count": m})
+		w.input_move = Vector2.ZERO
+		for i in int(30.0 / DT):
+			w.step(DT)
+			w.input_move = Vector2.ZERO
+		counts.append(w.enemies.size())
+		_free_world(w)
+	_check(float(counts[1]) > float(counts[0]) * 2.2, "怪物数量 ×3：30 秒后 %d → %d" % [counts[0], counts[1]])
+	# 成绩摘要带上难度；默认 100%
+	var ws := _new_world(144)
+	var d0: Dictionary = ws.run_summary()["difficulty"]
+	_check(d0["count"] == 100 and d0["hp"] == 100 and d0["speed"] == 100, "默认难度 100%")
+	ws.set_difficulty({"count": 1.5, "hp": 2.0, "speed": 3.0})
+	var d1: Dictionary = ws.run_summary()["difficulty"]
+	_check(d1["count"] == 150 and d1["hp"] == 200 and d1["speed"] == 300, "成绩摘要记录难度")
+	_free_world(ws)
+	# HUD：存档里乱写的难度会被规范到 100~300、步长 10
+	var h := GameHud.new()
+	var old_ui: Variant = Save.data.get("ui", {})
+	Save.data["ui"] = {"difficulty": {"count": 9999, "hp": 5, "speed": 154}}
+	h._load_difficulty()
+	_check(h.diff["count"] == 300 and h.diff["hp"] == 100 and h.diff["speed"] == 150, "读取存档时规范化（%s）" % str(h.diff))
+	h.diff = {"count": 150, "hp": 200, "speed": 100}
+	var f: Dictionary = h.difficulty_factors()
+	_check(absf(float(f["count"]) - 1.5) < 1e-9 and absf(float(f["hp"]) - 2.0) < 1e-9 and absf(float(f["speed"]) - 1.0) < 1e-9, "百分比 → 倍率")
+	Save.data["ui"] = old_ui
+	h.free()
+	print("  夹范围 / 血量 / 移速 / Boss / 数量 / 成绩摘要 / 存档规范化  OK")
 
 
 func _cd_sweep_test() -> void:

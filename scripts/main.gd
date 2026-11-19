@@ -293,7 +293,7 @@ func _on_loadout(starter_id: String, qinggong_id: String) -> void:
 	if state != State.LOADOUT:
 		return
 	Build.apply_to(world, Save.meta_alloc(), Save.meta_talents(), Save.equip(), Save.school())
-	world.start_run(starter_id, qinggong_id, current_map)
+	world.start_run(starter_id, qinggong_id, current_map, hud.difficulty_factors())
 	hud.hide_loadout()
 	_show_game(true)
 	state = State.PLAY
