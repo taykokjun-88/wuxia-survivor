@@ -1440,7 +1440,7 @@ func show_end(won: bool) -> void:
 	var w := world
 	overlay_title.text = "天下第一！" if won else "江湖路远……"
 	end_base = "%s\n\n存活 %s　等级 %d　击杀 %d\n本局得分 %s" % [
-		"击败黑风寨主，名动江湖。" if won else "侠士请重新来过。",
+		"击败胡千刀，名动江湖。" if won else "侠士请重新来过。",
 		_fmt_time(w.time), w.level, w.kills, _commas(Score.compute(w.run_summary()))]
 	var dd: Dictionary = w.run_summary()["difficulty"]
 	if int(dd["count"]) != 100 or int(dd["hp"]) != 100 or int(dd["speed"]) != 100:

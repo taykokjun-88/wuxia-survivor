@@ -963,7 +963,7 @@
       "color": "#2f4a6a"
     },
     "mini_boss_1": {
-      "name": "铜尸·陈大风",
+      "name": "陈大风",
       "hp": 3000,
       "speed": 60,
       "damage": 18,
@@ -973,7 +973,7 @@
       "bolts": 10
     },
     "mini_boss_2": {
-      "name": "铁尸·梅小风",
+      "name": "梅小风",
       "hp": 5000,
       "speed": 65,
       "damage": 22,
@@ -983,7 +983,7 @@
       "bolts": 12
     },
     "mini_boss_3": {
-      "name": "银尸·裘千米",
+      "name": "裘千米",
       "hp": 7500,
       "speed": 70,
       "damage": 26,
@@ -993,7 +993,7 @@
       "bolts": 14
     },
     "boss": {
-      "name": "黑风寨主",
+      "name": "黑风寨主·胡千刀",
       "hp": 12000,
       "speed": 55,
       "damage": 22,
@@ -2370,7 +2370,7 @@
       "banner_bosses": [
         "mini_boss_1",
         "mini_boss_2",
-        "boss"
+        "mini_boss_3"
       ],
       "monsters": [
         {
@@ -2395,22 +2395,22 @@
         },
         {
           "id": "mini_boss_1",
-          "name": "铜尸·陈大风",
+          "name": "陈大风",
           "tag": "小 Boss 3:00"
         },
         {
           "id": "mini_boss_2",
-          "name": "铁尸·梅小风",
+          "name": "梅小风",
           "tag": "小 Boss 6:30"
         },
         {
           "id": "mini_boss_3",
-          "name": "银尸·裘千米",
+          "name": "裘千米",
           "tag": "小 Boss 10:00"
         },
         {
           "id": "boss",
-          "name": "黑风寨主",
+          "name": "黑风寨主·胡千刀",
           "tag": "大 Boss 12:00"
         }
       ]
