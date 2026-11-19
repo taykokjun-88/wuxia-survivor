@@ -25,6 +25,16 @@ func _ready() -> void:
 	main.hud.confirm_create()
 	await _frames(3)
 	_snap("00b_town_spawn")
+	main.town.player_pos = Vector2(60, 100)
+	for fdir in [["down", Vector2.DOWN], ["up", Vector2.UP], ["right", Vector2.RIGHT], ["left", Vector2.LEFT]]:
+		main.town.facing = fdir[1]
+		main.town.moving = true
+		main.town.time = 0.2
+		main.town.queue_redraw()
+		await _frames(2)
+		_snap("00b_hero_" + fdir[0])
+	main.town.moving = false
+	main.town.player_pos = Vector2(0, 400)
 	# 走到驿卒面前：对话框
 	main.town.player_pos = Vector2(0, -180)
 	main.town.queue_redraw()
