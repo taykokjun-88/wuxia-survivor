@@ -55,9 +55,13 @@ func logged_in() -> bool:
 	return token != ""
 
 
-## 没有配置在线服务时：只有桌面版（编辑器 / 本地调试）允许离线单机；网页版必须登录。
+## 没有配置在线服务时：桌面版（编辑器 / 本地调试）允许离线单机；网页版必须登录，
+## 唯一的例外是后端还没部署时，管理员可以在地址后加 ?offline=1 自己试玩（存档只在本机；后端配置好之后这个入口不再生效）。
 func offline_allowed() -> bool:
-	return not OS.has_feature("web")
+	if not OS.has_feature("web"):
+		return true
+	var q: Variant = JavaScriptBridge.eval("new URLSearchParams(location.search).get('offline') || ''")
+	return q != null and str(q) == "1"
 
 
 func device() -> String:
