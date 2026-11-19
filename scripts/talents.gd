@@ -14,7 +14,8 @@ static func gate() -> int:
 
 
 ## 全部节点：id → {id, name, max, stat, desc, branch, row}
-static func nodes() -> Dictionary:
+## school_id：节点可以按流派覆盖名称 / 说明 / 属性（节点 id 和上限不变，所以后端校验不受影响）
+static func nodes(school_id: String = "") -> Dictionary:
 	var out := {}
 	var br: Dictionary = Data.talents["branches"]
 	for b in br:
@@ -24,6 +25,11 @@ static func nodes() -> Dictionary:
 				var d: Dictionary = (n as Dictionary).duplicate()
 				d["branch"] = b
 				d["row"] = r
+				var sch: Variant = d.get("schools", {})
+				if school_id != "" and sch is Dictionary and (sch as Dictionary).has(school_id):
+					var o: Dictionary = (sch as Dictionary)[school_id]
+					for k in o:
+						d[k] = o[k]
 				out[d["id"]] = d
 	return out
 
@@ -102,9 +108,9 @@ static func can_remove(t: Dictionary, id: String, meta_level: int) -> bool:
 
 
 ## 天赋 → 局内属性加成
-static func stats_for(t: Dictionary) -> Dictionary:
+static func stats_for(t: Dictionary, school_id: String = "") -> Dictionary:
 	var out := {}
-	var all := nodes()
+	var all := nodes(school_id)
 	for id in t:
 		if not all.has(id):
 			continue

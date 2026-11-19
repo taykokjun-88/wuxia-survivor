@@ -104,6 +104,8 @@ static func make(code: String, school_id: String = "fist") -> Dictionary:
 		if not a.is_empty():
 			affixes.append(a)
 	var names: Array = sd["names"]
+	if school_id == "sword" and sd.has("sword_names"):
+		names = sd["sword_names"]
 	return {
 		"code": code, "slot": pc["slot"], "slot_name": sd["name"], "rarity": pc["rarity"], "rarity_name": rd["name"],
 		"color": rd["color"], "name": names[int(pc["seed"]) % names.size()], "stats": stats, "affixes": affixes,

@@ -1102,7 +1102,7 @@ func _talents_refresh() -> void:
 	if id == "":
 		talents_info_node.text = "把鼠标移到穴位上查看。\n\n◎ 丹田是起点，六条经脉由此向外。\n暗：还没打通　亮环：可以加点　金：已满。"
 		return
-	var n: Dictionary = Talents.nodes()[id]
+	var n: Dictionary = Talents.nodes(Save.school())[id]
 	var rank := int(work.get(id, 0))
 	var mer_name := ""
 	for mer in talents_map.meridians:
@@ -1110,7 +1110,7 @@ func _talents_refresh() -> void:
 			mer_name = str(mer["name"])
 	var lower := 0
 	for id2 in work:
-		var n2: Dictionary = Talents.nodes()[id2]
+		var n2: Dictionary = Talents.nodes(Save.school())[id2]
 		if n2["branch"] == n["branch"] and int(n2["row"]) < int(n["row"]):
 			lower += int(work[id2])
 	var need := int(n["row"]) * Talents.gate()

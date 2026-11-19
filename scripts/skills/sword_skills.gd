@@ -215,6 +215,12 @@ class Dugu extends SkillBase:
 	var _base_crit := 0.0
 	var _base_debuff := 0.0
 
+	func flash_range() -> float:
+		return Data.T("dugu_flash_range") * (1.0 + float(mods["range"]))
+
+	func vuln_scale() -> float:
+		return 1.0 + (_base_debuff if _base_dmg >= 0.0 else float(mods["debuff"]))    # 只算天赋 / 装备带来的，不含破索式自带的减速
+
 	func L(sid: String) -> int:
 		return int(w.shi.get(sid, 0))
 
@@ -277,12 +283,12 @@ class Dugu extends SkillBase:
 			o["bounce_dmg"] = 0.4 + 0.03 * L("po_bian")
 		if L("po_suo") > 0:
 			o["stun"] = 0.8
-			o["stun_chance"] = 0.08 + 0.02 * L("po_suo")
+			o["stun_chance"] = (0.08 + 0.02 * L("po_suo")) * vuln_scale()
 		if L("po_zhang") > 0:
 			o["splash"] = 50.0 + 4.0 * L("po_zhang")
 			o["splash_frac"] = 0.35 + 0.03 * L("po_zhang")
 		if w.dugu_stage() >= 2:
-			o["vuln"] = Data.T("dugu_vuln2")
+			o["vuln"] = Data.T("dugu_vuln2") * vuln_scale()
 		if homing:
 			o["homing"] = true
 			o["turn"] = 6.0
@@ -303,7 +309,7 @@ class Dugu extends SkillBase:
 	# ---------------- 真·独孤九剑 ----------------
 
 	func _begin_true() -> bool:
-		var t := w.nearest_enemy(Data.T("dugu_flash_range"))
+		var t := w.nearest_enemy(flash_range())
 		if t == null:
 			return false
 		var r := w.rng.randf()
@@ -336,7 +342,7 @@ class Dugu extends SkillBase:
 
 	## 一次闪现刺击：闪到最近的敌人身旁，必破绽、必暴击，各式同时生效
 	func _strike() -> void:
-		var t := w.nearest_enemy(Data.T("dugu_flash_range"))
+		var t := w.nearest_enemy(flash_range())
 		if t == null:
 			combo_left = 0
 			return
@@ -359,7 +365,7 @@ class Dugu extends SkillBase:
 		w.fx_slash(w.player_pos, a, reach, 1.0, true)
 		var dmg := p("damage") * 2.4 * Data.T("dugu_true_mult")
 		var hits := 0
-		var vuln := Data.T("dugu_vuln3")
+		var vuln := Data.T("dugu_vuln3") * vuln_scale()
 		var first: Enemy = null
 		for e in w._query(w.player_pos, reach + 40.0):
 			if not e.alive:
@@ -372,7 +378,7 @@ class Dugu extends SkillBase:
 			w.apply_vuln(e, vuln, false)
 			var tgt := e
 			w.hit_enemy(tgt, dmg, tags(), to.normalized() * 220.0, id, true)
-			if L("po_suo") > 0 and w.rng.randf() < 0.08 + 0.02 * L("po_suo"):
+			if L("po_suo") > 0 and w.rng.randf() < (0.08 + 0.02 * L("po_suo")) * vuln_scale():
 				w.stun_enemy(tgt, 0.8)
 			if first == null:
 				first = tgt

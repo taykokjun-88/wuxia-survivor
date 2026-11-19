@@ -38,7 +38,9 @@
     "burst_extra": 0,
     "burst_yang": 0,
     "burst_yin": 0,
-    "burst_harmony": 0
+    "burst_harmony": 0,
+    "skill_range": 0,
+    "skill_debuff": 0
   },
   "tuning": {
     "spawn_base": 1.0,
@@ -1242,7 +1244,16 @@
               "stat": {
                 "ying_dmg": 0.05
               },
-              "desc": "盈境伤害 +5%/级"
+              "desc": "盈境伤害 +5%/级",
+              "schools": {
+                "sword": {
+                  "name": "剑心",
+                  "desc": "招式范围 +5%/级（青松 / 狂风 / 辟邪 / 倚天等的范围与闪现距离）",
+                  "stat": {
+                    "skill_range": 0.05
+                  }
+                }
+              }
             },
             {
               "id": "gang_dragon",
@@ -1322,7 +1333,17 @@
               "stat": {
                 "burst_yang": 1
               },
-              "desc": "阳性内力（双阳）：回内力 +50%；内力满时生成护盾（上限 50% 气血），护盾在时反弹所受伤害的 30%"
+              "desc": "阳性内力（双阳）：回内力 +50%；内力满时生成护盾（上限 50% 气血），护盾在时反弹所受伤害的 30%",
+              "schools": {
+                "sword": {
+                  "name": "剑意凌霄",
+                  "desc": "暴击伤害 +25%，盈境伤害 +10%",
+                  "stat": {
+                    "crit_mult": 0.25,
+                    "ying_dmg": 0.1
+                  }
+                }
+              }
             },
             {
               "id": "gang_force3",
@@ -1437,7 +1458,16 @@
               "stat": {
                 "skill:point_finger:targets": 1.0
               },
-              "desc": "一阳指 指劲 +1/级"
+              "desc": "一阳指 指劲 +1/级",
+              "schools": {
+                "sword": {
+                  "name": "破绽洞察",
+                  "desc": "破绽 / 中毒 / 定身效果 +10%/级（金蛇毒、破索定身、万法皆破）",
+                  "stat": {
+                    "skill_debuff": 0.1
+                  }
+                }
+              }
             }
           ],
           [
@@ -1523,7 +1553,17 @@
               "stat": {
                 "qg_cd_reduce": 0.04
               },
-              "desc": "轻功冷却 −4%/级"
+              "desc": "轻功冷却 −4%/级",
+              "schools": {
+                "sword": {
+                  "name": "御风剑步",
+                  "desc": "轻功冷却 −4%/级，招式冷却 −1.5%/级（真·独孤九剑封印轻功时，招式冷却仍有收益）",
+                  "stat": {
+                    "qg_cd_reduce": 0.04,
+                    "cd_reduce": 0.015
+                  }
+                }
+              }
             }
           ],
           [
@@ -1534,7 +1574,16 @@
               "stat": {
                 "crit_chance": 0.02
               },
-              "desc": "暴击率 +2%/级"
+              "desc": "暴击率 +2%/级",
+              "schools": {
+                "sword": {
+                  "name": "剑气贯虹",
+                  "desc": "暴击伤害 +10%/级",
+                  "stat": {
+                    "crit_mult": 0.1
+                  }
+                }
+              }
             },
             {
               "id": "ling_palm",
@@ -1614,7 +1663,17 @@
               "stat": {
                 "burst_harmony": 1
               },
-              "desc": "调和内力（一阴一阳）：真气爆发次数 ×2（本局可爆发 2 次）"
+              "desc": "调和内力（一阴一阳）：真气爆发次数 ×2（本局可爆发 2 次）",
+              "schools": {
+                "sword": {
+                  "name": "独孤剑悟",
+                  "desc": "招式冷却 −5%，经验获取 +8%（更快越过 20 / 30 层门槛）",
+                  "stat": {
+                    "cd_reduce": 0.05,
+                    "exp_pct": 0.08
+                  }
+                }
+              }
             },
             {
               "id": "ling_step2",
@@ -1969,7 +2028,13 @@
         ],
         "base": {
           "damage_pct": 0.04
-        }
+        },
+        "sword_names": [
+          "青锋剑",
+          "龙泉剑",
+          "玄铁重剑",
+          "倚天剑"
+        ]
       },
       {
         "id": "coat",

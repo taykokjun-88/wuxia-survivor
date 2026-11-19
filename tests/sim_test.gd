@@ -34,6 +34,7 @@ func _ready() -> void:
 		_sword_test()
 		_dugu_test()
 		_sword_art_test()
+		_sword_talent_test()
 		await _town_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
@@ -235,6 +236,49 @@ func _sword_art_test() -> void:
 		_check(v.has(id), "特效缺少 %s" % id)
 	for id in ["dugu", "zong", "po_jian", "po_dao", "po_qiang", "po_bian", "po_suo", "po_zhang", "po_arrow", "po_qi"]:
 		_check(Data.icon("skills", id) != null if id == "dugu" else Data.icon("shi", id) != null, "图标缺少 %s" % id)
+
+
+func _sword_talent_test() -> void:
+	print("\n=== 剑客天赋覆盖 / 武器名 ===")
+	var base := Talents.nodes()
+	var sw := Talents.nodes("sword")
+	_check(base.size() == sw.size(), "覆盖不改变节点数量")
+	for id in base:
+		_check(int(base[id]["max"]) == int(sw[id]["max"]) and base[id]["branch"] == sw[id]["branch"] and int(base[id]["row"]) == int(sw[id]["row"]), "覆盖不改变 id / 层 / 上限：%s" % id)
+	var expect := {"gang_ying": "剑心", "gang_peak": "剑意凌霄", "rou_finger": "破绽洞察", "ling_qg": "御风剑步", "ling_crit": "剑气贯虹", "ling_peak": "独孤剑悟"}
+	for id in expect:
+		_check(str(sw[id]["name"]) == str(expect[id]), "剑客节点名 %s" % id)
+	_check(str(base["gang_ying"]["name"]) == "盈劲" and str(Talents.nodes("fist")["gang_ying"]["name"]) == "盈劲", "拳掌流派的节点不变")
+	var ts := Talents.stats_for({"gang_ying": 2, "ling_qg": 2, "gang_peak": 1, "ling_peak": 1}, "sword")
+	_check(absf(float(ts.get("skill_range", 0.0)) - 0.10) < 1e-6, "剑心 +5%%/级")
+	_check(absf(float(ts.get("ying_dmg", 0.0)) - 0.10) < 1e-6, "剑意凌霄 盈境伤害 +10%%")
+	_check(absf(float(ts.get("crit_mult", 0.0)) - 0.25) < 1e-6, "剑意凌霄 暴击伤害 +25%")
+	_check(absf(float(ts.get("cd_reduce", 0.0)) - (0.03 + 0.05)) < 1e-6, "御风剑步 + 独孤剑悟 冷却：%s" % str(ts.get("cd_reduce", 0.0)))
+	_check(absf(float(ts.get("exp_pct", 0.0)) - 0.08) < 1e-6 and absf(float(ts.get("qg_cd_reduce", 0.0)) - 0.08) < 1e-6, "经验 +8%，轻功冷却 −8%")
+	_check(not ts.has("burst_yang") and not ts.has("burst_harmony"), "剑客的第 7 层不再给阴阳内力")
+	var tf := Talents.stats_for({"gang_ying": 2}, "fist")
+	_check(float(tf.get("ying_dmg", 0.0)) > 0.0 and not tf.has("skill_range"), "拳掌的盈劲仍是盈境伤害")
+	# 进入局内：范围 / 减益并入招式
+	var w := GameWorld.new()
+	w.rng_seed = 4
+	w.god = true
+	add_child(w)
+	Build.apply_to(w, {}, {"gang_ying": 3, "rou_finger": 2}, {}, "sword")
+	w.start_run("qingsong", "tashue")
+	var s: SkillBase = w.skills["qingsong"]
+	_check(absf(float(s.mods["range"]) - 0.15) < 1e-6, "剑心 +15%% 范围并入招式，实际 %s" % str(s.mods["range"]))
+	_check(absf(float(s.mods["debuff"]) - 0.20) < 1e-6, "破绽洞察 +20%% 减益并入招式，实际 %s" % str(s.mods["debuff"]))
+	_check(s.p("reach") > float(Data.skills["qingsong"]["reach"]) * 1.14, "青松剑法 reach 变大")
+	_free_world(w)
+	# 武器名
+	var seen_s := {}
+	var seen_f := {}
+	for i in 40:
+		seen_s[str(Gear.make("weapon.2.%d" % i, "sword")["name"])] = true
+		seen_f[str(Gear.make("weapon.2.%d" % i, "fist")["name"])] = true
+	for n in seen_s:
+		_check(["青锋剑", "龙泉剑", "玄铁重剑", "倚天剑"].has(n), "剑客的武器叫 %s" % n)
+	_check(seen_f.has("铁指套") and not seen_f.has("青锋剑"), "拳掌武器名不变")
 
 
 func _dugu_test() -> void:

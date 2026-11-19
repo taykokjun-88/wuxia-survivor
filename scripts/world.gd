@@ -247,6 +247,8 @@ func _load_school_sprites() -> void:
 func add_skill(id: String) -> void:
 	var s: SkillBase = SwordSkills.create(id) if str(Data.skills[id]["school"]) == "sword" else FistSkills.create(id)
 	s.setup(self, id, Data.skills[id])
+	s.mods["range"] = float(s.mods["range"]) + float(talent_stats.get("skill_range", 0.0))      # 剑客天赋：全部招式范围 / 闪现距离
+	s.mods["debuff"] = float(s.mods["debuff"]) + float(talent_stats.get("skill_debuff", 0.0))  # 剑客天赋：破绽 / 中毒 / 定身效果
 	var tm: Dictionary = talent_skill_mods.get(id, {})
 	for k in tm:
 		s.mods[k] = float(s.mods.get(k, 0.0)) + float(tm[k])
