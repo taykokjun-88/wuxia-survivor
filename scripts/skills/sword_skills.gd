@@ -9,7 +9,7 @@ const SWORD_BLUE := Color("#8ab4d8")
 static func create(skill_id: String) -> SkillBase:
 	match skill_id:
 		"kuang_feng": return KuangFeng.new()
-		"liumai": return LiuMai.new()
+		"qingsong": return QingSong.new()
 		"zhongjian": return ZhongJian.new()
 		"taiji_sword": return TaijiSword.new()
 		"wanjian": return WanJian.new()
@@ -46,20 +46,26 @@ class KuangFeng extends SkillBase:
 		return true
 
 
-## 六脉神剑：多道贯穿剑气。强化「六脉齐发」：同时射出 4/5/6 道，呈扇形。
-class LiuMai extends SkillBase:
+## 青松剑法：稳健的连刺。每第三剑「松涛」更宽更重。强化「松涛阵阵」：松涛同时射出扇形剑气。
+class QingSong extends SkillBase:
+	var combo := 0
+
 	func fire() -> bool:
-		var reach := p("speed") * p("life")
-		var t := w.nearest_enemy(reach)
+		var reach := p("reach")
+		var t := w.nearest_enemy(reach + 30.0)
 		if t == null:
 			return false
-		var n := int(p("count")) + (2 if empowered else 0)
-		if enhanced():
-			n = maxi(n, int(ev(4, 5, 6)))
-		var base := (t.pos - w.player_pos).angle()
-		var spread := 0.18 if enhanced() else 0.1
-		for i in n:
-			w.spawn_proj(self, base + (i - (n - 1) * 0.5) * spread)
+		var a := (t.pos - w.player_pos).angle()
+		combo += 1
+		var wave := combo % 3 == 0 or empowered
+		var arc := p("arc") * (2.2 if wave else 1.0)
+		w.fx_slash(w.player_pos, a, reach, arc, wave)
+		w.cone_hit(self, w.player_pos, a, arc * 0.5, reach, p("damage") * (1.7 if wave else 1.0), p("knock") * (1.6 if wave else 1.0), false)
+		if wave and enhanced():
+			var n := int(ev(3, 4, 5))
+			for i in n:
+				w.spawn_proj(self, a + (i - (n - 1) * 0.5) * 0.2, {"speed": 520.0, "radius": 10.0, "life": 0.6, "pierce": 2,
+					"knock": 60.0, "damage": p("damage") * ev(0.6, 0.8, 1.0)})
 		return true
 
 
