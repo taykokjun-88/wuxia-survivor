@@ -339,7 +339,7 @@ func _on_end(won: bool) -> void:
 			if won:
 				var rng := RandomNumberGenerator.new()
 				rng.randomize()
-				local["drops"] = Gear.roll_drops(rng)
+				local["drops"] = Gear.roll_drops(rng, Meta.comp_of(world.run_summary().get("difficulty", {})))
 				Save.add_items(local["drops"])
 			hud.set_end_extra(_exp_line(local))
 		return

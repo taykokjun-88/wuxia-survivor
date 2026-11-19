@@ -115,7 +115,7 @@ func set_meta_alloc(alloc: Dictionary) -> void:
 ## 单机结算：加修为，返回 {gained, exp, level, levelUp}
 func add_run_exp(summary: Dictionary) -> Dictionary:
 	var first := bool(summary.get("won", false)) and not meta_won()
-	var gained := Meta.run_exp(Score.compute(summary), bool(summary.get("won", false)), first)
+	var gained := Meta.run_exp(Score.compute(summary), bool(summary.get("won", false)), first, Meta.comp_of(summary.get("difficulty", {})))
 	var old_level := Meta.level_of(meta_exp())
 	var m := _meta()
 	m["exp"] = meta_exp() + gained

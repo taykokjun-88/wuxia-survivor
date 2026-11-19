@@ -43,6 +43,7 @@ var rng := RandomNumberGenerator.new()
 
 # ---- 装备 ----
 var starter_id := "chain_fist"
+var reward_comp := 1.0              # 综合难度（1.0 ~ 3.0），决定经验 / 修为 / 装备奖励
 var difficulty := {"count": 1.0, "hp": 1.0, "speed": 1.0}   # 开局前选择的难度倍率（1.0 ~ 3.0）
 var map_id := "black_wind"       # 当前地图（见 data 的 maps）
 var school_id := "fist"           # 创建角色时选定，决定可学的招式池
@@ -578,6 +579,7 @@ func set_difficulty(d: Dictionary) -> void:
 		"hp": clampf(float(d.get("hp", 1.0)), 1.0, 3.0),
 		"speed": clampf(float(d.get("speed", 1.0)), 1.0, 3.0),
 	}
+	reward_comp = (float(difficulty["count"]) + float(difficulty["hp"]) + float(difficulty["speed"])) / 3.0
 	# 怪多了，同屏上限也跟着放宽一些（最多 +50%），否则 300% 的数量会被上限卡住
 	max_enemies = int(Data.T("max_enemies") * lerpf(1.0, 1.5, (float(difficulty["count"]) - 1.0) / 2.0))
 
@@ -1401,7 +1403,7 @@ func _update_gems(dt: float) -> void:
 
 
 func _gain_exp(v: int) -> void:
-	var gain := int(ceil(v * (1.0 + st("exp_pct"))))
+	var gain := int(ceil(v * (1.0 + st("exp_pct")) * (1.0 + (reward_comp - 1.0) * float(Data.difficulty["exp_in_run"]))))
 	exp_now += gain
 	exp_total += gain
 	var leveled := false

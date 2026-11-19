@@ -329,6 +329,7 @@ function logout(req) {
 var TALENT_GATE = 3;
 var TALENTS = {"gang_force":["gang",0,3],"gang_body":["gang",0,2],"gang_crit":["gang",1,3],"gang_armor":["gang",1,2],"gang_ying":["gang",2,3],"gang_dragon":["gang",2,2],"gang_cm":["gang",3,3],"gang_force2":["gang",3,2],"gang_emp":["gang",4,3],"gang_vajra":["gang",4,2],"gang_regen":["gang",5,2],"gang_ying2":["gang",5,3],"gang_peak":["gang",6,1],"gang_force3":["gang",6,4],"rou_regen":["rou",0,3],"rou_body":["rou",0,2],"rou_neili":["rou",1,3],"rou_med":["rou",1,2],"rou_med2":["rou",2,3],"rou_shield":["rou",2,2],"rou_block":["rou",3,3],"rou_petal":["rou",3,2],"rou_heal":["rou",4,3],"rou_finger":["rou",4,2],"rou_full":["rou",5,2],"rou_cut":["rou",5,3],"rou_peak":["rou",6,1],"rou_armor":["rou",6,4],"ling_step":["ling",0,3],"ling_luck":["ling",0,2],"ling_cd":["ling",1,3],"ling_qg":["ling",1,2],"ling_crit":["ling",2,3],"ling_palm":["ling",2,2],"ling_exp":["ling",3,3],"ling_dodge":["ling",3,2],"ling_cd2":["ling",4,3],"ling_waste":["ling",4,2],"ling_luck2":["ling",5,2],"ling_cm":["ling",5,3],"ling_peak":["ling",6,1],"ling_step2":["ling",6,4]};
 var GEAR = {"slots":["weapon","coat","pants","boots","charm"],"weights":[40,30,20,8,2],"invMax":40,"drops":1,"extra":0.5};
+var DIFF = {"expMeta":0.5,"dropBonus":1.0,"raritySkew":0.5};
 // END GENERATED
 
 // ---------------------------------------------------------------- 局外成长（scripts/meta.gd 里有同一份，共用 meta_vectors.json 测试）
@@ -340,10 +341,21 @@ function metaLevel(exp) {
   while (l < META.MAX_LEVEL && t + metaNeed(l) <= exp) { t += metaNeed(l); l++; }
   return l;
 }
-function metaRunExp(score, won, first) {
+/** 综合难度（1~3）：怪物数量 / 血量 / 速度三个百分比（100~300，步长 10）的平均；不合法的值按 100 算 */
+function diffComp(d) {
+  var sum = 0, ks = ['count', 'hp', 'speed'];
+  d = (typeof d === 'object' && d !== null) ? d : {};
+  for (var i = 0; i < ks.length; i++) {
+    var v = Number(d[ks[i]]);
+    if (!(v >= 100 && v <= 300) || v % 10 !== 0) v = 100;
+    sum += v;
+  }
+  return sum / 300;
+}
+function metaRunExp(score, won, first, comp) {
   var x = Math.min(META.EXP_CAP, Math.round(score / 80));
   if (won) x += META.WIN_BONUS + (first ? META.FIRST_WIN_BONUS : 0);
-  return x;
+  return Math.round(x * (1 + ((comp || 1) - 1) * DIFF.expMeta));
 }
 function metaEffective(p) {
   p = Math.max(0, Math.min(META.ATTR_CAP, p));
@@ -388,18 +400,20 @@ function gearValid(code) {
   var p = String(code).split('.');
   return p.length === 3 && GEAR.slots.indexOf(p[0]) >= 0 && /^\d+$/.test(p[1]) && Number(p[1]) < GEAR.weights.length && /^\d{1,7}$/.test(p[2]);
 }
-function gearRoll() {
+function gearWeight(i, comp) { return GEAR.weights[i] * (1 + ((comp || 1) - 1) * DIFF.raritySkew * i); }
+function gearRoll(comp) {
   var total = 0, i;
-  for (i = 0; i < GEAR.weights.length; i++) total += GEAR.weights[i];
+  for (i = 0; i < GEAR.weights.length; i++) total += gearWeight(i, comp);
   var x = Math.random() * total, r = 0;
-  for (i = 0; i < GEAR.weights.length; i++) { x -= GEAR.weights[i]; if (x < 0) { r = i; break; } }
+  for (i = 0; i < GEAR.weights.length; i++) { x -= gearWeight(i, comp); if (x < 0) { r = i; break; } }
   return GEAR.slots[Math.floor(Math.random() * GEAR.slots.length)] + '.' + r + '.' + (1 + Math.floor(Math.random() * 999999));
 }
 /** 胜利时掉落；返回新掉落的编码，并写进 state.items（超过上限先丢最低稀有度、最早的未穿戴装备） */
-function gearDrops(state) {
-  var n = GEAR.drops + (Math.random() < GEAR.extra ? 1 : 0), codes = [];
+function gearDrops(state, comp) {
+  var bonus = GEAR.extra + ((comp || 1) - 1) * DIFF.dropBonus;      // 综合难度越高，额外掉落越多（整数部分必掉，小数部分按几率）
+  var n = GEAR.drops + Math.floor(bonus) + (Math.random() < bonus - Math.floor(bonus) ? 1 : 0), codes = [];
   state.items = Array.isArray(state.items) ? state.items : [];
-  for (var i = 0; i < n; i++) { var c = gearRoll(); codes.push(c); state.items.push(c); }
+  for (var i = 0; i < n; i++) { var c = gearRoll(comp); codes.push(c); state.items.push(c); }
   var worn = {}, eq = state.equip || {};
   Object.keys(eq).forEach(function (k) { worn[eq[k]] = true; });
   while (state.items.length > GEAR.invMax) {
@@ -460,7 +474,8 @@ function submitScore(req) {
 
   var best = score > (Number(row[P.bestScore]) || 0);
   var firstWin = run.won && !(Number(row[P.wins]) > 0);
-  var gained = metaRunExp(score, run.won, firstWin);
+  var comp = diffComp(req.difficulty);
+  var gained = metaRunExp(score, run.won, firstWin, comp);
   var oldLevel = metaLevel(Number(row[P.xp]) || 0);
   row[P.xp] = Math.max(0, Math.floor(Number(row[P.xp]) || 0)) + gained;
   row[P.runs] = (Number(row[P.runs]) || 0) + 1;
@@ -475,7 +490,7 @@ function submitScore(req) {
   var drops = [];
   if (run.won) {            // 大 Boss 被击败（通关）：掉落装备，写进服务器存档
     var stt = readState(row);
-    drops = gearDrops(stt);
+    drops = gearDrops(stt, comp);
     row[P.state] = JSON.stringify(stt);
   }
   row[P.updated] = iso();
@@ -488,7 +503,7 @@ function submitScore(req) {
     level: rankOf(row[P.nick], 'level')
   };
   var pr = profile(row);
-  return ok({ score: score, best: best, ranks: ranks, bests: pr.bests, gained: gained, exp: pr.exp, level: pr.level, levelUp: pr.level > oldLevel, drops: drops });
+  return ok({ score: score, best: best, ranks: ranks, bests: pr.bests, gained: gained, exp: pr.exp, level: pr.level, levelUp: pr.level > oldLevel, drops: drops, comp: comp });
 }
 
 // ---------------------------------------------------------------- 排行榜

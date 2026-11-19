@@ -215,7 +215,8 @@ test('云存档：保存 / 随登录返回 / 校验', (e) => {
 test('局外成长：公式与客户端一致（共用向量）', (e) => {
   for (const v of mv.levels) assert.strictEqual(e.ctx.metaLevel(v.exp), v.level, JSON.stringify(v));
   for (const v of mv.effective) assert.ok(Math.abs(e.ctx.metaEffective(v.points) - v.eff) < 1e-3, JSON.stringify(v));
-  for (const v of mv.runExp) assert.strictEqual(e.ctx.metaRunExp(v.score, v.won, v.first), v.exp, JSON.stringify(v));
+  for (const v of mv.runExp) assert.strictEqual(e.ctx.metaRunExp(v.score, v.won, v.first, v.comp || 1), v.exp, JSON.stringify(v));
+  for (const v of mv.comp) assert.ok(Math.abs(e.ctx.diffComp(v.d) - v.comp) < 1e-9, JSON.stringify(v));
 });
 
 test('局外成长：提交成绩得修为；首次通关额外奖励；升级', (e) => {
@@ -314,10 +315,33 @@ test('装备：通关掉落（服务器发放）、穿戴 / 丢弃校验、不�
 
 test('装备：背包上限，超过时先丢最低稀有度的未穿戴装备', (e) => {
   const me = reg(e, '背包君');
-  for (let i = 0; i < 30; i++) submit(e, me, WIN());
+  for (let i = 0; i < 60; i++) submit(e, me, WIN());
   const l = e.call({ action: 'login', nick: '背包君', pin: '4815' });
   assert.ok(l.items.length <= e.ctx.GEAR.invMax, '背包 ' + l.items.length);
-  assert.strictEqual(l.items.length, e.ctx.GEAR.invMax, '30 次通关 ≥ 30 件，应已满');
+  assert.strictEqual(l.items.length, e.ctx.GEAR.invMax, '60 次通关 ≥ 60 件，应已满');
+});
+
+test('难度奖励：修为倍率 / 装备数量与稀有度随综合难度提高；非法难度按 100% 算', (e) => {
+  const me = reg(e, '难度君');
+  const hard = { count: 300, hp: 300, speed: 300 };
+  const a = submit(e, me, Object.assign(RUN({ level: 12, kills: 800, seconds: 300 }), {}));                    // 2000 分 → 25
+  const b = submit(e, me, Object.assign(RUN({ level: 12, kills: 800, seconds: 300 }), { difficulty: hard }));   // ×2 → 50
+  assert.strictEqual(a.gained, 25); assert.strictEqual(b.gained, 50); assert.strictEqual(b.comp, 3);
+  const bad = submit(e, me, Object.assign(RUN({ level: 12, kills: 800, seconds: 300 }), { difficulty: { count: 999, hp: 'x', speed: 155 } }));
+  assert.strictEqual(bad.gained, 25, '非法的难度当 100%'); assert.strictEqual(bad.comp, 1);
+  // 装备：统计 150 次通关的掉落件数和高稀有度占比
+  const stat = (diff) => {
+    const p = reg(e, diff ? '难度高' : '难度低'); let n = 0, high = 0, total = 0;
+    for (let i = 0; i < 150; i++) {
+      const w = submit(e, p, Object.assign(WIN(), diff ? { difficulty: diff } : {}));
+      n += w.drops.length;
+      w.drops.forEach((c) => { total++; if (Number(c.split('.')[1]) >= 3) high++; });
+    }
+    return { n, rate: high / total };
+  };
+  const lo = stat(null), hi = stat(hard);
+  assert.ok(hi.n > lo.n * 1.8, '难度 300%：掉落件数明显更多 ' + lo.n + ' → ' + hi.n);
+  assert.ok(hi.rate > lo.rate * 1.3, '难度 300%：极品 / 传说占比更高 ' + lo.rate.toFixed(3) + ' → ' + hi.rate.toFixed(3));
 });
 
 test('反馈：入表、类型兜底、限流', (e) => {

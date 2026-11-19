@@ -50,13 +50,29 @@ static func progress(exp: int) -> Dictionary:
 	return {"level": l, "into": exp - exp_to_reach(l), "need": need(l)}
 
 
-static func run_exp(score: int, won: bool, first_win: bool) -> int:
+## 综合难度（1.0 ~ 3.0）：怪物数量 / 血量 / 速度三个百分比（100 ~ 300，步长 10）的平均。不合法的值按 100 算。
+static func comp_of(d: Dictionary) -> float:
+	var sum := 0.0
+	for k in ["count", "hp", "speed"]:
+		var v := int(d.get(k, 100))
+		if v < 100 or v > 300 or v % 10 != 0:
+			v = 100
+		sum += float(v)
+	return sum / 300.0
+
+
+## 难度对修为的倍率：综合难度每 +1.0，修为 +50%（×3 难度 = 修为 ×2）
+static func exp_mult(comp: float) -> float:
+	return 1.0 + (comp - 1.0) * float(Data.difficulty["exp_meta"])
+
+
+static func run_exp(score: int, won: bool, first_win: bool, comp: float = 1.0) -> int:
 	var x := mini(EXP_CAP_PER_RUN, int(round(float(score) / 80.0)))
 	if won:
 		x += WIN_BONUS
 		if first_win:
 			x += FIRST_WIN_BONUS
-	return x
+	return int(round(float(x) * exp_mult(comp)))
 
 
 static func points_total(level: int) -> int:

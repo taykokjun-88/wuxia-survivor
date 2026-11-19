@@ -41,28 +41,38 @@ static func make_code(slot: String, rarity: int, seed_v: int) -> String:
 
 
 ## 随机掉一件（部位平均，稀有度按权重；min_rarity 用于保底）
-static func roll_code(rng: RandomNumberGenerator, min_rarity: int = 0) -> String:
+static func rarity_weight(i: int, comp: float) -> float:
+	## 难度越高，高稀有度的权重越大：第 i 档 ×(1 + (综合难度−1) × rarity_skew × i)
+	return float(Data.gear["rarity"][i]["weight"]) * (1.0 + (comp - 1.0) * float(Data.difficulty["rarity_skew"]) * float(i))
+
+
+static func roll_code(rng: RandomNumberGenerator, min_rarity: int = 0, comp: float = 1.0) -> String:
 	var slots := slot_ids()
 	var slot: String = slots[rng.randi() % slots.size()]
 	var total := 0.0
-	for r in Data.gear["rarity"]:
-		total += float(r["weight"])
+	for i in Data.gear["rarity"].size():
+		total += rarity_weight(i, comp)
 	var x := rng.randf() * total
 	var rarity := 0
 	for i in Data.gear["rarity"].size():
-		x -= float(Data.gear["rarity"][i]["weight"])
+		x -= rarity_weight(i, comp)
 		if x < 0.0:
 			rarity = i
 			break
 	return make_code(slot, maxi(rarity, min_rarity), 1 + rng.randi() % 999999)
 
 
-## 本次掉落：胜利必掉 drops_per_win 件，另有几率再掉一件
-static func roll_drops(rng: RandomNumberGenerator) -> Array:
+## 本次掉落：胜利必掉 drops_per_win 件，另有「额外掉落」：期望 extra_drop_chance + (综合难度−1) × drop_bonus 件
+## （整数部分必掉，小数部分按几率）
+static func drop_count(rng: RandomNumberGenerator, comp: float) -> int:
+	var bonus := float(Data.gear["extra_drop_chance"]) + (comp - 1.0) * float(Data.difficulty["drop_bonus"])
+	return int(Data.gear["drops_per_win"]) + int(floorf(bonus)) + (1 if rng.randf() < bonus - floorf(bonus) else 0)
+
+
+static func roll_drops(rng: RandomNumberGenerator, comp: float = 1.0) -> Array:
 	var out := []
-	var n := int(Data.gear["drops_per_win"]) + (1 if rng.randf() < float(Data.gear["extra_drop_chance"]) else 0)
-	for i in n:
-		out.append(roll_code(rng))
+	for i in drop_count(rng, comp):
+		out.append(roll_code(rng, 0, comp))
 	return out
 
 

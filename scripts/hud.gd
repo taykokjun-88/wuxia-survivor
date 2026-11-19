@@ -333,7 +333,10 @@ func _build_loadout() -> void:
 	var sum_lbl := _label("", 16, Color("#cfc6ae"))
 	var upd := func():
 		var avg := (float(diff["count"]) + float(diff["hp"]) + float(diff["speed"])) / 300.0
-		sum_lbl.text = "综合难度 ×%.1f%s" % [avg, "" if avg <= 1.0 else "　（数量越多、越硬、越快，越难）"]
+		var rew := ""
+		if avg > 1.0:
+			rew = "　→　局内经验 +%d%%　修为 +%d%%　装备更多更好" % [int(round((avg - 1.0) * float(Data.difficulty["exp_in_run"]) * 100.0)), int(round((avg - 1.0) * float(Data.difficulty["exp_meta"]) * 100.0))]
+		sum_lbl.text = "综合难度 ×%.1f%s" % [avg, rew]
 	for spec in [["count", "怪物数量"], ["hp", "怪物血量"], ["speed", "移动速度"]]:
 		var key: String = spec[0]
 		var col := VBoxContainer.new()

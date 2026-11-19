@@ -30,6 +30,7 @@ func _ready() -> void:
 		_starter_trait_test()
 		_cd_sweep_test()
 		_difficulty_test()
+		_difficulty_reward_test()
 		await _town_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
@@ -524,6 +525,58 @@ func _town_test() -> void:
 	Save.load_data()
 	Net.api_url = old_url
 	print("  村子数据 / 走动 / 碰撞 / 图鉴 / 创建→进村→驿站→地图→开局→返回→出发  OK")
+
+
+func _difficulty_reward_test() -> void:
+	print("\n=== 难度奖励（局内经验 / 修为 / 装备）===")
+	# 局内经验：同样的经验珠，300% 难度多得 +150%（exp_in_run 0.75 × 2.0）
+	var wa := _new_world(151)
+	var wb := _new_world(151)
+	wb.set_difficulty({"count": 3.0, "hp": 3.0, "speed": 3.0})
+	wa.exp_total = 0
+	wb.exp_total = 0
+	wa._gain_exp(100)
+	wb._gain_exp(100)
+	_check(absf(float(wb.exp_total) / float(wa.exp_total) - 2.5) < 0.05, "局内经验 ×2.5（%d vs %d）" % [wb.exp_total, wa.exp_total])
+	_free_world(wa)
+	_free_world(wb)
+	# 修为：与后端同一公式
+	_check(Meta.run_exp(12000, false, false, 1.0) == 150 and Meta.run_exp(12000, false, false, 3.0) == 300, "修为 ×2（难度 3.0）")
+	# 单机结算读成绩摘要里的难度
+	var old_path: String = Save.path
+	Save.path = "user://test_diff_save.json"
+	Save.load_data()
+	var base := {"won": false, "seconds": 300, "level": 12, "kills": 800, "bosses": 0}
+	var r1: Dictionary = Save.add_run_exp(base)
+	var hard := base.duplicate()
+	hard["difficulty"] = {"count": 300, "hp": 300, "speed": 300}
+	var r2: Dictionary = Save.add_run_exp(hard)
+	_check(int(r2["gained"]) == int(r1["gained"]) * 2, "单机结算：难度 300%% 修为翻倍（%d → %d）" % [r1["gained"], r2["gained"]])
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_diff_save.json"))
+	Save.path = old_path
+	Save.load_data()
+	# 装备：数量与稀有度
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77
+	var n_lo := 0
+	var n_hi := 0
+	var hi_lo := 0
+	var hi_hi := 0
+	var tot_lo := 0
+	var tot_hi := 0
+	for i in 600:
+		for c in Gear.roll_drops(rng, 1.0):
+			n_lo += 1
+			tot_lo += 1
+			hi_lo += 1 if int(Gear.parse(c)["rarity"]) >= 3 else 0
+		for c in Gear.roll_drops(rng, 3.0):
+			n_hi += 1
+			tot_hi += 1
+			hi_hi += 1 if int(Gear.parse(c)["rarity"]) >= 3 else 0
+	_check(float(n_hi) > float(n_lo) * 1.8, "掉落件数：难度 300%% 明显更多（%d → %d）" % [n_lo, n_hi])
+	_check(float(hi_hi) / float(tot_hi) > float(hi_lo) / float(tot_lo) * 1.5, "极品 / 传说占比更高（%.3f → %.3f）" % [float(hi_lo) / float(tot_lo), float(hi_hi) / float(tot_hi)])
+	_check(Gear.drop_count(rng, 1.0) >= 1 and absf(Gear.rarity_weight(0, 3.0) - Gear.rarity_weight(0, 1.0)) < 1e-9 and Gear.rarity_weight(4, 3.0) > Gear.rarity_weight(4, 1.0) * 4.0, "凡品权重不变，传说权重 ×5")
+	print("  局内经验 ×2.5 / 修为 ×2 / 掉落件数 / 稀有度权重  OK")
 
 
 func _difficulty_test() -> void:
@@ -1590,7 +1643,9 @@ func _meta_test() -> void:
 	for v in mv["effective"]:
 		_check(absf(Meta.effective(int(v["points"])) - float(v["eff"])) < 1e-3, "有效点向量不一致：%s" % str(v))
 	for v in mv["runExp"]:
-		_check(Meta.run_exp(int(v["score"]), bool(v["won"]), bool(v["first"])) == int(v["exp"]), "修为向量不一致：%s" % str(v))
+		_check(Meta.run_exp(int(v["score"]), bool(v["won"]), bool(v["first"]), float(v.get("comp", 1.0))) == int(v["exp"]), "修为向量不一致：%s" % str(v))
+	for v in mv["comp"]:
+		_check(absf(Meta.comp_of(v["d"]) - float(v["comp"])) < 1e-9, "综合难度向量不一致：%s" % str(v))
 	_check(Meta.exp_to_reach(50) == 9310 and Meta.points_total(50) == 147, "满级累计修为 9310、属性点 147")
 	var p := Meta.progress(100)
 	_check(int(p["level"]) == 3 and int(p["into"]) == 100 - 46 - 52 and int(p["need"]) == 58, "进度计算")
