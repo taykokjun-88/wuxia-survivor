@@ -20,6 +20,7 @@ var alive := true
 var stun := 0.0          # 定身/击晕剩余时间
 var slow_t := 0.0        # 减速剩余时间
 var slow_mult := 1.0
+var is_prop := false       # 可破坏的场景物件（木箱 / 酒坛 / 火盆）：不动、不伤人，打碎掉东西
 var chain := false       # 被"连锁"点穴：死亡时爆炸
 var vuln := 0.0          # 破绽：受到的伤害额外 +vuln
 var vuln_t := 0.0

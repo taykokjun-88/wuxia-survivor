@@ -293,7 +293,7 @@ test('装备：通关掉落（服务器发放）、穿戴 / 丢弃校验、不�
   const r0 = submit(e, me, RUN());
   assert.deepStrictEqual(JSON.parse(JSON.stringify(r0.drops)), [], '阵亡不掉落');
   const w = submit(e, me, WIN());
-  assert.ok(w.drops.length >= 1 && w.drops.length <= 2, '通关掉 1~2 件');
+  assert.ok(w.drops.length >= 4 && w.drops.length <= 5, '通关（3 个小 Boss + 大 Boss）掉 4~5 件');
   w.drops.forEach((c) => assert.ok(e.ctx.gearValid(c), c));
   let l = e.call({ action: 'login', nick: '装备君', pin: '4815' });
   assert.deepStrictEqual(JSON.parse(JSON.stringify(l.items)), JSON.parse(JSON.stringify(w.drops)), '背包 = 掉落');
@@ -330,19 +330,51 @@ test('难度奖励：修为倍率 / 装备数量与稀有度随综合难度提�
   assert.strictEqual(a.gained, 25); assert.strictEqual(b.gained, 50); assert.strictEqual(b.comp, 3);
   const bad = submit(e, me, Object.assign(RUN({ level: 12, kills: 800, seconds: 300 }), { difficulty: { count: 999, hp: 'x', speed: 155 } }));
   assert.strictEqual(bad.gained, 25, '非法的难度当 100%'); assert.strictEqual(bad.comp, 1);
-  // 装备：统计 150 次通关的掉落件数和高稀有度占比
+  // 装备：统计 150 次通关的高稀有度占比（难度只提高稀有度，不改变件数）
   const stat = (diff) => {
     const p = reg(e, diff ? '难度高' : '难度低'); let n = 0, high = 0, total = 0;
     for (let i = 0; i < 150; i++) {
       const w = submit(e, p, Object.assign(WIN(), diff ? { difficulty: diff } : {}));
       n += w.drops.length;
-      w.drops.forEach((c) => { total++; if (Number(c.split('.')[1]) >= 3) high++; });
+      w.drops.forEach((c) => { total++; if (Number(c.split('.')[1]) >= 1) high++; });
     }
     return { n, rate: high / total };
   };
   const lo = stat(null), hi = stat(hard);
-  assert.ok(hi.n > lo.n * 1.8, '难度 300%：掉落件数明显更多 ' + lo.n + ' → ' + hi.n);
-  assert.ok(hi.rate > lo.rate * 1.3, '难度 300%：极品 / 传说占比更高 ' + lo.rate.toFixed(3) + ' → ' + hi.rate.toFixed(3));
+  assert.ok(Math.abs(hi.n - lo.n) < lo.n * 0.25, '难度不改变掉落件数 ' + lo.n + ' vs ' + hi.n);
+  assert.ok(hi.rate > lo.rate + 0.12, '难度 300%：特别 / 稀有 / 传说占比更高 ' + lo.rate.toFixed(3) + ' → ' + hi.rate.toFixed(3));
+});
+
+test('装备：四档稀有度按 60 / 30 / 9 / 1 掉落；难度按比例提高后三档', (e) => {
+  const roll = (comp) => { const c = [0, 0, 0, 0]; for (let i = 0; i < 20000; i++) c[Number(e.ctx.gearRoll(comp).split('.')[1])]++; return c.map((x) => x / 20000); };
+  const base = roll(1);
+  [0.60, 0.30, 0.09, 0.01].forEach((want, i) => assert.ok(Math.abs(base[i] - want) < Math.max(0.012, want * 0.3), `稀有度 ${i}：${base[i]} vs ${want}`));
+  const hard = roll(3);
+  assert.ok(hard[1] > base[1] && hard[2] > base[2] * 1.7 && hard[3] > base[3] * 1.8, '难度 ×3：特别 / 稀有 / 传说都按比例提高 ' + hard.join(','));
+  assert.ok(hard[0] < base[0], '普通相应减少');
+});
+
+test('装备：小 Boss 固定掉 1 件，大 Boss（通关）掉 1~2 件；小 Boss 数量不能超过用时内已刷出的个数', (e) => {
+  const me = reg(e, '掉落君');
+  const r1 = submit(e, me, RUN({ seconds: 200, bosses: 1, level: 12, kills: 800 }));         // 3:00 的小 Boss 已刷出
+  assert.strictEqual(r1.drops.length, 1, '阵亡也掉：1 个小 Boss = 1 件');
+  const r2 = submit(e, me, RUN({ seconds: 420, bosses: 2, level: 20, kills: 1500 }));        // 6:30 后两个
+  assert.strictEqual(r2.drops.length, 2);
+  const r3 = submit(e, me, RUN({ seconds: 100, bosses: 3, level: 8, kills: 300 }));          // 才 100 秒不可能杀 3 个小 Boss
+  assert.strictEqual(r3.drops.length, 0, '用时不够，不掉');
+  const r4 = submit(e, me, RUN({ seconds: 250, bosses: 0, level: 10, kills: 500 }));
+  assert.strictEqual(r4.drops.length, 0, '没杀 Boss 不掉');
+  let ones = 0, twos = 0;
+  for (let i = 0; i < 60; i++) { const w = submit(e, me, WIN()); const n = w.drops.length - 3; /* WIN：bosses 4 = 3 小 + 1 大 */ if (n === 1) ones++; else if (n === 2) twos++; else assert.fail('大 Boss 掉落 ' + n); }
+  assert.ok(ones > 10 && twos > 10, '大 Boss 1 件 / 2 件都会出现 ' + ones + '/' + twos);
+});
+
+test('装备：旧存档里的 5 档稀有度编码自动降到第 4 档', (e) => {
+  const me = reg(e, '老玩家');
+  setState(e, '老玩家', (st) => { st.items = ['weapon.4.123', 'coat.1.5']; st.equip = { weapon: 'weapon.4.123' }; st.enh = { 'weapon.4.123': 3 }; });
+  const l = e.call({ action: 'login', nick: '老玩家', pin: '4815' });
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(l.items)), ['weapon.3.123', 'coat.1.5']);
+  assert.strictEqual(l.equip.weapon, 'weapon.3.123'); assert.strictEqual(l.enh['weapon.3.123'], 3);
 });
 
 function setState(e, nick, fn) { const f = e.ctx.findPlayer(nick); const st = JSON.parse(f.row[e.ctx.P.state] || '{}'); fn(st); f.row[e.ctx.P.state] = JSON.stringify(st); e.ctx.savePlayer(f); }

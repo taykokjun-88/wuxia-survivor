@@ -62,16 +62,24 @@ static func roll_code(rng: RandomNumberGenerator, min_rarity: int = 0, comp: flo
 	return make_code(slot, maxi(rarity, min_rarity), 1 + rng.randi() % 999999)
 
 
-## 本次掉落：胜利必掉 drops_per_win 件，另有「额外掉落」：期望 extra_drop_chance + (综合难度−1) × drop_bonus 件
-## （整数部分必掉，小数部分按几率）
-static func drop_count(rng: RandomNumberGenerator, comp: float) -> int:
-	var bonus := float(Data.gear["extra_drop_chance"]) + (comp - 1.0) * float(Data.difficulty["drop_bonus"])
-	return int(Data.gear["drops_per_win"]) + int(floorf(bonus)) + (1 if rng.randf() < bonus - floorf(bonus) else 0)
+## 部位的装备清单（每个部位 10 件；武器按流派分「拳套类」「剑类」各 10 件，没有专属清单的流派用拳套类）
+static func items_for(slot: String, school_id: String) -> Array:
+	var sd := slot_def(slot)
+	if sd.has("items_by_school"):
+		var by: Dictionary = sd["items_by_school"]
+		return by[school_id] if by.has(school_id) else by["fist"]
+	return sd["items"]
 
 
-static func roll_drops(rng: RandomNumberGenerator, comp: float = 1.0) -> Array:
+## 本局掉落：每个被击败的小 Boss 固定 1 件；大 Boss（通关）1 件，另有 boss_extra_chance 的几率再 +1（共 1~2 件）
+## 稀有度按 60 / 30 / 9 / 1 抽取，综合难度越高，特别 / 稀有 / 传说的权重按比例提高（见 rarity_weight）
+static func run_drops(rng: RandomNumberGenerator, minis: int, won: bool, comp: float = 1.0) -> Array:
+	var dd: Dictionary = Data.gear["drops"]
+	var n := minis * int(dd["mini"])
+	if won:
+		n += int(dd["boss_min"]) + (1 if rng.randf() < float(dd["boss_extra_chance"]) else 0)
 	var out := []
-	for i in drop_count(rng, comp):
+	for i in n:
 		out.append(roll_code(rng, 0, comp))
 	return out
 
@@ -87,7 +95,9 @@ static func make(code: String, school_id: String = "fist", enh_level: int = 0) -
 	var sd := slot_def(str(pc["slot"]))
 	var mult := float(rd["mult"])
 	var stats := {}
-	var base: Dictionary = sd["base"]
+	var defs := items_for(str(pc["slot"]), school_id)
+	var idef: Dictionary = defs[int(pc["seed"]) % defs.size()]
+	var base: Dictionary = idef["base"]
 	for k in base:
 		stats[k] = float(base[k]) * mult
 	# 副属性：从池里不重复地挑
@@ -103,9 +113,6 @@ static func make(code: String, school_id: String = "fist", enh_level: int = 0) -
 		var a := _roll_affix(rng, school_id, mult, int(pc["rarity"]), used)
 		if not a.is_empty():
 			affixes.append(a)
-	var names: Array = sd["names"]
-	if school_id == "sword" and sd.has("sword_names"):
-		names = sd["sword_names"]
 	# 铁匠强化：基础 + 副属性每级 +8%（特殊词条不变）
 	var lvl := clampi(enh_level, 0, enhance_max())
 	if lvl > 0:
@@ -113,7 +120,7 @@ static func make(code: String, school_id: String = "fist", enh_level: int = 0) -
 			stats[k] = float(stats[k]) * level_mult(lvl)
 	return {
 		"code": code, "slot": pc["slot"], "slot_name": sd["name"], "rarity": pc["rarity"], "rarity_name": rd["name"],
-		"color": rd["color"], "name": str(names[int(pc["seed"]) % names.size()]) + (" +%d" % lvl if lvl > 0 else ""),
+		"color": rd["color"], "name": str(idef["name"]) + (" +%d" % lvl if lvl > 0 else ""),
 		"stats": stats, "affixes": affixes, "enh": lvl,
 	}
 
@@ -190,6 +197,9 @@ static func describe(item: Dictionary) -> String:
 
 const STAT_NAMES := {
 	"damage_pct": ["伤害", true], "max_hp": ["气血", false], "armor": ["防御", false], "neili_regen": ["内力回复", false],
+	"crit_mult": ["暴击伤害", true], "empower_cut": ["催动消耗缩减", true], "kill_neili": ["击杀回内力", false], "hit_slow": ["命中减速", true],
+	"hp_regen": ["气血回复", false], "block_chance": ["格挡", true], "dodge_chance": ["闪避", true], "thorns": ["反震", false],
+	"pickup_heal": ["拾取回血", false], "med_regen": ["入定回气", false], "ying_dmg": ["盈境伤害", true],
 	"speed_pct": ["移速", true], "qg_cd_reduce": ["轻功冷却缩减", true], "crit_chance": ["暴击", true], "max_neili": ["内力上限", false],
 	"cd_reduce": ["冷却缩减", true], "luck": ["福缘", true], "exp_pct": ["经验", true],
 }

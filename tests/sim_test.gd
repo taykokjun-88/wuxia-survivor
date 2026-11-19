@@ -36,6 +36,7 @@ func _ready() -> void:
 		_sword_art_test()
 		_sword_talent_test()
 		_smith_test()
+		_prop_test()
 		await _town_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
@@ -152,22 +153,22 @@ func _run_full() -> void:
 
 
 # ---------------------------------------------------------------------
-# 剑客
+# 剑侠
 # ---------------------------------------------------------------------
 
 func _sword_test() -> void:
-	print("\n=== 剑客：流派 / 招式池 / 剑客专属机制 ===")
-	_check(bool(Data.schools["sword"]["enabled"]), "剑客流派应已开放")
+	print("\n=== 剑侠：流派 / 招式池 / 剑侠专属机制 ===")
+	_check(bool(Data.schools["sword"]["enabled"]), "剑侠流派应已开放")
 	var pool := 0
 	for id in Data.skills:
 		if str(Data.skills[id]["school"]) == "sword":
 			pool += 1
-	_check(pool == 10, "剑客应有 9 个招式 + 独孤九剑，实际 %d" % pool)
+	_check(pool == 10, "剑侠应有 9 个招式 + 独孤九剑，实际 %d" % pool)
 	for sid in Data.schools["sword"]["starters"]:
-		_check(Data.skills.has(sid) and str(Data.skills[sid]["school"]) == "sword", "剑客起手招式有效: %s" % sid)
+		_check(Data.skills.has(sid) and str(Data.skills[sid]["school"]) == "sword", "剑侠起手招式有效: %s" % sid)
 	# 选卡池只出本流派招式
 	var w := _new_world(5, "kuang_feng")
-	_check(w.school_id == "sword", "起手剑客招式 → 流派 sword")
+	_check(w.school_id == "sword", "起手剑侠招式 → 流派 sword")
 	for i in 40:
 		for c in w.roll_choices(3):
 			if str(c["kind"]) == "new_skill":
@@ -201,14 +202,14 @@ func _sword_test() -> void:
 
 
 func _sword_art_test() -> void:
-	print("\n=== 剑客美术接入（角色动画 / 小镇 / 小 Boss / 特效）===")
+	print("\n=== 剑侠美术接入（角色动画 / 小镇 / 小 Boss / 特效）===")
 	var sa := SpriteAnim.new()
-	_check(sa.load_dir(str(Data.schools["sword"]["sprite_dir"])), "剑客角色动画能加载")
+	_check(sa.load_dir(str(Data.schools["sword"]["sprite_dir"])), "剑侠角色动画能加载")
 	for n in ["idle", "walk", "slash", "thrust", "dash", "ult", "hurt", "death", "true_idle", "true_walk", "true_thrust", "awaken", "finish"]:
-		_check(sa.anims.has(n), "剑客动画缺少 %s" % n)
-	_check(ResourceLoader.exists(str(Data.schools["sword"]["portrait"])), "剑客立绘存在")
+		_check(sa.anims.has(n), "剑侠动画缺少 %s" % n)
+	_check(ResourceLoader.exists(str(Data.schools["sword"]["portrait"])), "剑侠立绘存在")
 	var w := _new_world(3, "dugu")
-	_check(w.sprite_anim != null and w.sprite_anim.anims.has("true_walk"), "独孤九剑开局使用剑客动画")
+	_check(w.sprite_anim != null and w.sprite_anim.anims.has("true_walk"), "独孤九剑开局使用剑侠动画")
 	w.shi = {"zong": 31}
 	var st := w._player_anim_state()
 	_check(str(st[0]) == "true_idle", "真形态站立用 true_idle，实际 %s" % str(st[0]))
@@ -216,14 +217,14 @@ func _sword_art_test() -> void:
 	_check(str(w._player_anim_state()[0]) == "true_walk", "真形态行走用 true_walk")
 	_free_world(w)
 	var wf := _new_world(3, "chain_fist")
-	_check(wf.sprite_anim != null and not wf.sprite_anim.anims.has("true_walk"), "拳掌流派仍用原来的动画")
+	_check(wf.sprite_anim != null and not wf.sprite_anim.anims.has("true_walk"), "武者流派仍用原来的动画")
 	_free_world(wf)
 	var ea := EnemyArt.new()
 	ea.load_dir("res://assets/enemies")
 	for id in ["mini_boss_1", "mini_boss_2", "mini_boss_3", "boss", "elite"]:
 		_check(ea.has(id), "怪物素材缺少 %s" % id)
 	var hero := EnemyArt.new()
-	_check(hero.load_dir(str(Data.schools["sword"]["town_hero_dir"])) == 3, "剑客村子走路素材（正 / 背 / 侧）")
+	_check(hero.load_dir(str(Data.schools["sword"]["town_hero_dir"])) == 3, "剑侠村子走路素材（正 / 背 / 侧）")
 	var t := Town.new()
 	add_child(t)
 	_check(t.building_art.size() == 6, "小镇 6 座建筑素材，实际 %d" % t.building_art.size())
@@ -240,7 +241,7 @@ func _sword_art_test() -> void:
 
 
 func _sword_talent_test() -> void:
-	print("\n=== 剑客天赋覆盖 / 武器名 ===")
+	print("\n=== 剑侠天赋覆盖 / 武器名 ===")
 	var base := Talents.nodes()
 	var sw := Talents.nodes("sword")
 	_check(base.size() == sw.size(), "覆盖不改变节点数量")
@@ -248,18 +249,18 @@ func _sword_talent_test() -> void:
 		_check(int(base[id]["max"]) == int(sw[id]["max"]) and base[id]["branch"] == sw[id]["branch"] and int(base[id]["row"]) == int(sw[id]["row"]), "覆盖不改变 id / 层 / 上限：%s" % id)
 	var expect := {"gang_ying": "剑心", "gang_peak": "剑意凌霄", "rou_finger": "破绽洞察", "ling_qg": "御风剑步", "ling_crit": "剑气贯虹", "ling_peak": "独孤剑悟"}
 	for id in expect:
-		_check(str(sw[id]["name"]) == str(expect[id]), "剑客节点名 %s" % id)
-	_check(str(base["gang_ying"]["name"]) == "盈劲" and str(Talents.nodes("fist")["gang_ying"]["name"]) == "盈劲", "拳掌流派的节点不变")
+		_check(str(sw[id]["name"]) == str(expect[id]), "剑侠节点名 %s" % id)
+	_check(str(base["gang_ying"]["name"]) == "盈劲" and str(Talents.nodes("fist")["gang_ying"]["name"]) == "盈劲", "武者流派的节点不变")
 	var ts := Talents.stats_for({"gang_ying": 2, "ling_qg": 2, "gang_peak": 1, "ling_peak": 1, "ling_crit": 2}, "sword")
 	_check(absf(float(ts.get("skill_range", 0.0)) - 0.10) < 1e-6, "剑心 +5%%/级")
 	_check(absf(float(ts.get("ying_dmg", 0.0)) - 0.10) < 1e-6, "剑意凌霄 盈境伤害 +10%%")
-	_check(float(ts.get("burst_yang", 0.0)) == 1.0 and float(ts.get("burst_harmony", 0.0)) == 1.0, "剑客的第 7 层保留阳性 / 调和内力")
-	_check(not ts.has("crit_mult"), "剑客天赋不再额外给暴击伤害")
+	_check(float(ts.get("burst_yang", 0.0)) == 1.0 and float(ts.get("burst_harmony", 0.0)) == 1.0, "剑侠的第 7 层保留阳性 / 调和内力")
+	_check(not ts.has("crit_mult"), "剑侠天赋不再额外给暴击伤害")
 	_check(absf(float(ts.get("crit_chance", 0.0)) - 0.04) < 1e-6, "剑气贯虹 暴击率 +2%%/级")
 	_check(absf(float(ts.get("cd_reduce", 0.0)) - (0.03 + 0.05)) < 1e-6, "御风剑步 + 独孤剑悟 冷却：%s" % str(ts.get("cd_reduce", 0.0)))
 	_check(absf(float(ts.get("exp_pct", 0.0)) - 0.08) < 1e-6 and absf(float(ts.get("qg_cd_reduce", 0.0)) - 0.08) < 1e-6, "经验 +8%%，轻功冷却 −8%%")
 	var tf := Talents.stats_for({"gang_ying": 2}, "fist")
-	_check(float(tf.get("ying_dmg", 0.0)) > 0.0 and not tf.has("skill_range"), "拳掌的盈劲仍是盈境伤害")
+	_check(float(tf.get("ying_dmg", 0.0)) > 0.0 and not tf.has("skill_range"), "武者的盈劲仍是盈境伤害")
 	# 进入局内：范围 / 减益并入招式
 	var w := GameWorld.new()
 	w.rng_seed = 4
@@ -278,9 +279,12 @@ func _sword_talent_test() -> void:
 	for i in 40:
 		seen_s[str(Gear.make("weapon.2.%d" % i, "sword")["name"])] = true
 		seen_f[str(Gear.make("weapon.2.%d" % i, "fist")["name"])] = true
+	var sword_names: Array = []
+	for idef in Gear.items_for("weapon", "sword"):
+		sword_names.append(str(idef["name"]))
 	for n in seen_s:
-		_check(["青锋剑", "龙泉剑", "玄铁重剑", "倚天剑"].has(n), "剑客的武器叫 %s" % n)
-	_check(seen_f.has("铁指套") and not seen_f.has("青锋剑"), "拳掌武器名不变")
+		_check(sword_names.has(n), "剑侠的武器叫 %s" % n)
+	_check(seen_f.has("铁指套") and not seen_f.has("青锋剑"), "武者武器名不变")
 
 
 func _smith_test() -> void:
@@ -330,6 +334,52 @@ func _smith_test() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_smith.json"))
 	Save.path = old_path
 	Save.load_data()
+
+
+func _prop_test() -> void:
+	print("\n=== 可打碎的场景物件（木箱 / 酒坛 / 火盆）===")
+	var w := _new_world(12, "chain_fist")
+	w.props_enabled = false
+	var crate := w._spawn_enemy("prop_crate", w.player_pos + Vector2(60, 0))
+	_check(crate.is_prop and crate.damage == 0.0 and crate.speed == 0.0, "木箱：不动、不伤人")
+	_check(w.nearest_enemy(300.0) == null and not w.any_enemy_within(w.player_pos, 200.0), "技能不会把场景物件当目标")
+	w._rebuild_grid()
+	var gems0 := w.gem_pos.size()
+	var kills0 := w.kills
+	w.area_hit_raw(w.player_pos, 120.0, 999.0, [], "x")
+	_check(not crate.alive and w.gem_pos.size() == gems0 + 3 and w.kills == kills0, "打碎木箱：掉 3 颗修为珠，不算击杀")
+	var jar_gems := 0
+	var jar_pills := 0
+	for i in 40:
+		var jar := w._spawn_enemy("prop_jar", w.player_pos + Vector2(50, 0))
+		w._rebuild_grid()
+		var g0 := w.gem_pos.size()
+		var p0 := w.pills.size()
+		w.hit_enemy(jar, 999.0, [], Vector2.ZERO, "x")
+		jar_gems += w.gem_pos.size() - g0
+		jar_pills += w.pills.size() - p0
+	_check(jar_pills > 10 and jar_gems > 8, "酒坛：多半掉回血葫芦，否则掉修为珠（葫芦 %d / 珠 %d）" % [jar_pills, jar_gems])
+	var brazier := w._spawn_enemy("prop_brazier", w.player_pos + Vector2(200, 0))
+	var foe := w._spawn_enemy("bandit", w.player_pos + Vector2(230, 0))
+	foe.hp = 1e6
+	foe.max_hp = 1e6
+	w._rebuild_grid()
+	w.hit_enemy(brazier, 999.0, [], Vector2.ZERO, "x")
+	_check(foe.hp < foe.max_hp, "火盆：打翻后灼伤周围的敌人")
+	_free_world(w)
+	# 自动刷出：靠近玩家一定距离，数量有上限，离太远会消失
+	var w2 := _new_world(13, "chain_fist")
+	w2.prop_t = 0.1
+	for i in 60 * 120:
+		w2.step(DT)
+	var n := 0
+	for e in w2.enemies:
+		if e.alive and e.is_prop:
+			n += 1
+	_check(n >= 1 and n <= int(Data.T("prop_max")), "场景物件会自动刷出且有上限（%d 个）" % n)
+	_free_world(w2)
+	for id in ["gem_low", "gem_high", "chest", "absorb", "gourd", "crate", "jar", "brazier"]:
+		_check(ResourceLoader.exists("res://assets/pickups/%s.png" % id), "掉落物素材 %s" % id)
 
 
 func _dugu_test() -> void:
@@ -965,28 +1015,24 @@ func _difficulty_reward_test() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_diff_save.json"))
 	Save.path = old_path
 	Save.load_data()
-	# 装备：数量与稀有度
+	# 装备：难度只提高稀有度，不改变件数
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 77
 	var n_lo := 0
 	var n_hi := 0
 	var hi_lo := 0
 	var hi_hi := 0
-	var tot_lo := 0
-	var tot_hi := 0
 	for i in 600:
-		for c in Gear.roll_drops(rng, 1.0):
+		for c in Gear.run_drops(rng, 0, true, 1.0):
 			n_lo += 1
-			tot_lo += 1
-			hi_lo += 1 if int(Gear.parse(c)["rarity"]) >= 3 else 0
-		for c in Gear.roll_drops(rng, 3.0):
+			hi_lo += 1 if int(Gear.parse(c)["rarity"]) >= 1 else 0
+		for c in Gear.run_drops(rng, 0, true, 3.0):
 			n_hi += 1
-			tot_hi += 1
-			hi_hi += 1 if int(Gear.parse(c)["rarity"]) >= 3 else 0
-	_check(float(n_hi) > float(n_lo) * 1.8, "掉落件数：难度 300%% 明显更多（%d → %d）" % [n_lo, n_hi])
-	_check(float(hi_hi) / float(tot_hi) > float(hi_lo) / float(tot_lo) * 1.5, "极品 / 传说占比更高（%.3f → %.3f）" % [float(hi_lo) / float(tot_lo), float(hi_hi) / float(tot_hi)])
-	_check(Gear.drop_count(rng, 1.0) >= 1 and absf(Gear.rarity_weight(0, 3.0) - Gear.rarity_weight(0, 1.0)) < 1e-9 and Gear.rarity_weight(4, 3.0) > Gear.rarity_weight(4, 1.0) * 4.0, "凡品权重不变，传说权重 ×5")
-	print("  局内经验 ×2.5 / 修为 ×2 / 掉落件数 / 稀有度权重  OK")
+			hi_hi += 1 if int(Gear.parse(c)["rarity"]) >= 1 else 0
+	_check(absf(float(n_hi) - float(n_lo)) < float(n_lo) * 0.2, "掉落件数不随难度变化（%d → %d）" % [n_lo, n_hi])
+	_check(float(hi_hi) / float(n_hi) > float(hi_lo) / float(n_lo) + 0.12, "特别 / 稀有 / 传说占比更高（%.3f → %.3f）" % [float(hi_lo) / float(n_lo), float(hi_hi) / float(n_hi)])
+	_check(absf(Gear.rarity_weight(0, 3.0) - Gear.rarity_weight(0, 1.0)) < 1e-9 and Gear.rarity_weight(3, 3.0) > Gear.rarity_weight(3, 1.0) * 3.0, "普通权重不变，传说权重 ×4")
+	print("  局内经验 ×2.5 / 修为 ×2 / 稀有度权重  OK")
 
 
 func _difficulty_test() -> void:
@@ -1371,6 +1417,7 @@ func _burst_pill_test() -> void:
 	wa._rebuild_grid()
 	wa.invuln = 0.0
 	var rh := refl.hp
+	wa.stats["block_chance"] = 0.0      # 铁布衫有几率格挡，测试里关掉，免得随机数撞上
 	wa._hurt(100.0)
 	_check(rh - refl.hp > 20.0, "护盾在时反弹受击伤害（反弹 %.0f）" % (rh - refl.hp))
 	_free_world(wa)
@@ -1869,7 +1916,7 @@ func _build_test() -> void:
 	# 装备：编码、确定性、稀有度、词条
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 5
-	var counts := [0, 0, 0, 0, 0]
+	var counts := [0, 0, 0, 0]
 	var has_xinfa := false
 	var has_skill := false
 	for i in 3000:
@@ -1888,15 +1935,35 @@ func _build_test() -> void:
 				_check(str(Data.skills[a["id"]]["school"]) == "fist", "词条只会强化本流派的招式")
 		for k in it["stats"]:
 			_check(Data.player_base.has(k), "装备属性 %s 不存在" % k)
-	_check(counts[0] > counts[1] and counts[1] > counts[2] and counts[2] > counts[3] and counts[3] > counts[4] and counts[4] > 0, "稀有度分布递减：%s" % str(counts))
+	_check(counts[0] > counts[1] and counts[1] > counts[2] and counts[2] > counts[3] and counts[3] > 0, "稀有度分布递减：%s" % str(counts))
+	_check(absf(float(counts[0]) / 3000.0 - 0.6) < 0.04 and absf(float(counts[1]) / 3000.0 - 0.3) < 0.04 and absf(float(counts[2]) / 3000.0 - 0.09) < 0.025, "掉率 60 / 30 / 9 / 1：%s" % str(counts))
 	_check(has_xinfa and has_skill, "两类词条都应出现")
-	_check(Gear.parse("weapon.9.1").is_empty() and Gear.parse("hat.0.1").is_empty() and Gear.parse("weapon.1").is_empty() and not Gear.parse("weapon.1.77").is_empty(), "编码格式校验")
-	var legend := Gear.make("weapon.4.4242")
+	_check(Gear.parse("weapon.4.1").is_empty() and Gear.parse("weapon.9.1").is_empty() and Gear.parse("hat.0.1").is_empty() and Gear.parse("weapon.1").is_empty() and not Gear.parse("weapon.1.77").is_empty(), "编码格式校验")
+	var legend := Gear.make("weapon.3.4242")
 	var common := Gear.make("weapon.0.4242")
-	_check(float(legend["stats"]["damage_pct"]) > float(common["stats"]["damage_pct"]) * 2.5, "传说的基础属性远高于凡品")
+	_check(float(legend["stats"]["damage_pct"]) > float(common["stats"]["damage_pct"]) * 2.4, "传说的基础属性远高于普通")
 	_check(legend["affixes"].size() == 2 and common["affixes"].is_empty(), "传说 2 条词条，凡品没有")
-	var dr := Gear.roll_drops(rng)
-	_check(dr.size() >= 1 and dr.size() <= 2, "通关掉落 1~2 件")
+	var dr := Gear.run_drops(rng, 0, true)
+	_check(dr.size() >= 1 and dr.size() <= 2, "大 Boss 掉 1~2 件")
+	_check(Gear.run_drops(rng, 1, false).size() == 1 and Gear.run_drops(rng, 3, false).size() == 3 and Gear.run_drops(rng, 0, false).is_empty(), "小 Boss 固定 1 件（阵亡也掉），没击败不掉")
+	var nb := 0
+	for i in 200:
+		nb += Gear.run_drops(rng, 3, true).size() - 3
+	_check(nb >= 200 and nb <= 400 and nb > 260 and nb < 340, "大 Boss 1~2 件，约一半是 2 件（共 %d / 200 次）" % nb)
+	# 装备清单：每个部位 10 件，武器按流派（拳套类 / 剑类）各 10 件
+	for slot in Gear.slot_ids():
+		for sch in ["fist", "sword"]:
+			var lst := Gear.items_for(str(slot), sch)
+			_check(lst.size() == 10, "%s（%s）应有 10 件，实际 %d" % [slot, sch, lst.size()])
+			var seen := {}
+			for idef in lst:
+				seen[str(idef["name"])] = true
+				for k in idef["base"]:
+					_check(Data.player_base.has(k), "装备基础属性 %s 不存在（%s）" % [k, idef["name"]])
+			_check(seen.size() == 10, "%s（%s）10 件名字各不相同" % [slot, sch])
+	_check(str(Gear.make("weapon.1.3", "sword")["name"]) == str(Gear.items_for("weapon", "sword")[3]["name"]), "剑侠的武器取自剑类清单")
+	_check(str(Gear.make("weapon.1.3", "fist")["name"]) == str(Gear.items_for("weapon", "fist")[3]["name"]), "武者的武器取自拳套类清单")
+	_check(Gear.rarity_def(0)["name"] == "普通" and Gear.rarity_def(1)["name"] == "特别" and Gear.rarity_def(2)["name"] == "稀有" and Gear.rarity_def(3)["name"] == "传说", "四档稀有度名称")
 	# 装备加成进入战斗属性：伤害、技能词条、心法词条
 	var w := _new_world(31, "chain_fist")
 	w.skills.clear()

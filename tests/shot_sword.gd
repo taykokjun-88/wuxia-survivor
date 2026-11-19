@@ -1,5 +1,5 @@
 extends Node
-## 剑客截图：独孤九剑 HUD / 升级卡 / 真·独孤九剑战斗。
+## 剑侠截图：独孤九剑 HUD / 升级卡 / 真·独孤九剑战斗。
 ## 运行：SHOT_DIR=/tmp/shots xvfb-run -a godot --path . --rendering-driver opengl3 res://tests/shot_sword.tscn
 
 const DT := 1.0 / 60.0
@@ -20,6 +20,10 @@ func _ready() -> void:
 	main.hud.confirm_create()
 	await _frames(2)
 	Save.create_character("sword")
+	main.hud.show_auth("")
+	await _frames(3)
+	_snap("u0_auth")
+	main.hud.hide_auth() if main.hud.has_method("hide_auth") else null
 	main._enter_town()
 	main.town.player_pos = Vector2(0, -170)
 	main.town.queue_redraw()
@@ -63,6 +67,15 @@ func _ready() -> void:
 		w._spawn_enemy("bandit", w.player_pos + Vector2.from_angle(a) * w.rng.randf_range(120.0, 420.0))
 	for i in 150:
 		w.step(DT)
+	w.props_enabled = false
+	for k in [["prop_crate", Vector2(-140, -60)], ["prop_jar", Vector2(-60, -110)], ["prop_brazier", Vector2(40, -120)]]:
+		w._spawn_enemy(str(k[0]), w.player_pos + (k[1] as Vector2))
+	for i in 6:
+		w._drop_gem(w.player_pos + Vector2(100 + i * 24, 60), [1, 2, 4, 8, 15, 30][i])
+	w._drop_pill(w.player_pos + Vector2(-100, 80), "small")
+	w._drop_pill(w.player_pos + Vector2(-60, 80), "large")
+	w.chests.append(w.player_pos + Vector2(0, 90))
+	w.absorb_items.append({"pos": w.player_pos + Vector2(60, 90), "age": 0.0})
 	await _frames(2)
 	_snap("s1_dugu_stage1")
 	w.shi = {"po_jian": 10, "po_dao": 10, "po_bian": 6, "zong": 4}
@@ -78,6 +91,14 @@ func _ready() -> void:
 			w._rebuild_grid()
 	await _frames(2)
 	_snap("s2_dugu_true")
+	Save.create_character("sword")
+	main.hud.show_end(true)
+	await _frames(3)
+	_snap("u1_victory")
+	main.hud.show_end(false)
+	await _frames(3)
+	_snap("u2_defeat")
+	main.hud.hide_overlay()
 	main.state = main.State.PAUSED
 	main.hud.show_pause()
 	await _frames(3)

@@ -1,6 +1,6 @@
 class_name FistSkills
 extends RefCounted
-## 拳掌流派的 9 个攻击技能。每个技能的"专属强化"在 enhanced() 分支里实现。
+## 武者流派的 9 个攻击技能。每个技能的"专属强化"在 enhanced() 分支里实现。
 
 
 static func create(skill_id: String) -> SkillBase:

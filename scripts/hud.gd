@@ -30,6 +30,8 @@ var canvas: Control
 var overlay: Control
 var overlay_title: Label
 var overlay_body: Label
+var overlay_dim: ColorRect
+var end_bg: TextureRect               # 结算插画（按流派 / 胜负）
 var pause_box: VBoxContainer         # 暂停菜单：继续 / 放弃本局
 var pause_confirm: HBoxContainer
 var pause_main: HBoxContainer
@@ -114,6 +116,23 @@ func _process(_dt: float) -> void:
 # 浮层
 # ---------------------------------------------------------------------
 
+## 标题封面（水墨武侠 16:9）：登录 / 创建角色界面的背景，铺在压暗层下面
+func _add_cover(panel: Control, dim_alpha: float = 0.5) -> void:
+	var tex := _load_tex("res://assets/ui/screens/title_cover.jpg")
+	if tex == null:
+		return
+	var tr := TextureRect.new()
+	tr.texture = tex
+	tr.set_anchors_preset(Control.PRESET_FULL_RECT)
+	tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(tr)
+	panel.move_child(tr, 0)
+	if panel.get_child_count() > 1 and panel.get_child(1) is ColorRect:
+		(panel.get_child(1) as ColorRect).color = Color(0.03, 0.04, 0.07, dim_alpha)
+
+
 func _dim() -> ColorRect:
 	var dim := ColorRect.new()
 	# 局内（能看到游戏画面）只压暗一点；村子 / 开局界面里背后的画面很杂，压深一些
@@ -139,7 +158,15 @@ func _build_overlay() -> void:
 	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.visible = false
 	add_child(overlay)
-	overlay.add_child(_dim())
+	end_bg = TextureRect.new()
+	end_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	end_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	end_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	end_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	end_bg.visible = false
+	overlay.add_child(end_bg)
+	overlay_dim = _dim()
+	overlay.add_child(overlay_dim)
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	overlay.add_child(center)
@@ -149,6 +176,9 @@ func _build_overlay() -> void:
 	overlay_title = _label("", 56)
 	box.add_child(overlay_title)
 	overlay_body = _label("", 22)
+	for l: Label in [overlay_title, overlay_body]:      # 描边：压在明亮的结算插画上也看得清
+		l.add_theme_color_override("font_outline_color", Color(0.04, 0.03, 0.03, 0.95))
+		l.add_theme_constant_override("outline_size", 8)
 	box.add_child(overlay_body)
 	pause_box = VBoxContainer.new()
 	pause_box.add_theme_constant_override("separation", 12)
@@ -248,6 +278,7 @@ func _build_create() -> void:
 		create_panel.queue_free()
 	var pb := _panel_box()
 	create_panel = pb[0]
+	_add_cover(create_panel, 0.62)
 	var box: VBoxContainer = pb[1]
 	box.add_theme_constant_override("separation", 10)
 	box.add_child(_label("创建角色", 40))
@@ -682,9 +713,16 @@ func _build_auth(prefill: String) -> void:
 		auth_panel.queue_free()
 	var pb := _panel_box()
 	auth_panel = pb[0]
+	_add_cover(auth_panel, 0.4)
+	(auth_panel.get_child(auth_panel.get_child_count() - 1) as Control).anchor_right = 0.5       # 表单放在左半边，不挡住封面上的人物
 	var box: VBoxContainer = pb[1]
-	box.add_child(_label("武侠幸存者", 52))
-	box.add_child(_label("请登录。还没有账号？点「注册」，需要管理员给你的邀请码", 18, Color("#cfc6ae")))
+	var at := _label("武侠幸存者", 52)
+	var ah := _label("请登录。还没有账号？点「注册」，需要管理员给你的邀请码", 18, Color("#f3ead2"))
+	for l: Label in [at, ah]:       # 封面偏亮：加深色描边
+		l.add_theme_color_override("font_outline_color", Color(0.04, 0.03, 0.03, 0.95))
+		l.add_theme_constant_override("outline_size", 8)
+	box.add_child(at)
+	box.add_child(ah)
 	var mode_row := _center_row(10)
 	box.add_child(mode_row)
 	var group := ButtonGroup.new()
@@ -1198,6 +1236,15 @@ func _gear_item_click(code: String) -> void:
 	_gear_refresh()
 
 
+func _slot_icon(bt: Button, slot: String) -> void:
+	var ic := Data.icon("gear", slot)
+	if ic != null:
+		bt.icon = ic
+		bt.expand_icon = false
+		bt.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		bt.add_theme_constant_override("icon_max_width", 40)
+
+
 func _gear_button(code: String, w_min: int, h_min: int, compact: bool = false) -> Button:
 	var it := Gear.make(code, Save.school(), Save.enh_level(code))
 	var bt := Button.new()
@@ -1214,6 +1261,7 @@ func _gear_button(code: String, w_min: int, h_min: int, compact: bool = false) -
 	bt.text = "【%s】%s\n%s" % [it["rarity_name"], it["name"], second] if compact else full
 	bt.tooltip_text = full
 	bt.clip_text = true
+	_slot_icon(bt, str(it["slot"]))
 	var col := Color(str(it["color"]))
 	bt.add_theme_color_override("font_color", col)
 	bt.add_theme_color_override("font_hover_color", col)
@@ -1349,6 +1397,7 @@ func show_smith(msg: String = "") -> void:
 				next += "（银两不够）"
 				bt.disabled = true
 		bt.text = "%s\n%s\n%s" % [head, Gear.describe(it), next]
+		_slot_icon(bt, str(it["slot"]))
 		var col := Color(str(it["color"]))
 		bt.add_theme_color_override("font_color", col)
 		bt.add_theme_color_override("font_hover_color", col)
@@ -1554,6 +1603,8 @@ func show_town_hud(on: bool) -> void:
 
 
 func show_pause() -> void:
+	end_bg.visible = false
+	overlay_dim.color = Color(0.05, 0.05, 0.08, 0.62 if (world != null and world.visible) else 0.92)
 	overlay_title.text = "暂停"
 	overlay_body.text = "按 Esc 继续"
 	pause_box.visible = true
@@ -1572,6 +1623,10 @@ func show_end(won: bool) -> void:
 	if int(dd["count"]) != 100 or int(dd["hp"]) != 100 or int(dd["speed"]) != 100:
 		end_base += "\n难度：数量 %d%% · 血量 %d%% · 速度 %d%%" % [dd["count"], dd["hp"], dd["speed"]]
 	set_end_extra("")
+	var art := _load_tex("res://assets/ui/screens/%s_%s.jpg" % ["victory" if won else "defeat", Save.school() if Save.school() != "" else "fist"])
+	end_bg.texture = art
+	end_bg.visible = art != null
+	overlay_dim.color = Color(0.03, 0.03, 0.05, 0.35 if art != null else 0.62)
 	overlay.visible = true
 
 
@@ -1583,6 +1638,7 @@ func set_end_extra(extra: String) -> void:
 
 func hide_overlay() -> void:
 	overlay.visible = false
+	end_bg.visible = false
 	if pause_box:
 		pause_box.visible = false
 

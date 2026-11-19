@@ -17,7 +17,7 @@ def block() -> str:
                 nodes[n["id"]] = [b, r, n["max"]]
     g = d["gear"]
     gear = {"slots": [s["id"] for s in g["slots"]], "weights": [r["weight"] for r in g["rarity"]],
-            "invMax": g["inventory_max"], "drops": g["drops_per_win"], "extra": g["extra_drop_chance"],
+            "invMax": g["inventory_max"], "mini": g["drops"]["mini"], "bossMin": g["drops"]["boss_min"], "bossExtra": g["drops"]["boss_extra_chance"], "miniTimes": d["tuning"]["mini_boss_times"],
             "enh": {"max": g["enhance"]["max"], "bonus": g["enhance"]["bonus"], "costBase": g["enhance"]["cost_base"], "costExp": g["enhance"]["cost_exp"]},
             "silver": {"perScore": g["silver"]["per_score"], "cap": g["silver"]["cap"], "winBonus": g["silver"]["win_bonus"], "comp": g["silver"]["comp"], "discard": g["silver"]["discard"], "max": g["silver"]["max"]}}
     df = d["difficulty"]

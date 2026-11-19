@@ -19,6 +19,8 @@ static func drive(w: GameWorld, engage: float = 220.0) -> void:
 				break
 	var crowd := 0
 	for e in w.enemies:
+		if e.is_prop or not e.alive:
+			continue
 		var d := w.player_pos.distance_to(e.pos)
 		if d < nd:
 			nd = d

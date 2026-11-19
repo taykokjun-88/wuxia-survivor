@@ -47,6 +47,9 @@ var reward_comp := 1.0              # 综合难度（1.0 ~ 3.0），决定经验
 var difficulty := {"count": 1.0, "hp": 1.0, "speed": 1.0}   # 开局前选择的难度倍率（1.0 ~ 3.0）
 var map_id := "black_wind"       # 当前地图（见 data 的 maps）
 var shi: Dictionary = {}            # 独孤九剑：已领悟的「式」→ 层数（最多 4 种）
+var props_enabled := true          # 场景里随机出现可打碎的木箱 / 酒坛 / 火盆
+var prop_t := 3.0
+var pickup_art: Dictionary = {}    # 掉落物素材（assets/pickups）：id → {tex, w, h}
 var sword_break_count := 0           # 统计：「剑破天下」触发次数（测试用）
 var dugu_combo_log: Array = []     # 统计：真·独孤九剑的连击段数（测试用）
 var school_id := "fist"           # 创建角色时选定，决定可学的招式池
@@ -141,6 +144,7 @@ func _ready() -> void:
 		map_art = null
 	vfx = Vfx.new()
 	vfx.load_dir("res://assets/vfx")
+	_load_pickups()
 	vfx_layer = VfxLayer.new()
 	vfx_layer.world = self
 	add_child(vfx_layer)
@@ -249,8 +253,8 @@ func _load_school_sprites() -> void:
 func add_skill(id: String) -> void:
 	var s: SkillBase = SwordSkills.create(id) if str(Data.skills[id]["school"]) == "sword" else FistSkills.create(id)
 	s.setup(self, id, Data.skills[id])
-	s.mods["range"] = float(s.mods["range"]) + float(talent_stats.get("skill_range", 0.0))      # 剑客天赋：全部招式范围 / 闪现距离
-	s.mods["debuff"] = float(s.mods["debuff"]) + float(talent_stats.get("skill_debuff", 0.0))  # 剑客天赋：破绽 / 中毒 / 定身效果
+	s.mods["range"] = float(s.mods["range"]) + float(talent_stats.get("skill_range", 0.0))      # 剑侠天赋：全部招式范围 / 闪现距离
+	s.mods["debuff"] = float(s.mods["debuff"]) + float(talent_stats.get("skill_debuff", 0.0))  # 剑侠天赋：破绽 / 中毒 / 定身效果
 	var tm: Dictionary = talent_skill_mods.get(id, {})
 	for k in tm:
 		s.mods[k] = float(s.mods.get(k, 0.0)) + float(tm[k])
@@ -410,6 +414,7 @@ func step(dt: float) -> void:
 	shake = maxf(0.0, shake - 30.0 * dt)
 	_update_player(dt)
 	_spawn(dt)
+	_update_props(dt)
 	_rebuild_grid()
 	_update_enemies(dt)
 	for s: SkillBase in skills.values():
@@ -684,6 +689,12 @@ func _spawn_enemy(type: String, at: Vector2) -> Enemy:
 	e.radius = float(def["radius"])
 	e.exp_value = int(def["exp"])
 	e.color = Color(str(def["color"]))
+	if bool(def.get("prop", false)):      # 场景物件：固定血量，不随时间 / 难度变强，不动
+		e.is_prop = true
+		e.max_hp = float(def["hp"])
+		e.hp = e.max_hp
+		e.speed = 0.0
+		e.damage = 0.0
 	enemies.append(e)
 	return e
 
@@ -767,7 +778,7 @@ func nearest_enemy(max_dist: float) -> Enemy:
 	var lim := max_dist * max_dist
 	var bd := INF
 	for e in enemies:
-		if not e.alive:
+		if not e.alive or e.is_prop:
 			continue
 		var d2 := player_pos.distance_squared_to(e.pos)
 		if d2 >= lim:
@@ -785,7 +796,7 @@ func nearest_n(max_dist: float, n: int) -> Array[Enemy]:
 	var dists: Array[float] = []
 	var lim := max_dist * max_dist
 	for e in enemies:
-		if not e.alive:
+		if not e.alive or e.is_prop:
 			continue
 		var d2 := player_pos.distance_squared_to(e.pos)
 		if d2 >= lim:
@@ -805,7 +816,7 @@ func nearest_n(max_dist: float, n: int) -> Array[Enemy]:
 
 func any_enemy_within(center: Vector2, r: float) -> bool:
 	for e in _query(center, r):
-		if e.alive and e.pos.distance_to(center) < r + e.radius:
+		if e.alive and not e.is_prop and e.pos.distance_to(center) < r + e.radius:
 			return true
 	return false
 
@@ -819,6 +830,8 @@ func _update_enemies(dt: float) -> void:
 		if not e.alive:
 			continue
 		e.flash = maxf(0.0, e.flash - dt)
+		if e.is_prop:
+			continue
 		e.slow_t = maxf(0.0, e.slow_t - dt)
 		e.weak_fx = maxf(0.0, e.weak_fx - dt)
 		e.vuln_t = maxf(0.0, e.vuln_t - dt)
@@ -1006,6 +1019,9 @@ func damage_enemy(e: Enemy, amount: float, knock_vec: Vector2, crit: bool = fals
 func _kill(e: Enemy) -> void:
 	Sfx.play("enemy_death")
 	e.alive = false
+	if e.is_prop:
+		_break_prop(e)
+		return
 	kills += 1
 	neili = minf(st("max_neili"), neili + st("kill_neili"))
 	_drop_gem(e.pos, e.exp_value)
@@ -1239,7 +1255,7 @@ func _nearest_on_screen(pos: Vector2, exclude: Dictionary) -> Enemy:
 	var best: Enemy = null
 	var bd := INF
 	for e in enemies:
-		if not e.alive or exclude.has(e.uid) or not _vis(e.pos, 0.0):
+		if not e.alive or e.is_prop or exclude.has(e.uid) or not _vis(e.pos, 0.0):
 			continue
 		var d2 := pos.distance_squared_to(e.pos)
 		if d2 < bd:
@@ -1252,7 +1268,7 @@ func _nearest_from(pos: Vector2, max_dist: float, exclude: Dictionary) -> Enemy:
 	var best: Enemy = null
 	var bd := max_dist * max_dist
 	for e in enemies:
-		if not e.alive or exclude.has(e.uid):
+		if not e.alive or e.is_prop or exclude.has(e.uid):
 			continue
 		var d2 := pos.distance_squared_to(e.pos)
 		if d2 < bd:
@@ -1712,8 +1728,7 @@ func _draw() -> void:
 	for i in gem_pos.size():
 		var g := gem_pos[i]
 		if _vis(g):
-			draw_colored_polygon(PackedVector2Array([
-				g + Vector2(0, -6), g + Vector2(5, 0), g + Vector2(0, 6), g + Vector2(-5, 0)]), GOLD)
+			_draw_gem(g, gem_val[i], gem_age[i])
 	for pl in pills:
 		if _vis(pl["pos"]):
 			_draw_pill(pl)
@@ -1721,7 +1736,12 @@ func _draw() -> void:
 		if _vis(it["pos"], 80.0):
 			_draw_absorb(it)
 	for c in chests:
-		if _vis(c):
+		if _vis(c) and pickup_art.has("chest"):
+			var bob2 := sin(time * 4.0) * 3.0
+			draw_circle(c + Vector2(0, 14), 16.0, Color(0, 0, 0, 0.18))
+			draw_circle(c + Vector2(0, bob2), 30.0, Color(GOLD, 0.12 + 0.08 * sin(time * 5.0)))
+			_draw_pickup("chest", c + Vector2(0, bob2), 44.0)
+		elif _vis(c):
 			var bob := sin(time * 4.0) * 3.0
 			draw_rect(Rect2(c + Vector2(-11, -8 + bob), Vector2(22, 16)), Color("#8a5a1f"))
 			draw_rect(Rect2(c + Vector2(-11, -8 + bob), Vector2(22, 16)), GOLD, false, 2.0)
@@ -1753,6 +1773,10 @@ func _draw() -> void:
 func _draw_absorb(it: Dictionary) -> void:
 	var c: Vector2 = it["pos"]
 	var t := time * 3.0
+	if pickup_art.has("absorb"):
+		draw_circle(c, 30.0 + 3.0 * sin(t * 1.3), Color("#b98cff", 0.14))
+		_draw_pickup("absorb", c, 44.0, time * 1.5)
+		return
 	draw_circle(c, 26.0 + 3.0 * sin(t * 1.3), Color("#b98cff", 0.16))
 	for k in 3:
 		var a0 := t + k * TAU / 3.0
@@ -1767,6 +1791,11 @@ func _draw_pill(pl: Dictionary) -> void:
 	var big: bool = pl["kind"] == "large"
 	var bob := sin(time * 5.0 + at.x * 0.1) * 2.0
 	var c := at + Vector2(0, bob)
+	if pickup_art.has("gourd"):
+		if big:
+			draw_circle(c, 18.0, Color(GOLD, 0.2 + 0.1 * sin(time * 6.0)))
+		_draw_pickup("gourd", c, 34.0 if big else 24.0)
+		return
 	var u := 3.0 if big else 2.2                 # 一个像素块的边长
 	var body := Color("#e0a82e") if big else Color("#c2452d")
 	var dark := Color("#7a4a12") if big else Color("#6e1f12")
@@ -1852,6 +1881,9 @@ func _enemy_art_key(e: Enemy) -> String:
 
 
 func _draw_enemy(e: Enemy) -> void:
+	if e.is_prop:
+		_draw_prop(e)
+		return
 	var key := _enemy_art_key(e)
 	if enemy_art != null and enemy_art.has(key):
 		_draw_enemy_sprite(e, key)
@@ -2103,7 +2135,7 @@ func _draw_effects() -> void:
 
 
 # =====================================================================
-# 剑客：破绽 / 中毒 / 独孤九剑「式」
+# 剑侠：破绽 / 中毒 / 独孤九剑「式」
 # =====================================================================
 
 ## 破绽：受到的伤害额外 +v，持续 t 秒；spread 时顺带让附近一名敌人也露出破绽（万法皆破）
@@ -2204,3 +2236,93 @@ func shi_cards(n: int, gain: int, src: String) -> Array:
 	while out.size() < n and not pool.is_empty():
 		out.append(pool.pop_back())
 	return out
+
+
+# =====================================================================
+# 掉落物素材 / 可打碎的场景物件
+# =====================================================================
+
+func _load_pickups() -> void:
+	var path := "res://assets/pickups/meta.json"
+	if not FileAccess.file_exists(path):
+		return
+	var js: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not js is Dictionary:
+		return
+	for id in js:
+		var d: Dictionary = js[id]
+		var f := "res://assets/pickups/%s" % str(d["file"])
+		if ResourceLoader.exists(f):
+			pickup_art[str(id)] = {"tex": load(f), "w": int(d["w"]), "h": int(d["h"])}
+
+
+## 掉落物：以 at 为中心，画成高度 h（世界像素）；rot：旋转（吸星珠）
+func _draw_pickup(id: String, at: Vector2, h: float, rot: float = 0.0, tint: Color = Color.WHITE) -> void:
+	var a: Dictionary = pickup_art[id]
+	var w := h * float(a["w"]) / float(a["h"])
+	draw_set_transform(at, rot, Vector2.ONE)
+	draw_texture_rect(a["tex"], Rect2(-w * 0.5, -h * 0.5, w, h), false, tint)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## 修为珠分品阶：绿（小）→ 绿（大）→ 金 → 金（大）
+func _draw_gem(at: Vector2, value: int, age: float) -> void:
+	if not pickup_art.has("gem_low"):
+		draw_colored_polygon(PackedVector2Array([at + Vector2(0, -6), at + Vector2(5, 0), at + Vector2(0, 6), at + Vector2(-5, 0)]), GOLD)
+		return
+	var high := value >= 8
+	var h := 17.0 if value < 3 else (24.0 if value < 8 else (26.0 if value < 20 else 34.0))
+	var bob := sin(time * 4.0 + at.x * 0.07) * 1.5
+	_draw_pickup("gem_high" if high else "gem_low", at + Vector2(0, bob), h)
+
+
+func _update_props(dt: float) -> void:
+	if not props_enabled:
+		return
+	prop_t -= dt
+	var n := 0
+	for e in enemies:
+		if e.alive and e.is_prop:
+			if e.pos.distance_to(player_pos) > RELOCATE_DIST + 200.0:
+				e.alive = false          # 离得太远：悄悄消失，不掉东西
+			else:
+				n += 1
+	if prop_t > 0.0 or n >= int(Data.T("prop_max")):
+		return
+	prop_t = Data.T("prop_interval") * rng.randf_range(0.7, 1.3)
+	var r := rng.randf()
+	var kind := "prop_crate" if r < 0.5 else ("prop_jar" if r < 0.85 else "prop_brazier")
+	var dist := rng.randf_range(Data.T("prop_min_dist"), Data.T("prop_max_dist"))
+	_spawn_enemy(kind, player_pos + Vector2.from_angle(rng.randf() * TAU) * dist)
+
+
+func _break_prop(e: Enemy) -> void:
+	add_fx("splat", e.pos, 0.4, {"r": e.radius * 1.2, "color": e.color})
+	match e.type_id:
+		"prop_crate":                         # 木箱：掉几颗修为珠
+			for i in 3:
+				_drop_gem(e.pos + Vector2(rng.randf_range(-14, 14), rng.randf_range(-10, 10)), int(Data.T("prop_gem_value")))
+		"prop_jar":                           # 酒坛：多半掉一颗回血葫芦，否则掉修为珠
+			if rng.randf() < Data.T("prop_jar_pill"):
+				_drop_pill(e.pos, "small")
+			else:
+				for i in 2:
+					_drop_gem(e.pos + Vector2(rng.randf_range(-12, 12), rng.randf_range(-8, 8)), int(Data.T("prop_gem_value")) + 1)
+			add_fx("text", e.pos + Vector2(0, -e.radius - 8), 0.8, {"text": "酒香四溢", "size": 18, "color": Color("#ffb070")})
+		"prop_brazier":                       # 火盆：打翻后火星四溅，灼伤周围的敌人
+			var R := Data.T("prop_fire_radius")
+			area_hit_raw(e.pos, R, Data.T("prop_fire_damage") * (1.0 + time / 240.0), [], "brazier", 220.0)
+			add_fx("ring", e.pos, 0.4, {"r0": 10.0, "r1": R, "color": Color("#ff8a30")})
+			add_fx("text", e.pos + Vector2(0, -e.radius - 8), 0.8, {"text": "火星四溅", "size": 18, "color": Color("#ffb070")})
+			shake = maxf(shake, 4.0)
+
+
+func _draw_prop(e: Enemy) -> void:
+	var id := e.type_id.trim_prefix("prop_")
+	var h: float = float({"crate": 40.0, "jar": 38.0, "brazier": 48.0}.get(id, 40.0))
+	var at := e.pos + Vector2(0, -h * 0.35)
+	draw_circle(e.pos + Vector2(0, 8), e.radius * 0.9, Color(0, 0, 0, 0.2))
+	if pickup_art.has(id):
+		_draw_pickup(id, at, h, 0.0, Color(1.6, 1.6, 1.6) if e.flash > 0.0 else Color.WHITE)
+	else:
+		draw_circle(e.pos, e.radius, Color.WHITE if e.flash > 0.0 else e.color)

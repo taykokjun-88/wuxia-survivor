@@ -357,11 +357,12 @@ func _on_end(won: bool) -> void:
 		# 单机：本地直接结算修为，通关掉落装备
 		if world.time >= 30.0:
 			var local := Save.add_run_exp(world.run_summary())
-			if won:
-				var rng := RandomNumberGenerator.new()
-				rng.randomize()
-				local["drops"] = Gear.roll_drops(rng, Meta.comp_of(world.run_summary().get("difficulty", {})))
-				Save.add_items(local["drops"])
+			var rng := RandomNumberGenerator.new()
+			rng.randomize()
+			var sm := world.run_summary()
+			var minis := clampi(int(sm["bosses"]) - (1 if won else 0), 0, 3)
+			local["drops"] = Gear.run_drops(rng, minis, won, Meta.comp_of(sm.get("difficulty", {})))
+			Save.add_items(local["drops"])
 			hud.set_end_extra(_exp_line(local))
 		return
 	if not Net.logged_in() or world.time < 30.0:
@@ -372,7 +373,7 @@ func _on_end(won: bool) -> void:
 		return
 	if bool(res.get("ok", false)):
 		Save.store_meta(Net.exp, Save.meta_alloc())
-		if won and res.get("drops", []) is Array:
+		if res.get("drops", []) is Array:
 			Save.add_items(res["drops"])
 		Save.store_silver_enh(int(res.get("silver", Net.silver)), Save.enh())
 		var ranks: Dictionary = res.get("ranks", {})

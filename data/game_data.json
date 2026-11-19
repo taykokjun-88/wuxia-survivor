@@ -114,7 +114,15 @@
     "dugu_combo2": 0.36,
     "dugu_true_mult": 1.0,
     "dugu_pulse_radius": 150,
-    "dugu_sb_gap": 0.14
+    "dugu_sb_gap": 0.14,
+    "prop_interval": 7.0,
+    "prop_max": 5,
+    "prop_min_dist": 260,
+    "prop_max_dist": 640,
+    "prop_gem_value": 2,
+    "prop_jar_pill": 0.6,
+    "prop_fire_radius": 120,
+    "prop_fire_damage": 45
   },
   "skills": {
     "yue_palm": {
@@ -1005,6 +1013,36 @@
       "exp": 50,
       "color": "#3a1f4a",
       "bolts": 14
+    },
+    "prop_crate": {
+      "name": "木箱",
+      "hp": 16,
+      "speed": 0,
+      "damage": 0,
+      "radius": 15,
+      "exp": 0,
+      "color": "#8a5a2a",
+      "prop": true
+    },
+    "prop_jar": {
+      "name": "酒坛",
+      "hp": 12,
+      "speed": 0,
+      "damage": 0,
+      "radius": 14,
+      "exp": 0,
+      "color": "#7a4a2a",
+      "prop": true
+    },
+    "prop_brazier": {
+      "name": "火盆",
+      "hp": 26,
+      "speed": 0,
+      "damage": 0,
+      "radius": 15,
+      "exp": 0,
+      "color": "#3a3a44",
+      "prop": true
     }
   },
   "tiers": [
@@ -1144,7 +1182,7 @@
   },
   "schools": {
     "fist": {
-      "name": "拳掌",
+      "name": "武者",
       "enabled": true,
       "desc": "近身重拳与掌风，刚柔并济",
       "starters": [
@@ -1157,7 +1195,7 @@
       "town_hero_dir": "res://assets/town/hero"
     },
     "sword": {
-      "name": "剑客",
+      "name": "剑侠",
       "enabled": true,
       "desc": "白衣青年，腰挂酒葫芦。剑走轻灵，招多而快；可走独孤九剑「破式」之路",
       "starters": [
@@ -1170,11 +1208,11 @@
       "town_hero_dir": "res://assets/town/hero_sword"
     },
     "blade": {
-      "name": "刀",
+      "name": "刀客",
       "enabled": false,
       "desc": "",
       "starters": [],
-      "portrait": "",
+      "portrait": "res://assets/portraits/blade_hero.jpg",
       "sprite_dir": ""
     },
     "spear": {
@@ -1580,7 +1618,7 @@
               "schools": {
                 "sword": {
                   "name": "剑气贯虹",
-                  "desc": "暴击率 +2%/级（非独孤路线的剑客更实用；真·独孤九剑本就必暴击）",
+                  "desc": "暴击率 +2%/级（非独孤路线的剑侠更实用；真·独孤九剑本就必暴击）",
                   "stat": {
                     "crit_chance": 0.02
                   }
@@ -2023,117 +2061,484 @@
       {
         "id": "weapon",
         "name": "武器",
-        "names": [
-          "铁指套",
-          "龙纹拳套",
-          "裂石护腕",
-          "断岳手甲"
-        ],
-        "base": {
-          "damage_pct": 0.04
-        },
-        "sword_names": [
-          "青锋剑",
-          "龙泉剑",
-          "玄铁重剑",
-          "倚天剑"
-        ]
+        "items_by_school": {
+          "fist": [
+            {
+              "name": "铁指套",
+              "base": {
+                "damage_pct": 0.04
+              }
+            },
+            {
+              "name": "龙纹拳套",
+              "base": {
+                "damage_pct": 0.03,
+                "crit_chance": 0.015
+              }
+            },
+            {
+              "name": "裂石护腕",
+              "base": {
+                "damage_pct": 0.03,
+                "max_neili": 5
+              }
+            },
+            {
+              "name": "断岳手甲",
+              "base": {
+                "damage_pct": 0.03,
+                "crit_mult": 0.05
+              }
+            },
+            {
+              "name": "金刚指环",
+              "base": {
+                "damage_pct": 0.025,
+                "armor": 0.5
+              }
+            },
+            {
+              "name": "玄冥寒掌",
+              "base": {
+                "damage_pct": 0.025,
+                "hit_slow": 0.04
+              }
+            },
+            {
+              "name": "九阳护掌",
+              "base": {
+                "damage_pct": 0.025,
+                "neili_regen": 0.8
+              }
+            },
+            {
+              "name": "七伤指虎",
+              "base": {
+                "damage_pct": 0.03,
+                "kill_neili": 0.4
+              }
+            },
+            {
+              "name": "降龙臂铠",
+              "base": {
+                "damage_pct": 0.03,
+                "empower_cut": 0.03
+              }
+            },
+            {
+              "name": "乾坤拳套",
+              "base": {
+                "damage_pct": 0.03,
+                "cd_reduce": 0.01
+              }
+            }
+          ],
+          "sword": [
+            {
+              "name": "青锋剑",
+              "base": {
+                "damage_pct": 0.04
+              }
+            },
+            {
+              "name": "龙泉剑",
+              "base": {
+                "damage_pct": 0.03,
+                "crit_chance": 0.015
+              }
+            },
+            {
+              "name": "松纹剑",
+              "base": {
+                "damage_pct": 0.03,
+                "max_hp": 8
+              }
+            },
+            {
+              "name": "梅花剑",
+              "base": {
+                "damage_pct": 0.03,
+                "cd_reduce": 0.01
+              }
+            },
+            {
+              "name": "玄铁重剑",
+              "base": {
+                "damage_pct": 0.045
+              }
+            },
+            {
+              "name": "紫薇软剑",
+              "base": {
+                "damage_pct": 0.025,
+                "crit_mult": 0.06
+              }
+            },
+            {
+              "name": "金蛇剑",
+              "base": {
+                "damage_pct": 0.025,
+                "hit_slow": 0.04
+              }
+            },
+            {
+              "name": "君子剑",
+              "base": {
+                "damage_pct": 0.03,
+                "neili_regen": 0.8
+              }
+            },
+            {
+              "name": "淑女剑",
+              "base": {
+                "damage_pct": 0.025,
+                "hp_regen": 0.2
+              }
+            },
+            {
+              "name": "倚天剑",
+              "base": {
+                "damage_pct": 0.035,
+                "crit_chance": 0.01,
+                "crit_mult": 0.03
+              }
+            }
+          ]
+        }
       },
       {
         "id": "coat",
         "name": "上衣",
-        "names": [
-          "粗麻劲装",
-          "青云长衫",
-          "玄铁软甲",
-          "流水道袍"
-        ],
-        "base": {
-          "max_hp": 14,
-          "armor": 0.5
-        }
+        "items": [
+          {
+            "name": "粗麻劲装",
+            "base": {
+              "max_hp": 14,
+              "armor": 0.5
+            }
+          },
+          {
+            "name": "青云长衫",
+            "base": {
+              "max_hp": 12,
+              "speed_pct": 0.01
+            }
+          },
+          {
+            "name": "玄铁软甲",
+            "base": {
+              "max_hp": 10,
+              "armor": 1.0
+            }
+          },
+          {
+            "name": "流水道袍",
+            "base": {
+              "max_hp": 12,
+              "neili_regen": 0.5
+            }
+          },
+          {
+            "name": "金丝软甲",
+            "base": {
+              "max_hp": 12,
+              "block_chance": 0.015
+            }
+          },
+          {
+            "name": "白羽锦袍",
+            "base": {
+              "max_hp": 11,
+              "dodge_chance": 0.015
+            }
+          },
+          {
+            "name": "藤甲",
+            "base": {
+              "max_hp": 16,
+              "armor": 0.3
+            }
+          },
+          {
+            "name": "鱼鳞甲",
+            "base": {
+              "max_hp": 12,
+              "armor": 0.7
+            }
+          },
+          {
+            "name": "天蚕宝衣",
+            "base": {
+              "max_hp": 14,
+              "thorns": 3
+            }
+          },
+          {
+            "name": "软猬甲",
+            "base": {
+              "max_hp": 10,
+              "thorns": 5,
+              "armor": 0.4
+            }
+          }
+        ]
       },
       {
         "id": "pants",
         "name": "裤子",
-        "names": [
-          "束脚布裤",
-          "踏风下裳",
-          "乌金护腿",
-          "云纹战裙"
-        ],
-        "base": {
-          "max_hp": 10,
-          "neili_regen": 0.8
-        }
+        "items": [
+          {
+            "name": "束脚布裤",
+            "base": {
+              "max_hp": 10,
+              "neili_regen": 0.8
+            }
+          },
+          {
+            "name": "踏风下裳",
+            "base": {
+              "speed_pct": 0.015,
+              "max_hp": 8
+            }
+          },
+          {
+            "name": "乌金护腿",
+            "base": {
+              "armor": 0.7,
+              "max_hp": 6
+            }
+          },
+          {
+            "name": "云纹战裙",
+            "base": {
+              "max_hp": 8,
+              "neili_regen": 0.6,
+              "luck": 0.01
+            }
+          },
+          {
+            "name": "麻布短裤",
+            "base": {
+              "max_hp": 12,
+              "hp_regen": 0.2
+            }
+          },
+          {
+            "name": "虎纹裤",
+            "base": {
+              "max_hp": 8,
+              "damage_pct": 0.01
+            }
+          },
+          {
+            "name": "青竹护膝裤",
+            "base": {
+              "max_hp": 10,
+              "block_chance": 0.01
+            }
+          },
+          {
+            "name": "铁骨裤",
+            "base": {
+              "armor": 0.9
+            }
+          },
+          {
+            "name": "流云袴",
+            "base": {
+              "speed_pct": 0.012,
+              "dodge_chance": 0.01
+            }
+          },
+          {
+            "name": "无影下裳",
+            "base": {
+              "dodge_chance": 0.02,
+              "max_hp": 6
+            }
+          }
+        ]
       },
       {
         "id": "boots",
         "name": "鞋子",
-        "names": [
-          "草编短靴",
-          "追风快靴",
-          "踏雪云履",
-          "行云战靴"
-        ],
-        "base": {
-          "speed_pct": 0.02,
-          "qg_cd_reduce": 0.03
-        }
+        "items": [
+          {
+            "name": "草编短靴",
+            "base": {
+              "speed_pct": 0.02,
+              "qg_cd_reduce": 0.03
+            }
+          },
+          {
+            "name": "追风快靴",
+            "base": {
+              "speed_pct": 0.03
+            }
+          },
+          {
+            "name": "踏雪云履",
+            "base": {
+              "qg_cd_reduce": 0.05,
+              "speed_pct": 0.01
+            }
+          },
+          {
+            "name": "行云战靴",
+            "base": {
+              "speed_pct": 0.02,
+              "armor": 0.3
+            }
+          },
+          {
+            "name": "布底快鞋",
+            "base": {
+              "speed_pct": 0.025,
+              "cd_reduce": 0.005
+            }
+          },
+          {
+            "name": "铁头靴",
+            "base": {
+              "armor": 0.6,
+              "speed_pct": 0.01
+            }
+          },
+          {
+            "name": "飞燕靴",
+            "base": {
+              "qg_cd_reduce": 0.06
+            }
+          },
+          {
+            "name": "凌波靴",
+            "base": {
+              "dodge_chance": 0.015,
+              "speed_pct": 0.015
+            }
+          },
+          {
+            "name": "登云履",
+            "base": {
+              "speed_pct": 0.02,
+              "neili_regen": 0.5
+            }
+          },
+          {
+            "name": "疾风履",
+            "base": {
+              "speed_pct": 0.035
+            }
+          }
+        ]
       },
       {
         "id": "charm",
         "name": "饰品",
-        "names": [
-          "平安玉佩",
-          "养气香囊",
-          "龙骨扳指",
-          "天机锦囊"
-        ],
-        "base": {
-          "crit_chance": 0.02,
-          "max_neili": 6
-        }
+        "items": [
+          {
+            "name": "平安玉佩",
+            "base": {
+              "crit_chance": 0.02,
+              "max_neili": 6
+            }
+          },
+          {
+            "name": "养气香囊",
+            "base": {
+              "max_neili": 10,
+              "neili_regen": 0.4
+            }
+          },
+          {
+            "name": "龙骨扳指",
+            "base": {
+              "damage_pct": 0.02,
+              "crit_mult": 0.04
+            }
+          },
+          {
+            "name": "天机锦囊",
+            "base": {
+              "luck": 0.03,
+              "exp_pct": 0.02
+            }
+          },
+          {
+            "name": "青铜护符",
+            "base": {
+              "armor": 0.4,
+              "max_hp": 8
+            }
+          },
+          {
+            "name": "玉蝉",
+            "base": {
+              "pickup_heal": 0.2,
+              "hp_regen": 0.15
+            }
+          },
+          {
+            "name": "铜钱串",
+            "base": {
+              "exp_pct": 0.03,
+              "luck": 0.015
+            }
+          },
+          {
+            "name": "菩提子",
+            "base": {
+              "med_regen": 0.2,
+              "max_neili": 6
+            }
+          },
+          {
+            "name": "灵蛇铃",
+            "base": {
+              "cd_reduce": 0.012,
+              "crit_chance": 0.01
+            }
+          },
+          {
+            "name": "九转玉珏",
+            "base": {
+              "ying_dmg": 0.03,
+              "max_neili": 5
+            }
+          }
+        ]
       }
     ],
     "rarity": [
       {
-        "name": "凡品",
-        "color": "#bdb7a4",
-        "weight": 40,
+        "name": "普通",
+        "color": "#f2f2f2",
+        "weight": 60,
         "mult": 1.0,
         "subs": 0,
         "affixes": 0
       },
       {
-        "name": "良品",
-        "color": "#6fbf73",
+        "name": "特别",
+        "color": "#6fdc6f",
         "weight": 30,
-        "mult": 1.3,
+        "mult": 1.35,
         "subs": 1,
         "affixes": 0
       },
       {
-        "name": "精品",
-        "color": "#5b9bd5",
-        "weight": 20,
-        "mult": 1.7,
-        "subs": 1,
-        "affixes": 1
-      },
-      {
-        "name": "极品",
+        "name": "稀有",
         "color": "#b074d8",
-        "weight": 8,
-        "mult": 2.2,
+        "weight": 9,
+        "mult": 1.8,
         "subs": 2,
         "affixes": 1
       },
       {
         "name": "传说",
-        "color": "#e0a82e",
-        "weight": 2,
-        "mult": 3.0,
+        "color": "#f0b429",
+        "weight": 1,
+        "mult": 2.5,
         "subs": 2,
         "affixes": 2
       }
@@ -2157,16 +2562,13 @@
     },
     "affix_xinfa_chance": 0.3,
     "inventory_max": 40,
-    "drops_per_win": 1,
-    "extra_drop_chance": 0.5,
     "enhance": {
       "max": 10,
       "bonus": 0.08,
       "cost_base": [
-        10,
-        20,
-        40,
-        80,
+        12,
+        30,
+        70,
         160
       ],
       "cost_exp": 1.6
@@ -2178,12 +2580,16 @@
       "comp": 0.5,
       "discard": [
         3,
-        8,
-        20,
-        50,
+        10,
+        40,
         120
       ],
       "max": 999999
+    },
+    "drops": {
+      "mini": 1,
+      "boss_min": 1,
+      "boss_extra_chance": 0.5
     }
   },
   "yinyang": {
@@ -2571,15 +2977,15 @@
         "text": "每局结束获得「修为」，累积升级（满级 50）。每升一级得 3 个属性点和 1 个天赋点。\\n属性（武馆师父）：力道、身法、根骨、内息、福缘，每项最多 99 点，越往后每点效果越小；可以随时免费重置。\\n天赋（武馆师父 → 经脉图）：刚、柔、灵三系，每系两条经脉，从丹田向外一个个打通穴位；每层需要本系更低层投入足够点数。有些穴位强化具体招式，有些是内力属性的终极天赋。总点数有限，要取舍。\\n装备：击败大 Boss 掉落，只会是本流派的。装备有基础属性和特殊词条（强化某个招式或心法），在铁匠处穿戴。\n银两：每局结算都有（通关更多、难度越高越多），丢弃（分解）装备也能换。在铁匠处花银两强化背包里的装备：每级基础 / 副属性 +8%，最高 +10，稀有度越高越贵。"
       },
       {
-        "title": "剑客与独孤九剑",
-        "text": "剑客：白衣青年，腰挂酒葫芦。招式多而轻快，起手可选狂风快剑、青松剑法，或独孤九剑。\\n独孤九剑是特殊路线：整局不学其他招式，升级只出九种「式」（总诀 / 破剑 / 破刀 / 破枪 / 破鞭 / 破索 / 破掌 / 破箭 / 破气），最多领悟 4 种，每种最高 10 层。各式效果同时生效，例如破刀（穿透）加破鞭（弹射）：先穿过一排敌人，再弹到下一个。\\n每次升级 +2 层，小 Boss 的秘籍 +3 层。四式总层数 > 20：「万法皆破」，命中令敌人露出破绽并蔓延；> 30：「九剑真传」，变成真·独孤九剑：觉醒时自动施展「剑破天下」——连续闪现九次，每一次是一个「式」；之后变成近身范围群攻，攻速更快，必破绽、必暴击，有几率 2 / 4 / 9 连击，敌人头上飘出「破X式」；轻功被封印，但可以按 E（真气爆发）再次施展「剑破天下」。\\n前期很弱，后期极强。"
+        "title": "剑侠与独孤九剑",
+        "text": "剑侠：白衣青年，腰挂酒葫芦。招式多而轻快，起手可选狂风快剑、青松剑法，或独孤九剑。\\n独孤九剑是特殊路线：整局不学其他招式，升级只出九种「式」（总诀 / 破剑 / 破刀 / 破枪 / 破鞭 / 破索 / 破掌 / 破箭 / 破气），最多领悟 4 种，每种最高 10 层。各式效果同时生效，例如破刀（穿透）加破鞭（弹射）：先穿过一排敌人，再弹到下一个。\\n每次升级 +2 层，小 Boss 的秘籍 +3 层。四式总层数 > 20：「万法皆破」，命中令敌人露出破绽并蔓延；> 30：「九剑真传」，变成真·独孤九剑：觉醒时自动施展「剑破天下」——连续闪现九次，每一次是一个「式」；之后变成近身范围群攻，攻速更快，必破绽、必暴击，有几率 2 / 4 / 9 连击，敌人头上飘出「破X式」；轻功被封印，但可以按 E（真气爆发）再次施展「剑破天下」。\\n前期很弱，后期极强。"
       }
     ]
   },
   "difficulty": {
     "exp_in_run": 0.75,
     "exp_meta": 0.5,
-    "drop_bonus": 1.0,
+    "drop_bonus": 0.0,
     "rarity_skew": 0.5
   },
   "shi": [

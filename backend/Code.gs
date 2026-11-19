@@ -211,8 +211,7 @@ function groupName(code) {
 }
 
 function profile(row) {
-  var state = {};
-  try { state = JSON.parse(row[P.state] || '{}'); } catch (e) {}
+  var state = readState(row);
   var xp = Math.max(0, Math.floor(Number(row[P.xp]) || 0));
   return {
     nick: row[P.nick], school: String(row[P.school] || ''), state: state,
@@ -330,8 +329,8 @@ function logout(req) {
 // BEGIN GENERATED (tools/sync_talents.py)
 var TALENT_GATE = 3;
 var TALENTS = {"gang_force":["gang",0,3],"gang_body":["gang",0,2],"gang_crit":["gang",1,3],"gang_armor":["gang",1,2],"gang_ying":["gang",2,3],"gang_dragon":["gang",2,2],"gang_cm":["gang",3,3],"gang_force2":["gang",3,2],"gang_emp":["gang",4,3],"gang_vajra":["gang",4,2],"gang_regen":["gang",5,2],"gang_ying2":["gang",5,3],"gang_peak":["gang",6,1],"gang_force3":["gang",6,4],"rou_regen":["rou",0,3],"rou_body":["rou",0,2],"rou_neili":["rou",1,3],"rou_med":["rou",1,2],"rou_med2":["rou",2,3],"rou_shield":["rou",2,2],"rou_block":["rou",3,3],"rou_petal":["rou",3,2],"rou_heal":["rou",4,3],"rou_finger":["rou",4,2],"rou_full":["rou",5,2],"rou_cut":["rou",5,3],"rou_peak":["rou",6,1],"rou_armor":["rou",6,4],"ling_step":["ling",0,3],"ling_luck":["ling",0,2],"ling_cd":["ling",1,3],"ling_qg":["ling",1,2],"ling_crit":["ling",2,3],"ling_palm":["ling",2,2],"ling_exp":["ling",3,3],"ling_dodge":["ling",3,2],"ling_cd2":["ling",4,3],"ling_waste":["ling",4,2],"ling_luck2":["ling",5,2],"ling_cm":["ling",5,3],"ling_peak":["ling",6,1],"ling_step2":["ling",6,4]};
-var GEAR = {"slots":["weapon","coat","pants","boots","charm"],"weights":[40,30,20,8,2],"invMax":40,"drops":1,"extra":0.5,"enh":{"max":10,"bonus":0.08,"costBase":[10,20,40,80,160],"costExp":1.6},"silver":{"perScore":120,"cap":300,"winBonus":60,"comp":0.5,"discard":[3,8,20,50,120],"max":999999}};
-var DIFF = {"expMeta":0.5,"dropBonus":1.0,"raritySkew":0.5};
+var GEAR = {"slots":["weapon","coat","pants","boots","charm"],"weights":[60,30,9,1],"invMax":40,"mini":1,"bossMin":1,"bossExtra":0.5,"miniTimes":[180,390,600],"enh":{"max":10,"bonus":0.08,"costBase":[12,30,70,160],"costExp":1.6},"silver":{"perScore":120,"cap":300,"winBonus":60,"comp":0.5,"discard":[3,10,40,120],"max":999999}};
+var DIFF = {"expMeta":0.5,"dropBonus":0.0,"raritySkew":0.5};
 // END GENERATED
 
 // ---------------------------------------------------------------- 局外成长（scripts/meta.gd 里有同一份，共用 meta_vectors.json 测试）
@@ -419,10 +418,10 @@ function gearRoll(comp) {
   for (i = 0; i < GEAR.weights.length; i++) { x -= gearWeight(i, comp); if (x < 0) { r = i; break; } }
   return GEAR.slots[Math.floor(Math.random() * GEAR.slots.length)] + '.' + r + '.' + (1 + Math.floor(Math.random() * 999999));
 }
-/** 胜利时掉落；返回新掉落的编码，并写进 state.items（超过上限先丢最低稀有度、最早的未穿戴装备） */
-function gearDrops(state, comp) {
-  var bonus = GEAR.extra + ((comp || 1) - 1) * DIFF.dropBonus;      // 综合难度越高，额外掉落越多（整数部分必掉，小数部分按几率）
-  var n = GEAR.drops + Math.floor(bonus) + (Math.random() < bonus - Math.floor(bonus) ? 1 : 0), codes = [];
+/** 掉落：每个被击败的小 Boss 固定 1 件；大 Boss（通关）GEAR.bossMin 件，另有 GEAR.bossExtra 的几率再多 1 件（共 1~2 件）。
+ *  返回新掉落的编码，并写进 state.items（超过上限先丢最低稀有度、最早的未穿戴装备） */
+function gearDrops(state, comp, minis, won) {
+  var n = minis + (won ? GEAR.bossMin + (Math.random() < GEAR.bossExtra ? 1 : 0) : 0), codes = [];
   state.items = Array.isArray(state.items) ? state.items : [];
   for (var i = 0; i < n; i++) { var c = gearRoll(comp); codes.push(c); state.items.push(c); }
   var worn = {}, eq = state.equip || {};
@@ -440,10 +439,20 @@ function gearDrops(state, comp) {
   }
   return codes;
 }
+/** 旧存档里的装备编码：稀有度超过现有档数的（旧版有 5 档）降到最高档 */
+function gearFix(code) {
+  var p = String(code).split('.');
+  if (p.length === 3 && /^\d+$/.test(p[1]) && Number(p[1]) >= GEAR.weights.length) p[1] = String(GEAR.weights.length - 1);
+  return p.join('.');
+}
 function readState(row) {
   var st = {};
   try { st = JSON.parse(row[P.state] || '{}'); } catch (e) {}
-  return st && typeof st === 'object' ? st : {};
+  st = st && typeof st === 'object' ? st : {};
+  if (Array.isArray(st.items)) st.items = st.items.map(gearFix);
+  if (st.equip && typeof st.equip === 'object') Object.keys(st.equip).forEach(function (k) { st.equip[k] = gearFix(st.equip[k]); });
+  if (st.enh && typeof st.enh === 'object') { var ne = {}; Object.keys(st.enh).forEach(function (k) { ne[gearFix(k)] = st.enh[k]; }); st.enh = ne; }
+  return st;
 }
 
 // ---------------------------------------------------------------- 成绩
@@ -503,7 +512,11 @@ function submitScore(req) {
   var stt = readState(row);
   var silverGained = silverForRun(score, run.won, comp);
   addSilver(stt, silverGained);
-  if (run.won) drops = gearDrops(stt, comp);          // 大 Boss 被击败（通关）：掉落装备，写进服务器存档
+  // 掉落：每个被击败的小 Boss 1 件，通关（大 Boss）1~2 件；小 Boss 的数量不能超过该用时内已刷出的个数
+  var minis = Math.max(0, Math.min(3, run.bosses - (run.won ? 1 : 0)));
+  var spawned = 0;
+  for (var mi = 0; mi < GEAR.miniTimes.length; mi++) if (run.seconds >= GEAR.miniTimes[mi]) spawned++;
+  drops = gearDrops(stt, comp, Math.min(minis, spawned), run.won);
   row[P.state] = JSON.stringify(stt);
   row[P.updated] = iso();
   row[P.lastSubmit] = iso();

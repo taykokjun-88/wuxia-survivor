@@ -1,6 +1,6 @@
 class_name SwordSkills
 extends RefCounted
-## 剑客流派的 9 个攻击技能 + 独孤九剑。每个技能的"专属强化"在 enhanced() 分支里实现。
+## 剑侠流派的 9 个攻击技能 + 独孤九剑。每个技能的"专属强化"在 enhanced() 分支里实现。
 ## 独孤九剑是特殊路线：不学其他招式，只领悟「式」（见 GameWorld.shi），多个式的效果同时生效。
 
 const SWORD_BLUE := Color("#8ab4d8")
@@ -18,7 +18,7 @@ static func create(skill_id: String) -> SkillBase:
 		"jinshe": return JinShe.new()
 		"yitian": return YiTian.new()
 		"dugu": return Dugu.new()
-	push_error("未知剑客招式: " + skill_id)
+	push_error("未知剑侠招式: " + skill_id)
 	return null
 
 

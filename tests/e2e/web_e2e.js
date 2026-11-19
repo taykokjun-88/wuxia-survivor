@@ -40,7 +40,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ ' : '  ✗ ') + 
   await page.keyboard.press('Enter');
   await page.waitForTimeout(3500);
   st = await state(); ok(st.players === 4, '正确的邀请码可以注册（服务器玩家数 ' + st.players + '）');
-  await page.keyboard.press('Enter'); await page.waitForTimeout(2000);              // 创建角色（拳掌）→ 进入阿罗拉村
+  await page.keyboard.press('Enter'); await page.waitForTimeout(2000);              // 创建角色（武者）→ 进入阿罗拉村
   await shot('02_town');
   // 本机后端才允许 ?npc=<id>：开局直接站到某个 NPC 面前（测试用，免得在软件渲染里计时走路）
   await boot(GAME + '&npc=innkeeper'); await shot('02b_innkeeper');
