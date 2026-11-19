@@ -31,8 +31,8 @@
   "file": "boss.png",
   "frames": 4,
   "fps": 6.0,
-  "w": 134,
-  "h": 126
+  "w": 148,
+  "h": 128
  },
  "mini_boss_1": {
   "file": "mini_boss_1.png",

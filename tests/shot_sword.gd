@@ -66,6 +66,11 @@ func _ready() -> void:
 			w._rebuild_grid()
 	await _frames(2)
 	_snap("s2_dugu_true")
+	main.state = main.State.PAUSED
+	main.hud.show_pause()
+	await _frames(3)
+	_snap("s4_pause")
+	main._on_pause_resume()
 	w.pending_levels = 1
 	main._check_pending()
 	await _frames(3)

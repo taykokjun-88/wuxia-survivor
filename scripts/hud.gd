@@ -14,6 +14,8 @@ signal feedback_submitted(type: String, comment: String)
 signal account_requested
 signal modal_closed
 signal loadout_cancelled
+signal pause_resume
+signal pause_abandon
 signal dialog_option(index: int)
 signal meta_open_requested
 signal meta_saved(alloc: Dictionary)
@@ -27,6 +29,9 @@ var canvas: Control
 var overlay: Control
 var overlay_title: Label
 var overlay_body: Label
+var pause_box: VBoxContainer         # 暂停菜单：继续 / 放弃本局
+var pause_confirm: HBoxContainer
+var pause_main: HBoxContainer
 var levelup_panel: Control
 var choice_title: Label
 var choice_buttons: Array[Button] = []
@@ -142,6 +147,33 @@ func _build_overlay() -> void:
 	box.add_child(overlay_title)
 	overlay_body = _label("", 22)
 	box.add_child(overlay_body)
+	pause_box = VBoxContainer.new()
+	pause_box.add_theme_constant_override("separation", 12)
+	pause_box.visible = false
+	box.add_child(pause_box)
+	pause_main = _center_row(16)
+	var resume := _button("继续  [Esc]", Vector2(220, 48), 20)
+	resume.pressed.connect(func(): pause_resume.emit())
+	var quit := _button("放弃本局", Vector2(220, 48), 20)
+	quit.pressed.connect(func():
+		pause_main.visible = false
+		pause_confirm.visible = true
+		overlay_body.text = "确定放弃？本局按阵亡结算（得分和修为照常计算），然后返回村子")
+	pause_main.add_child(resume)
+	pause_main.add_child(quit)
+	pause_box.add_child(pause_main)
+	pause_confirm = _center_row(16)
+	pause_confirm.visible = false
+	var yes := _button("确定放弃", Vector2(220, 48), 20)
+	yes.pressed.connect(func(): pause_abandon.emit())
+	var no := _button("再打一会儿", Vector2(220, 48), 20)
+	no.pressed.connect(func():
+		pause_confirm.visible = false
+		pause_main.visible = true
+		overlay_body.text = "按 Esc 继续")
+	pause_confirm.add_child(yes)
+	pause_confirm.add_child(no)
+	pause_box.add_child(pause_confirm)
 
 
 func _build_levelup() -> void:
@@ -1433,6 +1465,9 @@ func show_town_hud(on: bool) -> void:
 func show_pause() -> void:
 	overlay_title.text = "暂停"
 	overlay_body.text = "按 Esc 继续"
+	pause_box.visible = true
+	pause_main.visible = true
+	pause_confirm.visible = false
 	overlay.visible = true
 
 
@@ -1457,6 +1492,8 @@ func set_end_extra(extra: String) -> void:
 
 func hide_overlay() -> void:
 	overlay.visible = false
+	if pause_box:
+		pause_box.visible = false
 
 
 func show_choices(choices: Array, title: String) -> void:

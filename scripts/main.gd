@@ -44,6 +44,8 @@ func _ready() -> void:
 	hud.modal_closed.connect(_close_modal)
 	hud.dialog_option.connect(_on_dialog_option)
 	hud.loadout_cancelled.connect(_on_loadout_cancel)
+	hud.pause_resume.connect(_on_pause_resume)
+	hud.pause_abandon.connect(_on_pause_abandon)
 	hud.meta_open_requested.connect(_open_meta)
 	hud.meta_saved.connect(_on_meta_saved)
 	hud.talents_open_requested.connect(_open_talents)
@@ -328,6 +330,22 @@ func _on_choice(i: int) -> void:
 # ---------------------------------------------------------------------
 # 结算与成绩上传
 # ---------------------------------------------------------------------
+
+func _on_pause_resume() -> void:
+	if state == State.PAUSED:
+		state = State.PLAY
+		hud.hide_overlay()
+
+
+## 放弃本局：按阵亡结算（成绩 / 修为照常），再从结算界面回村
+func _on_pause_abandon() -> void:
+	if state != State.PAUSED:
+		return
+	hud.hide_overlay()
+	world.over = true
+	world.won = false
+	_on_end(false)
+
 
 func _on_end(won: bool) -> void:
 	state = State.END
