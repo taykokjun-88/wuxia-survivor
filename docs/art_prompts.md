@@ -71,6 +71,8 @@ jade-green energy with gold edges, subtle looping flicker between frames so it l
 
 ## 二、天赋经脉图
 
+> **状态：背景图 `assets/ui/meridian_bg.jpg` 和穴位图标 `assets/ui/talent/` 已完成并接入**（穴位坐标已按这张图重新对齐）。下面的提示词留作记录；`meridian_layout_guide.png` 是旧版式参考，已不再对应当前坐标。
+
 天赋树现在是「六脉」经脉图：**刚**走双臂（撼岳脉 / 裂石脉），**柔**走躯干中线（守一脉 / 抱元脉），**灵**走双腿（踏云脉 / 追风脉），每条脉 7 个穴位，从丹田向外延伸。
 穴位的圆点、连线、数字都是游戏自己画的，所以**背景图里不要画穴位圆点、连线和文字**，只要人体和氛围。
 

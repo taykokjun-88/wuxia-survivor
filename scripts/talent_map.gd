@@ -3,13 +3,13 @@ extends Control
 ## 天赋树的经脉图：人体剪影上六条经脉（刚：双臂两脉，柔：躯干两脉，灵：双腿两脉），
 ## 每条脉 7 个穴位（= 7 层，由丹田向外）。左键加点、右键减点。
 ##
-## 美术：assets/ui/meridian_bg.png（人体经络背景，可选）与 assets/ui/talent/node_{locked,open,ranked,maxed}.png（穴位图标，可选）。
+## 美术：assets/ui/meridian_bg.png 或 .jpg（人体经络背景，可选）与 assets/ui/talent/node_{locked,open,ranked,maxed}.png（穴位图标，可选）。
 ## 没有素材时用程序绘制的占位图。穴位坐标在 data/game_data.json 的 talents.map。
 
 signal changed
 signal hovered(node_id: String)
 
-const BG_PATH := "res://assets/ui/meridian_bg.png"
+const BG_PATHS := ["res://assets/ui/meridian_bg.png", "res://assets/ui/meridian_bg.jpg"]
 const ICON_DIR := "res://assets/ui/talent/"
 const NODE_R := 14.0
 
@@ -28,13 +28,16 @@ var time_acc := 0.0
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_build_layout()
-	if ResourceLoader.exists(BG_PATH):
-		bg = load(BG_PATH)
+	for bp in BG_PATHS:
+		if ResourceLoader.exists(bp):
+			bg = load(bp)
+			break
 	for k in ["locked", "open", "ranked", "maxed"]:
 		var path := ICON_DIR + "node_%s.png" % k
 		if ResourceLoader.exists(path):
 			icons[k] = load(path)
-	custom_minimum_size = fig_size() * fig_scale
+	if custom_minimum_size == Vector2.ZERO:
+		custom_minimum_size = fig_size() * fig_scale
 
 
 func fig_size() -> Vector2:

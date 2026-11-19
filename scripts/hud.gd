@@ -820,7 +820,7 @@ func _build_talents() -> void:
 	var tmap := TalentMap.new()
 	tmap.work = talents_work
 	tmap.level = level
-	tmap.custom_minimum_size = Vector2(405, 644)
+	tmap.custom_minimum_size = Vector2(430, 641)
 	hb.add_child(tmap)
 	talents_map = tmap
 	var right := VBoxContainer.new()
