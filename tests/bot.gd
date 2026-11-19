@@ -101,6 +101,10 @@ static func score_card(w: GameWorld, c: Dictionary) -> float:
 			return 6.0
 		"enhance":
 			return 10.0
+		"shi_new":
+			return 12.0
+		"shi_up":
+			return 9.0 + float(c["gain"])
 	return 1.0
 
 

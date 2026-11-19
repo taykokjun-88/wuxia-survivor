@@ -46,6 +46,8 @@ var starter_id := "chain_fist"
 var reward_comp := 1.0              # 综合难度（1.0 ~ 3.0），决定经验 / 修为 / 装备奖励
 var difficulty := {"count": 1.0, "hp": 1.0, "speed": 1.0}   # 开局前选择的难度倍率（1.0 ~ 3.0）
 var map_id := "black_wind"       # 当前地图（见 data 的 maps）
+var shi: Dictionary = {}            # 独孤九剑：已领悟的「式」→ 层数（最多 4 种）
+var dugu_combo_log: Array = []     # 统计：真·独孤九剑的连击段数（测试用）
 var school_id := "fist"           # 创建角色时选定，决定可学的招式池
 var qinggong_id := "tashue"
 var qg: Dictionary = {}
@@ -155,6 +157,8 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	map_id = p_map
 	set_difficulty(p_diff)
 	starter_id = p_starter
+	shi.clear()
+	dugu_combo_log.clear()
 	qinggong_id = p_qinggong
 	qg = Data.qinggong[qinggong_id]
 	skills.clear()
@@ -226,7 +230,7 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 # =====================================================================
 
 func add_skill(id: String) -> void:
-	var s := FistSkills.create(id)
+	var s: SkillBase = SwordSkills.create(id) if str(Data.skills[id]["school"]) == "sword" else FistSkills.create(id)
 	s.setup(self, id, Data.skills[id])
 	var tm: Dictionary = talent_skill_mods.get(id, {})
 	for k in tm:
@@ -422,7 +426,7 @@ func _update_player(dt: float) -> void:
 	if move.length() > 0.1:
 		facing = move.normalized()
 
-	if input_dash and dash_t <= 0.0 and dash_charges > 0 and neili >= float(qg["cost"]):
+	if input_dash and not dash_sealed() and dash_t <= 0.0 and dash_charges > 0 and neili >= float(qg["cost"]):
 		_start_dash(move, max_charges)
 	input_dash = false
 
@@ -785,6 +789,23 @@ func _update_enemies(dt: float) -> void:
 		e.flash = maxf(0.0, e.flash - dt)
 		e.slow_t = maxf(0.0, e.slow_t - dt)
 		e.weak_fx = maxf(0.0, e.weak_fx - dt)
+		e.vuln_t = maxf(0.0, e.vuln_t - dt)
+		if e.poison_t > 0.0:
+			e.poison_t -= dt
+			e.poison_acc += dt
+			if e.poison_acc >= 0.5:
+				var pd := e.poison_dps * e.poison_acc
+				e.poison_acc = 0.0
+				e.hp -= pd
+				e.flash = 0.05
+				skill_dmg["jinshe"] = float(skill_dmg.get("jinshe", 0.0)) + pd
+				if effects.size() < MAX_EFFECTS / 2:
+					add_fx("text", e.pos + Vector2(rng.randf_range(-8, 8), -e.radius), 0.45, {"text": str(int(pd)), "size": 13, "color": Color("#5a8a2a")})
+				if e.hp <= 0.0:
+					_kill(e)
+					continue
+			if e.poison_t <= 0.0:
+				e.poison_dps = 0.0
 		if e.is_boss:
 			if e.weak_t > 0.0:
 				e.weak_t -= dt
@@ -957,6 +978,9 @@ func _kill(e: Enemy) -> void:
 		add_fx("splat", e.pos, 0.35, {"r": e.radius * 1.4, "color": e.color, "vfx": "death_puff", "size": e.radius * 4.0})
 	else:
 		add_fx("splat", e.pos, 0.6, {"r": e.radius * 1.4, "color": e.color})
+	if e.poison_burst > 0.0 and e.poison_dps > 0.0:
+		area_hit_raw(e.pos, e.poison_burst, e.poison_dps * 3.0, ["控制", "范围"], "jinshe")
+		add_fx("ring", e.pos, 0.4, {"r0": 8.0, "r1": e.poison_burst, "color": Color("#5a8a2a")})
 	if e.chain:
 		_chain_explode(e)
 	if e.is_elite:
@@ -1020,6 +1044,14 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 		m += float(tag_bonus.get(tg, 0.0))
 	m *= dmg_mult() * (1.0 + st("damage_pct"))
 	var sk: SkillBase = skills.get(sid)
+	if e.vuln_t > 0.0:
+		m *= 1.0 + e.vuln
+	if sid == "dugu":
+		var qi := int(shi.get("po_qi", 0))
+		if qi > 0:
+			if e.is_boss:
+				m *= 1.0 + 0.1 * qi
+			neili = minf(st("max_neili"), neili + 0.3 * qi)
 	var crit_p := st("crit_chance") + (float(sk.mods["crit"]) if sk != null else 0.0)
 	# 破绽联动：被定身 / 减速的敌人，特定标签的招式有额外效果
 	var weak_hit := false
@@ -1136,6 +1168,11 @@ func spawn_proj(s: SkillBase, angle: float, o: Dictionary = {}) -> Projectile:
 	pr.splash_frac = float(o.get("splash_frac", s.def.get("splash_frac", 0.0)))
 	pr.falloff = float(o.get("falloff", s.def.get("falloff", 1.0)))
 	pr.stun_chance = float(o.get("stun_chance", s.def.get("stun_chance", 1.0)))
+	pr.bounce = int(o.get("bounce", 0))
+	pr.bounce_dmg = float(o.get("bounce_dmg", 0.5))
+	pr.pierce_reset = int(o.get("pierce_reset", maxi(1, pr.pierce)))
+	pr.poison = float(o.get("poison", 0.0))
+	pr.vuln = float(o.get("vuln", 0.0))
 	pr.empowered = s.empowered
 	projs.append(pr)
 	return pr
@@ -1209,11 +1246,15 @@ func _update_projectiles(dt: float) -> void:
 						continue
 					if p.pos.distance_to(e.pos) < p.radius + e.radius:
 						p.hit[e.uid] = true
+						if p.vuln > 0.0:
+							apply_vuln(e, p.vuln, true)
 						_emp_ctx = 1 if p.empowered else 0
 						hit_enemy(e, p.damage, p.tags, p.vel.normalized() * p.knock, p.skill_id)
 						_emp_ctx = -1
 						if p.stun > 0.0 and (p.stun_chance >= 1.0 or rng.randf() < p.stun_chance):
 							stun_enemy(e, p.stun, p.chain)
+						if p.poison > 0.0:
+							poison_enemy(e, p.poison, p.skill_id)
 						if p.splash > 0.0:
 							_splash(e, p)
 						p.damage *= p.falloff
@@ -1221,6 +1262,18 @@ func _update_projectiles(dt: float) -> void:
 							_split(p)
 							p.split = 0
 						p.pierce -= 1
+						if p.pierce <= 0 and p.bounce > 0:
+							var nt := _nearest_from(p.pos, 300.0, p.hit)
+							if nt != null:
+								p.bounce -= 1
+								p.pierce = p.pierce_reset
+								p.damage *= p.bounce_dmg
+								p.vel = (nt.pos - p.pos).normalized() * p.speed
+								p.angle = p.vel.angle()
+								p.life = maxf(p.life, 0.5)
+								add_fx("ring", p.pos, 0.2, {"r0": 4.0, "r1": 26.0, "color": Color("#8ab4d8")})
+								break
+							p.bounce = 0
 						if p.pierce <= 0:
 							if p.boomerang and not p.returning:
 								p.life = 0.0   # 回旋：穿透耗尽时不消失，转为折返
@@ -1426,7 +1479,9 @@ func _update_chests() -> void:
 		if chests[i].distance_to(player_pos) < 30.0:
 			var at := chests[i]
 			chests.remove_at(i)
-			if enhance_id == "":
+			if skills.has("dugu"):
+				pending_chests += 1   # 独孤九剑：秘籍直接换成「+3 层」的式
+			elif enhance_id == "":
 				if pending_chests == 0:
 					pending_chests += 1
 				else:
@@ -1452,6 +1507,10 @@ func _enhance_upgraded(at: Vector2) -> void:
 
 
 func roll_chest_choices() -> Array:
+	if skills.has("dugu"):
+		var sc := shi_cards(3, int(Data.T("shi_chest_gain")), "chest")
+		if not sc.is_empty():
+			return sc
 	var ids: Array = skills.keys()
 	_shuffle(ids)
 	var out: Array = []
@@ -1470,10 +1529,12 @@ func roll_chest_choices() -> Array:
 ## 升级三选一：已有技能/心法的升级，以及槽位未满时的新技能/新心法。
 func roll_choices(n: int = 3) -> Array:
 	var pool: Array = []
+	var dugu_route := skills.has("dugu")
+	var shi_pool: Array = shi_cards(2, int(Data.T("shi_card_gain")), "level") if dugu_route else []
 	# 已有技能：每个技能给 2 张升级卡（不同方向，档位随机）
 	for id in skills:
 		var s: SkillBase = skills[id]
-		if s.upgrades.size() >= Data.max_upgrades:
+		if dugu_route or s.upgrades.size() >= Data.max_upgrades:
 			continue
 		var dirs := s.available_dirs()
 		_shuffle(dirs)
@@ -1487,7 +1548,7 @@ func roll_choices(n: int = 3) -> Array:
 			})
 	for id in Data.skills:
 		var def: Dictionary = Data.skills[id]
-		if skills.has(id) or str(def["school"]) != school_id:
+		if dugu_route or skills.has(id) or str(def["school"]) != school_id:
 			continue
 		if skills.size() < MAX_SKILLS:
 			pool.append({
@@ -1511,7 +1572,7 @@ func roll_choices(n: int = 3) -> Array:
 				"desc": str(def2["desc"]) + _synergy_hint(id),
 			})
 	_shuffle(pool)
-	var out: Array = []
+	var out: Array = shi_pool.duplicate()    # 独孤九剑：每次至少两张「式」
 	while out.size() < n and not pool.is_empty():
 		out.append(pool.pop_back())
 	if out.is_empty():
@@ -1537,6 +1598,8 @@ func apply_choice(c: Dictionary) -> void:
 		"up_skill":
 			var s: SkillBase = skills[id]
 			s.add_upgrade(str(c["dir"]), int(c["tier"]))
+		"shi_new", "shi_up":
+			add_shi(id, int(c["gain"]))
 		"new_xinfa":
 			xinfa[id] = 1
 		"up_xinfa":
@@ -1829,6 +1892,9 @@ func _draw_proj(p: Projectile) -> void:
 			for k in 3:
 				var off := p.pos - dir * (k * 14.0)
 				draw_arc(off, p.radius, p.angle - 1.0, p.angle + 1.0, 18, Color(INK, 0.55 - k * 0.17), 6.0 - k * 1.5)
+		"sword":
+			draw_line(p.pos - dir * 30.0, p.pos, Color("#8ab4d8", 0.55), 3.0)
+			draw_line(p.pos - dir * 12.0, p.pos + dir * 8.0, Color("#eaf4ff"), 2.5)
 		"finger":
 			draw_line(p.pos - dir * 26.0, p.pos, Color(GOLD, 0.6), 3.0)
 			draw_circle(p.pos, p.radius * 0.7, GOLD)
@@ -1957,3 +2023,103 @@ func _draw_effects() -> void:
 				var wdt := (16.0 if fx["heavy"] else 10.0) * a + 2.0
 				draw_arc(at, rr * 0.7, ang - arc * 0.5, ang + arc * 0.5, 16, Color(INK, a * 0.7), wdt)
 				draw_arc(at, rr * 0.9, ang - arc * 0.4, ang + arc * 0.4, 16, Color(1, 1, 1, a * 0.6), wdt * 0.4)
+
+
+# =====================================================================
+# 剑客：破绽 / 中毒 / 独孤九剑「式」
+# =====================================================================
+
+## 破绽：受到的伤害额外 +v，持续 t 秒；spread 时顺带让附近一名敌人也露出破绽（万法皆破）
+func apply_vuln(e: Enemy, v: float, spread: bool = false) -> void:
+	var t := Data.T("dugu_vuln_t")
+	if e.vuln_t <= 0.0 and e.weak_fx <= 0.0 and effects.size() < MAX_EFFECTS:
+		e.weak_fx = 0.8
+		add_fx("text", e.pos + Vector2(0, -e.radius - 14), 0.6, {"text": "破绽", "size": 16, "color": JADE})
+	e.vuln = maxf(e.vuln if e.vuln_t > 0.0 else 0.0, v)
+	e.vuln_t = t
+	if spread:
+		var nb := _nearest_from(e.pos, 170.0, {e.uid: true})
+		if nb != null:
+			nb.vuln = maxf(nb.vuln if nb.vuln_t > 0.0 else 0.0, v)
+			nb.vuln_t = t
+
+
+## 中毒：每次命中叠加 dps（最多 6 层，每层 = dps），重置持续时间
+func poison_enemy(e: Enemy, dps: float, sid: String) -> void:
+	var sk: SkillBase = skills.get(sid)
+	var mult := 2.0 if (sk != null and sk.empowered) else 1.0
+	e.poison_dps = minf(dps * 6.0 * mult, e.poison_dps + dps * mult)
+	e.poison_t = 4.0
+	if sk != null and sk.enhanced():
+		e.poison_burst = sk.ev(80.0, 100.0, 120.0)
+
+
+func shi_total() -> int:
+	var t := 0
+	for k in shi:
+		t += int(shi[k])
+	return t
+
+
+## 独孤九剑形态：0 = 没走独孤路线；1 = 起手；2 = 万法皆破（总层 > 20）；3 = 真·独孤九剑（总层 > 30）
+func dugu_stage() -> int:
+	if not skills.has("dugu"):
+		return 0
+	var t := shi_total()
+	if t > int(Data.T("shi_stage3")):
+		return 3
+	return 2 if t > int(Data.T("shi_stage2")) else 1
+
+
+func dugu_true() -> bool:
+	return dugu_stage() == 3
+
+
+## 真·独孤九剑封印轻功
+func dash_sealed() -> bool:
+	return dugu_true()
+
+
+func shi_name(id: String) -> String:
+	for d in Data.shi:
+		if str(d["id"]) == id:
+			return str(d["name"])
+	return id
+
+
+## 领悟 / 提升一式；返回实际增加的层数
+func add_shi(id: String, n: int) -> int:
+	var cap := int(Data.T("shi_lv_max"))
+	if not shi.has(id) and shi.size() >= int(Data.T("shi_kinds")):
+		return 0
+	var old_stage := dugu_stage()
+	var old := int(shi.get(id, 0))
+	shi[id] = mini(cap, old + n)
+	var stage := dugu_stage()
+	if stage > old_stage and stage >= 2:
+		var txt := "万法皆破" if stage == 2 else "九剑真传 · 真·独孤九剑"
+		add_fx("text", player_pos + Vector2(0, -60), 2.4, {"text": txt, "size": 30, "color": VERMILION})
+		add_fx("ring", player_pos, 0.9, {"r0": 10.0, "r1": 260.0, "color": GOLD})
+		shake = maxf(shake, 8.0)
+	return int(shi[id]) - old
+
+
+## 独孤九剑的「式」卡牌：已学的提升、新式（总共最多 4 种）。gain：本次领悟的层数
+func shi_cards(n: int, gain: int, src: String) -> Array:
+	var pool: Array = []
+	var cap := int(Data.T("shi_lv_max"))
+	for d in Data.shi:
+		var id := str(d["id"])
+		var lv := int(shi.get(id, 0))
+		if lv > 0:
+			if lv < cap:
+				pool.append({"kind": "shi_up", "id": id, "gain": gain, "tag": "式", "src": src,
+					"title": "%s Lv%d→%d" % [d["name"], lv, mini(cap, lv + gain)], "desc": str(d["desc"])})
+		elif shi.size() < int(Data.T("shi_kinds")):
+			pool.append({"kind": "shi_new", "id": id, "gain": gain, "tag": "新式", "src": src,
+				"title": "领悟：%s" % d["name"], "desc": str(d["desc"])})
+	_shuffle(pool)
+	var out: Array = []
+	while out.size() < n and not pool.is_empty():
+		out.append(pool.pop_back())
+	return out

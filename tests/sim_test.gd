@@ -31,6 +31,8 @@ func _ready() -> void:
 		_cd_sweep_test()
 		_difficulty_test()
 		_difficulty_reward_test()
+		_sword_test()
+		_dugu_test()
 		await _town_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
@@ -44,6 +46,8 @@ func _ready() -> void:
 		_levels_report()
 	if only == "survive":
 		_survive_report()
+	if only == "dugu":
+		_dugu_report()
 	print("\nRESULT: %s" % ("FAIL (%d)" % failures if failures > 0 else "OK"))
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -105,6 +109,36 @@ func _levels_report() -> void:
 	print("  平均等级 %.1f" % (float(sum) / n))
 
 
+## 独孤九剑：会选卡的 bot 多个种子，看总层数何时越过 20 / 30（不无敌 + 无敌各一组）
+func _dugu_report() -> void:
+	print("\n=== 独孤九剑 · 总层数进度（会选卡 bot）===")
+	for god in [true, false]:
+		for sd in [31, 32, 33, 34]:
+			var w := GameWorld.new()
+			w.god = god
+			w.rng_seed = sd
+			add_child(w)
+			w.start_run("dugu", "tashue")
+			var pick_rng := RandomNumberGenerator.new()
+			pick_rng.seed = sd
+			var t20 := -1.0
+			var t30 := -1.0
+			for i in int(900.0 / DT):
+				TestBot.drive(w, TestBot.engage_for(w))
+				w.step(DT)
+				TestBot.resolve_choices(w, pick_rng, true)
+				if t20 < 0.0 and w.shi_total() > 20:
+					t20 = w.time
+				if t30 < 0.0 and w.shi_total() > 30:
+					t30 = w.time
+				if w.over:
+					break
+			print("  %s 种子 %d：%s @ %ds  Lv%d  总层 %d（>20 @ %ds, >30 @ %ds）  式=%s  连击=%s" % [
+				"无敌" if god else "不无敌", sd, "通关" if w.won else ("阵亡" if w.over else "存活"), int(w.time), w.level,
+				w.shi_total(), int(t20), int(t30), str(w.shi), str(w.dugu_combo_log.size())])
+			_free_world(w)
+
+
 func _run_full() -> void:
 	_full_run({"name": "完整局·无敌 + 会选卡（压测 + 3 小 Boss + 大 Boss + 精英/秘籍）", "god": true, "smart": true,
 		"seed": 1, "dur": 900.0, "starter": "chain_fist", "qg": "tashue"})
@@ -112,6 +146,192 @@ func _run_full() -> void:
 		"seed": 2, "dur": 900.0, "starter": "cloud_palm", "qg": "feiyan"})
 	_full_run({"name": "完整局·纯随机选卡的新手（不无敌，难度下限）", "god": false, "smart": false,
 		"seed": 3, "dur": 900.0, "starter": "point_finger", "qg": "yufeng"})
+
+
+# ---------------------------------------------------------------------
+# 剑客
+# ---------------------------------------------------------------------
+
+func _sword_test() -> void:
+	print("\n=== 剑客：流派 / 招式池 / 剑客专属机制 ===")
+	_check(bool(Data.schools["sword"]["enabled"]), "剑客流派应已开放")
+	var pool := 0
+	for id in Data.skills:
+		if str(Data.skills[id]["school"]) == "sword":
+			pool += 1
+	_check(pool == 10, "剑客应有 9 个招式 + 独孤九剑，实际 %d" % pool)
+	for sid in Data.schools["sword"]["starters"]:
+		_check(Data.skills.has(sid) and str(Data.skills[sid]["school"]) == "sword", "剑客起手招式有效: %s" % sid)
+	# 选卡池只出本流派招式
+	var w := _new_world(5, "kuang_feng")
+	_check(w.school_id == "sword", "起手剑客招式 → 流派 sword")
+	for i in 40:
+		for c in w.roll_choices(3):
+			if str(c["kind"]) == "new_skill":
+				_check(str(Data.skills[c["id"]]["school"]) == "sword", "不应出现其他流派招式: %s" % c["id"])
+	# 破绽：受伤加成
+	w.time = 120.0
+	var e := w._spawn_enemy("bandit", w.player_pos + Vector2(200, 0))
+	e.hp = 1e6
+	e.max_hp = 1e6
+	var h0 := e.hp
+	w.hit_enemy(e, 100.0, [], Vector2.ZERO, "x", false)
+	var plain := h0 - e.hp
+	h0 = e.hp
+	w.apply_vuln(e, 0.5)
+	w.hit_enemy(e, 100.0, [], Vector2.ZERO, "x", false)
+	var with_v := h0 - e.hp
+	_check(absf(with_v / maxf(0.01, plain) - 1.5) < 0.2, "破绽 +50%% 伤害（实际 ×%.2f）" % (with_v / maxf(0.01, plain)))
+	e.vuln_t = 0.0
+	# 中毒：层数叠加并持续掉血
+	var e2 := w._spawn_enemy("bandit", w.player_pos + Vector2(300, 0))
+	e2.hp = 1e6
+	e2.max_hp = 1e6
+	w.poison_enemy(e2, 8.0, "jinshe")
+	w.poison_enemy(e2, 8.0, "jinshe")
+	_check(is_equal_approx(e2.poison_dps, 16.0), "毒层叠加 16/s，实际 %.1f" % e2.poison_dps)
+	var hp0 := e2.hp
+	for i in 120:
+		w._update_enemies(DT)
+	_check(hp0 - e2.hp > 20.0, "中毒 2 秒应掉血 > 20，实际 %.1f" % (hp0 - e2.hp))
+	_free_world(w)
+
+
+func _dugu_test() -> void:
+	print("\n=== 独孤九剑：式 / 叠加 / 阶段 / 真·独孤九剑 ===")
+	var w := _new_world(7, "dugu")
+	_check(w.school_id == "sword" and w.skills.size() == 1 and w.skills.has("dugu"), "独孤九剑起手：只有独孤九剑")
+	# 升级卡：只出「式」，不出别的招式 / 招式升级
+	for i in 30:
+		var ch := w.roll_choices(3)
+		var shi_n := 0
+		for c in ch:
+			var k := str(c["kind"])
+			_check(k != "new_skill" and k != "up_skill", "独孤路线不应出招式卡（%s）" % k)
+			if k == "shi_new" or k == "shi_up":
+				shi_n += 1
+		_check(shi_n >= 2, "每次至少 2 张「式」卡")
+	# 最多 4 种
+	for id in ["po_jian", "po_dao", "po_bian", "zong"]:
+		w.add_shi(id, 1)
+	_check(w.shi.size() == 4, "已学 4 式")
+	_check(w.add_shi("po_qi", 2) == 0 and not w.shi.has("po_qi"), "第 5 种式不能学")
+	for c in w.roll_choices(3):
+		_check(str(c["kind"]) != "shi_new", "满 4 式后不再出新式卡")
+	# 每式上限 10
+	w.add_shi("po_jian", 99)
+	_check(int(w.shi["po_jian"]) == 10, "单式封顶 10 层")
+	# 阶段
+	w.shi = {"po_jian": 10, "po_dao": 10}
+	_check(w.dugu_stage() == 1 and not w.dugu_true(), "总层 20：仍是起手阶段")
+	w.add_shi("po_dao", 0)
+	w.shi["zong"] = 1
+	_check(w.dugu_stage() == 2, "总层 21 → 万法皆破")
+	w.shi["zong"] = 11
+	_check(w.dugu_stage() == 3 and w.dugu_true() and w.dash_sealed(), "总层 > 30 → 真·独孤九剑，轻功封印")
+	# 秘籍：+3 层的式
+	w.shi = {"po_jian": 2}
+	var cc := w.roll_chest_choices()
+	_check(not cc.is_empty() and str(cc[0]["kind"]).begins_with("shi_") and int(cc[0]["gain"]) == 3, "独孤路线的秘籍 = +3 层的式")
+	w.pending_chests = 1
+	w.apply_choice(cc[0])
+	_check(w.pending_chests == 0 and w.shi_total() >= 5, "秘籍选完 +3 层")
+	_free_world(w)
+
+	# ---- 叠加：穿透 + 弹射同时生效 ----
+	var w2 := _new_world(8, "dugu")
+	w2.time = 120.0
+	w2.shi = {"po_dao": 2, "po_bian": 3}    # 穿透 +1（共 3），弹射 1 次
+	var sk: SkillBase = w2.skills["dugu"]
+	sk.refresh()
+	var line: Array[Enemy] = []
+	for i in 3:
+		var en := w2._spawn_enemy("bandit", w2.player_pos + Vector2(150.0 + 40.0 * i, 0))
+		en.uid = 9000 + i
+		en.hp = 1e6
+		en.max_hp = 1e6
+		en.speed = 0.0
+		line.append(en)
+	var off := w2._spawn_enemy("bandit", w2.player_pos + Vector2(270.0, 170.0))
+	off.uid = 9100
+	off.hp = 1e6
+	off.max_hp = 1e6
+	off.speed = 0.0
+	w2._rebuild_grid()
+	var hp_off := off.hp
+	sk.cd = 0.0
+	w2.step(DT)
+	for i in 120:
+		w2._rebuild_grid()
+		w2.step(DT)
+	_check(line[0].hp < line[0].max_hp and line[2].hp < line[2].max_hp, "穿透：一剑穿过三名敌人")
+	_check(off.hp < hp_off, "弹射：穿透耗尽后转向旁边的敌人（穿透 + 弹射同时生效）")
+	_free_world(w2)
+
+	# ---- 万法皆破：命中令敌人露出破绽并蔓延 ----
+	var w3 := _new_world(9, "dugu")
+	w3.time = 120.0
+	w3.shi = {"zong": 21}
+	var a := w3._spawn_enemy("bandit", w3.player_pos + Vector2(200, 0))
+	var b := w3._spawn_enemy("bandit", w3.player_pos + Vector2(260, 40))
+	for en2 in [a, b]:
+		en2.hp = 1e6
+		en2.max_hp = 1e6
+		en2.speed = 0.0
+	w3._rebuild_grid()
+	w3.skills["dugu"].cd = 0.0
+	for i in 90:
+		w3._rebuild_grid()
+		w3.step(DT)
+	_check(a.vuln_t > 0.0 or b.vuln_t > 0.0, "万法皆破：命中使敌人露出破绽")
+	_check(a.vuln_t > 0.0 and b.vuln_t > 0.0, "万法皆破：破绽蔓延到附近敌人")
+	_free_world(w3)
+
+	# ---- 真·独孤九剑 ----
+	var w4 := _new_world(10, "dugu")
+	w4.time = 120.0
+	w4.shi = {"zong": 10, "po_jian": 10, "po_dao": 6, "po_bian": 6}
+	_check(w4.dugu_true(), "真·独孤九剑已觉醒")
+	var dsk: SkillBase = w4.skills["dugu"]
+	var pop := 0
+	for i in 40:
+		var en3 := w4._spawn_enemy("bandit", w4.player_pos + Vector2(250 + 10 * i, (i % 5) * 20.0))
+		en3.speed = 0.0
+		en3.hp = 1e5
+		en3.max_hp = 1e5
+	w4._rebuild_grid()
+	var p0 := w4.player_pos
+	w4.input_dash = true
+	var dc0 := w4.dash_count
+	for i in 60 * 40:
+		w4._rebuild_grid()
+		w4.step(DT)
+		w4.input_move = Vector2.ZERO
+		if i % 120 == 0:
+			for en4 in w4.enemies:
+				if en4.alive:
+					en4.hp = 1e5
+	_check(w4.dash_count == dc0, "真·独孤九剑：轻功被封印（冲刺次数不变）")
+	_check(w4.player_pos.distance_to(p0) > 100.0, "真·独孤九剑：闪现到敌人身边")
+	for fx in w4.effects:
+		if str(fx["kind"]) == "text" and str(fx.get("text", "")).begins_with("破") and str(fx.get("text", "")).ends_with("式"):
+			pop += 1
+	var log: Array = w4.dugu_combo_log
+	var c1 := log.count(1)
+	var c2 := log.count(2)
+	var c4 := log.count(4)
+	var c9 := log.count(9)
+	print("  40 秒出手 %d 次：单 %d / 2连 %d / 4连 %d / 9连 %d；当前飘字 %d" % [log.size(), c1, c2, c4, c9, pop])
+	_check(log.size() >= 40, "真形态攻速快：40 秒应出手 ≥ 40 次，实际 %d" % log.size())
+	_check(c2 > 0 and c4 > 0, "连击：2 连 / 4 连都应出现")
+	_check(c1 > c2 and c2 > c4, "连击几率递减：单 > 2 连 > 4 连")
+	_check(float(w4.skill_dmg.get("dugu", 0.0)) > 40000.0, "真形态输出应很高，实际 %d" % int(float(w4.skill_dmg.get("dugu", 0.0))))
+	var any_vuln := false
+	for en5 in w4.enemies:
+		if en5.alive and en5.vuln_t > 0.0:
+			any_vuln = true
+	_check(any_vuln, "真形态命中必破绽")
+	_free_world(w4)
 
 
 func _check(cond: bool, msg: String) -> void:
@@ -388,7 +608,7 @@ func _save_test() -> void:
 	sv2.load_data()
 	_check(sv2.has_character() and sv2.school() == "fist", "创建角色后应能从存档读回流派")
 	# 未开放的流派 / 不存在的流派 视为没有角色
-	for bad in ["sword", "nonexistent"]:
+	for bad in ["blade", "nonexistent"]:
 		var f := FileAccess.open(path, FileAccess.WRITE)
 		f.store_string(JSON.stringify({"school": bad}))
 		f.close()

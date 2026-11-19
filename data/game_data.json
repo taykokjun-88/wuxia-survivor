@@ -95,7 +95,22 @@
     "yang_reflect": 0.3,
     "absorb_chance": 0.01,
     "absorb_vacuum_time": 3.0,
-    "absorb_min_gap": 25.0
+    "absorb_min_gap": 25.0,
+    "shi_kinds": 4,
+    "shi_lv_max": 10,
+    "shi_card_gain": 2,
+    "shi_chest_gain": 3,
+    "shi_stage2": 20,
+    "shi_stage3": 30,
+    "dugu_true_cd": 0.42,
+    "dugu_flash_range": 400,
+    "dugu_vuln2": 0.35,
+    "dugu_vuln3": 0.6,
+    "dugu_vuln_t": 3.0,
+    "dugu_combo9": 0.06,
+    "dugu_combo4": 0.18,
+    "dugu_combo2": 0.36,
+    "dugu_true_mult": 1.0
   },
   "skills": {
     "yue_palm": {
@@ -392,6 +407,326 @@
       ],
       "empower_cost": 12,
       "empower": "反击不进冷却，反击伤害大增"
+    },
+    "kuang_feng": {
+      "name": "狂风快剑",
+      "school": "sword",
+      "tags": [
+        "近战",
+        "连击"
+      ],
+      "desc": "近身快剑，出手极快，容易连击；每第四剑掀起一道剑风",
+      "damage": 14,
+      "cooldown": 0.5,
+      "reach": 70,
+      "arc": 1.7,
+      "echo_base": 0.2,
+      "crit_base": 0.08,
+      "enhance": {
+        "name": "风卷残云",
+        "desc": "第四剑的剑风变成贯穿的风刃，并回复少量气血",
+        "up": "Lv2/3：风刃更大、伤害更高"
+      },
+      "map": {
+        "range": [
+          "reach"
+        ],
+        "duration": [],
+        "targets": ""
+      },
+      "anim": "slash",
+      "empower_cost": 6,
+      "empower": "每剑额外一次斩击"
+    },
+    "liumai": {
+      "name": "六脉神剑",
+      "school": "sword",
+      "tags": [
+        "远程",
+        "贯穿"
+      ],
+      "desc": "指间射出无形剑气：多道剑气依次射向最近的敌人，贯穿",
+      "proj_kind": "sword",
+      "damage": 20,
+      "cooldown": 1.1,
+      "pierce": 2,
+      "count": 2,
+      "radius": 9,
+      "speed": 640,
+      "life": 0.8,
+      "knock": 60,
+      "falloff": 0.9,
+      "enhance": {
+        "name": "六脉齐发",
+        "desc": "同时射出六道剑气，呈扇形展开",
+        "up": "Lv2/3：剑气数量与伤害提高"
+      },
+      "map": {
+        "range": [
+          "radius"
+        ],
+        "duration": [
+          "life"
+        ],
+        "targets": "count"
+      },
+      "anim": "thrust",
+      "empower_cost": 8,
+      "empower": "剑气数量 +2"
+    },
+    "zhongjian": {
+      "name": "玄铁重剑",
+      "school": "sword",
+      "tags": [
+        "近战",
+        "蓄力",
+        "范围"
+      ],
+      "desc": "大巧不工：缓慢而沉重的一击，伤害极高、击退极强",
+      "damage": 58,
+      "cooldown": 1.7,
+      "reach": 82,
+      "arc": 2.0,
+      "knock": 420,
+      "enhance": {
+        "name": "无锋大巧",
+        "desc": "重击落地后震出一圈冲击波，并击晕周围敌人",
+        "up": "Lv2/3：冲击波范围与伤害提高"
+      },
+      "map": {
+        "range": [
+          "reach"
+        ],
+        "duration": [],
+        "targets": ""
+      },
+      "anim": "slash",
+      "empower_cost": 10,
+      "empower": "重击必暴击"
+    },
+    "taiji_sword": {
+      "name": "太极剑",
+      "school": "sword",
+      "tags": [
+        "范围",
+        "防御"
+      ],
+      "desc": "以柔克刚：周身划出圆弧，击退敌人并抹去范围内的敌方弹幕",
+      "damage": 22,
+      "cooldown": 1.6,
+      "radius": 110,
+      "knock": 220,
+      "enhance": {
+        "name": "四两拨千斤",
+        "desc": "抹去的敌方弹幕数量越多，这一剑越重",
+        "up": "Lv2/3：加成更高"
+      },
+      "map": {
+        "range": [
+          "radius"
+        ],
+        "duration": [],
+        "targets": ""
+      },
+      "anim": "slash",
+      "empower_cost": 6,
+      "empower": "范围 ×1.4"
+    },
+    "wanjian": {
+      "name": "万剑归宗",
+      "school": "sword",
+      "tags": [
+        "远程",
+        "范围",
+        "连击"
+      ],
+      "desc": "数柄飞剑环绕在身侧，随后一齐射向最近的敌人",
+      "proj_kind": "sword",
+      "damage": 15,
+      "cooldown": 2.0,
+      "pierce": 1,
+      "count": 5,
+      "radius": 9,
+      "speed": 520,
+      "life": 0.9,
+      "knock": 40,
+      "enhance": {
+        "name": "剑雨",
+        "desc": "飞剑射出后落地留下剑阵，持续切割敌人",
+        "up": "Lv2/3：剑阵更久、更痛"
+      },
+      "map": {
+        "range": [
+          "radius"
+        ],
+        "duration": [
+          "life"
+        ],
+        "targets": "count"
+      },
+      "anim": "thrust",
+      "empower_cost": 9,
+      "empower": "飞剑数量 +3"
+    },
+    "yunv": {
+      "name": "玉女素心剑",
+      "school": "sword",
+      "tags": [
+        "范围",
+        "近战"
+      ],
+      "desc": "素心一转：回身一圈剑光，命中回复气血",
+      "damage": 20,
+      "cooldown": 1.4,
+      "radius": 95,
+      "knock": 150,
+      "heal_hit": 1.5,
+      "enhance": {
+        "name": "双剑合璧",
+        "desc": "回身后再追加一圈更大的剑光",
+        "up": "Lv2/3：第二圈更强"
+      },
+      "map": {
+        "range": [
+          "radius"
+        ],
+        "duration": [],
+        "targets": ""
+      },
+      "anim": "slash",
+      "empower_cost": 7,
+      "empower": "回复翻倍"
+    },
+    "pixie": {
+      "name": "辟邪剑法",
+      "school": "sword",
+      "tags": [
+        "近战",
+        "连击"
+      ],
+      "desc": "身形诡异，瞬间穿到最近的敌人身边刺出一剑，出手无敌",
+      "damage": 30,
+      "cooldown": 1.5,
+      "reach": 70,
+      "arc": 1.0,
+      "crit_base": 0.2,
+      "range_tp": 340,
+      "enhance": {
+        "name": "欲练神功",
+        "desc": "闪现刺击后，对身后一定范围再补一击",
+        "up": "Lv2/3：补击范围与伤害提高"
+      },
+      "map": {
+        "range": [
+          "reach"
+        ],
+        "duration": [],
+        "targets": ""
+      },
+      "anim": "thrust",
+      "empower_cost": 7,
+      "empower": "必暴击"
+    },
+    "jinshe": {
+      "name": "金蛇剑法",
+      "school": "sword",
+      "tags": [
+        "控制",
+        "远程"
+      ],
+      "desc": "金蛇锥掷出，命中后敌人中毒，毒性逐层叠加",
+      "proj_kind": "sword",
+      "damage": 14,
+      "cooldown": 1.1,
+      "pierce": 2,
+      "count": 1,
+      "radius": 10,
+      "speed": 560,
+      "life": 0.9,
+      "knock": 40,
+      "poison": 8.0,
+      "enhance": {
+        "name": "蛇毒入髓",
+        "desc": "中毒敌人死亡时毒雾爆开，毒伤周围",
+        "up": "Lv2/3：毒更烈、毒雾更大"
+      },
+      "map": {
+        "range": [
+          "radius"
+        ],
+        "duration": [
+          "life"
+        ],
+        "targets": "count"
+      },
+      "anim": "thrust",
+      "empower_cost": 6,
+      "empower": "毒层 ×2"
+    },
+    "yitian": {
+      "name": "倚天剑法",
+      "school": "sword",
+      "tags": [
+        "近战",
+        "范围",
+        "贯穿"
+      ],
+      "desc": "倚天不出，谁与争锋：前方极宽的一道巨大剑光",
+      "damage": 34,
+      "cooldown": 1.3,
+      "reach": 120,
+      "arc": 2.8,
+      "knock": 200,
+      "enhance": {
+        "name": "屠龙之势",
+        "desc": "剑光外再斩出一道贯穿的剑气",
+        "up": "Lv2/3：剑气更远、更痛"
+      },
+      "map": {
+        "range": [
+          "reach"
+        ],
+        "duration": [],
+        "targets": ""
+      },
+      "anim": "slash",
+      "empower_cost": 9,
+      "empower": "范围 ×1.5"
+    },
+    "dugu": {
+      "name": "独孤九剑",
+      "school": "sword",
+      "tags": [
+        "远程",
+        "贯穿",
+        "追踪"
+      ],
+      "desc": "无招胜有招：起手很弱。只学「式」，不学别的招；最多领悟四式，总层数越高越强",
+      "proj_kind": "sword",
+      "damage": 40,
+      "cooldown": 0.7,
+      "pierce": 2,
+      "radius": 10,
+      "speed": 600,
+      "life": 0.8,
+      "knock": 50,
+      "enhance": {
+        "name": "九剑真传",
+        "desc": "总层数 >20：万法皆破；>30：真·独孤九剑",
+        "up": "见「式」"
+      },
+      "map": {
+        "range": [
+          "radius"
+        ],
+        "duration": [
+          "life"
+        ],
+        "targets": "pierce"
+      },
+      "anim": "thrust",
+      "empower_cost": 6,
+      "empower": "无"
     }
   },
   "xinfa": {
@@ -823,12 +1158,16 @@
       "sprite_dir": "res://assets/sprites/player"
     },
     "sword": {
-      "name": "剑",
-      "enabled": false,
-      "desc": "",
-      "starters": [],
-      "portrait": "",
-      "sprite_dir": ""
+      "name": "剑客",
+      "enabled": true,
+      "desc": "白衣青年，腰挂酒葫芦。剑走轻灵，招多而快；可走独孤九剑「破式」之路",
+      "starters": [
+        "kuang_feng",
+        "liumai",
+        "dugu"
+      ],
+      "portrait": "res://assets/portraits/fist_hero.jpg",
+      "sprite_dir": "res://assets/sprites/player"
     },
     "blade": {
       "name": "刀",
@@ -2086,6 +2425,10 @@
       {
         "title": "局外成长",
         "text": "每局结束获得「修为」，累积升级（满级 50）。每升一级得 3 个属性点和 1 个天赋点。\\n属性（武馆师父）：力道、身法、根骨、内息、福缘，每项最多 99 点，越往后每点效果越小；可以随时免费重置。\\n天赋（武馆师父 → 经脉图）：刚、柔、灵三系，每系两条经脉，从丹田向外一个个打通穴位；每层需要本系更低层投入足够点数。有些穴位强化具体招式，有些是内力属性的终极天赋。总点数有限，要取舍。\\n装备：击败大 Boss 掉落，只会是本流派的。装备有基础属性和特殊词条（强化某个招式或心法），在铁匠处穿戴。"
+      },
+      {
+        "title": "剑客与独孤九剑",
+        "text": "剑客：白衣青年，腰挂酒葫芦。招式多而轻快，起手可选狂风快剑、六脉神剑，或独孤九剑。\\n独孤九剑是特殊路线：整局不学其他招式，升级只出九种「式」（总诀 / 破剑 / 破刀 / 破枪 / 破鞭 / 破索 / 破掌 / 破箭 / 破气），最多领悟 4 种，每种最高 10 层。各式效果同时生效，例如破刀（穿透）加破鞭（弹射）：先穿过一排敌人，再弹到下一个。\\n每次升级 +2 层，小 Boss 的秘籍 +3 层。四式总层数 > 20：「万法皆破」，命中令敌人露出破绽并蔓延；> 30：「九剑真传」，变成真·独孤九剑：攻速更快，闪现连刺（轻功被封印），必破绽、必暴击，有几率 2 / 4 / 9 连击，敌人头上飘出「破X式」。\\n前期很弱，后期极强。"
       }
     ]
   },
@@ -2094,5 +2437,52 @@
     "exp_meta": 0.5,
     "drop_bonus": 1.0,
     "rarity_skew": 0.5
-  }
+  },
+  "shi": [
+    {
+      "id": "zong",
+      "name": "总诀式",
+      "desc": "伤害 +8%/层，暴击率 +2%/层"
+    },
+    {
+      "id": "po_jian",
+      "name": "破剑式",
+      "desc": "每 3 层多一柄剑（齐射），剑速 +4%/层"
+    },
+    {
+      "id": "po_dao",
+      "name": "破刀式",
+      "desc": "穿透 +1/2 层，剑气更粗"
+    },
+    {
+      "id": "po_qiang",
+      "name": "破枪式",
+      "desc": "飞行更快更远，伤害 +3%/层"
+    },
+    {
+      "id": "po_bian",
+      "name": "破鞭式",
+      "desc": "命中后弹射到另一名敌人（每 3 层一次），与穿透同时生效"
+    },
+    {
+      "id": "po_suo",
+      "name": "破索式",
+      "desc": "命中几率定身（8%+2%/层），并减速"
+    },
+    {
+      "id": "po_zhang",
+      "name": "破掌式",
+      "desc": "命中时爆开一圈范围伤害"
+    },
+    {
+      "id": "po_arrow",
+      "name": "破箭式",
+      "desc": "额外自动射出追踪剑气，层数越高越频繁"
+    },
+    {
+      "id": "po_qi",
+      "name": "破气式",
+      "desc": "对 Boss 罡气 ×(1+10%/层)；命中回复内力；催动更省"
+    }
+  ]
 }

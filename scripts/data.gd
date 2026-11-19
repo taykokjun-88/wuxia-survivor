@@ -19,6 +19,7 @@ var town: Dictionary = {}         # 小镇：边界 / NPC / 建筑
 var guide: Dictionary = {}        # 百晓生的玩法说明
 var maps: Dictionary = {}         # 地图（黑风寨 / 华山…）
 var difficulty: Dictionary = {}   # 综合难度带来的奖励系数
+var shi: Array = []                # 独孤九剑的九「式」
 var gear: Dictionary = {}         # 装备：部位 / 稀有度 / 词条池
 var font_bold: Font               # 楷体粗体（"极"等需要突出的字）
 
@@ -42,6 +43,7 @@ func _ready() -> void:
 	enemies = d["enemies"]
 	talents = d["talents"]
 	gear = d["gear"]
+	shi = d.get("shi", [])
 	town = d["town"]
 	difficulty = d["difficulty"]
 	maps = d["maps"]

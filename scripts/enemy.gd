@@ -21,6 +21,12 @@ var stun := 0.0          # 定身/击晕剩余时间
 var slow_t := 0.0        # 减速剩余时间
 var slow_mult := 1.0
 var chain := false       # 被"连锁"点穴：死亡时爆炸
+var vuln := 0.0          # 破绽：受到的伤害额外 +vuln
+var vuln_t := 0.0
+var poison_dps := 0.0    # 中毒（金蛇剑法）：每秒伤害，层数叠加
+var poison_t := 0.0
+var poison_acc := 0.0
+var poison_burst := 0.0  # >0：死亡时毒雾爆开的半径
 var weak_fx := 0.0       # 「破绽」提示的冷却（避免飘字刷屏）
 
 # 精英 / Boss

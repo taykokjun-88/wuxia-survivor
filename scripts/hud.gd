@@ -1493,9 +1493,9 @@ func _draw_hud() -> void:
 		HORIZONTAL_ALIGNMENT_CENTER, vw, 13, Color("#2a1d05"))
 
 	# 半透明宣纸底板：地图是深色的，HUD 的深色文字要有底
-	var plate_h := 140.0 - 22.0 + 20.0 + w.skills.size() * (ICON + 14.0) + 8.0 + 20.0 + w.xinfa.size() * 26.0 + w.synergies.size() * 19.0 + 4.0 + 26.0
+	var plate_h := 140.0 - 22.0 + 20.0 + w.skills.size() * (ICON + 14.0) + 8.0 + 20.0 + w.xinfa.size() * 26.0 + w.synergies.size() * 19.0 + 4.0 + 26.0 + _shi_extra_h()
 	if not hud_expanded:
-		plate_h = 108.0 - 22.0 + ICON + 6.0 + (30.0 if not w.xinfa.is_empty() else 0.0) + 20.0
+		plate_h = 108.0 - 22.0 + ICON + 6.0 + (30.0 if not w.xinfa.is_empty() else 0.0) + 20.0 + (22.0 if w.skills.has("dugu") else 0.0)
 	_plate(Rect2(6, 22, 292, plate_h))
 	_plate(Rect2(vw * 0.5 - 70.0, 22, 140, 40))
 	_plate(Rect2(vw - 176.0, 22, 170, 30))
@@ -1570,6 +1570,9 @@ func _draw_hud() -> void:
 			canvas.draw_string(font, Vector2(cx, ry + 18.0), "★" if bool(sy2["harmony"]) else "◇", HORIZONTAL_ALIGNMENT_LEFT, -1, 16,
 				Color("#a0521d") if bool(sy2["harmony"]) else Color("#1f6f6a"))
 			cx += 18.0
+		if w.skills.has("dugu"):
+			canvas.draw_string(font, Vector2(16, ry + (30.0 if not w.xinfa.is_empty() else 0.0) + 14.0), "式 %d/%d　%s" % [w.shi_total(), int(Data.T("shi_stage3")) + 1, _stage_name()],
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 13, GameWorld.VERMILION)
 		canvas.draw_string(font, Vector2(16, plate_h + 22.0 - 6.0), "[Tab] 展开详情", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#7a6a3a"))
 	else:
 		# 装备栏：技能 / 心法 / 轻功
@@ -1587,6 +1590,13 @@ func _draw_hud() -> void:
 			canvas.draw_string(font, icon_pos + Vector2(ICON + 8.0, 36.0), "Lv%s%s" % ["极" if maxed else str(s.level), star],
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 14, GameWorld.VERMILION if star != "" else Color("#6a5a3a"))
 			y += ICON + 14.0
+		if w.skills.has("dugu"):
+			canvas.draw_string(font, Vector2(16, y + 8.0), "式 总层 %d（>%d 万法皆破 · >%d 真·独孤九剑）" % [w.shi_total(), int(Data.T("shi_stage2")), int(Data.T("shi_stage3"))],
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 12, GameWorld.VERMILION)
+			y += 28.0
+			for sid in w.shi:
+				canvas.draw_string(font, Vector2(24, y), "%s　Lv%d" % [w.shi_name(str(sid)), int(w.shi[sid])], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#2a2a2a"))
+				y += 18.0
 		y += 8.0
 		canvas.draw_string(font, Vector2(16, y), "心法 %d/%d" % [w.xinfa.size(), GameWorld.MAX_XINFA],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#7a6a3a"))
@@ -1618,3 +1628,16 @@ func _draw_hud() -> void:
 		burst_txt += "　（消耗全部内力，当前威力 %d%%）" % int(w.burst_power() * 100.0) if w.can_burst() else "　（内力太少）"
 	canvas.draw_string(font, Vector2(112 + charges * 20 + 12, canvas.size.y - 16), burst_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 16,
 		Color("#a0521d") if w.can_burst() else Color("#444444"))
+
+
+func _shi_extra_h() -> float:
+	if not (world != null and world.skills.has("dugu")):
+		return 0.0
+	return 40.0 + (world.shi.size() * 18.0 if hud_expanded else 0.0)
+
+
+func _stage_name() -> String:
+	match world.dugu_stage():
+		3: return "真·独孤九剑"
+		2: return "万法皆破"
+	return "初窥门径"
