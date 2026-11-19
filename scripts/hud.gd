@@ -1395,7 +1395,7 @@ func _draw_hud() -> void:
 		HORIZONTAL_ALIGNMENT_CENTER, vw, 13, Color("#2a1d05"))
 
 	# 半透明宣纸底板：地图是深色的，HUD 的深色文字要有底
-	var plate_h := 126.0 - 22.0 + 20.0 + w.skills.size() * (ICON + 14.0) + 8.0 + 20.0 + w.xinfa.size() * 26.0 + w.synergies.size() * 19.0 + 4.0 + 26.0
+	var plate_h := 140.0 - 22.0 + 20.0 + w.skills.size() * (ICON + 14.0) + 8.0 + 20.0 + w.xinfa.size() * 26.0 + w.synergies.size() * 19.0 + 4.0 + 26.0
 	if not hud_expanded:
 		plate_h = 108.0 - 22.0 + ICON + 6.0 + (30.0 if not w.xinfa.is_empty() else 0.0) + 20.0
 	_plate(Rect2(6, 22, 292, plate_h))
@@ -1405,23 +1405,31 @@ func _draw_hud() -> void:
 	_draw_minimap(Vector2(vw - 176.0, 58.0), 164.0)
 	var max_hp := w.st("max_hp")
 	var max_n := w.st("max_neili")
-	_bar(Vector2(16, 26), Vector2(260, 20), w.hp / max_hp, GameWorld.VERMILION, "气血 %d/%d" % [int(w.hp), int(max_hp)])
+	_bar(Vector2(16, 26), Vector2(236, 20), w.hp / max_hp, GameWorld.VERMILION, "气血 %d/%d" % [int(w.hp), int(max_hp)])
 	var realm := w.realm()
 	var realm_col: Color = [Color("#6f86a8"), Color("#3aa6a0"), Color("#3fe0cf")][realm]
-	_bar(Vector2(16, 52), Vector2(260, 20), w.neili / max_n, realm_col, "内力 %d/%d" % [int(w.neili), int(max_n)])
+	_bar(Vector2(16, 52), Vector2(236, 20), w.neili / max_n, realm_col, "内力 %d/%d" % [int(w.neili), int(max_n)])
 	# 三境分界线：虚 | 平 | 盈
 	for t in [Data.T("xu_below"), w.ying_at()]:
-		canvas.draw_line(Vector2(16 + 260 * float(t), 52), Vector2(16 + 260 * float(t), 72), Color(1, 1, 1, 0.9), 2.0)
-	var realm_txt := ""
-	match realm:
-		GameWorld.Realm.YING: realm_txt = "盈 · 伤害+%d%%　催动招式" % int(round((Data.T("ying_dmg") + w.st("ying_dmg") - 1.0) * 100.0))
-		GameWorld.Realm.XU: realm_txt = "虚 · 回气加快"
+		canvas.draw_line(Vector2(16 + 236 * float(t), 52), Vector2(16 + 236 * float(t), 72), Color(1, 1, 1, 0.9), 2.0)
+	# 内力境界：收起时只显示一个字（盈 / 平 / 虚，入定时再加「定」）；详细说明在展开模式里
+	var bold := Data.font_bold
+	var realm_char: String = ["虚", "平", "盈"][realm]
+	var realm_ink: Color = [Color("#3a5a8a"), Color("#6a5a3a"), Color("#0f8a7e")][realm]
+	canvas.draw_string(bold, Vector2(258, 69), realm_char, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, realm_ink)
 	if w.meditating():
-		realm_txt = (realm_txt + "　" if realm_txt != "" else "") + "入定"
-	if realm_txt != "":
-		canvas.draw_string(font, Vector2(286, 67), realm_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#1f6f6a"))
+		canvas.draw_string(bold, Vector2(279, 69), "定", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#a0521d"))
 	if w.shield > 0.0:
-		canvas.draw_string(font, Vector2(286, 41), "护盾 %d" % int(w.shield), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#2a6f9a"))
+		canvas.draw_string(font, Vector2(258, 43), "盾%d" % int(w.shield), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#2a6f9a"))
+	if hud_expanded:
+		var detail := ""
+		match realm:
+			GameWorld.Realm.YING: detail = "盈境：伤害 +%d%%，招式自动催动" % int(round((Data.T("ying_dmg") + w.st("ying_dmg") - 1.0) * 100.0))
+			GameWorld.Realm.PING: detail = "平境：没有加成"
+			GameWorld.Realm.XU: detail = "虚境：回气加快，不能催动"
+		if w.meditating():
+			detail += "　入定中：回气更快、减伤"
+		canvas.draw_string(font, Vector2(16, 120), detail, HORIZONTAL_ALIGNMENT_LEFT, 280, 13, Color("#1f6f6a"))
 
 	canvas.draw_string(font, Vector2(16, 98), "Lv %d" % w.level, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, ink)
 	canvas.draw_string(font, Vector2(86, 98), "攻击 +%d%%　防御 %.1f" % [int(w.st("damage_pct") * 100.0), w.st("armor")],
@@ -1467,7 +1475,7 @@ func _draw_hud() -> void:
 		canvas.draw_string(font, Vector2(16, plate_h + 22.0 - 6.0), "[Tab] 展开详情", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#7a6a3a"))
 	else:
 		# 装备栏：技能 / 心法 / 轻功
-		var y := 126.0
+		var y := 140.0
 		canvas.draw_string(font, Vector2(16, y), "招式 %d/%d" % [w.skills.size(), GameWorld.MAX_SKILLS],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#7a6a3a"))
 		y += 20.0
@@ -1498,7 +1506,7 @@ func _draw_hud() -> void:
 			y += 19.0
 		y += 4.0
 		canvas.draw_string(font, Vector2(16, y), "轻功：%s" % w.qg["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#1f6f6a"))
-		canvas.draw_string(font, Vector2(190, 36), "[Tab] 收起", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#7a6a3a"))
+		canvas.draw_string(font, Vector2(16, plate_h + 22.0 - 6.0), "[Tab] 收起", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#7a6a3a"))
 
 	# 操作提示 + 轻功次数
 	var charges := int(w.qg.get("charges", 1))

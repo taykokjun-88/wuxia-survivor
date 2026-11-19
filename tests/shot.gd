@@ -137,6 +137,11 @@ func _ready() -> void:
 	w.recalc()
 	await _advance(70.0)
 	_snap("04_play_full_build")
+	main.hud.toggle_hud()
+	await _frames(3)
+	_snap("04b_hud_expanded")
+	main.hud.toggle_hud()
+	await _frames(2)
 
 	# 秘籍选择
 	w.enhance_id = ""
