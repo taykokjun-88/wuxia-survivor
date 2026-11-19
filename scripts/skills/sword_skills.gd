@@ -414,15 +414,12 @@ class Dugu extends SkillBase:
 	func _begin_true() -> bool:
 		if not w.any_enemy_within(w.player_pos, pulse_radius() + 20.0):
 			return false
-		var r := w.rng.randf()
-		var c9 := Data.T("dugu_combo9")
-		var c4 := Data.T("dugu_combo4")
-		var c2 := Data.T("dugu_combo2")
-		if r < c9:
+		# 连击几率各自独立判定，从高到低：先 9 连（9%），没中再判 4 连（20%），再判 2 连（50%）；中了高的，低的就不会触发
+		if w.rng.randf() < Data.T("dugu_combo9"):
 			combo_total = 9
-		elif r < c9 + c4:
+		elif w.rng.randf() < Data.T("dugu_combo4"):
 			combo_total = 4
-		elif r < c9 + c4 + c2:
+		elif w.rng.randf() < Data.T("dugu_combo2"):
 			combo_total = 2
 		else:
 			combo_total = 1

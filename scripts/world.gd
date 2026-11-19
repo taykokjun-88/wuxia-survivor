@@ -53,6 +53,10 @@ var _lite := false                  # 本帧画面里怪太多：普通怪走快
 var props_enabled := true          # 场景里随机出现可打碎的木箱 / 酒坛 / 火盆
 var prop_t := 3.0
 var pickup_art: Dictionary = {}    # 掉落物素材（assets/pickups）：id → {tex, w, h}
+var player_knock := Vector2.ZERO       # Boss 技能击退
+var player_slow_t := 0.0           # 银鞭减速
+var boss_deadline := -1.0          # 大 Boss 现身后的限时（秒，游戏内时间）；超时 = 寨主逃遁，判负
+var timeout_fail := false
 var sword_break_count := 0           # 统计：「剑破天下」触发次数（测试用）
 var dugu_combo_log: Array = []     # 统计：真·独孤九剑的连击段数（测试用）
 var school_id := "fist"           # 创建角色时选定，决定可学的招式池
@@ -125,6 +129,7 @@ var grid: Dictionary = {}
 var spawn_acc := 0.0
 var next_burst := 45.0
 var next_elite := 100.0
+var next_wave := 120.0
 var mini_idx := 0
 var boss_spawned := false
 var next_uid := 1
@@ -167,6 +172,8 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	starter_id = p_starter
 	shi.clear()
 	dugu_combo_log.clear()
+	boss_deadline = -1.0
+	timeout_fail = false
 	sword_break_count = 0
 	qinggong_id = p_qinggong
 	qg = Data.qinggong[qinggong_id]
@@ -230,6 +237,7 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	spawn_acc = 0.0
 	next_burst = Data.T("burst_interval")
 	next_elite = Data.T("elite_first")
+	next_wave = Data.T("wave_first")
 	mini_idx = 0
 	boss_spawned = false
 	max_enemies = int(Data.T("max_enemies"))
@@ -414,6 +422,13 @@ func step(dt: float) -> void:
 		queue_redraw()
 		return
 	time += dt
+	if boss_deadline > 0.0 and time >= boss_deadline and not over:     # 大 Boss 限时：超时寨主逃遁，判负
+		timeout_fail = true
+		over = true
+		won = false
+		add_fx("text", player_pos + Vector2(0, -90), 2.0, {"text": "寨主逃遁了……", "size": 34, "color": VERMILION})
+		player_died.emit()
+		return
 	shake = maxf(0.0, shake - 30.0 * dt)
 	_update_player(dt)
 	_spawn(dt)
@@ -435,6 +450,10 @@ func step(dt: float) -> void:
 
 func _update_player(dt: float) -> void:
 	invuln = maxf(0.0, invuln - dt)
+	player_slow_t = maxf(0.0, player_slow_t - dt)
+	if player_knock.length() > 8.0:
+		player_pos += player_knock * dt
+		player_knock *= maxf(0.0, 1.0 - 8.0 * dt)
 	since_hit += dt
 	stealth_t = maxf(0.0, stealth_t - dt)
 	buff_t = maxf(0.0, buff_t - dt)
@@ -471,7 +490,7 @@ func _update_player(dt: float) -> void:
 			_end_dash()
 	else:
 		var spd_pct := st("speed_pct") + (float(qg.get("buff_speed", 0.0)) if buff_t > 0.0 else 0.0)
-		player_pos += move * st("move_speed") * (1.0 + spd_pct) * dt
+		player_pos += move * st("move_speed") * (1.0 + spd_pct) * (0.55 if player_slow_t > 0.0 else 1.0) * dt
 
 	# 内力 / 气血 / 护盾
 	var max_n := st("max_neili")
@@ -645,7 +664,11 @@ func _spawn(dt: float) -> void:
 				_spawn_enemy("bandit", player_pos + Vector2.from_angle(TAU * i / float(ring_n)) * SPAWN_DIST)
 	if time >= next_elite:
 		next_elite += Data.T("elite_interval")
-		_spawn_elite()
+		for i in 1 + int(time / 420.0):          # 越到后面精英越多：每 7 分钟多一只
+			_spawn_elite()
+	if time >= next_wave:                       # 怪潮：从一个方向压过来的一大群
+		next_wave += Data.T("wave_interval")
+		_spawn_wave()
 	var mini_times: Array = Data.tuning["mini_boss_times"]
 	if mini_idx < mini_times.size() and time >= float(mini_times[mini_idx]):
 		mini_idx += 1
@@ -669,12 +692,21 @@ func _ring_pos() -> Vector2:
 func _pick_type() -> String:
 	var w_blade := clampf((time - 30.0) / 180.0, 0.0, 0.8)
 	var w_soldier := clampf((time - 90.0) / 240.0, 0.0, 0.7)
-	var r := rng.randf() * (1.0 + w_blade + w_soldier)
+	var w_archer := clampf((time - 140.0) / 220.0, 0.0, 0.45)      # 弓手：保持距离放冷箭（有红线预警）
+	var w_charger := clampf((time - 220.0) / 260.0, 0.0, 0.35)     # 蛮兵：预警后直线冲锋
+	var r := rng.randf() * (1.0 + w_blade + w_soldier + w_archer + w_charger)
 	if r < 1.0:
 		return "bandit"
-	if r < 1.0 + w_blade:
+	r -= 1.0
+	if r < w_blade:
 		return "blade"
-	return "soldier"
+	r -= w_blade
+	if r < w_soldier:
+		return "soldier"
+	r -= w_soldier
+	if r < w_archer:
+		return "archer"
+	return "charger"
 
 
 func _spawn_enemy(type: String, at: Vector2) -> Enemy:
@@ -692,6 +724,10 @@ func _spawn_enemy(type: String, at: Vector2) -> Enemy:
 	e.radius = float(def["radius"])
 	e.exp_value = int(def["exp"])
 	e.color = Color(str(def["color"]))
+	e.behavior = str(def.get("behavior", ""))
+	e.art_key = str(def.get("art", ""))
+	if def.has("tint"):
+		e.tint = Color(str(def["tint"]))
 	if bool(def.get("prop", false)):      # 场景物件：固定血量，不随时间 / 难度变强，不动
 		e.is_prop = true
 		e.max_hp = float(def["hp"])
@@ -700,6 +736,22 @@ func _spawn_enemy(type: String, at: Vector2) -> Enemy:
 		e.damage = 0.0
 	enemies.append(e)
 	return e
+
+
+## 怪潮：从随机一个方向压过来的一大群（数量随难度 / 时间增加），提前飘字预警
+func _spawn_wave() -> void:
+	if _boss_alive():
+		return
+	var a := rng.randf() * TAU
+	var n := int(round(Data.T("wave_size") * float(difficulty["count"]) * (1.0 + time / 480.0)))
+	for i in n:
+		if enemies.size() >= max_enemies:
+			break
+		var dir := Vector2.from_angle(a + rng.randf_range(-0.55, 0.55))
+		var e := _spawn_enemy(_pick_type(), player_pos + dir * (SPAWN_DIST + rng.randf() * 140.0))
+		e.speed *= 1.15
+	add_fx("text", player_pos + Vector2.from_angle(a) * 230.0, 2.0, {"text": "怪潮来袭！", "size": 34, "color": VERMILION})
+	Sfx.play("boss_warn")
 
 
 func _spawn_elite() -> void:
@@ -725,9 +777,15 @@ func _spawn_boss(id: String, final: bool) -> void:
 	e.speed = float(def["speed"]) * float(difficulty["speed"])
 	e.damage = float(def["damage"])
 	e.boss_bolts = int(def["bolts"])
+	e.skills = (def.get("skills", []) as Array).duplicate()
+	e.skills2 = (def.get("skills2", []) as Array).duplicate()
+	e.phase_hp = float(def.get("phase_hp", 0.0))
+	e.skill_gap = 2.0
 	e.guard_max = e.max_hp * Data.T("boss_guard_pct")
 	e.guard = e.guard_max
 	bosses.append(e)
+	if final:
+		boss_deadline = time + Data.T("final_boss_limit")
 	Sfx.play("boss_warn")
 	add_fx("text", player_pos + Vector2(0, -80), 2.0, {"text": "%s 现身！" % e.boss_name, "size": 28, "color": VERMILION})
 
@@ -873,6 +931,9 @@ func _update_enemies(dt: float) -> void:
 			e.stun -= dt
 		elif e.is_boss:
 			vel = _boss_ai(e, dt, dir)
+		elif e.behavior != "":
+			vel = BossAI.minion(self, e, dt, dir, d) * (e.slow_mult if e.slow_t > 0.0 else 1.0)
+			vel += _separation(e) * 60.0
 		else:
 			var spd := e.speed * (e.slow_mult if e.slow_t > 0.0 else 1.0)
 			if stealth_t > 0.0:
@@ -914,31 +975,7 @@ func _separation(e: Enemy) -> Vector2:
 
 
 func _boss_ai(e: Enemy, dt: float, dir: Vector2) -> Vector2:
-	e.boss_timer += dt
-	e.bolt_timer -= dt
-	match e.boss_state:
-		"chase":
-			if e.bolt_timer <= 0.0:
-				var rage := e.hp < e.max_hp * 0.5
-				e.bolt_timer = 2.2 if rage else 3.0
-				_boss_radial(e, int(e.boss_bolts * (1.5 if rage else 1.0)))
-			if e.boss_timer >= 6.0:
-				e.boss_state = "windup"
-				e.boss_timer = 0.0
-			return dir * e.speed * (e.slow_mult if e.slow_t > 0.0 else 1.0)
-		"windup":
-			e.charge_dir = dir
-			if e.boss_timer >= 0.9:
-				e.boss_state = "charge"
-				e.boss_timer = 0.0
-				Sfx.play("boss_cleave")
-			return Vector2.ZERO
-		"charge":
-			if e.boss_timer >= 0.5:
-				e.boss_state = "chase"
-				e.boss_timer = 0.0
-			return e.charge_dir * 520.0
-	return Vector2.ZERO
+	return BossAI.think(self, e, dt, dir)
 
 
 func _boss_radial(e: Enemy, n: int) -> void:
@@ -1050,6 +1087,7 @@ func _kill(e: Enemy) -> void:
 		chests.append(e.pos)
 		_drop_pill(e.pos + Vector2(-26, 10), "large")
 	if e.is_final:
+		boss_deadline = -1.0
 		over = true
 		won = true
 		shake = 14.0
@@ -1749,6 +1787,9 @@ func _draw() -> void:
 			draw_rect(Rect2(c + Vector2(-11, -8 + bob), Vector2(22, 16)), Color("#8a5a1f"))
 			draw_rect(Rect2(c + Vector2(-11, -8 + bob), Vector2(22, 16)), GOLD, false, 2.0)
 			draw_arc(c + Vector2(0, bob), 20.0, 0.0, TAU, 20, Color(GOLD, 0.4 + 0.3 * sin(time * 5.0)), 2.0)
+	for e in enemies:
+		if e.cast_id != "" and e.alive and _vis(e.pos, 300.0):
+			BossAI.draw_telegraph(self, e)
 	# 角色、怪物、场景物件按「脚底的 y」从上到下排序再画：靠下的盖住靠上的，前后关系才对
 	var ents: Array = []
 	var uniq := 0.0
@@ -1878,6 +1919,8 @@ func _draw_zones() -> void:
 
 
 func _enemy_art_key(e: Enemy) -> String:
+	if e.art_key != "":
+		return e.art_key           # 复用别的怪的素材（弓手 / 蛮兵）
 	if e.is_final:
 		return "boss"
 	if e.is_boss:
@@ -1937,7 +1980,7 @@ func _draw_enemy_sprite(e: Enemy, key: String) -> void:
 	var feet := e.pos + Vector2(0, h * 0.42)
 	var flip := player_pos.x < e.pos.x
 	if _lite and not e.is_boss and not e.is_elite:      # 同屏很多怪：快速画法（影子贴图 + 翻转好的图集，一次绘制）
-		var tf := Color.WHITE
+		var tf := e.tint
 		if e.flash > 0.0:
 			tf = Color(1.6, 1.3, 1.3)
 		elif e.slow_t > 0.0:
@@ -1961,7 +2004,7 @@ func _draw_enemy_sprite(e: Enemy, key: String) -> void:
 	Depth.shadow(self, feet + Vector2(0, -1), h * 0.7, bob)
 	if e.is_boss and e.boss_state == "windup":
 		draw_line(e.pos, e.pos + e.charge_dir * 260.0, Color(VERMILION, 0.3), e.radius * 1.6)
-	var tint := Color.WHITE
+	var tint := e.tint
 	if e.flash > 0.0:
 		tint = Color(1.6, 1.3, 1.3)
 	elif e.slow_t > 0.0:
@@ -1989,8 +2032,27 @@ func _draw_enemy_sprite(e: Enemy, key: String) -> void:
 func _draw_proj(p: Projectile) -> void:
 	var dir := Vector2.from_angle(p.angle)
 	if p.hostile:
-		draw_circle(p.pos, p.radius, Color(VERMILION, 0.85))
-		draw_arc(p.pos, p.radius, 0.0, TAU, 12, Color(0.1, 0.0, 0.0, 0.8), 2.0)
+		if vfx.has(str(VfxLayer.HOSTILE_IDS.get(p.kind, ""))):
+			return      # 有特效素材：由 VfxLayer 绘制
+		match p.kind:
+			"claw":        # 白骨爪气：幽蓝三道爪痕
+				for k in 3:
+					var o := dir.orthogonal() * (float(k) - 1.0) * 5.0
+					draw_line(p.pos + o - dir * 22.0, p.pos + o + dir * 6.0, Color("#6ab8ff", 0.9), 3.0)
+			"palm":        # 铁砂掌印：暗红
+				draw_circle(p.pos, p.radius, Color("#7a1f2a", 0.9))
+				draw_arc(p.pos, p.radius, 0.0, TAU, 14, Color("#ff6a4a"), 2.5)
+				draw_line(p.pos - dir * 16.0, p.pos, Color("#7a1f2a", 0.5), 6.0)
+			"blade":       # 旋转刀气：猩红月牙
+				var ra := time * 14.0
+				draw_arc(p.pos, p.radius + 3.0, ra, ra + 2.6, 10, Color("#ff5a2a"), 5.0)
+				draw_arc(p.pos, p.radius - 2.0, ra + 0.4, ra + 2.2, 8, Color("#ffd08a"), 2.0)
+			"arrow":
+				draw_line(p.pos - dir * 20.0, p.pos, Color("#c9a56a"), 2.5)
+				draw_circle(p.pos + dir * 2.0, 3.0, Color("#e8d8b0"))
+			_:
+				draw_circle(p.pos, p.radius, Color(VERMILION, 0.85))
+				draw_arc(p.pos, p.radius, 0.0, TAU, 12, Color(0.1, 0.0, 0.0, 0.8), 2.0)
 		return
 	if vfx.has(str(VfxLayer.PROJ_IDS.get(p.kind, ""))):
 		return    # 有特效素材：由 VfxLayer 绘制
@@ -2149,7 +2211,8 @@ func _draw_effects() -> void:
 				var arc: float = fx["arc"]
 				var rr: float = fx["r"]
 				var wdt := (16.0 if fx["heavy"] else 10.0) * a + 2.0
-				draw_arc(at, rr * 0.7, ang - arc * 0.5, ang + arc * 0.5, 16, Color(INK, a * 0.7), wdt)
+				var sc: Color = fx.get("color", INK)
+				draw_arc(at, rr * 0.7, ang - arc * 0.5, ang + arc * 0.5, 16, Color(sc, a * 0.85), wdt)
 				draw_arc(at, rr * 0.9, ang - arc * 0.4, ang + arc * 0.4, 16, Color(1, 1, 1, a * 0.6), wdt * 0.4)
 
 

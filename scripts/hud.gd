@@ -1622,7 +1622,7 @@ func show_end(won: bool) -> void:
 	var w := world
 	overlay_title.text = "天下第一！" if won else "江湖路远……"
 	end_base = "%s\n\n存活 %s　等级 %d　击杀 %d\n本局得分 %s" % [
-		"击败胡千刀，名动江湖。" if won else "侠士请重新来过。",
+		"击败胡千刀，名动江湖。" if won else ("胡千刀趁乱逃走了……要在他现身后 1 分钟内击败他。" if w.timeout_fail else "侠士请重新来过。"),
 		_fmt_time(w.time), w.level, w.kills, _commas(Score.compute(w.run_summary()))]
 	var dd: Dictionary = w.run_summary()["difficulty"]
 	if int(dd["count"]) != 100 or int(dd["hp"]) != 100 or int(dd["speed"]) != 100:
@@ -1894,6 +1894,12 @@ func _draw_hud() -> void:
 			elif b.guard > 0.0:
 				canvas.draw_rect(Rect2(vw * 0.5 - bw * 0.5, by + 19, bw * b.guard / b.guard_max, 5), Color("#4fe0d0"))
 				canvas.draw_string(font, Vector2(vw * 0.5 + bw * 0.5 + 8, by + 15), "罡气 减伤 50%　催动 ×3", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#1f6f6a"))
+			if b.is_final and w.boss_deadline > 0.0:
+				var left := maxf(0.0, w.boss_deadline - w.time)
+				var urgent := left < 15.0
+				canvas.draw_string(font, Vector2(vw * 0.5 - 200.0, by + 40), "寨主将在 %d 秒后逃遁！" % int(ceil(left)), HORIZONTAL_ALIGNMENT_CENTER, 400, 22,
+					Color("#ff4a3a") if (urgent and int(w.time * 4.0) % 2 == 0) else Color("#ffd24a"))
+				by += 26.0
 			by += 30.0
 
 	# 装备栏：技能 / 心法 / 轻功（Tab 展开 / 收起；收起时只显示图标，不挡视线）

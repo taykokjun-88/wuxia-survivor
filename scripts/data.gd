@@ -16,6 +16,7 @@ var talents: Dictionary = {}      # 天赋树：{row_gate, branches}
 var yinyang: Dictionary = {}      # 阴阳组合（调和 / 烈火 / 寒潭）
 var harmony: Array = []           # 合璧：两个特定心法同时修习的额外效果
 var town: Dictionary = {}         # 小镇：边界 / NPC / 建筑
+var boss_skills: Dictionary = {}   # Boss / 精英的技能参数（预警时间、形状、伤害…）
 var guide: Dictionary = {}        # 百晓生的玩法说明
 var maps: Dictionary = {}         # 地图（黑风寨 / 华山…）
 var difficulty: Dictionary = {}   # 综合难度带来的奖励系数
@@ -44,6 +45,7 @@ func _ready() -> void:
 	talents = d["talents"]
 	gear = d["gear"]
 	shi = d.get("shi", [])
+	boss_skills = d.get("boss_skills", {})
 	town = d["town"]
 	difficulty = d["difficulty"]
 	maps = d["maps"]

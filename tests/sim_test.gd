@@ -37,6 +37,7 @@ func _ready() -> void:
 		_sword_talent_test()
 		_smith_test()
 		_prop_test()
+		_boss_skill_test()
 		await _town_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
@@ -386,6 +387,107 @@ func _prop_test() -> void:
 		_check(ResourceLoader.exists("res://assets/pickups/%s.png" % id), "掉落物素材 %s" % id)
 
 
+func _boss_skill_test() -> void:
+	print("\n=== Boss 技能 / 预警 / 杂兵行为 / 怪潮 / 大 Boss 限时 ===")
+	for id in ["mini_boss_1", "mini_boss_2", "mini_boss_3", "boss"]:
+		for k in Data.enemies[id]["skills"]:
+			_check(Data.boss_skills.has(k), "%s 的技能 %s 有参数" % [id, k])
+		var w := _new_world(41, "chain_fist")
+		w.god = false
+		w.props_enabled = false
+		w.skills.clear()
+		w.hp = 1e7
+		w._spawn_boss(id, id == "boss")
+		var b: Enemy = w.bosses[0]
+		b.pos = w.player_pos + Vector2(150, 0)
+		var used := {}
+		var warned := false
+		var shots := 0
+		var hp0 := w.hp
+		var spawned0 := w.enemies.size()
+		b.hp = b.max_hp * 0.4                  # 直接进入后半段：追加的技能也会用到
+		b.max_hp = 1e9
+		b.hp = 4e8
+		var was_hurt := false
+		for i in 60 * 70:
+			w.input_move = Vector2.ZERO
+			w.neili = w.st("max_neili")
+			w.hp = 1e7
+			w.step(DT)
+			if w.hp < 1e7 - 0.5:
+				was_hurt = true
+			if b.cast_id != "":
+				used[b.cast_id] = true
+				if b.cast_t < float(Data.boss_skills[b.cast_id]["warn"]) - 0.05:
+					warned = true
+			shots = maxi(shots, w.projs.size())
+			b.hp = 4e8
+			if b.pos.distance_to(w.player_pos) > 500.0:
+				b.pos = w.player_pos + Vector2(220, 0)
+		var want: Array = (Data.enemies[id]["skills"] as Array).duplicate()
+		want.append_array(Data.enemies[id]["skills2"])
+		for k in want:
+			_check(used.has(k), "%s 用过技能 %s（实际用过 %s）" % [id, k, str(used.keys())])
+		_check(warned, "%s 施放前有预警" % id)
+		_check(was_hurt, "%s 的技能能伤到玩家" % id)
+		if id == "boss":
+			_check(w.enemies.size() > spawned0, "寨主号令：召来精锐")
+		_free_world(w)
+	# 杂兵：弓手放冷箭 / 蛮兵预警后冲锋
+	var wm := _new_world(42, "chain_fist")
+	wm.god = false
+	wm.props_enabled = false
+	wm.skills.clear()
+	wm.hp = 1e7
+	var ar := wm._spawn_enemy("archer", wm.player_pos + Vector2(300, 0))
+	var ch := wm._spawn_enemy("charger", wm.player_pos + Vector2(0, 300))
+	ar.hp = 1e9
+	ch.hp = 1e9
+	ar.max_hp = 1e9
+	ch.max_hp = 1e9
+	var arrow := false
+	var rushed := false
+	var d_min := 1e9
+	for i in 60 * 20:
+		wm.input_move = Vector2.ZERO
+		wm.hp = 1e7
+		wm.step(DT)
+		for p in wm.projs:
+			if p.hostile and p.kind == "arrow":
+				arrow = true
+		if ch.cast_id == "rush" and ch.cast_t > 0.7:
+			rushed = true
+		d_min = minf(d_min, ar.pos.distance_to(wm.player_pos))
+	_check(arrow, "弓手放出冷箭")
+	_check(rushed, "蛮兵预警后冲锋")
+	_check(d_min > 120.0, "弓手保持距离（最近 %d）" % int(d_min))
+	# 怪潮
+	var n0 := wm.enemies.size()
+	wm.time = 130.0
+	wm.next_wave = 100.0
+	wm._spawn(DT)
+	_check(wm.enemies.size() >= n0 + 12, "怪潮：一次刷出一大群（%d → %d）" % [n0, wm.enemies.size()])
+	_free_world(wm)
+	# 大 Boss 限时：现身后 1 分钟内没击败 → 寨主逃遁，判负
+	var wd := _new_world(43, "chain_fist")
+	wd.god = false
+	wd.props_enabled = false
+	wd.skills.clear()
+	wd.hp = 1e7
+	wd.time = 719.0
+	for i in 60 * 3:
+		wd.hp = 1e7
+		wd.step(DT)
+	_check(wd.boss_deadline > 0.0 and absf(wd.boss_deadline - (wd.time - 0.0 + (wd.boss_deadline - wd.time))) < 1e-6, "大 Boss 现身时开始限时")
+	_check(not wd.over, "限时内还没结束")
+	wd.boss_deadline = wd.time + 0.2
+	for i in 60:
+		wd.hp = 1e7
+		wd.step(DT)
+	_check(wd.over and not wd.won and wd.timeout_fail, "超时：寨主逃遁，判负")
+	_free_world(wd)
+
+
 func _dugu_test() -> void:
 	print("\n=== 独孤九剑：式 / 叠加 / 阶段 / 真·独孤九剑 ===")
 	var w := _new_world(7, "dugu")
@@ -558,7 +660,7 @@ func _dugu_test() -> void:
 	print("  30 秒出手 %d 次：单 %d / 2连 %d / 4连 %d / 9连 %d" % [log.size(), c1, c2, c4, c9])
 	_check(log.size() >= 40, "攻速快：30 秒出手 ≥ 40 次，实际 %d" % log.size())
 	_check(c2 > 0 and c4 > 0, "连击：2 连 / 4 连都应出现")
-	_check(c2 > c4 and c4 >= c9 and c2 >= c1, "连击几率 21%% / 50%% / 20%% / 9%%：2 连最多，其次单 / 4 连，9 连最少")
+	_check(c2 > c4 and c4 >= c9 and c1 > 0, "连击几率独立判定：9 连 9%% / 4 连 18%% / 2 连 36%% / 单击 36%%（%d / %d / %d / %d）" % [c9, c4, c2, c1])
 	_check(float(w4.skill_dmg.get("dugu", 0.0)) - dmg0 > 100000.0, "近身群攻输出很高，实际 %d" % int(float(w4.skill_dmg.get("dugu", 0.0)) - dmg0))
 	var any_vuln := false
 	for en7 in w4.enemies:

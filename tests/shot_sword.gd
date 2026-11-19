@@ -108,6 +108,34 @@ func _ready() -> void:
 	main._check_pending()
 	await _frames(3)
 	_snap("s3_shi_cards")
+	main.hud.hide_overlay()
+	main._on_pause_resume()
+	main.hud.hide_choices()
+	w.pending_levels = 0
+	w.pending_chests = 0
+	w.enemies.clear()
+	w.bosses.clear()
+	w.skills.clear()
+	w.god = true
+	w.time = 721.0
+	w.mini_idx = 9
+	w._spawn_boss("boss", true)
+	var bb: Enemy = w.bosses[w.bosses.size() - 1]
+	main.state = main.State.PLAY
+	bb.pos = w.player_pos + Vector2(220, 0)
+	bb.skill_gap = 0.0
+	bb.skills = ["cleave"]
+	for i in 40:
+		w.step(DT)
+	await _frames(2)
+	_snap("b1_boss_cleave_warn")
+	bb.cast_id = ""
+	bb.skills = ["leap"]
+	bb.skill_gap = 0.0
+	for i in 30:
+		w.step(DT)
+	await _frames(2)
+	_snap("b2_boss_leap_warn")
 	get_tree().quit()
 
 

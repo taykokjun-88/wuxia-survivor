@@ -5,6 +5,7 @@ extends Node2D
 ## 没有素材的特效仍由 GameWorld 自己用线条和圆弧画。
 
 const PROJ_IDS := {"wave": "proj_wave", "bolt": "proj_bolt", "palm": "proj_palm", "finger": "proj_finger"}
+const HOSTILE_IDS := {"claw": "boss_claw_proj", "palm": "boss_dark_palm", "blade": "boss_blade_proj"}      # Boss 弹体的特效素材（有才画）
 const EMP_RING := Color("#4fe0d0")
 
 var world: GameWorld
@@ -33,9 +34,9 @@ func _draw() -> void:
 			v.draw(self, id, v.frame_loop(id, t), z["pos"], float(z["r"]) * 2.2, 0.0, Color(1, 1, 1, clampf(a * 2.0, 0.0, 1.0)))
 	# 弹体：循环，朝向飞行方向；催动版偏青并略大
 	for p in world.projs:
-		if p.hostile or not PROJ_IDS.has(p.kind):
+		var pid: String = str(HOSTILE_IDS.get(p.kind, "")) if p.hostile else str(PROJ_IDS.get(p.kind, ""))
+		if pid == "":
 			continue
-		var pid: String = PROJ_IDS[p.kind]
 		if not v.has(pid) or not world._vis(p.pos):
 			continue
 		var ws := float(v.effects[pid]["world_size"])

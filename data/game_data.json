@@ -50,7 +50,7 @@
     "max_enemies": 800,
     "burst_interval": 45,
     "elite_first": 100,
-    "elite_interval": 80,
+    "elite_interval": 60,
     "elite_hp": 9,
     "elite_radius": 1.5,
     "elite_speed": 0.85,
@@ -122,7 +122,11 @@
     "prop_gem_value": 2,
     "prop_jar_pill": 0.6,
     "prop_fire_radius": 120,
-    "prop_fire_damage": 45
+    "prop_fire_damage": 45,
+    "final_boss_limit": 60,
+    "wave_first": 120,
+    "wave_interval": 75,
+    "wave_size": 16
   },
   "skills": {
     "yue_palm": {
@@ -982,7 +986,14 @@
       "radius": 32,
       "exp": 80,
       "color": "#5a3a1f",
-      "bolts": 10
+      "bolts": 10,
+      "skills": [
+        "charge",
+        "claw",
+        "stomp"
+      ],
+      "phase_hp": 0.0,
+      "skills2": []
     },
     "mini_boss_2": {
       "name": "梅小风",
@@ -992,7 +1003,15 @@
       "radius": 34,
       "exp": 100,
       "color": "#4a1f1f",
-      "bolts": 12
+      "bolts": 12,
+      "skills": [
+        "whip",
+        "claw_proj"
+      ],
+      "phase_hp": 0.5,
+      "skills2": [
+        "blink"
+      ]
     },
     "mini_boss_3": {
       "name": "裘千米",
@@ -1002,7 +1021,14 @@
       "radius": 34,
       "exp": 120,
       "color": "#1f3a4a",
-      "bolts": 14
+      "bolts": 14,
+      "skills": [
+        "palm",
+        "shock"
+      ],
+      "phase_hp": 0.0,
+      "skills2": [],
+      "shield_every": 16.0
     },
     "boss": {
       "name": "黑风寨主·胡千刀",
@@ -1012,7 +1038,16 @@
       "radius": 40,
       "exp": 50,
       "color": "#3a1f4a",
-      "bolts": 14
+      "bolts": 14,
+      "skills": [
+        "cleave",
+        "leap",
+        "summon"
+      ],
+      "phase_hp": 0.6,
+      "skills2": [
+        "whirl"
+      ]
     },
     "prop_crate": {
       "name": "木箱",
@@ -1043,6 +1078,30 @@
       "exp": 0,
       "color": "#3a3a44",
       "prop": true
+    },
+    "archer": {
+      "name": "弓手",
+      "hp": 16,
+      "speed": 55,
+      "damage": 6,
+      "radius": 11,
+      "exp": 2,
+      "color": "#4a6a3a",
+      "behavior": "archer",
+      "art": "blade",
+      "tint": "#9ad08a"
+    },
+    "charger": {
+      "name": "蛮兵",
+      "hp": 34,
+      "speed": 80,
+      "damage": 12,
+      "radius": 15,
+      "exp": 3,
+      "color": "#7a3a2a",
+      "behavior": "charger",
+      "art": "soldier",
+      "tint": "#e08a7a"
     }
   },
   "tiers": [
@@ -2946,7 +3005,7 @@
       },
       {
         "title": "一局的流程",
-        "text": "一局约 12 分钟。每升一级，从三张卡里选一张（也可以按 1 / 2 / 3）：\\n· 领悟新招式（一局最多 4 个）\\n· 修习心法（一局最多 2 个）\\n· 给已有招式升级：每次升级是「一个方向 × 一个档位」，档位有小成 / 中成 / 大成 / 灵机一动，招式最高升到 12 层「极」。\\n3:00、6:30、10:00 各有一名小 Boss，击败后掉落秘籍：第一本让你选一个招式获得「专属强化」，之后每本把它再升一级（最高 Lv3）。\\n12:00 寨主现身，击败即通关，并掉落本流派的装备。\\n精英怪（金圈）掉还丹，击败它们能补血。"
+        "text": "一局约 12 分钟。每升一级，从三张卡里选一张（也可以按 1 / 2 / 3）：\\n· 领悟新招式（一局最多 4 个）\\n· 修习心法（一局最多 2 个）\\n· 给已有招式升级：每次升级是「一个方向 × 一个档位」，档位有小成 / 中成 / 大成 / 灵机一动，招式最高升到 12 层「极」。\\n3:00、6:30、10:00 各有一名小 Boss，击败后掉落秘籍：第一本让你选一个招式获得「专属强化」，之后每本把它再升一级（最高 Lv3）。\\n12:00 寨主现身，必须在 1 分钟内击败，超时他就逃遁（判负）；击败即通关。\n每个 Boss 都有自己的招式，出招前会先亮出红线 / 红圈 / 红扇形预警，看清再走位。后期还会刷出弓手（保持距离放冷箭）、蛮兵（预警后冲锋），每隔一阵有「怪潮」从一个方向压来，精英也越来越多。\\n精英怪（金圈）掉还丹，击败它们能补血。"
       },
       {
         "title": "内力与三境",
@@ -3034,5 +3093,150 @@
       "name": "破气式",
       "desc": "对 Boss 罡气 ×(1+10%/层)；命中回复内力；催动更省"
     }
-  ]
+  ],
+  "boss_skills": {
+    "charge": {
+      "name": "蛮力冲撞",
+      "warn": 0.9,
+      "shape": "line",
+      "len": 430,
+      "width": 64,
+      "dmg": 0,
+      "speed": 540,
+      "dur": 0.55
+    },
+    "claw": {
+      "name": "尸毒双爪",
+      "warn": 0.55,
+      "shape": "fan",
+      "reach": 120,
+      "arc": 2.1,
+      "dmg": 14,
+      "hits": 2,
+      "gap": 0.32,
+      "vfx": "boss_claw_slash",
+      "max_dist": 200
+    },
+    "stomp": {
+      "name": "撼地践踏",
+      "warn": 0.9,
+      "shape": "circle",
+      "r": 135,
+      "dmg": 18,
+      "knock": 420,
+      "vfx": "zone_crack"
+    },
+    "whip": {
+      "name": "银鞭横扫",
+      "warn": 0.7,
+      "shape": "fan",
+      "reach": 210,
+      "arc": 2.6,
+      "dmg": 14,
+      "slow": 1.8,
+      "vfx": "boss_whip_arc"
+    },
+    "claw_proj": {
+      "name": "白骨爪气",
+      "warn": 0.6,
+      "shape": "line",
+      "len": 440,
+      "width": 18,
+      "dmg": 12,
+      "count": 4,
+      "spread": 0.3,
+      "speed": 320,
+      "kind": "claw"
+    },
+    "blink": {
+      "name": "鬼步闪现",
+      "warn": 0.7,
+      "shape": "circle",
+      "r": 58,
+      "dmg": 0,
+      "after": 0.45
+    },
+    "palm": {
+      "name": "铁砂连掌",
+      "warn": 0.5,
+      "shape": "line",
+      "len": 500,
+      "width": 26,
+      "dmg": 14,
+      "count": 3,
+      "gap": 0.35,
+      "speed": 310,
+      "kind": "palm"
+    },
+    "shock": {
+      "name": "气劲震荡圈",
+      "warn": 1.0,
+      "shape": "circle",
+      "r": 180,
+      "dmg": 16,
+      "knock": 540,
+      "vfx": "boss_red_ring"
+    },
+    "cleave": {
+      "name": "巨刃半月斩",
+      "warn": 1.1,
+      "shape": "fan",
+      "reach": 280,
+      "arc": 3.5,
+      "dmg": 26,
+      "vfx": "boss_huge_cleave"
+    },
+    "leap": {
+      "name": "跳劈震地",
+      "warn": 1.0,
+      "shape": "circle",
+      "r": 150,
+      "dmg": 24,
+      "knock": 480,
+      "fly": 0.45,
+      "vfx": "zone_crack"
+    },
+    "whirl": {
+      "name": "狂风旋风斩",
+      "warn": 0.6,
+      "shape": "circle",
+      "r": 70,
+      "dmg": 14,
+      "count": 10,
+      "rounds": 3,
+      "gap": 0.42,
+      "speed": 270,
+      "kind": "blade"
+    },
+    "summon": {
+      "name": "寨主号令",
+      "warn": 0.8,
+      "shape": "circle",
+      "r": 90,
+      "n": 4,
+      "type": "soldier",
+      "rage": 6.0,
+      "cd": 24.0
+    },
+    "arrow": {
+      "name": "冷箭",
+      "warn": 0.45,
+      "shape": "line",
+      "len": 420,
+      "width": 10,
+      "dmg": 8,
+      "speed": 400,
+      "kind": "arrow"
+    },
+    "rush": {
+      "name": "蛮冲",
+      "warn": 0.6,
+      "shape": "line",
+      "len": 300,
+      "width": 30,
+      "dmg": 0,
+      "speed": 420,
+      "dur": 0.45
+    }
+  }
 }
