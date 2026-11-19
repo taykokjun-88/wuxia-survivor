@@ -13,7 +13,9 @@
   - 每格按等宽切开，整体等比缩放进 cell×cell（所有帧用同一个比例，保持帧与帧之间的大小关系）
   - 接近黑色的杂点清成纯黑（AI 出图的 JPEG 噪点），黑色同时变透明：alpha = 最亮通道（越亮越不透明），颜色还原成不预乘
   - 缩放用 LANCZOS（发光效果需要平滑）；游戏里用普通 alpha 混合绘制（背景是浅色宣纸，叠加混合会冲成白色），所以特效要用高饱和的颜色
-  - --trim：先裁掉所有帧共同的空白再缩放，让对称的爆发类特效填满格子（带方向的特效不要用，会丢掉原点）
+  - --trim：先裁掉所有帧共同的空白再缩放，让对称的爆发类特效填满格子（以画面中心为原点对称地裁，不会丢掉原点）
+  - --auto-split：按内容分帧。AI 出的条带每帧宽度 / 间距往往不一样，等分会切坏；这个模式把分界线放在最暗的谷底，
+    各帧以自己的横向中心对齐、共用同一条垂直中线（所以特效的原点变成「内容中心」，刀光类可以再用 --forward 往前挪）
 特效的约定（画在游戏里时）：格子正中心是原点；带方向的（弹体 / 刀光 / 冲刺拖尾）朝右。
 """
 import argparse
@@ -59,15 +61,82 @@ def load_cfg() -> dict:
     return {"cell_note": "由 tools/process_vfx.py 生成", "effects": {}}
 
 
-def process(src: str, fx_id: str, frames: int, cell: int, fps: float, loop: bool, trim: bool, floor: int, world_size: float = 0.0) -> None:
+def _boundaries(occ: np.ndarray, n: int) -> tuple:
+    """把横向分成 n 段：每条分界线取在「理想等分位置附近最暗的谷底」。返回 (分界线列表, 代价)。"""
+    w = len(occ)
+    fw = w / n
+    sm = np.convolve(occ.astype(float), np.ones(5) / 5.0, mode="same")
+    cuts, cost = [0], 0.0
+    for i in range(1, n):
+        c = int(round(i * fw))
+        lo, hi = max(cuts[-1] + 4, int(c - 0.38 * fw)), min(w - 4, int(c + 0.38 * fw))
+        if hi <= lo:
+            cuts.append(c)
+            continue
+        seg = sm[lo:hi]
+        m = seg.min()
+        cand = np.where(seg <= m + 1e-9)[0] + lo
+        j = int(cand[np.argmin(np.abs(cand - c))])      # 并列最暗时取最靠近等分位置的
+        cuts.append(j)
+        cost += m
+    cuts.append(w)
+    return cuts, cost
+
+
+def auto_split(arr: np.ndarray, floor: int, n: int, pad_frac: float) -> list:
+    """按内容分帧：AI 出的条带每帧宽度、间距往往不一样，等分会切坏、按间隙切又会把贴在一起的帧合并。
+    做法：n 帧 → 每条分界线放在附近最暗的谷底 → 每帧以自己内容的横向中心对齐，所有帧共用同一条垂直中线
+    （地面类爆发的底边因此保持一致）。完全空白的帧会丢掉。返回等大的方形帧列表。"""
+    h, w, _ = arr.shape
+    lit = arr.max(axis=2) > max(floor, 22)
+    occ = lit.sum(axis=0)
+    if occ.sum() == 0:
+        sys.exit("源图里没有找到特效")
+    cuts, _ = _boundaries(occ, n)
+    ys = np.where(lit.any(axis=1))[0]
+    cy = (ys.min() + ys.max()) / 2
+    half_h = (ys.max() - ys.min()) / 2
+    boxes = []
+    for a, b in zip(cuts[:-1], cuts[1:]):
+        sub = lit[:, a:b]
+        if sub.sum() < 25:
+            continue
+        xs = np.where(sub.any(axis=0))[0]
+        boxes.append((a, b, a + xs.min(), a + xs.max() + 1))
+    half_w = max((x1 - x0) / 2 for _, _, x0, x1 in boxes)
+    side = int(max(half_h, half_w) * 2 * (1 + pad_frac)) + 2
+    out = []
+    for a, b, x0c, x1c in boxes:
+        cx = (x0c + x1c) / 2
+        x0, y0 = int(round(cx - side / 2)), int(round(cy - side / 2))
+        canvas = np.zeros((side, side, 3), dtype=np.uint8)
+        sx0, sy0 = max(x0, 0), max(y0, 0)
+        sx1, sy1 = min(x0 + side, w), min(y0 + side, h)
+        canvas[sy0 - y0:sy1 - y0, sx0 - x0:sx1 - x0] = arr[sy0:sy1, sx0:sx1]
+        keep = np.zeros(side, dtype=bool)                   # 只保留本帧范围内的内容，相邻帧漏进来的部分清掉
+        keep[max(0, a - x0):min(side, b - x0)] = True
+        canvas[:, ~keep] = 0
+        out.append(canvas)
+    return out
+
+
+def process(src: str, fx_id: str, frames: int, cell: int, fps: float, loop: bool, trim: bool, floor: int, world_size: float = 0.0,
+            auto: bool = False, frames_given: bool = False, extra: dict = None) -> None:
     img = Image.open(src).convert("RGB")
     arr = np.asarray(img).astype(np.uint8)
     h, w, _ = arr.shape
-    fw = w // frames
-    if fw < 8 or h < 8:
-        sys.exit("源图太小")
-    cells = [arr[:, i * fw:(i + 1) * fw] for i in range(frames)]
+    if auto:
+        cells = auto_split(arr, floor, frames, 0.06)
+        frames = len(cells)
+        h, fw = cells[0].shape[:2]
+        trim = False
+    else:
+        fw = w // frames
+        if fw < 8 or h < 8:
+            sys.exit("源图太小")
+        cells = [arr[:, i * fw:(i + 1) * fw] for i in range(frames)]
     # 去噪：整体最亮通道低于 floor 的像素清成纯黑
+    cells = [np.ascontiguousarray(c) for c in cells]
     for c in cells:
         c[c.max(axis=2) < floor] = 0
     if trim:
@@ -106,6 +175,12 @@ def process(src: str, fx_id: str, frames: int, cell: int, fps: float, loop: bool
     ws = world_size or float(old.get("world_size", 0.0))
     if ws > 0:
         entry["world_size"] = ws
+    for k, v in (extra or {}).items():
+        if v is not None:
+            entry[k] = v
+    for k in ("scale", "forward"):      # 重新处理时保留手工调过的值
+        if k not in entry and k in old:
+            entry[k] = old[k]
     cfg["effects"][fx_id] = entry
     (OUT / "vfx.json").write_text(json.dumps(cfg, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"已写入 assets/vfx/{fx_id}.png：{frames} 帧 × {cell}px，{fps} fps，{'循环' if loop else '一次性'}")
@@ -124,6 +199,9 @@ def main() -> None:
     s.add_argument("--once", action="store_true", help="一次性（默认按目录里的建议值）")
     s.add_argument("--trim", action="store_true")
     s.add_argument("--floor", type=int, default=18, help="低于这个亮度的像素当作黑底（默认 18）")
+    s.add_argument("--auto-split", action="store_true", help="按内容分帧（条带每帧宽度 / 间距不均匀时用）。帧数请用 --frames N 指定（条带里数一数有几个，末尾几乎看不见的淡帧也算）")
+    s.add_argument("--scale", type=float, default=None, help="游戏里的额外缩放倍数（相对于代码算出的尺寸）")
+    s.add_argument("--forward", type=float, default=None, help="沿朝向向前偏移（占特效边长的比例；刀光 / 弧光用）")
     s.add_argument("--world-size", type=float, default=0.0, help="整张格子在游戏里的边长（像素）；不填则沿用已登记的值，仍没有就按招式半径")
     sub.add_parser("list")
     a = ap.parse_args()
@@ -135,7 +213,7 @@ def main() -> None:
         return
     desc, cell, frames, fps, loop = CATALOG.get(a.id, ("", 128, 4, 16, False))
     loop = True if a.loop else (False if a.once else loop)
-    process(a.src, a.id, a.frames or frames, a.cell or cell, a.fps or fps, loop, a.trim, a.floor, a.world_size)
+    process(a.src, a.id, a.frames or frames, a.cell or cell, a.fps or fps, loop, a.trim, a.floor, a.world_size, a.auto_split, a.frames is not None, {"scale": a.scale, "forward": a.forward})
 
 
 if __name__ == "__main__":

@@ -178,6 +178,61 @@ func _ready() -> void:
 			en.max_hp = 1.0e9
 		await _advance(0.45)
 		_snap("06f_proj_" + sid)
+	# 一次性特效陈列：按游戏里实际用的参数，定格在寿命的 35% / 60%
+	w.skills.clear()
+	for e in w.enemies:
+		e.alive = false
+	w._compact_enemies()
+	w.projs.clear()
+	w.effects.clear()
+	w.god = true
+	var origin := w.player_pos
+	var specs := [
+		["slash_fist", "slash", Vector2(-330, -170), {"angle": 0.0, "r": 80.0, "arc": 1.6, "heavy": false}, 0.2],
+		["slash_heavy", "slash", Vector2(-110, -170), {"angle": 0.0, "r": 90.0, "arc": 1.9, "heavy": true}, 0.2],
+		["burst_wind", "ring", Vector2(130, -170), {"r0": 15.0, "r1": 110.0}, 0.3],
+		["burst_quake", "ring", Vector2(340, -170), {"r0": 10.0, "r1": 100.0}, 0.3],
+		["burst_gold", "ring", Vector2(-330, 10), {"r0": 10.0, "r1": 110.0}, 0.3],
+		["ring_taiji", "ring", Vector2(-110, 10), {"r0": 15.0, "r1": 100.0}, 0.45],
+		["ring_qinggong", "ring", Vector2(130, 10), {"r0": 10.0, "r1": 90.0}, 0.3],
+		["burst_break", "ring", Vector2(340, 10), {"r0": 20.0, "r1": 130.0}, 0.5],
+		["burst_ult", "ring", Vector2(-230, 200), {"r0": 20.0, "r1": 240.0}, 0.45],
+		["halo_empower", "ring", Vector2(60, 200), {"r0": 10.0, "r1": 34.0}, 0.25],
+	]
+	for prog in [0.35, 0.6]:
+		w.effects.clear()
+		for sp in specs:
+			var ex: Dictionary = (sp[3] as Dictionary).duplicate()
+			ex["vfx"] = sp[0]
+			w.add_fx(sp[1], origin + sp[2], sp[4], ex)
+			w.effects[-1]["t"] = float(sp[4]) * prog
+		await _frames(3)
+		_snap("06g_oneshots_%d" % int(prog * 100))
+	w.effects.clear()
+	# 真实战斗里的刀光：大金刚拳 / 太祖长拳，敌人在右边近处
+	for sid in ["chain_fist", "vajra_fist"]:
+		w.skills.clear()
+		w.add_skill(sid)
+		w.neili = w.st("max_neili")
+		for e in w.enemies:
+			e.alive = false
+		w._compact_enemies()
+		for i in 5:
+			var en := w._spawn_enemy("bandit", w.player_pos + Vector2(70 + 12 * i, -40 + 20 * i))
+			en.speed = 0.0
+			en.hp = 1.0e9
+			en.max_hp = 1.0e9
+		w.input_move = Vector2.ZERO
+		w.facing = Vector2.RIGHT
+		var got := false
+		for k in 240:
+			await _advance(1.0 / 60.0)
+			for fx in w.effects:
+				if str(fx["kind"]) == "slash" and float(fx["t"]) > float(fx["life"]) * 0.3:
+					got = true
+			if got:
+				break
+		_snap("06h_slash_" + sid)
 	Save.reset_character()   # 清理截图产生的存档
 	get_tree().quit()
 

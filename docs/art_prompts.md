@@ -116,6 +116,9 @@ no text. Style: Chinese acupuncture point / jade bead, in desaturated off-white 
 python3 tools/process_vfx.py strip assets/vfx/source/proj_wave.jpg proj_wave
 python3 tools/process_vfx.py strip assets/vfx/source/burst_quake.jpg burst_quake --trim   # 对称的爆发类可以加 --trim 填满格子
 python3 tools/process_vfx.py list            # 看完成了多少
+# AI 出的条带里每帧宽度 / 间距常常不均匀（等分会切坏）：用按内容分帧，并数好帧数
+python3 tools/process_vfx.py strip assets/vfx/source/burst_wind.jpg burst_wind --auto-split --frames 7
+# 刀光 / 弧光的内容中心在身后时，用 --forward 往前挪（占特效边长的比例）；--scale 整体放大缩小；--world-size 固定游戏内边长
 ```
 
 处理后会得到 `assets/vfx/<id>.png` 和 `assets/vfx/vfx.json`，**提交这两样**（`source/` 里的原图可以不提交）。

@@ -56,4 +56,7 @@ func _draw() -> void:
 		if sz <= 0.0:
 			sz = float(fx["r1"]) * 2.0 if fx.has("r1") else (float(fx["r"]) * 2.2 if fx.has("r") else 64.0)
 		var col: Color = fx.get("tint", Color.WHITE)
-		v.draw(self, id2, v.frame_progress(id2, prog), fx["pos"], sz, float(fx.get("angle", 0.0)), col)
+		sz *= float(v.effects[id2]["scale"])
+		var ang := float(fx.get("angle", 0.0))
+		var at: Vector2 = fx["pos"] + Vector2.from_angle(ang) * sz * float(v.effects[id2]["forward"])
+		v.draw(self, id2, v.frame_progress(id2, prog), at, sz, ang, col)

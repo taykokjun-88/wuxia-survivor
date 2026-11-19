@@ -32,6 +32,77 @@
       "cell": 64,
       "loop": true,
       "world_size": 80.0
+    },
+    "slash_fist": {
+      "file": "slash_fist.png",
+      "frames": 5,
+      "fps": 24.0,
+      "cell": 192,
+      "loop": false
+    },
+    "halo_empower": {
+      "file": "halo_empower.png",
+      "frames": 4,
+      "fps": 16,
+      "cell": 128,
+      "loop": false
+    },
+    "slash_heavy": {
+      "file": "slash_heavy.png",
+      "frames": 7,
+      "fps": 22,
+      "cell": 192,
+      "loop": false,
+      "forward": 0.28
+    },
+    "burst_wind": {
+      "file": "burst_wind.png",
+      "frames": 7,
+      "fps": 22,
+      "cell": 256,
+      "loop": false
+    },
+    "burst_break": {
+      "file": "burst_break.png",
+      "frames": 7,
+      "fps": 16,
+      "cell": 256,
+      "loop": false
+    },
+    "burst_ult": {
+      "file": "burst_ult.png",
+      "frames": 8,
+      "fps": 16,
+      "cell": 256,
+      "loop": false
+    },
+    "ring_qinggong": {
+      "file": "ring_qinggong.png",
+      "frames": 6,
+      "fps": 22,
+      "cell": 256,
+      "loop": false
+    },
+    "ring_taiji": {
+      "file": "ring_taiji.png",
+      "frames": 8,
+      "fps": 18,
+      "cell": 256,
+      "loop": false
+    },
+    "burst_gold": {
+      "file": "burst_gold.png",
+      "frames": 8,
+      "fps": 20,
+      "cell": 256,
+      "loop": false
+    },
+    "burst_quake": {
+      "file": "burst_quake.png",
+      "frames": 7,
+      "fps": 20,
+      "cell": 256,
+      "loop": false
     }
   }
 }
