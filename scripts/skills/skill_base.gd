@@ -167,7 +167,7 @@ func fire() -> bool:
 	return false
 
 
-## 玩家受击时调用，返回减免后的伤害（太极劲等防御类技能使用）
+## 玩家受击时调用，返回减免后的伤害（乾坤大挪移等防御类技能使用）
 func on_hurt(amount: float) -> float:
 	return amount
 

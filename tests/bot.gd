@@ -85,7 +85,7 @@ const DIR_SCORE := {
 }
 
 
-## 「合格玩家」的选卡打分：优先输出向的新技能和伤害/冷却类升级，避开防御型的太极劲
+## 「合格玩家」的选卡打分：优先输出向的新技能和伤害/冷却类升级，避开防御型的乾坤大挪移
 static func score_card(w: GameWorld, c: Dictionary) -> float:
 	match str(c["kind"]):
 		"new_skill":

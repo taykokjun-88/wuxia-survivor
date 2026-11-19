@@ -314,7 +314,7 @@ func dmg_mult() -> float:
 	return Data.T("ying_dmg") + st("ying_dmg") if realm() == Realm.YING else 1.0
 
 
-## 盈境的门槛（纯阳诀等心法可以调低）
+## 盈境的门槛（九阳神功等心法可以调低）
 func ying_at() -> float:
 	return clampf(Data.T("ying_at") + st("ying_shift"), 0.5, 0.95)
 
@@ -802,7 +802,7 @@ func _boss_radial(e: Enemy, n: int) -> void:
 func _hurt(amount: float) -> void:
 	if god:
 		return
-	# 闪避（灵蛇步）与免伤（铁骨诀）
+	# 闪避（凌波微步）与免伤（铁布衫）
 	if st("dodge_chance") > 0.0 and neili >= float(qg.get("dodge_cost", 0.0)) and rng.randf() < st("dodge_chance"):
 		neili -= float(qg.get("dodge_cost", 0.0))
 		invuln = 0.3

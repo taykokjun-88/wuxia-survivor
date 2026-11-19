@@ -18,7 +18,7 @@ static func create(skill_id: String) -> SkillBase:
 	return null
 
 
-## 裂岳掌：贯穿掌风。强化「分身掌」：首次命中后分裂成两道小掌风。
+## 降龙十八掌：贯穿掌风。强化「龙战于野」：首次命中后分裂成两道小掌风。
 class YuePalm extends SkillBase:
 	func fire() -> bool:
 		var t := w.nearest_enemy(p("speed") * p("life"))
@@ -33,7 +33,7 @@ class YuePalm extends SkillBase:
 		return true
 
 
-## 连环拳：近身三连击。强化「破军」：第三拳必暴击并释放冲击波。
+## 太祖长拳：近身三连击。强化「横扫千军」：第三拳必暴击并释放冲击波。
 class ChainFist extends SkillBase:
 	var combo := 0
 
@@ -58,7 +58,7 @@ class ChainFist extends SkillBase:
 		return true
 
 
-## 撼地拳：延迟落点的范围击晕。强化「裂地」：落点留下 3 秒的裂痕。
+## 七伤拳：延迟落点的范围击晕。强化「七伤暗劲」：落点留下 3 秒的裂痕。
 class QuakeFist extends SkillBase:
 	func fire() -> bool:
 		var t := w.nearest_enemy(p("range"))
@@ -79,7 +79,7 @@ class QuakeFist extends SkillBase:
 		return true
 
 
-## 回风掌：环身掌风。强化「旋涡」：掌风过后把周围敌人吸拢。
+## 落英神剑掌：环身掌风。强化「落英缤纷」：掌风过后把周围敌人吸拢。
 class WhirlPalm extends SkillBase:
 	func fire() -> bool:
 		var r := p("radius") * (1.5 if empowered else 1.0)
@@ -93,7 +93,7 @@ class WhirlPalm extends SkillBase:
 		return true
 
 
-## 点穴指：定身。强化「连锁」：被点穴的敌人死亡时爆炸并定身周围敌人。
+## 一阳指：定身。强化「一阳连环」：被点穴的敌人死亡时爆炸并定身周围敌人。
 class PointFinger extends SkillBase:
 	func fire() -> bool:
 		var reach := p("speed") * p("life")
@@ -106,7 +106,7 @@ class PointFinger extends SkillBase:
 		return true
 
 
-## 金刚拳：消耗内力的重击，内力越满越痛。强化「不坏」：内力 ≥90% 时不耗内力并获得护盾。
+## 大金刚拳：消耗内力的重击，内力越满越痛。强化「金刚不坏」：内力 ≥90% 时不耗内力并获得护盾。
 class VajraFist extends SkillBase:
 	func fire() -> bool:
 		var reach := p("reach")
@@ -127,7 +127,7 @@ class VajraFist extends SkillBase:
 		return true
 
 
-## 流云掌：追踪掌印。强化「回旋」：掌印飞出后折返，可再次命中。
+## 天山六阳掌：追踪掌印。强化「六阳回环」：掌印飞出后折返，可再次命中。
 class CloudPalm extends SkillBase:
 	func fire() -> bool:
 		var t := w.nearest_enemy(520.0)
@@ -141,7 +141,7 @@ class CloudPalm extends SkillBase:
 		return true
 
 
-## 八荒拳：八方拳气。强化「螺旋」：连发三轮，每轮偏转，形成旋转弹幕。
+## 八荒六合功：八方拳气。强化「唯我独尊」：连发三轮，每轮偏转，形成旋转弹幕。
 class EightWaste extends SkillBase:
 	var bursts_left := 0
 	var burst_t := 0.0
@@ -175,7 +175,7 @@ class EightWaste extends SkillBase:
 		rot += 0.3 if enhanced() else 0.2
 
 
-## 太极劲：受击时化解部分伤害并反击；平时周身有微弱劲气。强化「借力」：化解的伤害 ×4 转为反击。
+## 乾坤大挪移：受击时化解部分伤害并反击；平时周身有微弱劲气。强化「颠倒乾坤」：化解的伤害 ×4 转为反击。
 class Taiji extends SkillBase:
 	var guard_cd := 0.0
 	var pulse_t := 2.0

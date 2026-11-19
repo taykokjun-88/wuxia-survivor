@@ -190,7 +190,7 @@ func _skill_matrix() -> void:
 			for i in int(40.0 / DT):
 				TestBot.drive(w, engage)
 				w.step(DT)
-				# 太极劲是受击触发：god 模式下直接调用，覆盖反击分支
+				# 乾坤大挪移是受击触发：god 模式下直接调用，覆盖反击分支
 				if id == "taiji" and i % 120 == 0:
 					s.on_hurt(30.0)
 				if w.over:
@@ -446,7 +446,7 @@ func _synergy_test() -> void:
 			n_harm += 1 if want_h else 0
 			_free_world(w)
 	_check(n_harm == Data.harmony.size(), "每个合璧恰好对应一种搭配")
-	# 阴阳效果（用没有合璧的搭配：无相诀 + 铁骨诀 阳阳；寒霜诀 + 吞海诀 阴阴；无相诀 + 寒霜诀 一阴一阳）
+	# 阴阳效果（用没有合璧的搭配：小无相功 + 铁布衫 阳阳；玄冥神功 + 北冥神功 阴阴；小无相功 + 玄冥神功 一阴一阳）
 	var base_regen := float(Data.player_base["neili_regen"])
 	var base_max := float(Data.player_base["max_neili"])
 	var wa := _new_world(71)
@@ -890,10 +890,10 @@ func _neili_test() -> void:
 	_check(w.realm() == GameWorld.Realm.PING and is_equal_approx(w.dmg_mult(), 1.0), "平境无加成")
 	w.neili = mx * 0.2
 	_check(w.realm() == GameWorld.Realm.XU, "低于 25% 为虚")
-	# 纯阳诀降低盈境门槛
+	# 九阳神功降低盈境门槛
 	w.xinfa["chunyang"] = 2
 	w.recalc()
-	_check(absf(w.ying_at() - (Data.T("ying_at") - 0.1)) < 1e-6, "纯阳诀 Lv2：盈境门槛降低 10%%（实际 %.2f）" % w.ying_at())
+	_check(absf(w.ying_at() - (Data.T("ying_at") - 0.1)) < 1e-6, "九阳神功 Lv2：盈境门槛降低 10%%（实际 %.2f）" % w.ying_at())
 	w.xinfa.clear()
 	w.recalc()
 	# 虚境回气更快（对比同样时间内的回复量）
@@ -959,12 +959,12 @@ func _neili_test() -> void:
 	we.projs.clear()
 	ew.empowered = true
 	ew.fire()
-	_check(we.projs.size() == 16, "八荒拳催动：十六方向（实际 %d）" % we.projs.size())
+	_check(we.projs.size() == 16, "八荒六合功催动：十六方向（实际 %d）" % we.projs.size())
 	we.projs.clear()
 	ew.empowered = false
 	ew.emp_burst = false
 	ew.fire()
-	_check(we.projs.size() == int(ew.p("count")), "八荒拳普通版：%d 方向" % int(ew.p("count")))
+	_check(we.projs.size() == int(ew.p("count")), "八荒六合功普通版：%d 方向" % int(ew.p("count")))
 	_free_world(we)
 	# 运功升级：催动消耗递减
 	var sb := SkillBase.new()
@@ -1213,7 +1213,7 @@ func _sprite_anim_test() -> void:
 	for i in 120:
 		TestBot.drive(w2, 75.0)
 		w2.step(DT)
-	_check(w2.anim_ovr == "punch", "连环拳出招应触发 punch 动画，实际 %s" % w2.anim_ovr)
+	_check(w2.anim_ovr == "punch", "太祖长拳出招应触发 punch 动画，实际 %s" % w2.anim_ovr)
 	print("  回退链 / 帧索引 / 状态优先级 / 出招触发  OK")
 	_free_world(w2)
 
