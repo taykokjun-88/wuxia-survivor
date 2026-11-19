@@ -62,6 +62,8 @@ var still_t := 0.0                # 连续站立不动的时间（入定）
 var realm_time := [0.0, 0.0, 0.0] # 虚 / 平 / 盈 各停留了多久（测试与平衡用）
 var empower_count := 0
 var _emp_ctx := -1                # 延迟命中（弹体 / 区域）的催动状态：-1 未设置，0 否，1 是
+var vfx: Vfx                       # 招式特效素材（没有素材的特效继续用程序绘制）
+var vfx_layer: VfxLayer
 var synergies: Array = []          # 当前生效的阴阳组合 / 合璧：[{name, desc, harmony}]
 var burn_t := 0.0
 var break_count := 0              # 打破 Boss 罡气的次数（测试用）
@@ -119,6 +121,11 @@ var max_enemies := 800
 
 
 func _ready() -> void:
+	vfx = Vfx.new()
+	vfx.load_dir("res://assets/vfx")
+	vfx_layer = VfxLayer.new()
+	vfx_layer.world = self
+	add_child(vfx_layer)
 	sprite_anim = SpriteAnim.new()
 	if not sprite_anim.load_dir("res://assets/sprites/player"):
 		sprite_anim = null
@@ -334,7 +341,7 @@ func can_empower(cost: float) -> bool:
 func pay_empower(cost: float) -> void:
 	neili = maxf(0.0, neili - cost)
 	empower_count += 1
-	add_fx("ring", player_pos, 0.25, {"r0": 10.0, "r1": 34.0, "color": Color("#4fe0d0")})
+	add_fx("ring", player_pos, 0.25, {"r0": 10.0, "r1": 34.0, "color": Color("#4fe0d0"), "vfx": "halo_empower"})
 
 
 # =====================================================================
@@ -394,7 +401,7 @@ func _update_player(dt: float) -> void:
 	if dash_t > 0.0:
 		dash_t -= dt
 		player_pos += dash_dir * float(qg["dash_speed"]) * dt
-		add_fx("trail", player_pos, 0.25)
+		add_fx("trail", player_pos, 0.25, {"vfx": "trail_dash", "size": 80.0, "angle": facing.angle()})
 		var pd := float(qg.get("path_dmg", 0.0))
 		if pd > 0.0:
 			for e in _query(player_pos, 36.0):
@@ -455,7 +462,7 @@ func _start_dash(move: Vector2, max_charges: int) -> void:
 		if ld > 0.0:
 			var lr := float(qg["land_radius"])
 			area_hit_raw(player_pos, lr, ld, [], "qinggong", 250.0)
-			add_fx("ring", player_pos, 0.3, {"r0": 10.0, "r1": lr, "color": JADE})
+			add_fx("ring", player_pos, 0.3, {"r0": 10.0, "r1": lr, "color": JADE, "vfx": "ring_qinggong"})
 		_end_dash()
 	else:
 		dash_t = float(qg["dash_time"])
@@ -477,7 +484,7 @@ func _ult() -> void:
 	for p in projs:
 		if p.hostile and p.pos.distance_to(player_pos) < ULT_RADIUS:
 			p.life = 0.0
-	add_fx("ring", player_pos, 0.45, {"r0": 20.0, "r1": ULT_RADIUS, "color": JADE})
+	add_fx("ring", player_pos, 0.45, {"r0": 20.0, "r1": ULT_RADIUS, "color": JADE, "vfx": "burst_ult"})
 	shake = 10.0
 
 
@@ -837,6 +844,9 @@ func damage_enemy(e: Enemy, amount: float, knock_vec: Vector2, crit: bool = fals
 	e.hp -= amount
 	e.flash = 0.08
 	e.knock += knock_vec * (0.1 if e.is_boss else (0.4 if e.is_elite else 1.0))
+	if vfx.has("hit_impact") and effects.size() < MAX_EFFECTS / 2:
+		var hid := "hit_crit" if crit and vfx.has("hit_crit") else "hit_impact"
+		add_fx("hit", e.pos, 0.2, {"vfx": hid, "size": (46.0 if crit else 34.0) + e.radius, "angle": knock_vec.angle() if knock_vec != Vector2.ZERO else rng.randf() * TAU})
 	if effects.size() < MAX_EFFECTS:
 		var big := crit
 		add_fx("text", e.pos + Vector2(rng.randf_range(-8, 8), -e.radius), 0.55 if big else 0.45,
@@ -850,7 +860,10 @@ func _kill(e: Enemy) -> void:
 	kills += 1
 	neili = minf(st("max_neili"), neili + st("kill_neili"))
 	_drop_gem(e.pos, e.exp_value)
-	add_fx("splat", e.pos, 0.6, {"r": e.radius * 1.4, "color": e.color})
+	if vfx.has("death_puff") and effects.size() < MAX_EFFECTS:
+		add_fx("splat", e.pos, 0.35, {"r": e.radius * 1.4, "color": e.color, "vfx": "death_puff", "size": e.radius * 4.0})
+	else:
+		add_fx("splat", e.pos, 0.6, {"r": e.radius * 1.4, "color": e.color})
 	if e.chain:
 		_chain_explode(e)
 	if e.is_elite:
@@ -875,7 +888,7 @@ func _chain_explode(e: Enemy) -> void:
 	var lv := clampi(enhance_level, 1, 3) - 1
 	var er: float = [85.0, 110.0, 140.0][lv]
 	area_hit(s, e.pos, er, s.p("damage") * [1.2, 1.6, 2.0][lv], 100.0, [0.8, 1.0, 1.2][lv], true)
-	add_fx("ring", e.pos, 0.3, {"r0": 10.0, "r1": er, "color": GOLD})
+	add_fx("ring", e.pos, 0.3, {"r0": 10.0, "r1": er, "color": GOLD, "vfx": "burst_gold"})
 	chain_depth -= 1
 
 
@@ -964,7 +977,7 @@ func _boss_guard(e: Enemy, amount: float, emp: bool) -> float:
 		break_count += 1
 		shake = maxf(shake, 9.0)
 		add_fx("text", e.pos + Vector2(0, -e.radius - 30), 1.4, {"text": "破罡！", "size": 30, "color": Color("#4fe0d0")})
-		add_fx("ring", e.pos, 0.5, {"r0": 20.0, "r1": 130.0, "color": Color("#4fe0d0")})
+		add_fx("ring", e.pos, 0.5, {"r0": 20.0, "r1": 130.0, "color": Color("#4fe0d0"), "vfx": "burst_break"})
 	return amount * Data.T("guard_reduce")
 
 
@@ -1037,7 +1050,7 @@ func add_zone(z: Dictionary) -> void:
 
 
 func fx_slash(at: Vector2, angle: float, reach: float, arc: float, heavy: bool) -> void:
-	add_fx("slash", at, 0.2, {"angle": angle, "r": reach, "arc": arc, "heavy": heavy})
+	add_fx("slash", at, 0.2, {"angle": angle, "r": reach, "arc": arc, "heavy": heavy, "vfx": "slash_heavy" if heavy else "slash_fist"})
 
 
 # =====================================================================
@@ -1142,7 +1155,7 @@ func _update_zones(dt: float) -> void:
 				if z["t"] >= z["delay"]:
 					var s: SkillBase = z["skill"]
 					area_hit(s, zpos, zr, z["dmg"], 250.0, z["stun"])
-					add_fx("ring", zpos, 0.3, {"r0": 10.0, "r1": zr, "color": VERMILION})
+					add_fx("ring", zpos, 0.3, {"r0": 10.0, "r1": zr, "color": VERMILION, "vfx": "burst_quake"})
 					shake = maxf(shake, 5.0)
 					if z["crack"]:
 						var cl: int = z["elv"]
@@ -1470,6 +1483,8 @@ func _draw_zones() -> void:
 				draw_circle(zpos, zr * f, Color(VERMILION, 0.18))
 				draw_arc(zpos, zr, 0.0, TAU, 32, Color(VERMILION, 0.6), 2.0)
 			"crack":
+				if vfx.has("zone_crack"):
+					continue
 				var a := 1.0 - float(z["t"]) / float(z["life"])
 				draw_circle(zpos, zr, Color(0.1, 0.08, 0.06, 0.12 * a + 0.04))
 				for k in 7:
@@ -1478,6 +1493,8 @@ func _draw_zones() -> void:
 					draw_line(zpos, mid, Color(0.1, 0.06, 0.04, 0.7 * a), 2.0)
 					draw_line(mid, zpos + Vector2.from_angle(ang) * zr * 0.95, Color(0.1, 0.06, 0.04, 0.7 * a), 2.0)
 			"vortex":
+				if vfx.has("zone_vortex"):
+					continue
 				var a2 := 1.0 - float(z["t"]) / float(z["life"])
 				for k in 3:
 					var rot := float(z["t"]) * 6.0 + k * 2.1
@@ -1624,6 +1641,8 @@ func _draw_effects() -> void:
 		var life: float = fx["life"]
 		var a := 1.0 - t / life
 		var at: Vector2 = fx["pos"]
+		if fx.has("vfx") and vfx.has(str(fx["vfx"])):
+			continue
 		match str(fx["kind"]):
 			"text":
 				var col: Color = fx["color"]

@@ -20,6 +20,8 @@ func _ready() -> void:
 		_meta_test()
 		_neili_test()
 		_build_test()
+		_talent_map_test()
+		_vfx_test()
 		_p2_test()
 		_synergy_test()
 		_font_coverage_test()
@@ -635,6 +637,136 @@ func _p2_test() -> void:
 	_check(lost > 0.0, "弹体命中了 Boss")
 	_free_world(w3)
 	print("  破绽（暴击 / 追踪 / 范围）/ 罡气（减伤 / 催动 ×3 / 破罡 / 虚弱 / 重聚）/ 弹体催动  OK")
+
+
+## 测试用的假特效条带：N 帧，渐强的发光环
+func fake_strip(frames: int, cell: int, col: Color) -> Texture2D:
+	var img := Image.create(cell * frames, cell, false, Image.FORMAT_RGBA8)
+	for f in frames:
+		var rad := cell * (0.15 + 0.3 * float(f + 1) / float(frames))
+		for y in cell:
+			for x in cell:
+				var d := Vector2(x - cell * 0.5, y - cell * 0.5).length()
+				var a := clampf(1.0 - absf(d - rad) / 4.0, 0.0, 1.0)
+				if a > 0.0:
+					img.set_pixel(f * cell + x, y, Color(col.r, col.g, col.b, a))
+	return ImageTexture.create_from_image(img)
+
+
+func _vfx_test() -> void:
+	print("\n=== 招式特效（素材优先，没有素材时回退）===")
+	var v := Vfx.new()
+	_check(not v.has("proj_wave") and v.load_dir("res://assets/vfx_missing") == 0, "没有素材目录时安静地什么都不加载")
+	v.add("hit_impact", fake_strip(4, 32, Color.WHITE), 4, 20.0, 32, false)
+	v.add("proj_wave", fake_strip(4, 32, Color.WHITE), 4, 12.0, 32, true)
+	_check(v.has("hit_impact") and not v.has("slash_fist"), "登记 / 查询")
+	_check(v.frame_progress("hit_impact", 0.0) == 0 and v.frame_progress("hit_impact", 0.49) == 1 and v.frame_progress("hit_impact", 1.0) == 3 and v.frame_progress("hit_impact", 5.0) == 3, "一次性特效按进度取帧并夹住")
+	_check(v.frame_loop("proj_wave", 0.0) == 0 and v.frame_loop("proj_wave", 1.0 / 12.0 * 1.01) == 1 and v.frame_loop("proj_wave", 100.0) < 4, "循环特效按时间取帧")
+	# 没有素材：战斗里不会生成命中火花；有素材：命中产生带 vfx 的 fx，且弹体 / 刀光 / 环有登记
+	var w0 := _new_world(81)
+	w0.skills.clear()
+	w0.add_skill("chain_fist")
+	_populate(w0, 40)
+	for i in int(3.0 / DT):
+		TestBot.drive(w0, 75.0)
+		w0.step(DT)
+	var hits0 := 0
+	for fx in w0.effects:
+		hits0 += 1 if str(fx["kind"]) == "hit" else 0
+	_check(hits0 == 0, "没有 hit_impact 素材时不产生命中火花")
+	_free_world(w0)
+	var w1 := _new_world(81)
+	w1.skills.clear()
+	w1.add_skill("chain_fist")
+	w1.vfx.add("hit_impact", fake_strip(4, 32, Color.WHITE), 4, 20.0, 32)
+	w1.vfx.add("slash_fist", fake_strip(5, 32, Color.WHITE), 5, 24.0, 32)
+	w1.vfx.add("slash_heavy", fake_strip(6, 32, Color.WHITE), 6, 22.0, 32)
+	_populate(w1, 40)
+	var kinds := {}
+	for i in int(3.0 / DT):
+		TestBot.drive(w1, 75.0)
+		w1.step(DT)
+		for fx in w1.effects:
+			if fx.has("vfx"):
+				kinds[str(fx["vfx"])] = true
+	_check(kinds.has("hit_impact") and (kinds.has("slash_fist") or kinds.has("slash_heavy")), "有素材时命中 / 刀光走特效（%s）" % str(kinds.keys()))
+	_free_world(w1)
+	# 每个会用到的特效 id 都在目录里登记过（防止代码里写了 id 而说明文档 / 工具里没有）
+	var used := ["proj_wave", "proj_palm", "proj_bolt", "proj_finger", "slash_fist", "slash_heavy", "burst_wind", "burst_quake", "burst_gold",
+		"ring_taiji", "ring_qinggong", "burst_ult", "burst_break", "halo_empower", "zone_crack", "zone_vortex", "hit_impact", "hit_crit", "trail_dash", "death_puff"]
+	var src := ""
+	for f in ["res://scripts/world.gd", "res://scripts/vfx_layer.gd", "res://scripts/skills/fist_skills.gd"]:
+		src += FileAccess.get_file_as_string(f)
+	for id in used:
+		_check(src.contains('"%s"' % id), "代码里应引用特效 " + id)
+	var catalog := FileAccess.get_file_as_string("res://tools/process_vfx.py")
+	for id in used:
+		_check(catalog.contains('"%s":' % id), "process_vfx.py 的目录里应有 " + id)
+	print("  素材加载 / 取帧 / 回退 / 命中与刀光接入 / 20 个特效 id 与目录一致  OK")
+
+
+func _talent_map_test() -> void:
+	print("\n=== 经脉图（天赋树）布局 / 交互 ===")
+	var tm := TalentMap.new()
+	tm.size = Vector2(405, 644)
+	add_child(tm)
+	var all := Talents.nodes()
+	_check(tm.pos_of.size() == all.size() and all.size() == 42, "42 个穴位都有坐标（实际 %d）" % tm.pos_of.size())
+	_check(tm.meridians.size() == 6, "六条经脉")
+	var ids: Array = tm.pos_of.keys()
+	var min_d := 1.0e9
+	for i in ids.size():
+		for j in range(i + 1, ids.size()):
+			min_d = minf(min_d, (tm.pos_of[ids[i]] as Vector2).distance_to(tm.pos_of[ids[j]]))
+	_check(min_d >= 2.0 * TalentMap.NODE_R, "穴位之间不重叠（最近 %.1f，需要 ≥ %.1f）" % [min_d, 2.0 * TalentMap.NODE_R])
+	var dt := tm.dantian()
+	var near := 1.0e9
+	for id in ids:
+		near = minf(near, (tm.pos_of[id] as Vector2).distance_to(dt))
+	_check(near > TalentMap.NODE_R * 2.0, "穴位不压在丹田上")
+	var sz := tm.fig_size()
+	for id in ids:
+		var p: Vector2 = tm.pos_of[id]
+		_check(p.x > 10 and p.y > 10 and p.x < sz.x - 10 and p.y < sz.y - 10, "穴位在图内：" + str(id))
+	# 每条脉：7 个穴位按层号 0~6 排列，属于同一个系
+	for mer in tm.meridians:
+		for r in 7:
+			var n: Dictionary = all[mer["ids"][r]]
+			_check(int(n["row"]) == r and n["branch"] == mer["branch"], "脉 %s 第 %d 个穴位的层号与系" % [mer["name"], r])
+	# 命中测试 + 点击加点 / 减点（走真实的输入事件）
+	tm.fig_scale = 0.92
+	tm.fig_origin = Vector2.ZERO
+	tm.level = 10
+	var gid := "gang_force"
+	var sp := tm.to_screen(tm.pos_of[gid])
+	_check(tm.node_at(sp) == gid and tm.node_at(sp + Vector2(60, 60)) == "", "鼠标命中测试")
+	var mv := InputEventMouseMotion.new()
+	mv.position = sp
+	tm._gui_input(mv)
+	_check(tm.hover_id == gid, "悬停")
+	var click := InputEventMouseButton.new()
+	click.position = sp
+	click.pressed = true
+	click.button_index = MOUSE_BUTTON_LEFT
+	var changes := [0]
+	tm.changed.connect(func(): changes[0] += 1)
+	tm._gui_input(click)
+	tm._gui_input(click)
+	_check(int(tm.work.get(gid, 0)) == 2 and changes[0] == 2, "左键加点")
+	click.button_index = MOUSE_BUTTON_RIGHT
+	tm._gui_input(click)
+	_check(int(tm.work.get(gid, 0)) == 1, "右键减点")
+	# 锁定的穴位点了没用
+	var locked := "gang_peak"
+	var mv2 := InputEventMouseMotion.new()
+	mv2.position = tm.to_screen(tm.pos_of[locked])
+	tm._gui_input(mv2)
+	click.button_index = MOUSE_BUTTON_LEFT
+	tm._gui_input(click)
+	_check(not tm.work.has(locked) and tm.state_of(locked) == "locked" and tm.state_of(gid) == "ranked", "锁定的穴位不能加点；状态判定")
+	remove_child(tm)
+	tm.free()
+	print("  42 穴位坐标 / 不重叠 / 层号对应 / 命中 / 加减点 / 锁定  OK")
 
 
 func _build_test() -> void:

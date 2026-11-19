@@ -33,6 +33,9 @@ func _ready() -> void:
 	Save.set_meta_talents(main.hud.talents_work)
 	main._open_talents()
 	await _frames(3)
+	main.hud.talents_map.hover_id = "gang_peak"
+	main.hud.talents_map.hovered.emit("gang_peak")
+	await _frames(3)
 	_snap("01c_talents")
 	main._close_modal()
 	Save.set_gear(["weapon.4.4242", "coat.3.77", "charm.2.9", "boots.1.5", "pants.0.12", "weapon.2.31", "coat.0.5"], {"weapon": "weapon.4.4242", "coat": "coat.3.77"})
@@ -144,6 +147,16 @@ func _ready() -> void:
 	w.recalc()
 	await _frames(3)
 	_snap("06d_synergy_hud")
+	# 特效层（用假的发光环素材验证「叠加绘制」确实把特效画出来了）
+	var sim = load("res://tests/sim_test.gd").new()
+	for id in ["hit_impact", "slash_fist", "slash_heavy", "burst_wind", "proj_wave", "proj_palm", "proj_bolt", "proj_finger", "burst_ult"]:
+		w.vfx.add(id, sim.fake_strip(5, 64, Color("#7fe8ff") if id.begins_with("proj") else Color("#ffd37f")), 5, 14.0, 64, id.begins_with("proj"))
+	sim.free()
+	w.xinfa = {}
+	w.recalc()
+	w.god = true
+	await _advance(2.0)
+	_snap("06e_vfx_layer")
 	Save.reset_character()   # 清理截图产生的存档
 	get_tree().quit()
 

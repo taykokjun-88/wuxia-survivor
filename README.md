@@ -173,3 +173,9 @@ python3 tools/process_sprites.py strip $S/hurt.jpg  hurt  --frames 2 --fps 10 --
 | 网页导出 + 中文字体 + 主角 sprite 接入（待机；其余动画待出图） | ✅ |
 | 敌人 sprite + 渲染优化（插值、MultiMesh、对象池） | 待做 |
 | 剑 / 刀 / 长兵流派 | 待做 |
+
+
+## 美术素材
+
+- 角色动画：`tools/process_sprites.py`
+- 招式特效（20 个）与天赋经脉图的提示词、规格、处理流程：[`docs/art_prompts.md`](docs/art_prompts.md)；特效用 `tools/process_vfx.py`，天赋穴位图标用 `tools/process_icons.py`。没有素材的部分自动用程序画的占位图。

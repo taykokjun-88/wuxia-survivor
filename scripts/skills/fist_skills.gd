@@ -86,7 +86,7 @@ class WhirlPalm extends SkillBase:
 		if not w.any_enemy_within(w.player_pos, r + 20.0):
 			return false
 		w.area_hit(self, w.player_pos, r, p("damage"), p("knock") * (2.0 if empowered else 1.0))
-		w.add_fx("ring", w.player_pos, 0.3, {"r0": 15.0, "r1": r, "color": GameWorld.INK})
+		w.add_fx("ring", w.player_pos, 0.3, {"r0": 15.0, "r1": r, "color": GameWorld.INK, "vfx": "burst_wind"})
 		if enhanced():
 			w.add_zone({"kind": "vortex", "skill": self, "dmg": p("damage") * ev(1.2, 1.6, 2.0), "r": r * ev(1.8, 2.1, 2.4),
 				"t": 0.0, "life": 0.9, "pull": ev(320.0, 380.0, 440.0)})
@@ -206,5 +206,5 @@ class Taiji extends SkillBase:
 		empowered = emp
 		w.area_hit(self, w.player_pos, r, dmg, 400.0, 0.5)
 		empowered = false
-		w.add_fx("ring", w.player_pos, 0.45, {"r0": 15.0, "r1": r, "color": GameWorld.JADE})
+		w.add_fx("ring", w.player_pos, 0.45, {"r0": 15.0, "r1": r, "color": GameWorld.JADE, "vfx": "ring_taiji"})
 		return amount - absorbed
