@@ -6,10 +6,14 @@ extends Node
 ##   已配置：有保存的登录 → 自动登录；否则登录 / 注册界面（注册必须有邀请码）
 ##           登录后以云端流派为准（云端没有而本机有，则上传）
 
-enum State { BOOT, AUTH, CREATE, LOADOUT, PLAY, CHOOSE, PAUSED, END, MODAL }
+enum State { BOOT, AUTH, CREATE, TOWN, DIALOG, LOADOUT, PLAY, CHOOSE, PAUSED, END, MODAL }
 
 var state: State = State.BOOT
-var modal_return: State = State.LOADOUT
+var modal_return: State = State.TOWN
+var current_map := "black_wind"
+var dialog_actions: Array = []
+var dialog_npc: Dictionary = {}
+var town: Town
 var world: GameWorld
 var cam: Camera2D
 var hud: GameHud
@@ -19,6 +23,9 @@ var choices: Array = []
 func _ready() -> void:
 	world = GameWorld.new()
 	add_child(world)
+	town = Town.new()
+	add_child(town)
+	town.visible = false
 	cam = Camera2D.new()
 	add_child(cam)
 	hud = GameHud.new()
@@ -35,6 +42,8 @@ func _ready() -> void:
 	hud.feedback_submitted.connect(_on_feedback_submitted)
 	hud.account_requested.connect(_on_account_requested)
 	hud.modal_closed.connect(_close_modal)
+	hud.dialog_option.connect(_on_dialog_option)
+	hud.loadout_cancelled.connect(_on_loadout_cancel)
 	hud.meta_open_requested.connect(_open_meta)
 	hud.meta_saved.connect(_on_meta_saved)
 	hud.talents_open_requested.connect(_open_talents)
@@ -48,6 +57,10 @@ func _ready() -> void:
 
 
 func _physics_process(dt: float) -> void:
+	if state == State.TOWN:
+		town.input_move = Input.get_vector("move_left", "move_right", "move_up", "move_down")
+		town.step(dt)
+		return
 	if state != State.PLAY:
 		return
 	world.input_move = Input.get_vector("move_left", "move_right", "move_up", "move_down")
@@ -61,6 +74,10 @@ func _physics_process(dt: float) -> void:
 
 
 func _process(_dt: float) -> void:
+	if town.visible:
+		cam.position = town.player_pos
+		cam.offset = Vector2.ZERO
+		return
 	cam.position = world.player_pos
 	if world.shake > 0.0:
 		cam.offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * world.shake
@@ -73,9 +90,24 @@ func _unhandled_input(event: InputEvent) -> void:
 		State.CREATE:
 			if event.is_action_pressed("ui_accept"):
 				hud.confirm_create()
+		State.TOWN:
+			var talk_key: bool = event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_E)
+			if talk_key:
+				var npc := town.near_npc()
+				if not npc.is_empty():
+					_talk(npc)
+		State.DIALOG:
+			if event is InputEventKey and event.pressed and not event.echo:
+				var di := int(event.keycode) - int(KEY_1)
+				if di >= 0 and di < hud.dialog_count:
+					_on_dialog_option(di)
+				elif event.keycode == KEY_ESCAPE:
+					_dialog_close()
 		State.LOADOUT:
 			if event.is_action_pressed("ui_accept"):
 				hud.confirm_loadout()
+			elif event.is_action_pressed("ui_cancel"):
+				_on_loadout_cancel()
 		State.PLAY:
 			if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_TAB:
 				hud.toggle_hud()
@@ -106,6 +138,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _show_game(on: bool) -> void:
 	world.visible = on
 	hud.canvas.visible = on
+	town.visible = false
+	hud.show_town_hud(false)
 
 
 # ---------------------------------------------------------------------
@@ -169,7 +203,7 @@ func _after_login() -> void:
 
 
 func _on_account_requested() -> void:
-	if state != State.LOADOUT:
+	if state != State.TOWN:
 		return
 	hud.hide_loadout()
 	if Net.logged_in():
@@ -183,7 +217,7 @@ func _on_account_requested() -> void:
 
 func _enter_character() -> void:
 	if Save.has_character():
-		_enter_loadout()
+		_enter_town()
 	else:
 		_enter_create()
 
@@ -194,10 +228,44 @@ func _enter_create() -> void:
 	hud.show_create()
 
 
-func _enter_loadout() -> void:
+var _debug_npc_done := false
+
+
+func _enter_town() -> void:
+	state = State.TOWN
+	_show_game(false)
+	hud.hide_dialog()
+	town.visible = true
+	hud.show_town_hud(true)
+	_debug_place_near_npc()
+
+
+## 仅限开发：后端指向本机时，地址里的 ?npc=<id> 让主角一进村就站在那个 NPC 面前（端到端测试用）
+func _debug_place_near_npc() -> void:
+	if _debug_npc_done or not OS.has_feature("web") or not Net.api_url.begins_with("http://localhost"):
+		return
+	_debug_npc_done = true
+	var q: Variant = JavaScriptBridge.eval("new URLSearchParams(location.search).get('npc') || ''")
+	if q == null or str(q) == "":
+		return
+	for n in town.npcs:
+		if str(n["id"]) == str(q):
+			town.player_pos = (n["pos"] as Vector2) + Vector2(0, 46)
+
+
+func _enter_loadout(map_id: String = "") -> void:
+	if map_id != "":
+		current_map = map_id
 	state = State.LOADOUT
 	_show_game(false)
-	hud.show_loadout(Save.school())
+	hud.show_loadout(Save.school(), current_map)
+
+
+func _on_loadout_cancel() -> void:
+	if state != State.LOADOUT:
+		return
+	hud.hide_loadout()
+	_enter_town()
 
 
 ## 创建角色：只在第一次（或重新创建时）出现，选定的流派写入存档（登录状态下同时存到云端）
@@ -208,11 +276,11 @@ func _on_created(school_id: String) -> void:
 	if Net.logged_in():
 		Net.save_state(school_id)
 	hud.hide_create()
-	_enter_loadout()
+	_enter_town()
 
 
 func _on_recreate() -> void:
-	if state != State.LOADOUT:
+	if state != State.TOWN:
 		return
 	Save.reset_character()
 	if Net.logged_in():
@@ -225,7 +293,7 @@ func _on_loadout(starter_id: String, qinggong_id: String) -> void:
 	if state != State.LOADOUT:
 		return
 	Build.apply_to(world, Save.meta_alloc(), Save.meta_talents(), Save.equip(), Save.school())
-	world.start_run(starter_id, qinggong_id)
+	world.start_run(starter_id, qinggong_id, current_map)
 	hud.hide_loadout()
 	_show_game(true)
 	state = State.PLAY
@@ -318,12 +386,14 @@ func _open_modal() -> void:
 	state = State.MODAL
 	if modal_return == State.LOADOUT:
 		hud.hide_loadout()
+	elif modal_return == State.TOWN:
+		hud.show_town_hud(false)
 	else:
 		hud.overlay.visible = false      # 从结算界面打开时，隐藏底下的结算文字，避免透出
 
 
 func _open_board() -> void:
-	if state != State.LOADOUT and state != State.END:
+	if state != State.TOWN and state != State.END:
 		return
 	_open_modal()
 	hud.show_board()
@@ -335,8 +405,106 @@ func _load_board(kind: String) -> void:
 	hud.update_board(kind, res)
 
 
+# ---------------------------------------------------------------------
+# 村子里的 NPC 对话
+# ---------------------------------------------------------------------
+
+func _dlg(npc: Dictionary, text: String, opts: Array) -> void:
+	state = State.DIALOG
+	dialog_npc = npc
+	dialog_actions = []
+	var labels: Array = []
+	for o in opts:
+		labels.append({"label": o["label"], "enabled": o.get("enabled", true)})
+		dialog_actions.append(str(o["action"]))
+	hud.show_dialog("%s　·　%s" % [npc["name"], npc["title"]], text, labels, npc.get("tex"))
+
+
+func _talk(npc: Dictionary) -> void:
+	var opts: Array = []
+	var greet := str(npc["greet"])
+	match str(npc["id"]):
+		"clerk":
+			opts = [{"label": "出发历练（选择地图）", "action": "depart"}, {"label": "再逛逛", "action": "close"}]
+		"smith":
+			opts = [{"label": "整备装备（穿戴 / 丢弃）", "action": "gear"},
+				{"label": "强化装备（需要银两，下个版本开放）", "action": "close", "enabled": false}, {"label": "告辞", "action": "close"}]
+		"herbalist":
+			opts = [{"label": "告辞", "action": "close"}]
+		"master":
+			var mp := Meta.progress(Save.meta_exp())
+			var free_pts: int = Meta.points_total(int(mp["level"])) - Meta.points_used(Save.meta_alloc())
+			var free_t: int = Talents.total_points(int(mp["level"])) - Talents.spent(Save.meta_talents())
+			greet += "\n\n你现在是局外 Lv%d，未分配属性点 %d、天赋点 %d。" % [mp["level"], free_pts, free_t]
+			opts = [{"label": "属性与天赋（角色成长）", "action": "meta"}, {"label": "转修流派（重新创建角色）", "action": "recreate"}, {"label": "告辞", "action": "close"}]
+		"innkeeper":
+			var online := Net.configured() and Net.logged_in()
+			opts = [{"label": "江湖排行榜" + ("" if online else "（需要登录）"), "action": "board", "enabled": online},
+				{"label": "给我们提意见（反馈）" + ("" if online else "（需要登录）"), "action": "feedback", "enabled": online},
+				{"label": "退出登录" if Net.configured() else "退出登录（未联网）", "action": "logout", "enabled": Net.configured()},
+				{"label": "告辞", "action": "close"}]
+		"sage":
+			opts = [{"label": "翻阅百晓册（玩法 / 招式 / 心法 / 轻功）", "action": "guide"}, {"label": "告辞", "action": "close"}]
+		_:
+			opts = [{"label": "告辞", "action": "close"}]
+	_dlg(npc, greet, opts)
+
+
+func _dialog_close() -> void:
+	hud.hide_dialog()
+	state = State.TOWN
+
+
+func _on_dialog_option(i: int) -> void:
+	if state != State.DIALOG or i < 0 or i >= dialog_actions.size():
+		return
+	var act: String = str(dialog_actions[i])
+	if act.begins_with("map:"):
+		hud.hide_dialog()
+		_enter_loadout(act.substr(4))
+		return
+	match act:
+		"close":
+			_dialog_close()
+		"talk":
+			_talk(dialog_npc)
+		"depart":
+			var opts: Array = []
+			for id in Data.maps:
+				var m: Dictionary = Data.maps[id]
+				var lv := int(Meta.progress(Save.meta_exp())["level"])
+				var stars := "★".repeat(int(m["stars"]))
+				if not bool(m["enabled"]):
+					opts.append({"label": "%s　%s　（敬请期待 · 需局外 Lv%d）" % [m["name"], stars, int(m["min_meta_level"])], "action": "close", "enabled": false})
+				elif lv < int(m["min_meta_level"]):
+					opts.append({"label": "%s　%s　（需局外 Lv%d）" % [m["name"], stars, int(m["min_meta_level"])], "action": "close", "enabled": false})
+				else:
+					opts.append({"label": "%s　%s　%s" % [m["name"], stars, m["desc"]], "action": "map:" + str(id)})
+			opts.append({"label": "返回", "action": "talk"})
+			_dlg(dialog_npc, "想去哪儿历练？", opts)
+		"recreate":
+			_dlg(dialog_npc, "转修流派会重新创建角色。局外等级、属性点、天赋和装备都保留，只是重新选择流派。确定吗？",
+				[{"label": "确定转修", "action": "recreate_yes"}, {"label": "再想想", "action": "talk"}])
+		"recreate_yes":
+			hud.hide_dialog()
+			state = State.TOWN
+			_on_recreate()
+		"gear", "meta", "board", "feedback", "guide", "logout":
+			hud.hide_dialog()
+			state = State.TOWN
+			match act:
+				"gear": _open_gear()
+				"meta": _open_meta()
+				"board": _open_board()
+				"feedback": _open_feedback()
+				"guide":
+					_open_modal()
+					hud.show_guide()
+				"logout": _on_account_requested()
+
+
 func _open_meta() -> void:
-	if state != State.LOADOUT:
+	if state != State.TOWN and state != State.LOADOUT:
 		return
 	_open_modal()
 	hud.show_meta()
@@ -376,7 +544,7 @@ func _on_talents_saved(t: Dictionary) -> void:
 
 
 func _open_gear() -> void:
-	if state != State.LOADOUT:
+	if state != State.TOWN and state != State.LOADOUT:
 		return
 	_open_modal()
 	hud.show_gear()
@@ -401,7 +569,7 @@ func _on_gear_saved(equip: Dictionary, discard: Array) -> void:
 
 
 func _open_feedback() -> void:
-	if state != State.LOADOUT:
+	if state != State.TOWN and state != State.LOADOUT:
 		return
 	_open_modal()
 	hud.show_feedback()
@@ -427,8 +595,11 @@ func _close_modal() -> void:
 	hud.hide_meta()
 	hud.hide_talents()
 	hud.hide_gear()
+	hud.hide_guide()
 	state = modal_return
 	if modal_return == State.LOADOUT:
 		_enter_loadout()
+	elif modal_return == State.TOWN:
+		_enter_town()
 	else:
 		hud.overlay.visible = true

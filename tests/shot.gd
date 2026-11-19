@@ -24,6 +24,37 @@ func _ready() -> void:
 	_snap("00_create_character")
 	main.hud.confirm_create()
 	await _frames(3)
+	_snap("00b_town_spawn")
+	# 走到驿卒面前：对话框
+	main.town.player_pos = Vector2(0, -180)
+	main.town.queue_redraw()
+	await _frames(3)
+	_snap("00c_town_clerk")
+	main._talk(main.town.near_npc())
+	await _frames(3)
+	_snap("00d_dialog")
+	main._on_dialog_option(0)
+	await _frames(3)
+	_snap("00e_map_select")
+	main._dialog_close()
+	main.town.player_pos = Vector2(-300, -60)
+	main.town.queue_redraw()
+	await _frames(3)
+	_snap("00f_town_west")
+	main.town.player_pos = Vector2(330, 120)
+	main.town.queue_redraw()
+	await _frames(3)
+	_snap("00g_town_east")
+	main._open_modal()
+	main.hud.show_guide("skill", 4)
+	await _frames(3)
+	_snap("00h_guide_skill")
+	main.hud.show_guide("play", 4)
+	await _frames(3)
+	_snap("00i_guide_play")
+	main._close_modal()
+	main._enter_loadout("black_wind")
+	await _frames(3)
 	_snap("01_loadout")
 	# 角色成长界面：假装已有一些修为，并分配了一部分点数
 	Save.store_meta(1900, {"pow": 20, "vit": 9})
@@ -179,6 +210,35 @@ func _ready() -> void:
 			en.max_hp = 1.0e9
 		await _advance(0.45)
 		_snap("06f_proj_" + sid)
+	# 怪物立绘接入（用假素材验证绘制路径：朝向 / 着色 / 精英圈）
+	var sim2 = load("res://tests/sim_test.gd").new()
+	for id in ["bandit", "blade", "soldier", "elite", "boss"]:
+		var hh: int = {"bandit": 42, "blade": 42, "soldier": 50, "elite": 66, "boss": 120}[id]
+		w.enemy_art.add(id, sim2.fake_strip(4, hh, Color("#ff8040")), 4, 8.0, hh, hh)
+	sim2.free()
+	w.skills.clear()
+	for e in w.enemies:
+		e.alive = false
+	w._compact_enemies()
+	for i in 5:
+		var tid: String = ["bandit", "blade", "soldier", "bandit", "blade"][i]
+		var en2 := w._spawn_enemy(tid, w.player_pos + Vector2(-260 + i * 130, 120))
+		en2.speed = 0.0
+		en2.hp = 1.0e9
+		en2.max_hp = 1.0e9
+	var el := w._spawn_enemy("bandit", w.player_pos + Vector2(-200, -140))
+	el.is_elite = true
+	el.speed = 0.0
+	w._spawn_boss("boss", true)
+	w.bosses[w.bosses.size() - 1].pos = w.player_pos + Vector2(240, -120)
+	w.bosses[w.bosses.size() - 1].speed = 0.0
+	await _frames(3)
+	_snap("06j_enemy_sprites")
+	w.enemy_art.sprites.clear()
+	for e in w.enemies:
+		e.alive = false
+	w._compact_enemies()
+	w.bosses.clear()
 	# 一次性特效陈列：按游戏里实际用的参数，定格在寿命的 35% / 60%
 	w.skills.clear()
 	for e in w.enemies:

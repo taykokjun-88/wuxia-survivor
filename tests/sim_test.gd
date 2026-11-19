@@ -28,6 +28,7 @@ func _ready() -> void:
 		_burst_pill_test()
 		_absorb_test()
 		_starter_trait_test()
+		await _town_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
 		_skill_matrix()
@@ -408,6 +409,119 @@ func _save_test() -> void:
 
 var net_calls: Array = []
 var fake_reply: Dictionary = {}
+
+
+func _town_test() -> void:
+	print("\n=== 阿罗拉村：布局 / 走动 / 对话流程 / 图鉴 ===")
+	_check(str(Data.town["name"]) == "阿罗拉村", "村名")
+	var ids := {}
+	for n in Data.town["npcs"]:
+		ids[n["id"]] = true
+		_check(ResourceLoader.exists("res://assets/town/npc/%s.png" % str(n["sprite"])), "NPC %s 的立绘存在" % n["name"])
+		_check(str(n["greet"]) != "" and str(n["name"]) != "", "NPC 有名字和台词")
+	for need in ["clerk", "smith", "herbalist", "master", "innkeeper", "sage"]:
+		_check(ids.has(need), "村里要有 " + need)
+	var t := Town.new()
+	add_child(t)
+	var near0 := t.near_npc()
+	_check(near0.is_empty(), "出生点附近没有 NPC")
+	# 走到驿卒面前
+	t.player_pos = Vector2(0, -190)
+	var clerk := t.near_npc()
+	_check(not clerk.is_empty() and clerk["id"] == "clerk", "靠近驿卒能交谈")
+	# 边界与碰撞：往一个方向使劲走，不会出界也不会穿墙
+	t.player_pos = Vector2(0, 400)
+	t.input_move = Vector2.UP
+	for i in 600:
+		t.step(1.0 / 60.0)
+	_check(t.bounds.has_point(t.player_pos), "不会走出村子边界")
+	var inside_building := false
+	for n in t.npcs:
+		var r := t.building_rect(n)
+		if str((n["building"] as Dictionary).get("kind", "")) != "stall" and Rect2(r.position + Vector2(0, 44), r.size - Vector2(0, 44)).grow(-2.0).has_point(t.player_pos):
+			inside_building = true
+	_check(not inside_building, "走不进建筑里")
+	t.player_pos = Vector2(-430, -100)       # 铁匠铺门前：往上走会被房子挡住
+	t.input_move = Vector2.UP
+	for i in 120:
+		t.step(1.0 / 60.0)
+	_check(t.player_pos.y > -330.0, "被铁匠铺挡住（y=%.0f）" % t.player_pos.y)
+	remove_child(t)
+	t.free()
+	# 图鉴：内容完整、没有未替换的占位符
+	for c in Guide.CATEGORIES:
+		var es := Guide.entries(str(c[0]))
+		_check(es.size() >= 4, "图鉴「%s」有内容" % c[1])
+		for e in es:
+			_check(str(e["text"]).length() > 20 and not str(e["text"]).contains("{"), "图鉴条目有正文且占位符已替换：" + str(e["title"]))
+	_check(Guide.entries("skill").size() == Data.skills.size() and Guide.entries("xinfa").size() == Data.xinfa.size() and Guide.entries("qg").size() == Data.qinggong.size(), "图鉴覆盖全部招式 / 心法 / 轻功")
+	_check(Guide.skill_text("cloud_palm").contains("起手招式") and Guide.skill_text("yue_palm").contains("领悟"), "图鉴说明获得方式")
+	_check(Guide.xinfa_text("chunyang").contains("合璧"), "心法图鉴包含合璧搭配")
+	# 主流程：创建角色 → 进村 → 找驿卒 → 选地图 → 开局界面 → 返回村子 → 再出发 → 进入战斗
+	var old_path: String = Save.path
+	var old_url: String = Net.api_url
+	Save.path = "user://test_town_save.json"
+	Save.load_data()
+	Net.api_url = ""
+	var main: Node = load("res://scenes/main.tscn").instantiate()
+	add_child(main)
+	main.set_physics_process(false)
+	await get_tree().process_frame
+	_check(main.state == main.State.CREATE, "没有角色先创建角色")
+	main.hud.confirm_create()
+	await get_tree().process_frame
+	_check(main.state == main.State.TOWN and main.town.visible and not main.world.visible, "创建完角色进入村子")
+	main.town.player_pos = Vector2(0, -190)
+	main._talk(main.town.near_npc())
+	_check(main.state == main.State.DIALOG and main.hud.dialog_count == 2, "和驿卒说话：出现对话框")
+	main._on_dialog_option(0)
+	_check(main.state == main.State.DIALOG and main.hud.dialog_count == Data.maps.size() + 1, "选「出发」：列出地图 + 返回")
+	main._on_dialog_option(1)     # 华山：未开放，不能选（按钮禁用，但直接触发也不应出发）
+	_check(main.state != main.State.LOADOUT and main.state != main.State.PLAY, "未开放的地图不能出发")
+	if main.state == main.State.DIALOG:
+		main._dialog_close()
+	main._talk(main.town.near_npc())
+	main._on_dialog_option(0)
+	main._on_dialog_option(0)     # 黑风寨
+	_check(main.state == main.State.LOADOUT and main.current_map == "black_wind", "选黑风寨：进入开局界面")
+	main._on_loadout_cancel()
+	_check(main.state == main.State.TOWN, "返回村子")
+	main._talk(main.town.near_npc())
+	main._on_dialog_option(0)
+	main._on_dialog_option(0)
+	main._on_loadout("point_finger", "feiyan")
+	_check(main.state == main.State.PLAY and main.world.map_id == "black_wind" and main.world.visible and not main.town.visible, "出发后进入战斗，村子隐藏")
+	_check(str(main.world.run_summary().get("map", "")) == "black_wind", "成绩摘要带上地图")
+	# 师父 / 掌柜 / 百晓生
+	main.world.over = true
+	main._enter_town()
+	main.town.player_pos = Vector2(-430, 150)
+	var master: Dictionary = main.town.near_npc()
+	_check(not master.is_empty() and master["id"] == "master", "师父就在武馆门前")
+	main._talk(master)
+	_check(main.hud.dialog_count == 3, "师父：成长 / 转修 / 告辞")
+	main._on_dialog_option(0)
+	_check(main.state == main.State.MODAL and main.hud.meta_panel != null and main.hud.meta_panel.visible, "师父 → 打开角色成长")
+	main._close_modal()
+	_check(main.state == main.State.TOWN, "关闭成长界面回到村子")
+	main.town.player_pos = Vector2(0, 190)
+	var sage: Dictionary = main.town.near_npc()
+	_check(not sage.is_empty() and sage["id"] == "sage", "百晓生在广场南面")
+	main._talk(sage)
+	main._on_dialog_option(0)
+	_check(main.state == main.State.MODAL and main.hud.guide_panel != null and main.hud.guide_panel.visible, "百晓生 → 打开图鉴")
+	main._close_modal()
+	main.town.player_pos = Vector2(430, 150)
+	main._talk(main.town.near_npc())
+	_check(main.hud.dialog_count == 4, "掌柜：排行榜 / 反馈 / 退出 / 告辞")
+	main._dialog_close()
+	remove_child(main)
+	main.free()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_town_save.json"))
+	Save.path = old_path
+	Save.load_data()
+	Net.api_url = old_url
+	print("  村子数据 / 走动 / 碰撞 / 图鉴 / 创建→进村→驿站→地图→开局→返回→出发  OK")
 
 
 func _starter_trait_test() -> void:

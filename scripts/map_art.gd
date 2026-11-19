@@ -59,6 +59,10 @@ func _h(a: int, b: int, s: int = 0) -> int:
 	return absi(((a * 73856093) ^ (b * 19349663) ^ ((s + seed_v) * 83492791)) % 2147483647)
 
 
+func noise(x: float, y: float, s: int) -> float:
+	return _vn(x, y, s)
+
+
 func _vn(x: float, y: float, s: int) -> float:
 	## 值噪声（0~1）：格点哈希 + 平滑插值
 	var x0 := int(floorf(x))

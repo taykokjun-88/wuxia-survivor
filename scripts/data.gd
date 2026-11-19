@@ -15,6 +15,9 @@ var enemies: Dictionary = {}
 var talents: Dictionary = {}      # 天赋树：{row_gate, branches}
 var yinyang: Dictionary = {}      # 阴阳组合（调和 / 烈火 / 寒潭）
 var harmony: Array = []           # 合璧：两个特定心法同时修习的额外效果
+var town: Dictionary = {}         # 小镇：边界 / NPC / 建筑
+var guide: Dictionary = {}        # 百晓生的玩法说明
+var maps: Dictionary = {}         # 地图（黑风寨 / 华山…）
 var gear: Dictionary = {}         # 装备：部位 / 稀有度 / 词条池
 var font_bold: Font               # 楷体粗体（"极"等需要突出的字）
 
@@ -38,6 +41,9 @@ func _ready() -> void:
 	enemies = d["enemies"]
 	talents = d["talents"]
 	gear = d["gear"]
+	town = d["town"]
+	maps = d["maps"]
+	guide = d["guide"]
 	yinyang = d["yinyang"]
 	harmony = d["harmony"]
 	_setup_input()

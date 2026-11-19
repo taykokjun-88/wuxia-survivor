@@ -1,0 +1,349 @@
+class_name Town
+extends Node2D
+## 小镇（阿罗拉村）：可走动的像素风镇子。NPC 和建筑在 data 的 town 里定义；
+## NPC 立绘来自 assets/town/npc/<sprite>.png，没有时画占位；建筑目前是程序绘制的像素风占位（等正式素材）。
+## 本类只管「走动 / 碰撞 / 绘制 / 找最近的 NPC」；点开对话和各种界面由 main.gd 负责。
+
+const SPEED := 190.0
+const NPC_REACH := 86.0          # 离 NPC 多近可以交谈
+const PLAYER_R := 11.0
+
+var player_pos := Vector2.ZERO
+var facing := Vector2.DOWN
+var input_move := Vector2.ZERO
+var moving := false
+var time := 0.0
+
+var npcs: Array = []                  # [{id, name, title, pos, tex, building}]
+var obstacles: Array[Rect2] = []      # 建筑 / 水井 / 摊位：不可穿过
+var bounds := Rect2()
+var map_art: MapArt
+var sprite_anim: SpriteAnim
+var banner_font: Font
+
+
+func _ready() -> void:
+	var b: Array = Data.town["bounds"]
+	bounds = Rect2(float(b[0]), float(b[1]), float(b[2]) - float(b[0]), float(b[3]) - float(b[1]))
+	map_art = MapArt.new()
+	if not map_art.load_dir("res://assets/maps/black_wind"):
+		map_art = null
+	sprite_anim = SpriteAnim.new()
+	if not sprite_anim.load_dir("res://assets/sprites/player"):
+		sprite_anim = null
+	banner_font = Data.font_bold
+	for n in Data.town["npcs"]:
+		var d: Dictionary = (n as Dictionary).duplicate(true)
+		var p: Array = d["pos"]
+		d["pos"] = Vector2(float(p[0]), float(p[1]))
+		var path := "res://assets/town/npc/%s.png" % str(d["sprite"])
+		d["tex"] = load(path) if ResourceLoader.exists(path) else null
+		npcs.append(d)
+		_add_building_obstacle(d)
+	obstacles.append(Rect2(-40, -10, 80, 70))          # 水井
+	reset_player()
+
+
+func reset_player() -> void:
+	var sp: Array = Data.town["spawn"]
+	player_pos = Vector2(float(sp[0]), float(sp[1]))
+	facing = Vector2.DOWN
+	input_move = Vector2.ZERO
+
+
+func building_rect(npc: Dictionary) -> Rect2:
+	var bd: Dictionary = npc["building"]
+	var pos: Vector2 = npc["pos"]
+	if str(bd.get("kind", "")) == "stall":
+		return Rect2(pos.x - 60.0, pos.y - 56.0, 120.0, 34.0)
+	var w := float(bd["w"])
+	var h := float(bd["h"])
+	return Rect2(pos.x - w * 0.5, pos.y - 34.0 - h, w, h)
+
+
+func _add_building_obstacle(npc: Dictionary) -> void:
+	var r := building_rect(npc)
+	if str((npc["building"] as Dictionary).get("kind", "")) == "stall":
+		obstacles.append(r)
+	else:
+		obstacles.append(Rect2(r.position + Vector2(0, 40), r.size - Vector2(0, 40)))   # 屋顶部分可以走到后面去（视觉上被遮住不要紧）
+
+
+func _blocked(p: Vector2) -> bool:
+	if not bounds.grow(-PLAYER_R).has_point(p):
+		return true
+	for r in obstacles:
+		if r.grow(PLAYER_R * 0.8).has_point(p):
+			return true
+	for n in npcs:
+		if (n["pos"] as Vector2).distance_to(p) < 22.0:
+			return true
+	return false
+
+
+func step(dt: float) -> void:
+	time += dt
+	var m := input_move
+	if m.length() > 1.0:
+		m = m.normalized()
+	moving = m.length() > 0.1
+	if moving:
+		facing = m.normalized()
+		var d := m * SPEED * dt
+		# 分轴移动：贴着墙能滑过去
+		if not _blocked(player_pos + Vector2(d.x, 0)):
+			player_pos.x += d.x
+		if not _blocked(player_pos + Vector2(0, d.y)):
+			player_pos.y += d.y
+	queue_redraw()
+
+
+## 最近的、在交谈范围内的 NPC；没有返回空字典
+func near_npc() -> Dictionary:
+	var best := {}
+	var best_d := NPC_REACH
+	for n in npcs:
+		var d := (n["pos"] as Vector2).distance_to(player_pos)
+		if d < best_d:
+			best_d = d
+			best = n
+	return best
+
+
+# ---------------------------------------------------------------------
+# 绘制
+# ---------------------------------------------------------------------
+
+func _vis(p: Vector2, margin: float = 120.0) -> bool:
+	return absf(p.x - player_pos.x) < 700.0 + margin and absf(p.y - player_pos.y) < 420.0 + margin
+
+
+func _draw() -> void:
+	_draw_ground()
+	for n in npcs:
+		if _vis(n["pos"], 260.0):
+			_draw_building(n)
+	_draw_well()
+	_draw_decor()
+	# NPC 和主角按脚底的 y 排序，谁靠下谁盖在上面
+	var items: Array = []
+	for n in npcs:
+		items.append({"y": (n["pos"] as Vector2).y, "npc": n})
+	items.append({"y": player_pos.y, "npc": null})
+	items.sort_custom(func(a, b): return a["y"] < b["y"])
+	var near := near_npc()
+	for it in items:
+		if it["npc"] == null:
+			_draw_player()
+		else:
+			_draw_npc(it["npc"], not near.is_empty() and near["id"] == it["npc"]["id"])
+
+
+func _tile_kind(cx: int, cy: int) -> int:
+	## 0 泥地 / 1 草地 / 3 石板路与广场
+	var c := Vector2(cx * 64 + 32, cy * 64 + 32)
+	if absf(c.x) < 80.0 or absf(c.y + 130.0) < 60.0 or absf(c.y - 190.0) < 60.0:
+		if absf(c.y) < 520.0:
+			return 3
+	if (c - Vector2(0, 40)).length() < 170.0:
+		return 3
+	if map_art != null and map_art.noise(cx * 0.16, cy * 0.16, 5) > 0.66:
+		return 1
+	return 0
+
+
+func _draw_ground() -> void:
+	if map_art == null:
+		draw_rect(Rect2(player_pos - Vector2(900, 600), Vector2(1800, 1200)), Color("#6a5a3a"))
+		return
+	var x0 := int(floorf((player_pos.x - 700.0) / 64.0))
+	var x1 := int(floorf((player_pos.x + 700.0) / 64.0))
+	var y0 := int(floorf((player_pos.y - 420.0) / 64.0))
+	var y1 := int(floorf((player_pos.y + 420.0) / 64.0))
+	for cy in range(y0, y1 + 1):
+		for cx in range(x0, x1 + 1):
+			var c := Vector2(cx * 64 + 32, cy * 64 + 32)
+			if not bounds.grow(70.0).has_point(c):
+				draw_rect(Rect2(cx * 64, cy * 64, 64, 64), Color("#2a3a22"))      # 镇外：深绿
+				continue
+			var k := _tile_kind(cx, cy)
+			var o := map_art._h(cx, cy, 77) & 7
+			draw_texture_rect(map_art.ground_var[mini(k, map_art.ground_var.size() - 1)][o], Rect2(cx * 64, cy * 64, 64, 64), false)
+	# 镇边的栅栏
+	var edge := Color("#5a3f22")
+	for sx in [bounds.position.x - 6.0, bounds.end.x - 2.0]:
+		draw_rect(Rect2(sx, bounds.position.y, 8, bounds.size.y), edge)
+	for sy in [bounds.position.y - 6.0, bounds.end.y - 2.0]:
+		draw_rect(Rect2(bounds.position.x, sy, bounds.size.x, 8), edge)
+
+
+## 像素风「圆」：用整行矩形堆出来，保持硬边
+func _px_circle(c: Vector2, r: float, col: Color, step: float = 4.0) -> void:
+	var y := -r
+	while y <= r:
+		var half := sqrt(maxf(0.0, r * r - y * y))
+		var hw := floorf(half / step) * step
+		if hw > 0.0:
+			draw_rect(Rect2(c.x - hw, c.y + y, hw * 2.0, step), col)
+		y += step
+
+
+func _draw_well() -> void:
+	var c := Vector2(0, 30)
+	if not _vis(c):
+		return
+	_px_circle(c + Vector2(0, 8), 38.0, Color(0, 0, 0, 0.22))
+	_px_circle(c, 32.0, Color("#6e6a62"))
+	_px_circle(c, 26.0, Color("#8e8a80"))
+	_px_circle(c, 18.0, Color("#2a4a6a"))
+	_px_circle(c + Vector2(-4, -4), 8.0, Color("#4a7aa0"))
+	draw_rect(Rect2(c.x - 34, c.y - 52, 6, 40), Color("#5a3f22"))
+	draw_rect(Rect2(c.x + 28, c.y - 52, 6, 40), Color("#5a3f22"))
+	draw_rect(Rect2(c.x - 42, c.y - 60, 84, 10), Color("#6b3a2a"))
+	draw_rect(Rect2(c.x - 42, c.y - 60, 84, 3), Color("#8a5a3a"))
+
+
+func _draw_decor() -> void:
+	# 灯笼柱与树：沿着路和镇边
+	var lamps := [Vector2(-110, -40), Vector2(110, -40), Vector2(-110, 330), Vector2(110, 330), Vector2(-260, -130), Vector2(260, -130), Vector2(-260, 190), Vector2(260, 190)]
+	for l in lamps:
+		if _vis(l):
+			_draw_lamp(l)
+	for i in 14:
+		var p := Vector2(bounds.position.x + 30.0 + i * 108.0, bounds.position.y + 26.0 + float((i * 37) % 3) * 8.0)
+		if _vis(p):
+			_draw_tree(p, 1.0 + 0.2 * float(i % 3))
+		var q := Vector2(bounds.position.x + 70.0 + i * 108.0, bounds.end.y - 24.0 - float((i * 53) % 3) * 8.0)
+		if _vis(q):
+			_draw_tree(q, 1.0 + 0.2 * float((i + 1) % 3))
+	for j in 8:
+		for sx in [bounds.position.x + 30.0, bounds.end.x - 30.0]:
+			var p2 := Vector2(sx, bounds.position.y + 150.0 + j * 120.0)
+			if _vis(p2):
+				_draw_tree(p2, 1.1)
+
+
+func _draw_lamp(at: Vector2) -> void:
+	draw_rect(Rect2(at.x - 3, at.y - 58, 6, 58), Color("#4a3320"))
+	draw_rect(Rect2(at.x - 12, at.y - 62, 24, 8), Color("#3a2a18"))
+	var glow := 0.18 + 0.06 * sin(time * 3.0 + at.x)
+	_px_circle(at + Vector2(0, -34), 22.0, Color("#ffb040", glow))
+	draw_rect(Rect2(at.x - 8, at.y - 50, 16, 20), Color("#c2452d"))
+	draw_rect(Rect2(at.x - 8, at.y - 50, 16, 4), Color("#8a2a1a"))
+	draw_rect(Rect2(at.x - 8, at.y - 34, 16, 4), Color("#8a2a1a"))
+	draw_rect(Rect2(at.x - 4, at.y - 46, 5, 12), Color("#ffd070"))
+
+
+func _draw_tree(at: Vector2, s: float) -> void:
+	_px_circle(at + Vector2(0, 4), 16.0 * s, Color(0, 0, 0, 0.2))
+	draw_rect(Rect2(at.x - 5 * s, at.y - 22 * s, 10 * s, 26 * s), Color("#4a3320"))
+	_px_circle(at + Vector2(0, -42 * s), 28.0 * s, Color("#2f5a2a"))
+	_px_circle(at + Vector2(-8 * s, -50 * s), 20.0 * s, Color("#3f7a3a"))
+	_px_circle(at + Vector2(10 * s, -38 * s), 14.0 * s, Color("#4f8a44"))
+	_px_circle(at + Vector2(-12 * s, -56 * s), 8.0 * s, Color("#78b060"))
+
+
+func _draw_building(n: Dictionary) -> void:
+	var bd: Dictionary = n["building"]
+	var r := building_rect(n)
+	if str(bd.get("kind", "")) == "stall":
+		_draw_stall(n, r)
+		return
+	var wall := Color(str(bd["wall"]))
+	var roof := Color(str(bd["roof"]))
+	var x := r.position.x
+	var y := r.position.y
+	var w := r.size.x
+	var h := r.size.y
+	var roof_h := 52.0
+	# 阴影
+	draw_rect(Rect2(x + 8, y + h - 6, w, 14), Color(0, 0, 0, 0.2))
+	# 墙：木板纹
+	draw_rect(Rect2(x + 10, y + roof_h - 8, w - 20, h - roof_h + 8), wall)
+	var plank := 0
+	var px := x + 10.0
+	while px < x + w - 10.0:
+		draw_rect(Rect2(px, y + roof_h - 8, 2, h - roof_h + 8), wall.darkened(0.25))
+		px += 14.0
+		plank += 1
+	draw_rect(Rect2(x + 10, y + h - 14, w - 20, 14), Color("#6e6a62"))         # 石基
+	draw_rect(Rect2(x + 10, y + h - 14, w - 20, 3), Color("#8e8a80"))
+	draw_rect(Rect2(x + 10, y + roof_h - 8, 6, h - roof_h + 8), wall.darkened(0.4))     # 立柱
+	draw_rect(Rect2(x + w - 16, y + roof_h - 8, 6, h - roof_h + 8), wall.darkened(0.4))
+	# 门
+	var dw := 40.0
+	var dh := 56.0
+	var dx := x + w * 0.5 - dw * 0.5
+	draw_rect(Rect2(dx - 4, y + h - 14 - dh - 4, dw + 8, dh + 4), Color("#3a2410"))
+	draw_rect(Rect2(dx, y + h - 14 - dh, dw, dh), Color("#241608"))
+	draw_rect(Rect2(dx + dw * 0.5 - 1, y + h - 14 - dh, 2, dh), Color("#3a2410"))
+	# 窗（格子窗）
+	for wx in [x + 28.0, x + w - 28.0 - 34.0]:
+		draw_rect(Rect2(wx - 3, y + h - 70, 40, 34), Color("#3a2410"))
+		draw_rect(Rect2(wx, y + h - 67, 34, 28), Color("#e8c880", 0.85))
+		draw_rect(Rect2(wx + 16, y + h - 67, 2, 28), Color("#3a2410"))
+		draw_rect(Rect2(wx, y + h - 55, 34, 2), Color("#3a2410"))
+	# 屋顶：一层层梯形瓦片
+	var rows := int(roof_h / 8.0)
+	for i in rows:
+		var inset := float(rows - 1 - i) * 6.0
+		var col := roof if i % 2 == 0 else roof.darkened(0.18)
+		draw_rect(Rect2(x - 12 + inset, y + i * 8, w + 24 - inset * 2.0, 8), col)
+		draw_rect(Rect2(x - 12 + inset, y + i * 8 + 6, w + 24 - inset * 2.0, 2), roof.darkened(0.45))
+	draw_rect(Rect2(x - 12 + 6.0 * float(rows - 1), y, w + 24 - 12.0 * float(rows - 1), 4), roof.lightened(0.3))     # 屋脊
+	# 招牌
+	var sign_rect := Rect2(x + w * 0.5 - 46.0, y + roof_h - 2.0, 92, 26)
+	draw_rect(sign_rect.grow(3), Color("#2a1a08"))
+	draw_rect(sign_rect, Color("#6b3a2a"))
+	draw_string_outline(banner_font, sign_rect.position + Vector2(0, 20), str(bd["sign"]), HORIZONTAL_ALIGNMENT_CENTER, sign_rect.size.x, 20, 4, Color("#2a1a08"))
+	draw_string(banner_font, sign_rect.position + Vector2(0, 20), str(bd["sign"]), HORIZONTAL_ALIGNMENT_CENTER, sign_rect.size.x, 20, Color("#f0c050"))
+
+
+func _draw_stall(n: Dictionary, r: Rect2) -> void:
+	var x := r.position.x
+	var y := r.position.y
+	draw_rect(Rect2(x + 6, y + r.size.y - 4, r.size.x, 12), Color(0, 0, 0, 0.2))
+	# 遮阳伞（竹布条纹）
+	for i in 8:
+		draw_rect(Rect2(x - 8 + i * 17, y - 34, 17, 20), Color("#c2452d") if i % 2 == 0 else Color("#e8dcc0"))
+	draw_rect(Rect2(x - 8, y - 16, 136, 4), Color("#8a2a1a"))
+	draw_rect(Rect2(x + 2, y - 12, 4, r.size.y + 12), Color("#5a3f22"))
+	draw_rect(Rect2(x + r.size.x - 6, y - 12, 4, r.size.y + 12), Color("#5a3f22"))
+	# 桌子 + 书堆
+	draw_rect(Rect2(x, y + 10, r.size.x, 20), Color("#7a5a3a"))
+	draw_rect(Rect2(x, y + 10, r.size.x, 4), Color("#9a7a52"))
+	for i in 4:
+		draw_rect(Rect2(x + 10 + i * 26, y + 2, 20, 8), [Color("#3a5a8a"), Color("#8a3a2a"), Color("#d8c890"), Color("#3a6a4a")][i])
+	draw_string_outline(banner_font, Vector2(x, y - 40), str((n["building"] as Dictionary)["sign"]), HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 18, 4, Color("#2a1a08"))
+	draw_string(banner_font, Vector2(x, y - 40), str((n["building"] as Dictionary)["sign"]), HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 18, Color("#f0c050"))
+
+
+func _draw_npc(n: Dictionary, near: bool) -> void:
+	var pos: Vector2 = n["pos"]
+	_px_circle(pos + Vector2(0, 2), 15.0, Color(0, 0, 0, 0.22))
+	var tex: Texture2D = n["tex"]
+	var top := pos.y - 62.0
+	if tex != null:
+		var sz := tex.get_size()
+		var bob := 1.0 if int(time * 2.0 + pos.x * 0.01) % 2 == 0 else 0.0
+		draw_texture_rect(tex, Rect2(pos.x - sz.x * 0.5, pos.y - sz.y + 4.0 - bob, sz.x, sz.y), false)
+		top = pos.y - sz.y - 8.0
+	else:
+		draw_rect(Rect2(pos.x - 10, pos.y - 44, 20, 44), Color("#8a6a45"))
+	var label := str(n["name"])
+	draw_string_outline(banner_font, Vector2(pos.x - 60, top), label, HORIZONTAL_ALIGNMENT_CENTER, 120, 16, 4, Color(0, 0, 0, 0.85))
+	draw_string(banner_font, Vector2(pos.x - 60, top), label, HORIZONTAL_ALIGNMENT_CENTER, 120, 16, Color("#f3ead2"))
+	if near:
+		var bob2 := sin(time * 6.0) * 2.0
+		var bp := Vector2(pos.x, top - 22.0 + bob2)
+		draw_rect(Rect2(bp.x - 44, bp.y - 14, 88, 22), Color("#1c1812", 0.88))
+		draw_rect(Rect2(bp.x - 44, bp.y - 14, 88, 22), Color("#c9a227"), false, 2.0)
+		draw_string(banner_font, Vector2(bp.x - 44, bp.y + 3), "[E] 交谈", HORIZONTAL_ALIGNMENT_CENTER, 88, 14, Color("#f3ead2"))
+
+
+func _draw_player() -> void:
+	_px_circle(player_pos + Vector2(0, 2), 14.0, Color(0, 0, 0, 0.22))
+	if sprite_anim != null:
+		if sprite_anim.draw(self, "walk" if moving else "idle", time, player_pos + Vector2(0, 14), facing.x < 0.0):
+			return
+	draw_circle(player_pos + Vector2(0, -14), 10.0, Color("#3aa6a0"))

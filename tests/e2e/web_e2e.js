@@ -40,27 +40,37 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ ' : '  ✗ ') + 
   await page.keyboard.press('Enter');
   await page.waitForTimeout(3500);
   st = await state(); ok(st.players === 4, '正确的邀请码可以注册（服务器玩家数 ' + st.players + '）');
-  await page.keyboard.press('Enter'); await page.waitForTimeout(1500);              // 创建角色（拳掌）
-  await shot('02_loadout');
-  // 排行榜
-  await page.mouse.click(627, 602); await page.waitForTimeout(3000); await shot('03_board');
-  await page.keyboard.press('Escape'); await page.waitForTimeout(1200);
-  // 反馈
-  await page.mouse.click(749, 602); await page.waitForTimeout(1500);
+  await page.keyboard.press('Enter'); await page.waitForTimeout(2000);              // 创建角色（拳掌）→ 进入阿罗拉村
+  await shot('02_town');
+  // 本机后端才允许 ?npc=<id>：开局直接站到某个 NPC 面前（测试用，免得在软件渲染里计时走路）
+  await boot(GAME + '&npc=innkeeper'); await shot('02b_innkeeper');
+  // 掌柜 → 排行榜
+  await page.keyboard.press('e'); await page.waitForTimeout(800);
+  await page.keyboard.press('1'); await page.waitForTimeout(3000); await shot('03_board');
+  await page.keyboard.press('Escape'); await page.waitForTimeout(1500);
+  // 掌柜 → 反馈
+  await page.keyboard.press('e'); await page.waitForTimeout(800);
+  await page.keyboard.press('2'); await page.waitForTimeout(1500);
   await page.keyboard.type('e2e feedback');
   await page.mouse.click(552, 540); await page.waitForTimeout(2500);
   st = await state(); ok(st.feedback.length === 2 && String(st.feedback[1][5]).includes('e2e feedback'), '反馈已写入表格');
   await page.waitForTimeout(1500);
-  // 刷新 → 自动登录
-  await boot(GAME); await shot('04_after_reload');
-  // 退出 → 错误 PIN → 正确 PIN
-  await page.mouse.click(876, 602); await page.waitForTimeout(2500);
+  // 刷新 → 自动登录，回到村子
+  await boot(GAME + '&npc=innkeeper'); await shot('04_after_reload');
+  // 掌柜 → 退出登录 → 错误 PIN → 正确 PIN
+  await page.keyboard.press('e'); await page.waitForTimeout(800);
+  await page.keyboard.press('3'); await page.waitForTimeout(2500);
   await page.keyboard.type('Tester1'); await page.keyboard.press('Tab'); await page.keyboard.type('0000'); await page.keyboard.press('Enter');
   await page.waitForTimeout(2500); await shot('05_wrong_pin');
   await page.mouse.click(640, 425); await page.keyboard.press('Control+A'); await page.keyboard.type('2468'); await page.keyboard.press('Enter');
   await page.waitForTimeout(3000); await shot('06_relogin');
+  await page.waitForTimeout(9000);                                                  // 村子在软件渲染下很慢，等浏览器把登录状态写进本地存储再刷新
   // 打完一局（加速 4 倍；本机后端才允许 speed 参数）
-  await boot(GAME + '&speed=4');
+  await boot(GAME + '&speed=4&npc=clerk');
+  await page.keyboard.press('e'); await page.waitForTimeout(800);                  // 驿卒
+  await page.keyboard.press('1'); await page.waitForTimeout(600);                  // 出发历练
+  await page.keyboard.press('1'); await page.waitForTimeout(1500);                 // 黑风寨 → 开局界面
+  await shot('06b_loadout');
   await page.keyboard.press('Enter'); await page.waitForTimeout(1000);              // 开始闯荡
   const t0 = Date.now();
   for (;;) {

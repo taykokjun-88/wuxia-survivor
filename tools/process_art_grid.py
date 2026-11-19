@@ -5,6 +5,7 @@
   python3 tools/process_art_grid.py icons  源图 --cols 3 --rows 3 --ids a,b,c,... --out assets/icons/skills --size 64
   python3 tools/process_art_grid.py props  源图 --cols 4 --rows 2 --ids tree,rock,... --out assets/maps/black_wind/props --scale 0.3
   python3 tools/process_art_grid.py npc    源图 --cols 3 --rows 2 --ids clerk,smith,... --out assets/town/npc --height 60
+  python3 tools/process_art_grid.py enemy  源图 --cols 4 --ids bandit --out assets/enemies --height 42 --fps 8
   python3 tools/process_art_grid.py tiles  源图 --cols 4 --ids ground_0,ground_1,... --out assets/maps/black_wind --size 64
 
 抠图：背景色取四周边缘的中位色，距离近的算背景。图标 / NPC 里的紫色（拳头图标、紫色心法）不会被误删；
@@ -94,6 +95,39 @@ def run(a) -> None:
             im.save(out_dir / f"{ids[i]}.png")
             print("已写入", out_dir / f"{ids[i]}.png", tile.shape[:2], "→", a.size)
         return
+    if a.mode == "enemy":
+        # 一条横向的行走循环：每帧抠图；所有帧用同一个缩放（按最高的那帧到目标身高），脚底对齐格子底边，
+        # 横向用「各帧重心的平均值」对齐，这样身体不会抖、挥动的武器也不会被裁掉
+        frames = []
+        for idx, (x0, y0, x1, y1) in cells_of(arr, a.cols, 1):
+            cell = arr[y0:y1, x0:x1]
+            fg, _ = masks(cell, False)
+            if not fg.any():
+                sys.exit(f"第 {idx + 1} 帧是空的")
+            frames.append((cell, fg))
+        boxes = [bbox(fg) for _, fg in frames]
+        scale = a.height / float(max(b[3] - b[2] for b in boxes))
+        cxs = [float(np.where(fg)[1].mean()) for _, fg in frames]
+        avg_cx = sum(cxs) / len(cxs)
+        left = max(avg_cx - b[0] for b in boxes)
+        right = max(b[1] - avg_cx for b in boxes)
+        cw = int(round((max(left, right) * 2) * scale)) + 4
+        ch = int(round(a.height)) + 2
+        strip = Image.new("RGBA", (cw * len(frames), ch), (0, 0, 0, 0))
+        for i, ((cell, fg), (x0, x1, y0, y1)) in enumerate(zip(frames, boxes)):
+            rgba = rgba_of(cell, fg, np.zeros_like(fg))[y0:y1, x0:x1]
+            im = Image.fromarray(rgba, "RGBA")
+            nw, nh = max(1, round(im.width * scale)), max(1, round(im.height * scale))
+            im = im.resize((nw, nh), Image.LANCZOS)
+            ox = int(round(cw / 2 + (x0 - avg_cx) * scale))
+            strip.alpha_composite(im, (i * cw + ox, ch - 1 - nh))
+        strip.save(out_dir / f"{ids[0]}.png")
+        mp = out_dir / "meta.json"
+        meta = json.loads(mp.read_text(encoding="utf-8")) if mp.exists() else {}
+        meta[ids[0]] = {"file": f"{ids[0]}.png", "frames": len(frames), "fps": a.fps, "w": cw, "h": ch}
+        mp.write_text(json.dumps(meta, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        print(f"已写入 {out_dir / (ids[0] + '.png')}：{len(frames)} 帧，每帧 {cw}×{ch}")
+        return
     pieces = []
     for idx, (x0, y0, x1, y1) in cells_of(arr, a.cols, a.rows):
         cell = arr[y0:y1, x0:x1]
@@ -133,7 +167,7 @@ def run(a) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("mode", choices=["icons", "props", "npc", "tiles"])
+    ap.add_argument("mode", choices=["icons", "props", "npc", "tiles", "enemy"])
     ap.add_argument("src")
     ap.add_argument("--cols", type=int, required=True)
     ap.add_argument("--rows", type=int, default=1)
@@ -142,6 +176,7 @@ def main() -> None:
     ap.add_argument("--size", type=int, default=64)
     ap.add_argument("--scale", type=float, default=0.3)
     ap.add_argument("--height", type=float, default=60.0)
+    ap.add_argument("--fps", type=float, default=8.0)
     run(ap.parse_args())
 
 

@@ -13,6 +13,8 @@ signal feedback_open_requested
 signal feedback_submitted(type: String, comment: String)
 signal account_requested
 signal modal_closed
+signal loadout_cancelled
+signal dialog_option(index: int)
 signal meta_open_requested
 signal meta_saved(alloc: Dictionary)
 signal talents_open_requested
@@ -49,6 +51,13 @@ var board_grid: GridContainer
 var board_status: Label
 var feedback_panel: Control
 var meta_panel: Control
+var loadout_map := "black_wind"      # 本次要出发的地图
+var dialog_panel: Control
+var dialog_count := 0
+var guide_panel: Control
+var guide_cat := "play"
+var guide_index := 0
+var town_layer: Control
 var hud_expanded := false          # 局内左侧信息栏：收起（只显示图标）/ 展开（图标 + 名称 + 等级）
 var meta_work: Dictionary = {}
 var meta_status: Label
@@ -98,7 +107,9 @@ func _process(_dt: float) -> void:
 
 func _dim() -> ColorRect:
 	var dim := ColorRect.new()
-	dim.color = Color(0.05, 0.05, 0.08, 0.62)
+	# 局内（能看到游戏画面）只压暗一点；村子 / 开局界面里背后的画面很杂，压深一些
+	var a := 0.62 if (world != null and world.visible) else 0.92
+	dim.color = Color(0.05, 0.05, 0.08, a)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return dim
@@ -267,7 +278,7 @@ func _build_loadout() -> void:
 	var pb := _panel_box()
 	loadout_panel = pb[0]
 	var box: VBoxContainer = pb[1]
-	box.add_child(_label("武侠幸存者", 52))
+	box.add_child(_label("出发：%s" % str(Data.maps[loadout_map]["name"]), 52))
 	box.add_child(_label("角色流派：%s　　WASD 移动（自动攻击）　空格 轻功　E 真气爆发" % Data.schools[school]["name"], 16, Color("#cfc6ae")))
 	box.add_child(_label("内力盈（≥%d%%）：伤害 +%d%%，招式自动「催动」（消耗内力）　·　站定不动 %.1f 秒入定：回气更快、减伤" % [
 		int(round(Data.T("ying_at") * 100.0)), int(round((Data.T("ying_dmg") - 1.0) * 100.0)), Data.T("meditate_after")],
@@ -320,43 +331,14 @@ func _build_loadout() -> void:
 	start.focus_mode = Control.FOCUS_NONE
 	start.add_theme_font_size_override("font_size", 22)
 	start.pressed.connect(confirm_loadout)
-	var redo := Button.new()
-	redo.text = "重新创建角色"
-	redo.custom_minimum_size = Vector2(150, 48)
-	redo.focus_mode = Control.FOCUS_NONE
-	redo.pressed.connect(func(): recreate_requested.emit())
+	var back := _button("返回村子  [Esc]", Vector2(190, 48), 18)
+	back.pressed.connect(func(): loadout_cancelled.emit())
 	var srow := HBoxContainer.new()
 	srow.alignment = BoxContainer.ALIGNMENT_CENTER
 	srow.add_theme_constant_override("separation", 16)
 	srow.add_child(start)
-	srow.add_child(redo)
-	var mp := Meta.progress(Save.meta_exp())
-	var free_pts: int = Meta.points_total(int(mp["level"])) - Meta.points_used(Save.meta_alloc())
-	var growth := _button("角色成长 Lv%d%s" % [mp["level"], ("　·%d点未分配" % free_pts) if free_pts > 0 else ""], Vector2(230, 48), 18)
-	growth.pressed.connect(func(): meta_open_requested.emit())
-	srow.add_child(growth)
-	var gbtn := _button("装备（%d）" % Save.items().size(), Vector2(130, 48), 18)
-	gbtn.pressed.connect(func(): gear_open_requested.emit())
-	srow.add_child(gbtn)
+	srow.add_child(back)
 	box.add_child(srow)
-	if Net.configured():
-		var xrow := _center_row(12)
-		var who_text := "玩家：%s" % Net.nick
-		if Net.group_name != "":
-			who_text += "　群：%s" % Net.group_name
-		var who := _label(who_text, 16, Color("#cfc6ae"))
-		xrow.add_child(who)
-		var bb := _button("排行榜", Vector2(120, 38), 16)
-		bb.pressed.connect(func(): board_open_requested.emit())
-		xrow.add_child(bb)
-		if Net.logged_in():
-			var fb := _button("反馈", Vector2(100, 38), 16)
-			fb.pressed.connect(func(): feedback_open_requested.emit())
-			xrow.add_child(fb)
-		var acc := _button("退出登录", Vector2(130, 38), 16)
-		acc.pressed.connect(func(): account_requested.emit())
-		xrow.add_child(acc)
-		box.add_child(xrow)
 
 
 func confirm_create() -> void:
@@ -378,7 +360,8 @@ func hide_create() -> void:
 		create_panel.visible = false
 
 
-func show_loadout(school_id: String) -> void:
+func show_loadout(school_id: String, map_id: String = "black_wind") -> void:
+	loadout_map = map_id
 	school = school_id
 	var starters: Array = Data.schools[school]["starters"]
 	if not starters.has(sel_starter):
@@ -1048,6 +1031,182 @@ func _build_gear() -> void:
 	box.add_child(btns)
 
 
+# ---------------------------------------------------------------------
+# 小镇：对话框 / 百晓生图鉴 / 村子 HUD
+# ---------------------------------------------------------------------
+
+## NPC 对话：options 里每项 {label, enabled?}；数字键 1~9 或点击选择
+func show_dialog(title: String, text: String, options: Array, portrait: Texture2D = null) -> void:
+	hide_dialog()
+	var pb := _panel_box()
+	dialog_panel = pb[0]
+	var box: VBoxContainer = pb[1]
+	box.add_theme_constant_override("separation", 12)
+	var head := HBoxContainer.new()
+	head.alignment = BoxContainer.ALIGNMENT_CENTER
+	head.add_theme_constant_override("separation", 16)
+	box.add_child(head)
+	if portrait != null:
+		var tr := TextureRect.new()
+		tr.texture = portrait
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.custom_minimum_size = Vector2(portrait.get_width() * 2.0, portrait.get_height() * 2.0)
+		tr.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		head.add_child(tr)
+	head.add_child(_label(title, 40))
+	var body := Label.new()
+	body.text = text
+	body.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
+	body.custom_minimum_size = Vector2(620, 0)
+	body.add_theme_font_size_override("font_size", 20)
+	body.add_theme_color_override("font_color", Color("#f3ead2"))
+	box.add_child(body)
+	dialog_count = options.size()
+	for i in options.size():
+		var o: Dictionary = options[i]
+		var bt := _button("[%d] %s" % [i + 1, str(o["label"])], Vector2(620, 46), 20)
+		bt.disabled = not bool(o.get("enabled", true))
+		bt.pressed.connect(func(): dialog_option.emit(i))
+		box.add_child(bt)
+	dialog_panel.visible = true
+
+
+func hide_dialog() -> void:
+	if dialog_panel:
+		dialog_panel.queue_free()
+		dialog_panel = null
+	dialog_count = 0
+
+
+## 百晓生的图鉴：上面四个分类，左边条目，右边详情
+func show_guide(cat: String = "play", index: int = 0) -> void:
+	guide_cat = cat
+	guide_index = index
+	_build_guide()
+	guide_panel.visible = true
+
+
+func hide_guide() -> void:
+	if guide_panel:
+		guide_panel.visible = false
+
+
+func _build_guide() -> void:
+	if guide_panel:
+		guide_panel.queue_free()
+	var pb := _panel_box()
+	guide_panel = pb[0]
+	var box: VBoxContainer = pb[1]
+	box.add_theme_constant_override("separation", 8)
+	box.add_child(_label("百晓册", 38))
+	var tabs := _center_row(10)
+	for c in Guide.CATEGORIES:
+		var cid: String = c[0]
+		var bt := _button(str(c[1]), Vector2(120, 40), 18)
+		bt.toggle_mode = true
+		bt.button_pressed = cid == guide_cat
+		bt.pressed.connect(func(): show_guide(cid, 0))
+		tabs.add_child(bt)
+	box.add_child(tabs)
+	var entries := Guide.entries(guide_cat)
+	guide_index = clampi(guide_index, 0, maxi(0, entries.size() - 1))
+	var hb := HBoxContainer.new()
+	hb.add_theme_constant_override("separation", 16)
+	box.add_child(hb)
+	var left := ScrollContainer.new()
+	left.custom_minimum_size = Vector2(300, 470)
+	left.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var lv := VBoxContainer.new()
+	lv.add_theme_constant_override("separation", 4)
+	left.add_child(lv)
+	hb.add_child(left)
+	for i in entries.size():
+		var e: Dictionary = entries[i]
+		var b2 := Button.new()
+		b2.text = str(e["title"])
+		b2.custom_minimum_size = Vector2(280, 40)
+		b2.focus_mode = Control.FOCUS_NONE
+		b2.toggle_mode = true
+		b2.button_pressed = i == guide_index
+		b2.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b2.add_theme_font_size_override("font_size", 17)
+		if str(e["icon_kind"]) != "":
+			var ic := Data.icon(str(e["icon_kind"]), str(e["icon_id"]))
+			if ic != null:
+				b2.icon = ic
+				b2.expand_icon = true
+				b2.add_theme_constant_override("icon_max_width", 30)
+		b2.pressed.connect(func(): show_guide(guide_cat, i))
+		lv.add_child(b2)
+	var right := ScrollContainer.new()
+	right.custom_minimum_size = Vector2(640, 470)
+	right.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	hb.add_child(right)
+	var rv := VBoxContainer.new()
+	right.add_child(rv)
+	if not entries.is_empty():
+		var cur: Dictionary = entries[guide_index]
+		var title := Label.new()
+		title.text = str(cur["title"])
+		title.add_theme_font_size_override("font_size", 28)
+		title.add_theme_color_override("font_color", Color("#c9a227"))
+		rv.add_child(title)
+		var txt := Label.new()
+		txt.text = str(cur["text"])
+		txt.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
+		txt.custom_minimum_size = Vector2(610, 0)
+		txt.add_theme_font_size_override("font_size", 17)
+		txt.add_theme_color_override("font_color", Color("#f3ead2"))
+		rv.add_child(txt)
+	var back := _button("返回  [Esc]", Vector2(160, 44), 18)
+	back.pressed.connect(func(): modal_closed.emit())
+	var brow := _center_row()
+	brow.add_child(back)
+	box.add_child(brow)
+
+
+## 村子里的提示：村名 / 玩家信息 / 操作提示
+func show_town_hud(on: bool) -> void:
+	if town_layer == null:
+		town_layer = Control.new()
+		town_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+		town_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(town_layer)
+		var title := Label.new()
+		title.text = str(Data.town["name"])
+		title.add_theme_font_size_override("font_size", 34)
+		title.add_theme_color_override("font_color", Color("#f3ead2"))
+		title.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+		title.add_theme_constant_override("outline_size", 8)
+		title.set_anchors_preset(Control.PRESET_TOP_WIDE)
+		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		title.position = Vector2(0, 10)
+		town_layer.add_child(title)
+		var hint := Label.new()
+		hint.text = "WASD 移动　　靠近 NPC 按 E 交谈"
+		hint.add_theme_font_size_override("font_size", 17)
+		hint.add_theme_color_override("font_color", Color("#f3ead2"))
+		hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+		hint.add_theme_constant_override("outline_size", 6)
+		hint.position = Vector2(16, 684)
+		town_layer.add_child(hint)
+		var who := Label.new()
+		who.name = "Who"
+		who.add_theme_font_size_override("font_size", 17)
+		who.add_theme_color_override("font_color", Color("#f3ead2"))
+		who.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.8))
+		who.add_theme_constant_override("outline_size", 6)
+		who.position = Vector2(16, 12)
+		town_layer.add_child(who)
+	var w := town_layer.get_node("Who") as Label
+	var lv := int(Meta.progress(Save.meta_exp())["level"])
+	var line := "局外 Lv%d" % lv
+	if Net.logged_in():
+		line = "玩家：%s　" % Net.nick + (("群：%s　" % Net.group_name) if Net.group_name != "" else "") + line
+	w.text = line
+	town_layer.visible = on
+
+
 func show_pause() -> void:
 	overlay_title.text = "暂停"
 	overlay_body.text = "按 Esc 继续"
@@ -1058,7 +1217,7 @@ func show_end(won: bool) -> void:
 	var w := world
 	overlay_title.text = "天下第一！" if won else "江湖路远……"
 	end_base = "%s\n\n存活 %s　等级 %d　击杀 %d\n本局得分 %s" % [
-		"击败海岛剑尊，名动江湖。" if won else "侠士请重新来过。",
+		"击败黑风寨主，名动江湖。" if won else "侠士请重新来过。",
 		_fmt_time(w.time), w.level, w.kills, _commas(Score.compute(w.run_summary()))]
 	set_end_extra("")
 	overlay.visible = true

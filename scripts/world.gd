@@ -43,6 +43,7 @@ var rng := RandomNumberGenerator.new()
 
 # ---- 装备 ----
 var starter_id := "chain_fist"
+var map_id := "black_wind"       # 当前地图（见 data 的 maps）
 var school_id := "fist"           # 创建角色时选定，决定可学的招式池
 var qinggong_id := "tashue"
 var qg: Dictionary = {}
@@ -67,6 +68,7 @@ var still_t := 0.0                # 连续站立不动的时间（入定）
 var realm_time := [0.0, 0.0, 0.0] # 虚 / 平 / 盈 各停留了多久（测试与平衡用）
 var empower_count := 0
 var _emp_ctx := -1                # 延迟命中（弹体 / 区域）的催动状态：-1 未设置，0 否，1 是
+var enemy_art: EnemyArt            # 怪物立绘；没有素材的怪物画占位图形
 var map_art: MapArt                 # 当前地图的像素美术（地面 + 物件）；没有素材时为 null
 var vfx: Vfx                       # 招式特效素材（没有素材的特效继续用程序绘制）
 var vfx_layer: VfxLayer
@@ -127,6 +129,8 @@ var max_enemies := 800
 
 
 func _ready() -> void:
+	enemy_art = EnemyArt.new()
+	enemy_art.load_dir("res://assets/enemies")
 	map_art = MapArt.new()
 	if not map_art.load_dir("res://assets/maps/black_wind", {"tree": 2.0, "rock": 2.0, "banner": 0.8, "barrel": 1.0, "campfire": 0.4, "bones": 1.2, "spikes": 1.0, "tent": 0.6}):
 		map_art = null
@@ -145,7 +149,8 @@ func _ready() -> void:
 	start_run()
 
 
-func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue") -> void:
+func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", p_map: String = "black_wind") -> void:
+	map_id = p_map
 	starter_id = p_starter
 	qinggong_id = p_qinggong
 	qg = Data.qinggong[qinggong_id]
@@ -1702,7 +1707,21 @@ func _draw_zones() -> void:
 					draw_arc(zpos, zr * (0.35 + 0.2 * k), rot, rot + 2.0, 16, Color(INK, 0.4 * a2), 3.0)
 
 
+func _enemy_art_key(e: Enemy) -> String:
+	if e.is_final:
+		return "boss"
+	if e.is_boss:
+		return e.type_id        # 小 Boss：有对应素材才用（mini_boss_1 ...）
+	if e.is_elite:
+		return "elite"
+	return e.type_id
+
+
 func _draw_enemy(e: Enemy) -> void:
+	var key := _enemy_art_key(e)
+	if enemy_art != null and enemy_art.has(key):
+		_draw_enemy_sprite(e, key)
+		return
 	var c := Color.WHITE if e.flash > 0.0 else e.color
 	var r := e.radius
 	draw_circle(e.pos + Vector2(0, r * 0.8), r * 0.8, Color(0, 0, 0, 0.10))
@@ -1737,6 +1756,40 @@ func _draw_enemy(e: Enemy) -> void:
 			draw_circle(sp, 2.5, GOLD)
 	if e.slow_t > 0.0:
 		draw_arc(e.pos, r + 2.0, 0.0, TAU, 20, Color("#5aa7d8", 0.8), 2.0)
+
+
+## 有立绘的怪物：脚底影子 + 立绘（朝向玩家）+ 受击 / 减速的着色 + 精英圈 / 罡气圈 / 眩晕星
+func _draw_enemy_sprite(e: Enemy, key: String) -> void:
+	var h := enemy_art.height_of(key)
+	var feet := e.pos + Vector2(0, h * 0.42)
+	draw_set_transform(feet + Vector2(0, -2), 0.0, Vector2(1.0, 0.32))
+	draw_circle(Vector2.ZERO, h * 0.32, Color(0, 0, 0, 0.25))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	if e.is_boss and e.boss_state == "windup":
+		draw_line(e.pos, e.pos + e.charge_dir * 260.0, Color(VERMILION, 0.3), e.radius * 1.6)
+	var tint := Color.WHITE
+	if e.flash > 0.0:
+		tint = Color(1.6, 1.3, 1.3)
+	elif e.slow_t > 0.0:
+		tint = Color(0.72, 0.88, 1.0)
+	elif e.stun > 0.0:
+		tint = Color(0.85, 0.85, 0.85)
+	enemy_art.draw(self, key, time + float(e.uid % 7) * 0.13, feet, player_pos.x < e.pos.x, tint)
+	var r := e.radius
+	if e.is_elite:
+		draw_arc(e.pos + Vector2(0, h * 0.1), h * 0.5, 0.0, TAU, 26, Color(GOLD, 0.8), 2.0)
+	if e.is_boss:
+		if e.weak_t > 0.0:
+			draw_arc(e.pos, r + 8.0, 0.0, TAU, 32, Color(GOLD, 0.5 + 0.5 * sin(time * 16.0)), 4.0)
+		elif e.guard > 0.0:
+			draw_arc(e.pos, r + 8.0, 0.0, TAU * e.guard / maxf(1.0, e.guard_max), 32, Color("#4fe0d0", 0.85), 4.0)
+	if e.stun > 0.0:
+		var ang := time * 8.0
+		for k in 3:
+			var sp := e.pos + Vector2(0, -h * 0.55) + Vector2.from_angle(ang + k * 2.09) * 9.0
+			draw_circle(sp, 2.5, GOLD)
+	if e.slow_t > 0.0:
+		draw_arc(e.pos + Vector2(0, h * 0.35), r + 2.0, 0.0, TAU, 20, Color("#5aa7d8", 0.8), 2.0)
 
 
 func _draw_proj(p: Projectile) -> void:
@@ -1775,7 +1828,7 @@ func run_summary() -> Dictionary:
 		build.append({"id": s.id, "lv": s.level})
 	return {
 		"won": won, "seconds": int(time), "level": level, "kills": kills, "bosses": bosses_killed,
-		"school": school_id, "starter": starter_id, "qinggong": qinggong_id,
+		"school": school_id, "map": map_id, "starter": starter_id, "qinggong": qinggong_id,
 		"enhance": "%s:%d" % [enhance_id, enhance_level] if enhance_id != "" else "",
 		"build": build, "version": str(ProjectSettings.get_setting("application/config/version", "0")),
 	}
