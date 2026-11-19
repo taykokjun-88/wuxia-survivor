@@ -1245,6 +1245,7 @@ func spawn_proj(s: SkillBase, angle: float, o: Dictionary = {}) -> Projectile:
 	var dir := Vector2.from_angle(angle)
 	pr.kind = str(s.def.get("proj_kind", "bolt"))
 	pr.skill_id = s.id
+	pr.vfx_id = s.fxid("proj")
 	pr.tags = s.tags()
 	pr.angle = angle
 	pr.pos = o.get("pos", player_pos + dir * 18.0)
@@ -1283,8 +1284,8 @@ func add_zone(z: Dictionary) -> void:
 	zones.append(z)
 
 
-func fx_slash(at: Vector2, angle: float, reach: float, arc: float, heavy: bool) -> void:
-	add_fx("slash", at, 0.2, {"angle": angle, "r": reach, "arc": arc, "heavy": heavy, "vfx": "slash_heavy" if heavy else "slash_fist"})
+func fx_slash(at: Vector2, angle: float, reach: float, arc: float, heavy: bool, vid: String = "") -> void:
+	add_fx("slash", at, 0.2, {"angle": angle, "r": reach, "arc": arc, "heavy": heavy, "vfx": vid if vid != "" else ("slash_heavy" if heavy else "slash_fist")})
 
 
 # =====================================================================
@@ -1431,7 +1432,7 @@ func _update_zones(dt: float) -> void:
 				if z["t"] >= z["delay"]:
 					var s: SkillBase = z["skill"]
 					area_hit(s, zpos, zr, z["dmg"], 250.0, z["stun"])
-					add_fx("ring", zpos, 0.3, {"r0": 10.0, "r1": zr, "color": VERMILION, "vfx": "burst_quake"})
+					add_fx("ring", zpos, 0.3, {"r0": 10.0, "r1": zr, "color": VERMILION, "vfx": s.fxid("impact") if s.fxid("impact") != "" else "burst_quake"})
 					shake = maxf(shake, 5.0)
 					if z["crack"]:
 						var cl: int = z["elv"]
@@ -2054,7 +2055,7 @@ func _draw_proj(p: Projectile) -> void:
 				draw_circle(p.pos, p.radius, Color(VERMILION, 0.85))
 				draw_arc(p.pos, p.radius, 0.0, TAU, 12, Color(0.1, 0.0, 0.0, 0.8), 2.0)
 		return
-	if vfx.has(str(VfxLayer.PROJ_IDS.get(p.kind, ""))):
+	if p.vfx_id != "" or vfx.has(str(VfxLayer.PROJ_IDS.get(p.kind, ""))):
 		return    # 有特效素材：由 VfxLayer 绘制
 	match p.kind:
 		"wave":

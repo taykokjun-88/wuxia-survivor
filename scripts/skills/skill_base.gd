@@ -70,6 +70,13 @@ func cd_secs() -> float:
 	return maxf(0.0, cd) if cd_total > 0.2 else 0.0
 
 
+## 招式专属特效 id（data 里 skills.<id>.fx：slash / ring / proj / muzzle / arrive / impact / bell）；没有素材时返回 ""，调用方继续用程序绘制
+func fxid(kind: String) -> String:
+	var f: Variant = def.get("fx", {})
+	var id := str((f as Dictionary).get(kind, "")) if f is Dictionary else ""
+	return id if id != "" and w != null and w.vfx.has(id) else ""
+
+
 func tags() -> Array:
 	return def["tags"]
 

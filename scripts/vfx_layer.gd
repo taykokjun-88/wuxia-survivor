@@ -34,7 +34,7 @@ func _draw() -> void:
 			v.draw(self, id, v.frame_loop(id, t), z["pos"], float(z["r"]) * 2.2, 0.0, Color(1, 1, 1, clampf(a * 2.0, 0.0, 1.0)))
 	# 弹体：循环，朝向飞行方向；催动版偏青并略大
 	for p in world.projs:
-		var pid: String = str(HOSTILE_IDS.get(p.kind, "")) if p.hostile else str(PROJ_IDS.get(p.kind, ""))
+		var pid: String = str(HOSTILE_IDS.get(p.kind, "")) if p.hostile else (p.vfx_id if p.vfx_id != "" else str(PROJ_IDS.get(p.kind, "")))
 		if pid == "":
 			continue
 		if not v.has(pid) or not world._vis(p.pos):

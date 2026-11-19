@@ -161,7 +161,10 @@
       },
       "anim": "palm",
       "empower_cost": 10,
-      "empower": "龙形掌风：范围 ×1.8，贯穿 +3"
+      "empower": "龙形掌风：范围 ×1.8，贯穿 +3",
+      "fx": {
+        "proj": "fist_yue"
+      }
     },
     "chain_fist": {
       "name": "太祖长拳",
@@ -190,7 +193,10 @@
       "anim": "punch",
       "empower_cost": 7,
       "empower": "末拳变重击：额外震晕前方敌人",
-      "crit_base": 0.15
+      "crit_base": 0.15,
+      "fx": {
+        "slash": "fist_chain"
+      }
     },
     "quake_fist": {
       "name": "七伤拳",
@@ -221,7 +227,10 @@
       },
       "anim": "punch",
       "empower_cost": 12,
-      "empower": "落点追加一圈更大的冲击波"
+      "empower": "落点追加一圈更大的冲击波",
+      "fx": {
+        "impact": "fist_quake"
+      }
     },
     "whirl_palm": {
       "name": "落英神剑掌",
@@ -249,7 +258,10 @@
       },
       "anim": "palm",
       "empower_cost": 9,
-      "empower": "半径 ×1.5，击退 ×2"
+      "empower": "半径 ×1.5，击退 ×2",
+      "fx": {
+        "ring": "fist_whirl"
+      }
     },
     "point_finger": {
       "name": "一阳指",
@@ -287,7 +299,10 @@
       "empower_cost": 6,
       "empower": "定身时间 ×2",
       "stun_chance": 0.4,
-      "falloff": 0.82
+      "falloff": 0.82,
+      "fx": {
+        "proj": "fist_finger"
+      }
     },
     "vajra_fist": {
       "name": "大金刚拳",
@@ -317,7 +332,10 @@
       },
       "anim": "punch",
       "empower_cost": 8,
-      "empower": "按内力 100% 计算威力"
+      "empower": "按内力 100% 计算威力",
+      "fx": {
+        "bell": "fist_vajra"
+      }
     },
     "cloud_palm": {
       "name": "天山六阳掌",
@@ -358,7 +376,10 @@
       "slow_base": 0.25,
       "splash_radius": 46,
       "splash_frac": 0.4,
-      "echo_base": 0.18
+      "echo_base": 0.18,
+      "fx": {
+        "proj": "fist_cloud"
+      }
     },
     "eight_waste": {
       "name": "八荒六合功",
@@ -393,7 +414,10 @@
       },
       "anim": "palm",
       "empower_cost": 15,
-      "empower": "十二方向齐发"
+      "empower": "十二方向齐发",
+      "fx": {
+        "muzzle": "fist_eight"
+      }
     },
     "taiji": {
       "name": "乾坤大挪移",
@@ -422,7 +446,10 @@
         "hits"
       ],
       "empower_cost": 12,
-      "empower": "反击不进冷却，反击伤害大增"
+      "empower": "反击不进冷却，反击伤害大增",
+      "fx": {
+        "ring": "fist_taiji"
+      }
     },
     "kuang_feng": {
       "name": "狂风快剑",
@@ -452,7 +479,10 @@
       },
       "anim": "slash",
       "empower_cost": 6,
-      "empower": "每剑额外一次斩击"
+      "empower": "每剑额外一次斩击",
+      "fx": {
+        "slash": "sw_kuangfeng"
+      }
     },
     "qingsong": {
       "name": "青松剑法",
@@ -482,7 +512,10 @@
       "anim": "thrust",
       "empower_cost": 7,
       "empower": "每一剑都是「松涛」",
-      "crit_base": 0.1
+      "crit_base": 0.1,
+      "fx": {
+        "slash": "sw_qingsong"
+      }
     },
     "zhongjian": {
       "name": "玄铁重剑",
@@ -512,7 +545,10 @@
       },
       "anim": "slash",
       "empower_cost": 10,
-      "empower": "重击必暴击"
+      "empower": "重击必暴击",
+      "fx": {
+        "slash": "sw_zhongjian"
+      }
     },
     "taiji_sword": {
       "name": "太极剑",
@@ -540,7 +576,10 @@
       },
       "anim": "slash",
       "empower_cost": 6,
-      "empower": "范围 ×1.4"
+      "empower": "范围 ×1.4",
+      "fx": {
+        "ring": "sw_taiji"
+      }
     },
     "wanjian": {
       "name": "万剑归宗",
@@ -576,7 +615,10 @@
       },
       "anim": "thrust",
       "empower_cost": 9,
-      "empower": "飞剑数量 +3"
+      "empower": "飞剑数量 +3",
+      "fx": {
+        "muzzle": "sw_wanjian"
+      }
     },
     "yunv": {
       "name": "玉女素心剑",
@@ -605,7 +647,10 @@
       },
       "anim": "slash",
       "empower_cost": 7,
-      "empower": "回复翻倍"
+      "empower": "回复翻倍",
+      "fx": {
+        "ring": "sw_yunv"
+      }
     },
     "pixie": {
       "name": "辟邪剑法",
@@ -635,7 +680,10 @@
       },
       "anim": "thrust",
       "empower_cost": 7,
-      "empower": "必暴击"
+      "empower": "必暴击",
+      "fx": {
+        "arrive": "sw_pixie"
+      }
     },
     "jinshe": {
       "name": "金蛇剑法",
@@ -671,7 +719,10 @@
       },
       "anim": "thrust",
       "empower_cost": 6,
-      "empower": "毒层 ×2"
+      "empower": "毒层 ×2",
+      "fx": {
+        "proj": "sw_jinshe"
+      }
     },
     "yitian": {
       "name": "倚天剑法",
@@ -701,7 +752,10 @@
       },
       "anim": "slash",
       "empower_cost": 9,
-      "empower": "范围 ×1.5"
+      "empower": "范围 ×1.5",
+      "fx": {
+        "slash": "sw_yitian"
+      }
     },
     "dugu": {
       "name": "独孤九剑",
@@ -736,7 +790,10 @@
       },
       "anim": "thrust",
       "empower_cost": 6,
-      "empower": "无"
+      "empower": "无",
+      "fx": {
+        "proj": "sw_dugu"
+      }
     }
   },
   "xinfa": {

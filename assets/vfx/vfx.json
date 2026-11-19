@@ -169,6 +169,224 @@
       "cell": 192,
       "loop": true,
       "world_size": 150.0
+    },
+    "sw_kuangfeng": {
+      "file": "sw_kuangfeng.png",
+      "frames": 4,
+      "fps": 20.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 230.0,
+      "forward": 0.18
+    },
+    "sw_qingsong": {
+      "file": "sw_qingsong.png",
+      "frames": 4,
+      "fps": 20.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 220.0,
+      "forward": 0.2
+    },
+    "sw_zhongjian": {
+      "file": "sw_zhongjian.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 260.0,
+      "forward": 0.2
+    },
+    "sw_taiji": {
+      "file": "sw_taiji.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 260.0
+    },
+    "sw_wanjian": {
+      "file": "sw_wanjian.png",
+      "frames": 4,
+      "fps": 16.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 220.0,
+      "forward": 0.3
+    },
+    "sw_yunv": {
+      "file": "sw_yunv.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 240.0
+    },
+    "sw_pixie": {
+      "file": "sw_pixie.png",
+      "frames": 4,
+      "fps": 20.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 200.0,
+      "forward": 0.25
+    },
+    "sw_jinshe": {
+      "file": "sw_jinshe.png",
+      "frames": 4,
+      "fps": 10.0,
+      "cell": 128,
+      "loop": true,
+      "world_size": 70.0
+    },
+    "sw_yitian": {
+      "file": "sw_yitian.png",
+      "frames": 4,
+      "fps": 16.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 320.0,
+      "forward": 0.2
+    },
+    "sw_dugu": {
+      "file": "sw_dugu.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 128,
+      "loop": true,
+      "world_size": 130.0
+    },
+    "fist_chain": {
+      "file": "fist_chain.png",
+      "frames": 4,
+      "fps": 20.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 200.0,
+      "forward": 0.3
+    },
+    "fist_yue": {
+      "file": "fist_yue.png",
+      "frames": 4,
+      "fps": 12.0,
+      "cell": 128,
+      "loop": true,
+      "world_size": 120.0
+    },
+    "fist_finger": {
+      "file": "fist_finger.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 128,
+      "loop": true,
+      "world_size": 150.0
+    },
+    "fist_quake": {
+      "file": "fist_quake.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 260.0
+    },
+    "fist_whirl": {
+      "file": "fist_whirl.png",
+      "frames": 4,
+      "fps": 16.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 260.0
+    },
+    "fist_eight": {
+      "file": "fist_eight.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 240.0
+    },
+    "fist_taiji": {
+      "file": "fist_taiji.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 260.0
+    },
+    "fist_cloud": {
+      "file": "fist_cloud.png",
+      "frames": 4,
+      "fps": 10.0,
+      "cell": 128,
+      "loop": true,
+      "world_size": 100.0
+    },
+    "fist_vajra": {
+      "file": "fist_vajra.png",
+      "frames": 4,
+      "fps": 10.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 190.0
+    },
+    "boss_claw_slash": {
+      "file": "boss_claw_slash.png",
+      "frames": 3,
+      "fps": 12.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 200.0,
+      "forward": 0.3
+    },
+    "boss_whip_arc": {
+      "file": "boss_whip_arc.png",
+      "frames": 4,
+      "fps": 16.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 340.0,
+      "forward": 0.2
+    },
+    "boss_claw_proj": {
+      "file": "boss_claw_proj.png",
+      "frames": 3,
+      "fps": 10.0,
+      "cell": 128,
+      "loop": true,
+      "world_size": 90.0
+    },
+    "boss_dark_palm": {
+      "file": "boss_dark_palm.png",
+      "frames": 4,
+      "fps": 10.0,
+      "cell": 128,
+      "loop": true,
+      "world_size": 100.0
+    },
+    "boss_red_ring": {
+      "file": "boss_red_ring.png",
+      "frames": 4,
+      "fps": 10.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 260.0
+    },
+    "boss_huge_cleave": {
+      "file": "boss_huge_cleave.png",
+      "frames": 4,
+      "fps": 12.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 440.0,
+      "forward": 0.2
+    },
+    "boss_blade_proj": {
+      "file": "boss_blade_proj.png",
+      "frames": 3,
+      "fps": 12.0,
+      "cell": 128,
+      "loop": true,
+      "world_size": 90.0
     }
   }
 }

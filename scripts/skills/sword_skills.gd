@@ -33,7 +33,7 @@ class KuangFeng extends SkillBase:
 			return false
 		var a := (t.pos - w.player_pos).angle()
 		combo += 1
-		w.fx_slash(w.player_pos, a, reach, p("arc"), false)
+		w.fx_slash(w.player_pos, a, reach, p("arc"), false, fxid("slash"))
 		w.cone_hit(self, w.player_pos, a, p("arc") * 0.5, reach, p("damage"), 90.0, false)
 		if empowered:
 			w.cone_hit(self, w.player_pos, a, p("arc") * 0.5, reach, p("damage") * 0.8, 60.0, false)
@@ -59,7 +59,7 @@ class QingSong extends SkillBase:
 		combo += 1
 		var wave := combo % 3 == 0 or empowered
 		var arc := p("arc") * (2.2 if wave else 1.0)
-		w.fx_slash(w.player_pos, a, reach, arc, wave)
+		w.fx_slash(w.player_pos, a, reach, arc * (1.0 if fxid("slash") == "" else 1.0), wave, fxid("slash"))
 		w.cone_hit(self, w.player_pos, a, arc * 0.5, reach, p("damage") * (1.7 if wave else 1.0), p("knock") * (1.6 if wave else 1.0), false)
 		if wave and enhanced():
 			var n := int(ev(3, 4, 5))
@@ -77,7 +77,7 @@ class ZhongJian extends SkillBase:
 		if t == null:
 			return false
 		var a := (t.pos - w.player_pos).angle()
-		w.fx_slash(w.player_pos, a, reach, p("arc"), true)
+		w.fx_slash(w.player_pos, a, reach, p("arc"), true, fxid("slash"))
 		w.cone_hit(self, w.player_pos, a, p("arc") * 0.5, reach, p("damage"), p("knock"), empowered)
 		w.shake = maxf(w.shake, 4.0)
 		if enhanced():
@@ -105,7 +105,7 @@ class TaijiSword extends SkillBase:
 			pr.life = 0.0
 		var mult := 1.0 + (minf(1.5, hostile.size() * ev(0.1, 0.15, 0.2)) if enhanced() else 0.0)
 		w.area_hit(self, w.player_pos, r, p("damage") * mult, p("knock"))
-		w.add_fx("ring", w.player_pos, 0.35, {"r0": 15.0, "r1": r, "color": GameWorld.JADE, "vfx": "ring_taiji"})
+		w.add_fx("ring", w.player_pos, 0.35, {"r0": 15.0, "r1": r, "color": GameWorld.JADE, "vfx": fxid("ring") if fxid("ring") != "" else "ring_taiji"})
 		return true
 
 
@@ -118,6 +118,8 @@ class WanJian extends SkillBase:
 			return false
 		var n := int(p("count")) + (3 if empowered else 0)
 		var base := (t.pos - w.player_pos).angle()
+		if fxid("muzzle") != "":
+			w.add_fx("trail", w.player_pos + Vector2.from_angle(base) * 40.0, 0.4, {"vfx": fxid("muzzle"), "size": 220.0, "angle": base})
 		for i in n:
 			var o := {}
 			if enhanced():
@@ -134,7 +136,7 @@ class YuNv extends SkillBase:
 			if e.alive and e.pos.distance_to(w.player_pos) < r + e.radius:
 				n += 1
 		w.area_hit(self, w.player_pos, r, dmg, p("knock"))
-		w.add_fx("ring", w.player_pos, 0.3, {"r0": 15.0, "r1": r, "color": Color("#e8e0c8")})
+		w.add_fx("ring", w.player_pos, 0.35, {"r0": 15.0, "r1": r, "color": Color("#e8e0c8"), "vfx": fxid("ring")})
 		return n
 
 	func fire() -> bool:
@@ -163,7 +165,10 @@ class PiXie extends SkillBase:
 		w.invuln = maxf(w.invuln, 0.3)
 		w.add_fx("ring", from, 0.3, {"r0": 26.0, "r1": 6.0, "color": GameWorld.VERMILION})
 		var a := dir.angle()
-		w.fx_slash(w.player_pos, a, p("reach"), p("arc"), true)
+		if fxid("arrive") != "":
+			w.add_fx("trail", w.player_pos + Vector2.from_angle(a) * 20.0, 0.3, {"vfx": fxid("arrive"), "size": p("reach") * 2.6, "angle": a})
+		else:
+			w.fx_slash(w.player_pos, a, p("reach"), p("arc"), true)
 		w.cone_hit(self, w.player_pos, a, p("arc") * 0.5, p("reach") + 14.0, p("damage"), 200.0, empowered)
 		if enhanced():
 			var sr := ev(90.0, 120.0, 150.0)
@@ -193,7 +198,7 @@ class YiTian extends SkillBase:
 		if t == null:
 			return false
 		var a := (t.pos - w.player_pos).angle()
-		w.fx_slash(w.player_pos, a, reach, p("arc"), true)
+		w.fx_slash(w.player_pos, a, reach, p("arc"), true, fxid("slash"))
 		w.cone_hit(self, w.player_pos, a, p("arc") * 0.5, reach, p("damage"), p("knock"), false)
 		if enhanced():
 			w.spawn_proj(self, a, {"speed": 540.0, "radius": 30.0, "life": ev(0.6, 0.75, 0.9), "pierce": 5, "knock": 160.0,

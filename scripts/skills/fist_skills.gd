@@ -47,7 +47,7 @@ class ChainFist extends SkillBase:
 		var third := combo % 3 == 0 or empowered
 		var base := p("damage") * (2.2 if third else 1.0)
 		var knock := 320.0 if third else 160.0
-		w.fx_slash(w.player_pos, a, reach, p("arc"), third)
+		w.fx_slash(w.player_pos, a, reach, p("arc"), third, fxid("slash"))
 		w.cone_hit(self, w.player_pos, a, p("arc") * 0.5, reach, base, knock, third and enhanced())
 		if empowered:    # 催动：末拳震晕前方敌人
 			w.area_hit(self, w.player_pos + Vector2.from_angle(a) * reach * 0.6, 70.0, base * 0.4, 0.0, 0.8)
@@ -86,7 +86,7 @@ class WhirlPalm extends SkillBase:
 		if not w.any_enemy_within(w.player_pos, r + 20.0):
 			return false
 		w.area_hit(self, w.player_pos, r, p("damage"), p("knock") * (2.0 if empowered else 1.0))
-		w.add_fx("ring", w.player_pos, 0.3, {"r0": 15.0, "r1": r, "color": GameWorld.INK, "vfx": "burst_wind"})
+		w.add_fx("ring", w.player_pos, 0.3, {"r0": 15.0, "r1": r, "color": GameWorld.INK, "vfx": fxid("ring") if fxid("ring") != "" else "burst_wind"})
 		if enhanced():
 			w.add_zone({"kind": "vortex", "skill": self, "dmg": p("damage") * ev(1.2, 1.6, 2.0), "r": r * ev(1.8, 2.1, 2.4),
 				"t": 0.0, "life": 0.9, "pull": ev(320.0, 380.0, 440.0)})
@@ -122,7 +122,10 @@ class VajraFist extends SkillBase:
 		else:
 			w.neili = maxf(0.0, w.neili - p("cost"))
 		var a := (t.pos - w.player_pos).angle()
-		w.fx_slash(w.player_pos, a, reach, p("arc"), true)
+		if fxid("bell") != "":
+			w.add_fx("ring", w.player_pos + Vector2.from_angle(a) * reach * 0.55, 0.45, {"r0": reach * 0.4, "r1": reach * 0.95, "color": GameWorld.GOLD, "vfx": fxid("bell"), "size": reach * 2.2})
+		else:
+			w.fx_slash(w.player_pos, a, reach, p("arc"), true)
 		w.cone_hit(self, w.player_pos, a, p("arc") * 0.5, reach, p("damage") * mult, p("knock"), false)
 		return true
 
@@ -169,6 +172,8 @@ class EightWaste extends SkillBase:
 		return true
 
 	func _burst() -> void:
+		if fxid("muzzle") != "":
+			w.add_fx("ring", w.player_pos, 0.4, {"r0": 30.0, "r1": 150.0, "color": GameWorld.GOLD, "vfx": fxid("muzzle"), "size": 240.0})
 		var n := int(p("count")) + (4 if emp_burst else 0)
 		for i in n:
 			w.spawn_proj(self, rot + TAU * i / n)
@@ -214,5 +219,5 @@ class Taiji extends SkillBase:
 		empowered = emp
 		w.area_hit(self, w.player_pos, r, dmg, 400.0, 0.5)
 		empowered = false
-		w.add_fx("ring", w.player_pos, 0.45, {"r0": 15.0, "r1": r, "color": GameWorld.JADE, "vfx": "ring_taiji"})
+		w.add_fx("ring", w.player_pos, 0.45, {"r0": 15.0, "r1": r, "color": GameWorld.JADE, "vfx": fxid("ring") if fxid("ring") != "" else "ring_taiji"})
 		return amount - absorbed

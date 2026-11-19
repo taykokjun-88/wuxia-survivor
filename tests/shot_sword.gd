@@ -136,6 +136,36 @@ func _ready() -> void:
 		w.step(DT)
 	await _frames(2)
 	_snap("b2_boss_leap_warn")
+	# 各招式专属特效
+	w.enemies.clear()
+	w.bosses.clear()
+	w.over = false
+	w.god = true
+	w.skills.clear()
+	for id in ["kuang_feng", "yitian", "taiji_sword", "yunv", "jinshe", "wanjian"]:
+		w.add_skill(id)
+	w.skills["kuang_feng"].cd = 0.0
+	for i in 8:
+		var a := w.rng.randf() * TAU
+		w._spawn_enemy("bandit", w.player_pos + Vector2.from_angle(a) * 90.0).speed = 0.0
+	w._rebuild_grid()
+	w.player_pos = Vector2.ZERO
+	for i in 14:
+		w.step(DT)
+	await _frames(2)
+	_snap("v1_sword_fx")
+	w.skills.clear()
+	w.enemies.clear()
+	for id in ["chain_fist", "vajra_fist", "yue_palm", "cloud_palm", "whirl_palm", "eight_waste"]:
+		w.add_skill(id)
+	for i in 8:
+		var a2 := w.rng.randf() * TAU
+		w._spawn_enemy("bandit", w.player_pos + Vector2.from_angle(a2) * 100.0).speed = 0.0
+	w._rebuild_grid()
+	for i in 14:
+		w.step(DT)
+	await _frames(2)
+	_snap("v2_fist_fx")
 	get_tree().quit()
 
 

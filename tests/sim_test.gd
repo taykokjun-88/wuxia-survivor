@@ -38,6 +38,7 @@ func _ready() -> void:
 		_smith_test()
 		_prop_test()
 		_boss_skill_test()
+		_skill_fx_test()
 		await _town_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
@@ -486,6 +487,56 @@ func _boss_skill_test() -> void:
 		wd.step(DT)
 	_check(wd.over and not wd.won and wd.timeout_fail, "超时：寨主逃遁，判负")
 	_free_world(wd)
+
+
+func _skill_fx_test() -> void:
+	print("\n=== 各招式专属攻击特效 ===")
+	var v := Vfx.new()
+	v.load_dir("res://assets/vfx")
+	for id in Data.skills:
+		var fx: Variant = Data.skills[id].get("fx", {})
+		_check(fx is Dictionary and not (fx as Dictionary).is_empty(), "%s 配有专属特效" % id)
+		for k in fx:
+			_check(v.has(str(fx[k])), "%s 的特效 %s 素材存在" % [id, fx[k]])
+	for id in ["boss_claw_slash", "boss_whip_arc", "boss_claw_proj", "boss_dark_palm", "boss_red_ring", "boss_huge_cleave", "boss_blade_proj"]:
+		_check(v.has(id), "Boss 特效 %s" % id)
+	# 实际出招时会产生专属特效
+	var seen := {}
+	for id in Data.skills:
+		var starter := str(id)
+		var w := _new_world(60, starter if (Data.schools[str(Data.skills[id]["school"])]["starters"] as Array).has(id) else ("chain_fist" if str(Data.skills[id]["school"]) == "fist" else "kuang_feng"))
+		w.props_enabled = false
+		w.skills.clear()
+		w.add_skill(id)
+		w.shi = {}
+		for i in 10:
+			var e := w._spawn_enemy("bandit", w.player_pos + Vector2.from_angle(float(i) * 0.6) * 90.0)
+			e.hp = 1e9
+			e.max_hp = 1e9
+			e.speed = 0.0
+		w._rebuild_grid()
+		var want: Dictionary = Data.skills[id]["fx"]
+		var found := false
+		for i in 180:
+			w._rebuild_grid()
+			if id == "taiji" and i % 20 == 0:
+				w.god = false
+				w.hp = 1e6
+				w.invuln = 0.0
+				w._hurt(30.0)           # 乾坤大挪移：受击才反击
+			w.step(DT)
+			for fxe in w.effects:
+				if want.values().has(str(fxe.get("vfx", ""))):
+					found = true
+			for pr in w.projs:
+				if want.values().has(pr.vfx_id):
+					found = true
+			if found:
+				break
+		if id != "dugu" and id != "jinshe":      # 这两个是弹体特效，上面 projs 已检查
+			pass
+		_check(found, "%s 出招会用到自己的特效 %s" % [id, str(want)])
+		_free_world(w)
 
 
 func _dugu_test() -> void:
@@ -1883,7 +1934,7 @@ func _vfx_test() -> void:
 		for fx in w1.effects:
 			if fx.has("vfx"):
 				kinds[str(fx["vfx"])] = true
-	_check(kinds.has("hit_impact") and (kinds.has("slash_fist") or kinds.has("slash_heavy")), "有素材时命中 / 刀光走特效（%s）" % str(kinds.keys()))
+	_check(kinds.has("hit_impact") and (kinds.has("slash_fist") or kinds.has("slash_heavy") or kinds.has("fist_chain")), "有素材时命中 / 刀光走特效（%s）" % str(kinds.keys()))
 	_free_world(w1)
 	# 每个会用到的特效 id 都在目录里登记过（防止代码里写了 id 而说明文档 / 工具里没有）
 	var used := ["proj_wave", "proj_palm", "proj_bolt", "proj_finger", "slash_fist", "slash_heavy", "burst_wind", "burst_quake", "burst_gold",

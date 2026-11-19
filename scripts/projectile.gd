@@ -16,6 +16,7 @@ var hostile := false
 var angle := 0.0
 var hit := {}           # 已命中敌人 uid，避免同一弹体重复伤害
 
+var vfx_id := ""         # 这个招式专属的弹体特效（没有则按 kind 取通用的）
 var skill_id := ""
 var tags: Array = []
 
