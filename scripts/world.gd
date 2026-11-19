@@ -1544,6 +1544,8 @@ func _draw_proj(p: Projectile) -> void:
 		draw_circle(p.pos, p.radius, Color(VERMILION, 0.85))
 		draw_arc(p.pos, p.radius, 0.0, TAU, 12, Color(0.1, 0.0, 0.0, 0.8), 2.0)
 		return
+	if vfx.has(str(VfxLayer.PROJ_IDS.get(p.kind, ""))):
+		return    # 有特效素材：由 VfxLayer 绘制
 	match p.kind:
 		"wave":
 			for k in 3:

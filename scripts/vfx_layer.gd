@@ -5,7 +5,7 @@ extends Node2D
 ## 没有素材的特效仍由 GameWorld 自己用线条和圆弧画。
 
 const PROJ_IDS := {"wave": "proj_wave", "bolt": "proj_bolt", "palm": "proj_palm", "finger": "proj_finger"}
-const EMP_TINT := Color(0.62, 1.0, 0.94)
+const EMP_RING := Color("#4fe0d0")
 
 var world: GameWorld
 
@@ -38,8 +38,12 @@ func _draw() -> void:
 		var pid: String = PROJ_IDS[p.kind]
 		if not v.has(pid) or not world._vis(p.pos):
 			continue
-		var size := maxf(p.radius * 3.2, 34.0) * (1.25 if p.empowered else 1.0)
-		v.draw(self, pid, v.frame_loop(pid, t, float(p.skill_id.length()) * 0.07), p.pos, size, p.angle, EMP_TINT if p.empowered else Color.WHITE)
+		var ws := float(v.effects[pid]["world_size"])
+		var size := (ws if ws > 0.0 else maxf(p.radius * 3.2, 34.0)) * (1.25 if p.empowered else 1.0)
+		if p.empowered:    # 催动版：保持原色，加一圈青色光环
+			draw_arc(p.pos, size * 0.3, 0.0, TAU, 24, Color(EMP_RING, 0.85), 3.0)
+			draw_arc(p.pos, size * 0.3 + 5.0, 0.0, TAU, 24, Color(EMP_RING, 0.3), 5.0)
+		v.draw(self, pid, v.frame_loop(pid, t, float(p.skill_id.length()) * 0.07), p.pos, size, p.angle)
 	# 一次性特效：按寿命铺满全部帧
 	for fx in world.effects:
 		var id2 := str(fx.get("vfx", ""))
@@ -47,6 +51,8 @@ func _draw() -> void:
 			continue
 		var prog := float(fx["t"]) / float(fx["life"])
 		var sz := float(fx.get("size", 0.0))
+		if sz <= 0.0 and float(v.effects[id2]["world_size"]) > 0.0:
+			sz = float(v.effects[id2]["world_size"])
 		if sz <= 0.0:
 			sz = float(fx["r1"]) * 2.0 if fx.has("r1") else (float(fx["r"]) * 2.2 if fx.has("r") else 64.0)
 		var col: Color = fx.get("tint", Color.WHITE)

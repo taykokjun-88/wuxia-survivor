@@ -59,7 +59,7 @@ def load_cfg() -> dict:
     return {"cell_note": "由 tools/process_vfx.py 生成", "effects": {}}
 
 
-def process(src: str, fx_id: str, frames: int, cell: int, fps: float, loop: bool, trim: bool, floor: int) -> None:
+def process(src: str, fx_id: str, frames: int, cell: int, fps: float, loop: bool, trim: bool, floor: int, world_size: float = 0.0) -> None:
     img = Image.open(src).convert("RGB")
     arr = np.asarray(img).astype(np.uint8)
     h, w, _ = arr.shape
@@ -101,7 +101,12 @@ def process(src: str, fx_id: str, frames: int, cell: int, fps: float, loop: bool
     OUT.mkdir(parents=True, exist_ok=True)
     out.save(OUT / f"{fx_id}.png")
     cfg = load_cfg()
-    cfg["effects"][fx_id] = {"file": f"{fx_id}.png", "frames": frames, "fps": fps, "cell": cell, "loop": loop}
+    entry = {"file": f"{fx_id}.png", "frames": frames, "fps": fps, "cell": cell, "loop": loop}
+    old = cfg["effects"].get(fx_id, {})
+    ws = world_size or float(old.get("world_size", 0.0))
+    if ws > 0:
+        entry["world_size"] = ws
+    cfg["effects"][fx_id] = entry
     (OUT / "vfx.json").write_text(json.dumps(cfg, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"已写入 assets/vfx/{fx_id}.png：{frames} 帧 × {cell}px，{fps} fps，{'循环' if loop else '一次性'}")
 
@@ -119,6 +124,7 @@ def main() -> None:
     s.add_argument("--once", action="store_true", help="一次性（默认按目录里的建议值）")
     s.add_argument("--trim", action="store_true")
     s.add_argument("--floor", type=int, default=18, help="低于这个亮度的像素当作黑底（默认 18）")
+    s.add_argument("--world-size", type=float, default=0.0, help="整张格子在游戏里的边长（像素）；不填则沿用已登记的值，仍没有就按招式半径")
     sub.add_parser("list")
     a = ap.parse_args()
     if a.cmd == "list":
@@ -129,7 +135,7 @@ def main() -> None:
         return
     desc, cell, frames, fps, loop = CATALOG.get(a.id, ("", 128, 4, 16, False))
     loop = True if a.loop else (False if a.once else loop)
-    process(a.src, a.id, a.frames or frames, a.cell or cell, a.fps or fps, loop, a.trim, a.floor)
+    process(a.src, a.id, a.frames or frames, a.cell or cell, a.fps or fps, loop, a.trim, a.floor, a.world_size)
 
 
 if __name__ == "__main__":

@@ -150,6 +150,8 @@ func _ready() -> void:
 	# 特效层（用假的发光环素材验证「叠加绘制」确实把特效画出来了）
 	var sim = load("res://tests/sim_test.gd").new()
 	for id in ["hit_impact", "slash_fist", "slash_heavy", "burst_wind", "proj_wave", "proj_palm", "proj_bolt", "proj_finger", "burst_ult"]:
+		if w.vfx.has(id):
+			continue
 		w.vfx.add(id, sim.fake_strip(5, 64, Color("#7fe8ff") if id.begins_with("proj") else Color("#ffd37f")), 5, 14.0, 64, id.begins_with("proj"))
 	sim.free()
 	w.xinfa = {}
@@ -157,6 +159,25 @@ func _ready() -> void:
 	w.god = true
 	await _advance(2.0)
 	_snap("06e_vfx_layer")
+	# 四个弹体特效：真实招式在战斗里，逐个截图
+	w.bosses.clear()
+	for e in w.enemies:
+		e.alive = false
+	w._compact_enemies()
+	for sid in ["yue_palm", "cloud_palm", "eight_waste", "point_finger"]:
+		w.skills.clear()
+		w.add_skill(sid)
+		for e in w.enemies:
+			e.alive = false
+		w._compact_enemies()
+		w.projs.clear()
+		for i in 10:
+			var en := w._spawn_enemy("bandit", w.player_pos + Vector2.from_angle(i * 0.62 + 0.2) * (200.0 + 50.0 * (i % 3)))
+			en.speed = 0.0
+			en.hp = 1.0e9
+			en.max_hp = 1.0e9
+		await _advance(0.45)
+		_snap("06f_proj_" + sid)
 	Save.reset_character()   # 清理截图产生的存档
 	get_tree().quit()
 

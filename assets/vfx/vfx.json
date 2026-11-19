@@ -1,0 +1,37 @@
+{
+  "cell_note": "由 tools/process_vfx.py 生成",
+  "effects": {
+    "proj_wave": {
+      "file": "proj_wave.png",
+      "frames": 4,
+      "fps": 12,
+      "cell": 96,
+      "loop": true,
+      "world_size": 140.0
+    },
+    "proj_finger": {
+      "file": "proj_finger.png",
+      "frames": 4,
+      "fps": 14,
+      "cell": 48,
+      "loop": true,
+      "world_size": 120.0
+    },
+    "proj_bolt": {
+      "file": "proj_bolt.png",
+      "frames": 4,
+      "fps": 14,
+      "cell": 48,
+      "loop": true,
+      "world_size": 64.0
+    },
+    "proj_palm": {
+      "file": "proj_palm.png",
+      "frames": 4,
+      "fps": 12,
+      "cell": 64,
+      "loop": true,
+      "world_size": 80.0
+    }
+  }
+}
