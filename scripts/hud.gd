@@ -49,6 +49,7 @@ var board_grid: GridContainer
 var board_status: Label
 var feedback_panel: Control
 var meta_panel: Control
+var hud_expanded := false          # 局内左侧信息栏：收起（只显示图标）/ 展开（图标 + 名称 + 等级）
 var meta_work: Dictionary = {}
 var meta_status: Label
 var talents_panel: Control
@@ -75,6 +76,8 @@ var sel_qg := "tashue"
 
 func setup(w: GameWorld) -> void:
 	world = w
+	var ui: Variant = Save.data.get("ui", {})
+	hud_expanded = ui is Dictionary and bool((ui as Dictionary).get("hud_expanded", false))
 	canvas = Control.new()
 	canvas.set_anchors_preset(Control.PRESET_FULL_RECT)
 	canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1125,13 +1128,20 @@ func _draw_skill_icon(pos: Vector2, s: SkillBase, maxed: bool) -> void:
 	var tag: String = str(s.tags()[0])
 	var base := Color(str(TAG_COLORS.get(tag, "#4a4a4a")))
 	var r := Rect2(pos, Vector2(ICON, ICON))
-	canvas.draw_rect(r, base)
-	canvas.draw_rect(Rect2(pos + Vector2(2, 2), Vector2(ICON - 4, ICON - 4)), Color(1, 1, 1, 0.10))
-	canvas.draw_rect(r, GameWorld.GOLD if maxed else Color(0.05, 0.05, 0.08, 0.9), false, 3.0 if maxed else 2.0)
-	var glyph := str(s.def["name"]).substr(0, 1)
 	var bold := Data.font_bold
-	canvas.draw_string_outline(bold, pos + Vector2(0, 31), glyph, HORIZONTAL_ALIGNMENT_CENTER, ICON, 28, 3, Color(0, 0, 0, 0.55))
-	canvas.draw_string(bold, pos + Vector2(0, 31), glyph, HORIZONTAL_ALIGNMENT_CENTER, ICON, 28, Color("#f3ead2"))
+	var tex := Data.icon("skills", s.id)
+	if tex != null:
+		# 正式图标：浅色底板 + 图标；12 层时金边
+		canvas.draw_rect(r, Color(0.16, 0.14, 0.12, 0.85))
+		canvas.draw_texture_rect(tex, r.grow(-1.0), false)
+		canvas.draw_rect(r, GameWorld.GOLD if maxed else Color(0.05, 0.05, 0.08, 0.9), false, 3.0 if maxed else 2.0)
+	else:
+		canvas.draw_rect(r, base)
+		canvas.draw_rect(Rect2(pos + Vector2(2, 2), Vector2(ICON - 4, ICON - 4)), Color(1, 1, 1, 0.10))
+		canvas.draw_rect(r, GameWorld.GOLD if maxed else Color(0.05, 0.05, 0.08, 0.9), false, 3.0 if maxed else 2.0)
+		var glyph := str(s.def["name"]).substr(0, 1)
+		canvas.draw_string_outline(bold, pos + Vector2(0, 31), glyph, HORIZONTAL_ALIGNMENT_CENTER, ICON, 28, 3, Color(0, 0, 0, 0.55))
+		canvas.draw_string(bold, pos + Vector2(0, 31), glyph, HORIZONTAL_ALIGNMENT_CENTER, ICON, 28, Color("#f3ead2"))
 	if maxed:
 		# 12 层：右下角的层数数字直接换成「极」（楷体粗体，金字黑边）
 		var p := pos + Vector2(ICON - 24, ICON - 3)
@@ -1140,6 +1150,72 @@ func _draw_skill_icon(pos: Vector2, s: SkillBase, maxed: bool) -> void:
 	else:
 		canvas.draw_string(bold, pos + Vector2(ICON - 20, ICON - 3), str(s.level),
 			HORIZONTAL_ALIGNMENT_RIGHT, 18, 12, Color("#f3ead2"))
+
+
+func toggle_hud() -> void:
+	hud_expanded = not hud_expanded
+	var ui: Variant = Save.data.get("ui", {})
+	if not ui is Dictionary:
+		ui = {}
+	(ui as Dictionary)["hud_expanded"] = hud_expanded
+	Save.data["ui"] = ui
+	Save.save_data()
+	canvas.queue_redraw()
+
+
+## 小地图：以主角为中心，显示 Boss / 精英 / 秘籍 / 还丹 / 吸星大法；超出范围的重要目标贴在边缘当指示
+func _draw_minimap(pos: Vector2, size: float) -> void:
+	var w := world
+	var half := 900.0                           # 小地图覆盖的世界半径
+	var k := size * 0.5 / half
+	var center := pos + Vector2(size, size) * 0.5
+	canvas.draw_rect(Rect2(pos, Vector2(size, size)), Color("#1c1812", 0.72))
+	canvas.draw_rect(Rect2(pos, Vector2(size, size)), Color("#c9a227", 0.8), false, 2.0)
+	for i in 2:
+		var r := size * 0.5 * (0.5 + 0.5 * i)
+		canvas.draw_arc(center, r, 0.0, TAU, 32, Color(1, 1, 1, 0.08), 1.0)
+
+	var edge := func(p: Vector2) -> Array:      # 世界坐标 → 小地图坐标；返回 [位置, 是否在范围外]
+		var d: Vector2 = (p - w.player_pos) * k
+		var lim := size * 0.5 - 5.0
+		var out_of: bool = absf(d.x) > lim or absf(d.y) > lim
+		if out_of:
+			var m := maxf(absf(d.x), absf(d.y))
+			d = d / m * lim
+		return [center + d, out_of]
+
+	for pl in w.pills:
+		var r1: Array = edge.call(pl["pos"])
+		if not r1[1]:
+			canvas.draw_circle(r1[0], 2.5, Color("#c2452d") if pl["kind"] == "small" else Color("#e0a82e"))
+	for c in w.chests:
+		var r2: Array = edge.call(c)
+		canvas.draw_rect(Rect2((r2[0] as Vector2) - Vector2(3, 3), Vector2(6, 6)), GameWorld.GOLD)
+	for e in w.enemies:
+		if e.alive and (e.is_boss or e.is_elite):
+			var r3: Array = edge.call(e.pos)
+			if e.is_boss:
+				canvas.draw_circle(r3[0], 5.0, Color("#8a4ac8"))
+				canvas.draw_arc(r3[0], 5.0, 0.0, TAU, 12, Color("#f3ead2"), 1.5)
+			elif not r3[1]:
+				canvas.draw_circle(r3[0], 3.0, Color("#e08030"))
+	for it in w.absorb_items:
+		var r4: Array = edge.call(it["pos"])
+		var pulse := 0.6 + 0.4 * sin(w.time * 6.0)
+		var p4: Vector2 = r4[0]
+		canvas.draw_circle(p4, 7.0 * pulse + 2.0, Color("#b98cff", 0.35))
+		canvas.draw_circle(p4, 3.5, Color("#4fe0d0"))
+		canvas.draw_arc(p4, 6.0, 0.0, TAU, 12, Color("#b98cff"), 2.0)
+	# 主角（白点 + 朝向）
+	canvas.draw_circle(center, 3.5, Color("#f3ead2"))
+	canvas.draw_line(center, center + w.facing * 9.0, Color("#f3ead2"), 2.0)
+	if w.vacuum_t > 0.0:
+		canvas.draw_string(ThemeDB.fallback_font, pos + Vector2(0, size + 14.0), "吸星大法 %.1fs" % w.vacuum_t, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#b98cff"))
+
+
+func _plate(r: Rect2) -> void:
+	canvas.draw_rect(r, Color("#e8dcc0", 0.82))
+	canvas.draw_rect(r, Color("#3a2f1a", 0.55), false, 2.0)
 
 
 func _draw_hud() -> void:
@@ -1159,6 +1235,15 @@ func _draw_hud() -> void:
 	canvas.draw_string(font, Vector2(0, 14), "Lv %d　经验 %d / %d　（%d%%）" % [w.level, w.exp_now, w.exp_next, int(exp_frac * 100.0)],
 		HORIZONTAL_ALIGNMENT_CENTER, vw, 13, Color("#2a1d05"))
 
+	# 半透明宣纸底板：地图是深色的，HUD 的深色文字要有底
+	var plate_h := 126.0 - 22.0 + 20.0 + w.skills.size() * (ICON + 14.0) + 8.0 + 20.0 + w.xinfa.size() * 26.0 + w.synergies.size() * 19.0 + 4.0 + 26.0
+	if not hud_expanded:
+		plate_h = 108.0 - 22.0 + ICON + 6.0 + (30.0 if not w.xinfa.is_empty() else 0.0) + 20.0
+	_plate(Rect2(6, 22, 292, plate_h))
+	_plate(Rect2(vw * 0.5 - 70.0, 22, 140, 40))
+	_plate(Rect2(vw - 176.0, 22, 170, 30))
+	_plate(Rect2(6, canvas.size.y - 40.0, 700, 34))
+	_draw_minimap(Vector2(vw - 176.0, 58.0), 164.0)
 	var max_hp := w.st("max_hp")
 	var max_n := w.st("max_neili")
 	_bar(Vector2(16, 26), Vector2(260, 20), w.hp / max_hp, GameWorld.VERMILION, "气血 %d/%d" % [int(w.hp), int(max_hp)])
@@ -1202,35 +1287,59 @@ func _draw_hud() -> void:
 				canvas.draw_string(font, Vector2(vw * 0.5 + bw * 0.5 + 8, by + 15), "罡气 减伤 50%　催动 ×3", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#1f6f6a"))
 			by += 30.0
 
-	# 装备栏：技能 / 心法 / 轻功
-	var y := 126.0
-	canvas.draw_string(font, Vector2(16, y), "招式 %d/%d" % [w.skills.size(), GameWorld.MAX_SKILLS],
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#7a6a3a"))
-	y += 20.0
-	for s: SkillBase in w.skills.values():
-		var maxed := s.upgrades.size() >= Data.max_upgrades
-		var icon_pos := Vector2(16, y + 4.0)
-		_draw_skill_icon(icon_pos, s, maxed)
-		var star := " ★%d" % w.enhance_level if w.enhance_id == s.id else ""
-		canvas.draw_string(font, icon_pos + Vector2(ICON + 8.0, 18.0), str(s.def["name"]),
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#2a2a2a"))
-		canvas.draw_string(font, icon_pos + Vector2(ICON + 8.0, 36.0), "Lv%s%s" % ["极" if maxed else str(s.level), star],
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 14, GameWorld.VERMILION if star != "" else Color("#6a5a3a"))
-		y += ICON + 14.0
-	y += 8.0
-	canvas.draw_string(font, Vector2(16, y), "心法 %d/%d" % [w.xinfa.size(), GameWorld.MAX_XINFA],
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#7a6a3a"))
-	y += 20.0
-	for id in w.xinfa:
-		canvas.draw_string(font, Vector2(16, y), "%s Lv%d" % [Data.xinfa[id]["name"], w.xinfa[id]],
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#2a2a2a"))
-		y += 21.0
-	for sy in w.synergies:
-		canvas.draw_string(font, Vector2(16, y), ("★ " if bool(sy["harmony"]) else "◇ ") + str(sy["name"]),
-			HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#a0521d") if bool(sy["harmony"]) else Color("#1f6f6a"))
-		y += 19.0
-	y += 4.0
-	canvas.draw_string(font, Vector2(16, y), "轻功：%s" % w.qg["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#1f6f6a"))
+	# 装备栏：技能 / 心法 / 轻功（Tab 展开 / 收起；收起时只显示图标，不挡视线）
+	if not hud_expanded:
+		var cx := 16.0
+		for s2: SkillBase in w.skills.values():
+			_draw_skill_icon(Vector2(cx, 108.0), s2, s2.upgrades.size() >= Data.max_upgrades)
+			cx += ICON + 6.0
+		var ry := 108.0 + ICON + 8.0
+		cx = 16.0
+		for id in w.xinfa:
+			var xt2 := Data.icon("xinfa", id)
+			if xt2 != null:
+				canvas.draw_texture_rect(xt2, Rect2(cx, ry, 24, 24), false)
+			canvas.draw_string(font, Vector2(cx + 16.0, ry + 25.0), str(w.xinfa[id]), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#2a1d05"))
+			cx += 34.0
+		for sy2 in w.synergies:
+			canvas.draw_string(font, Vector2(cx, ry + 18.0), "★" if bool(sy2["harmony"]) else "◇", HORIZONTAL_ALIGNMENT_LEFT, -1, 16,
+				Color("#a0521d") if bool(sy2["harmony"]) else Color("#1f6f6a"))
+			cx += 18.0
+		canvas.draw_string(font, Vector2(16, plate_h + 22.0 - 6.0), "[Tab] 展开详情", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#7a6a3a"))
+	else:
+		# 装备栏：技能 / 心法 / 轻功
+		var y := 126.0
+		canvas.draw_string(font, Vector2(16, y), "招式 %d/%d" % [w.skills.size(), GameWorld.MAX_SKILLS],
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#7a6a3a"))
+		y += 20.0
+		for s: SkillBase in w.skills.values():
+			var maxed := s.upgrades.size() >= Data.max_upgrades
+			var icon_pos := Vector2(16, y + 4.0)
+			_draw_skill_icon(icon_pos, s, maxed)
+			var star := " ★%d" % w.enhance_level if w.enhance_id == s.id else ""
+			canvas.draw_string(font, icon_pos + Vector2(ICON + 8.0, 18.0), str(s.def["name"]),
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#2a2a2a"))
+			canvas.draw_string(font, icon_pos + Vector2(ICON + 8.0, 36.0), "Lv%s%s" % ["极" if maxed else str(s.level), star],
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 14, GameWorld.VERMILION if star != "" else Color("#6a5a3a"))
+			y += ICON + 14.0
+		y += 8.0
+		canvas.draw_string(font, Vector2(16, y), "心法 %d/%d" % [w.xinfa.size(), GameWorld.MAX_XINFA],
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#7a6a3a"))
+		y += 20.0
+		for id in w.xinfa:
+			var xt := Data.icon("xinfa", id)
+			if xt != null:
+				canvas.draw_texture_rect(xt, Rect2(14, y - 15, 22, 22), false)
+			canvas.draw_string(font, Vector2(42 if xt != null else 16, y), "%s Lv%d" % [Data.xinfa[id]["name"], w.xinfa[id]],
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#2a2a2a"))
+			y += 26.0 if xt != null else 21.0
+		for sy in w.synergies:
+			canvas.draw_string(font, Vector2(16, y), ("★ " if bool(sy["harmony"]) else "◇ ") + str(sy["name"]),
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#a0521d") if bool(sy["harmony"]) else Color("#1f6f6a"))
+			y += 19.0
+		y += 4.0
+		canvas.draw_string(font, Vector2(16, y), "轻功：%s" % w.qg["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#1f6f6a"))
+		canvas.draw_string(font, Vector2(190, 36), "[Tab] 收起", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#7a6a3a"))
 
 	# 操作提示 + 轻功次数
 	var charges := int(w.qg.get("charges", 1))

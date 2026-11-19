@@ -14,7 +14,7 @@ const PLAYER_RADIUS := 12.0
 const SPAWN_DIST := 780.0
 const RELOCATE_DIST := 1300.0
 const MAX_GEMS := 400
-const GEM_AUTO_PULL := 4.0
+const VACUUM_SPEED := 1100.0       # 吸星大法：道具飞向主角的速度
 const MAX_EFFECTS := 160
 const CELL := 64.0
 const MAX_SKILLS := 4
@@ -33,6 +33,9 @@ var input_dash := false
 var input_ult := false
 var burst_used := 0                # 本局已用的真气爆发次数
 var atk_buff_t := 0.0              # 阴性爆发：攻速提升的剩余时间
+var absorb_items: Array = []         # 「吸星大法」道具：[{pos, age}]（同时最多一个）
+var vacuum_t := 0.0                 # 吸星大法生效的剩余时间：期间所有宝石 / 还丹飞向主角
+var absorb_gap := 0.0               # 距离上次掉落吸星大法的时间
 var pills: Array = []              # 掉落的还丹：[{pos, kind: small|large, age}]
 var god := false
 var rng_seed := 0
@@ -49,6 +52,7 @@ var enhance_id := ""              # 本局唯一的专属强化所属技能
 var enhance_level := 0            # 强化等级 1~3：首个小 Boss 选择强化，之后每个小 Boss 升一级
 var deferred_upgrades := 0
 var talent_stats: Dictionary = {} # 局外加成合计（属性点 + 天赋 + 装备基础属性），开局前由 main 设置
+var talent_skill_mods: Dictionary = {} # 天赋对具体招式的强化：招式 → {项: 值}（targets 为个数）
 var gear_skill_mods: Dictionary = {}   # 装备词条：技能 → {方向: 百分数}
 var gear_xinfa: Dictionary = {}        # 装备词条：心法 → 额外等级（只对已学会的心法生效）
 
@@ -63,6 +67,7 @@ var still_t := 0.0                # 连续站立不动的时间（入定）
 var realm_time := [0.0, 0.0, 0.0] # 虚 / 平 / 盈 各停留了多久（测试与平衡用）
 var empower_count := 0
 var _emp_ctx := -1                # 延迟命中（弹体 / 区域）的催动状态：-1 未设置，0 否，1 是
+var map_art: MapArt                 # 当前地图的像素美术（地面 + 物件）；没有素材时为 null
 var vfx: Vfx                       # 招式特效素材（没有素材的特效继续用程序绘制）
 var vfx_layer: VfxLayer
 var synergies: Array = []          # 当前生效的阴阳组合 / 合璧：[{name, desc, harmony}]
@@ -97,7 +102,7 @@ var projs: Array[Projectile] = []
 var zones: Array[Dictionary] = []
 var gem_pos: Array[Vector2] = []
 var gem_val: Array[int] = []
-var gem_age: Array[float] = []     # 宝石落地后的时间：超过 GEM_AUTO_PULL 秒会自动飞向玩家
+var gem_age: Array[float] = []     # 宝石落地后的时间（目前只用于统计）
 var chests: Array[Vector2] = []
 var effects: Array[Dictionary] = []
 var bosses: Array[Enemy] = []
@@ -122,6 +127,9 @@ var max_enemies := 800
 
 
 func _ready() -> void:
+	map_art = MapArt.new()
+	if not map_art.load_dir("res://assets/maps/black_wind", {"tree": 2.0, "rock": 2.0, "banner": 0.8, "barrel": 1.0, "campfire": 0.4, "bones": 1.2, "spikes": 1.0, "tent": 0.6}):
+		map_art = null
 	vfx = Vfx.new()
 	vfx.load_dir("res://assets/vfx")
 	vfx_layer = VfxLayer.new()
@@ -161,6 +169,9 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue") 
 	burst_used = 0
 	atk_buff_t = 0.0
 	pills.clear()
+	absorb_items.clear()
+	vacuum_t = 0.0
+	absorb_gap = 0.0
 	shield = 0.0
 	player_pos = Vector2.ZERO
 	exp_now = 0
@@ -209,6 +220,9 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue") 
 func add_skill(id: String) -> void:
 	var s := FistSkills.create(id)
 	s.setup(self, id, Data.skills[id])
+	var tm: Dictionary = talent_skill_mods.get(id, {})
+	for k in tm:
+		s.mods[k] = float(s.mods.get(k, 0.0)) + float(tm[k])
 	var gm: Dictionary = gear_skill_mods.get(id, {})
 	for dir in gm:
 		s.mods[dir] = float(s.mods.get(dir, 0.0)) + float(gm[dir]) / 100.0
@@ -373,6 +387,7 @@ func step(dt: float) -> void:
 	_update_zones(dt)
 	_update_gems(dt)
 	_update_pills(dt)
+	_update_absorb(dt)
 	_update_chests()
 	_compact_enemies()
 	_update_effects(dt)
@@ -915,6 +930,8 @@ func _kill(e: Enemy) -> void:
 	kills += 1
 	neili = minf(st("max_neili"), neili + st("kill_neili"))
 	_drop_gem(e.pos, e.exp_value)
+	if not e.is_boss and not e.is_elite:
+		_maybe_drop_absorb(e.pos)
 	if vfx.has("death_puff") and effects.size() < MAX_EFFECTS:
 		add_fx("splat", e.pos, 0.35, {"r": e.radius * 1.4, "color": e.color, "vfx": "death_puff", "size": e.radius * 4.0})
 	else:
@@ -1094,6 +1111,10 @@ func spawn_proj(s: SkillBase, angle: float, o: Dictionary = {}) -> Projectile:
 	pr.boomerang = bool(o.get("boomerang", false))
 	pr.stun = float(o.get("stun", 0.0))
 	pr.chain = bool(o.get("chain", false))
+	pr.splash = float(o.get("splash", s.def.get("splash_radius", 0.0)))
+	pr.splash_frac = float(o.get("splash_frac", s.def.get("splash_frac", 0.0)))
+	pr.falloff = float(o.get("falloff", s.def.get("falloff", 1.0)))
+	pr.stun_chance = float(o.get("stun_chance", s.def.get("stun_chance", 1.0)))
 	pr.empowered = s.empowered
 	projs.append(pr)
 	return pr
@@ -1170,8 +1191,11 @@ func _update_projectiles(dt: float) -> void:
 						_emp_ctx = 1 if p.empowered else 0
 						hit_enemy(e, p.damage, p.tags, p.vel.normalized() * p.knock, p.skill_id)
 						_emp_ctx = -1
-						if p.stun > 0.0:
+						if p.stun > 0.0 and (p.stun_chance >= 1.0 or rng.randf() < p.stun_chance):
 							stun_enemy(e, p.stun, p.chain)
+						if p.splash > 0.0:
+							_splash(e, p)
+						p.damage *= p.falloff
 						if p.split > 0:
 							_split(p)
 							p.split = 0
@@ -1186,6 +1210,15 @@ func _update_projectiles(dt: float) -> void:
 			projs[j] = p
 			j += 1
 	projs.resize(j)
+
+
+## 小范围溅射：命中点周围的其他敌人受到一部分伤害（掌）
+func _splash(center_e: Enemy, p: Projectile) -> void:
+	for nb in _query(center_e.pos, p.splash):
+		if nb == center_e or not nb.alive:
+			continue
+		if nb.pos.distance_to(center_e.pos) < p.splash + nb.radius:
+			hit_enemy(nb, p.damage * p.splash_frac, p.tags, (nb.pos - center_e.pos).normalized() * p.knock * 0.5, p.skill_id)
 
 
 func _split(p: Projectile) -> void:
@@ -1280,8 +1313,37 @@ func _update_pills(dt: float) -> void:
 			add_fx("text", player_pos + Vector2(0, -34), 1.0, {"text": "%s +%d" % ["大还丹" if pl["kind"] == "large" else "小还丹", int(heal)], "size": 20, "color": VERMILION})
 			pills.remove_at(i)
 			continue
-		if d < st("pickup_range") * 0.7 or float(pl["age"]) > 6.0:
+		if vacuum_t > 0.0:
+			pl["pos"] = (pl["pos"] as Vector2) + (player_pos - (pl["pos"] as Vector2)).normalized() * VACUUM_SPEED * dt
+		elif d < st("pickup_range") * 0.7:
 			pl["pos"] = (pl["pos"] as Vector2) + (player_pos - (pl["pos"] as Vector2)).normalized() * 300.0 * dt
+		i += 1
+
+
+## 吸星大法：普通击杀 1% 几率掉落（同时只会有一个，且两次掉落至少隔 25 秒）。捡到后 3 秒内全场宝石 / 还丹飞向主角。
+func _maybe_drop_absorb(at: Vector2) -> void:
+	if not absorb_items.is_empty() or absorb_gap < Data.T("absorb_min_gap"):
+		return
+	if rng.randf() < Data.T("absorb_chance"):
+		absorb_items.append({"pos": at, "age": 0.0})
+		absorb_gap = 0.0
+		add_fx("text", at + Vector2(0, -30), 1.6, {"text": "吸星大法现世！", "size": 24, "color": Color("#b98cff")})
+
+
+func _update_absorb(dt: float) -> void:
+	absorb_gap += dt
+	vacuum_t = maxf(0.0, vacuum_t - dt)
+	var i := 0
+	while i < absorb_items.size():
+		var it: Dictionary = absorb_items[i]
+		it["age"] = float(it["age"]) + dt
+		if (it["pos"] as Vector2).distance_to(player_pos) < 26.0:
+			vacuum_t = Data.T("absorb_vacuum_time")
+			absorb_items.remove_at(i)
+			add_fx("text", player_pos + Vector2(0, -60), 1.6, {"text": "吸星大法！", "size": 30, "color": Color("#b98cff")})
+			add_fx("ring", player_pos, 0.6, {"r0": 20.0, "r1": 420.0, "color": Color("#b98cff")})
+			shake = maxf(shake, 5.0)
+			continue
 		i += 1
 
 
@@ -1312,11 +1374,10 @@ func _update_gems(dt: float) -> void:
 			gem_age.pop_back()
 			continue
 		gem_age[i] += dt
-		if d < pull:
-			gem_pos[i] += (player_pos - gem_pos[i]).normalized() * 420.0 * dt
-		elif gem_age[i] > GEM_AUTO_PULL:
-			# 落地一段时间后自动飞向玩家：升级节奏只取决于击杀，不取决于敢不敢冲进怪堆里捡
-			gem_pos[i] += (player_pos - gem_pos[i]).normalized() * 320.0 * dt
+		if vacuum_t > 0.0:
+			gem_pos[i] += (player_pos - gem_pos[i]).normalized() * VACUUM_SPEED * dt      # 吸星大法：全场飞来
+		elif d < pull:
+			gem_pos[i] += (player_pos - gem_pos[i]).normalized() * 420.0 * dt            # 只有走进拾取范围才会被吸过来
 		i += 1
 
 
@@ -1507,6 +1568,16 @@ func _vis(p: Vector2, margin: float = 40.0) -> bool:
 
 func _draw() -> void:
 	_draw_background()
+	var back_props: Array = []
+	var front_props: Array = []
+	if map_art != null:
+		for pr in map_art.visible_props(player_pos, Vector2(700.0, 420.0)):
+			if (pr["pos"] as Vector2).y <= player_pos.y:
+				back_props.append(pr)
+			else:
+				front_props.append(pr)
+		back_props.sort_custom(func(a, b): return a["pos"].y < b["pos"].y)
+		front_props.sort_custom(func(a, b): return a["pos"].y < b["pos"].y)
 	_draw_zones()
 	for i in gem_pos.size():
 		var g := gem_pos[i]
@@ -1516,12 +1587,17 @@ func _draw() -> void:
 	for pl in pills:
 		if _vis(pl["pos"]):
 			_draw_pill(pl)
+	for it in absorb_items:
+		if _vis(it["pos"], 80.0):
+			_draw_absorb(it)
 	for c in chests:
 		if _vis(c):
 			var bob := sin(time * 4.0) * 3.0
 			draw_rect(Rect2(c + Vector2(-11, -8 + bob), Vector2(22, 16)), Color("#8a5a1f"))
 			draw_rect(Rect2(c + Vector2(-11, -8 + bob), Vector2(22, 16)), GOLD, false, 2.0)
 			draw_arc(c + Vector2(0, bob), 20.0, 0.0, TAU, 20, Color(GOLD, 0.4 + 0.3 * sin(time * 5.0)), 2.0)
+	for pr in back_props:
+		map_art.draw_prop(self, pr)
 	for e in enemies:
 		if _vis(e.pos, 60.0):
 			_draw_enemy(e)
@@ -1529,7 +1605,21 @@ func _draw() -> void:
 		if _vis(p.pos):
 			_draw_proj(p)
 	_draw_player()
+	for pr in front_props:
+		map_art.draw_prop(self, pr)
 	_draw_effects()
+
+
+## 吸星大法：旋转的紫青色星旋，比还丹大得多，远处也看得见
+func _draw_absorb(it: Dictionary) -> void:
+	var c: Vector2 = it["pos"]
+	var t := time * 3.0
+	draw_circle(c, 26.0 + 3.0 * sin(t * 1.3), Color("#b98cff", 0.16))
+	for k in 3:
+		var a0 := t + k * TAU / 3.0
+		draw_arc(c, 18.0 - k * 3.0, a0, a0 + 2.4, 14, Color("#b98cff", 0.9), 3.0)
+		draw_arc(c, 11.0 - k * 2.0, -a0 * 1.4, -a0 * 1.4 + 2.0, 10, Color("#4fe0d0", 0.9), 2.0)
+	draw_circle(c, 4.0, Color("#fff6dc"))
 
 
 ## 还丹：像素风小葫芦丹——小的红褐色，大的金色带光晕
@@ -1559,6 +1649,9 @@ func _hash(cx: int, cy: int) -> int:
 
 
 func _draw_background() -> void:
+	if map_art != null:
+		map_art.draw_ground(self, player_pos, Vector2(680.0, 400.0))
+		return
 	# 水墨风占位：淡墨山石 + 草丛笔触，按格子哈希稳定生成
 	var cs := 180
 	var x0 := int(floorf((player_pos.x - 720.0) / cs))

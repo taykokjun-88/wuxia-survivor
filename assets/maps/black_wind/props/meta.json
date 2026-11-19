@@ -1,0 +1,42 @@
+{
+ "tree": {
+  "file": "tree.png",
+  "w": 55,
+  "h": 74
+ },
+ "rock": {
+  "file": "rock.png",
+  "w": 57,
+  "h": 53
+ },
+ "banner": {
+  "file": "banner.png",
+  "w": 34,
+  "h": 70
+ },
+ "barrel": {
+  "file": "barrel.png",
+  "w": 62,
+  "h": 44
+ },
+ "campfire": {
+  "file": "campfire.png",
+  "w": 49,
+  "h": 46
+ },
+ "bones": {
+  "file": "bones.png",
+  "w": 57,
+  "h": 35
+ },
+ "spikes": {
+  "file": "spikes.png",
+  "w": 56,
+  "h": 58
+ },
+ "tent": {
+  "file": "tent.png",
+  "w": 69,
+  "h": 58
+ }
+}

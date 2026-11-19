@@ -133,7 +133,7 @@ class CloudPalm extends SkillBase:
 		var t := w.nearest_enemy(520.0)
 		if t == null:
 			return false
-		var n := int(p("count")) + (2 if empowered else 0)
+		var n := int(p("count")) + (1 if empowered else 0)
 		var base := (t.pos - w.player_pos).angle()
 		for i in n:
 			var a := base + (i - (n - 1) * 0.5) * 0.5
@@ -141,7 +141,7 @@ class CloudPalm extends SkillBase:
 		return true
 
 
-## 八荒六合功：八方拳气。强化「唯我独尊」：连发三轮，每轮偏转，形成旋转弹幕。
+## 八荒六合功：八方拳气（基础 8 个，催动 12 个）。强化「唯我独尊」：连发三轮，每轮偏转，形成旋转弹幕。
 class EightWaste extends SkillBase:
 	var bursts_left := 0
 	var burst_t := 0.0
@@ -169,7 +169,7 @@ class EightWaste extends SkillBase:
 		return true
 
 	func _burst() -> void:
-		var n := 16 if emp_burst else int(p("count"))
+		var n := int(p("count")) + (4 if emp_burst else 0)
 		for i in n:
 			w.spawn_proj(self, rot + TAU * i / n)
 		rot += 0.3 if enhanced() else 0.2

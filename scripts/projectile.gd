@@ -27,5 +27,9 @@ var split := 0          # >0：首次命中后分裂成两道小弹体
 var boomerang := false
 var returning := false
 var stun := 0.0
+var splash := 0.0        # 命中后的小范围溅射半径（0 = 没有）
+var splash_frac := 0.0   # 溅射伤害占本次伤害的比例
+var falloff := 1.0       # 每穿透一个目标，后续伤害乘以这个系数
+var stun_chance := 1.0   # 命中时定身的几率
 var chain := false
 var empowered := false   # 催动版出手的弹体（对 Boss 罡气 ×3）

@@ -138,3 +138,14 @@ func yinyang_of(a: String, b: String) -> String:
 	if ya == yb:
 		return "double_" + ya
 	return "harmony"
+
+
+var _icons: Dictionary = {}
+
+## 技能 / 心法图标（assets/icons/<kind>/<id>.png）；没有则返回 null，调用方画占位
+func icon(kind: String, id: String) -> Texture2D:
+	var key := kind + "/" + id
+	if not _icons.has(key):
+		var path := "res://assets/icons/%s.png" % key
+		_icons[key] = load(path) if ResourceLoader.exists(path) else null
+	return _icons[key]

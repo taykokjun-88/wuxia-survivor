@@ -1,0 +1,32 @@
+{
+ "clerk": {
+  "file": "clerk.png",
+  "w": 34,
+  "h": 61
+ },
+ "smith": {
+  "file": "smith.png",
+  "w": 46,
+  "h": 58
+ },
+ "sage": {
+  "file": "sage.png",
+  "w": 39,
+  "h": 61
+ },
+ "master": {
+  "file": "master.png",
+  "w": 24,
+  "h": 62
+ },
+ "innkeeper": {
+  "file": "innkeeper.png",
+  "w": 39,
+  "h": 59
+ },
+ "herbalist": {
+  "file": "herbalist.png",
+  "w": 31,
+  "h": 58
+ }
+}

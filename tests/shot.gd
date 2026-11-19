@@ -216,6 +216,11 @@ func _ready() -> void:
 	w._drop_pill(w.player_pos + Vector2(70, 20), "small")
 	w._drop_pill(w.player_pos + Vector2(-70, 30), "large")
 	w.exp_now = int(w.exp_next * 0.62)
+	w.absorb_items.clear()
+	w.absorb_items.append({"pos": w.player_pos + Vector2(120, -80), "age": 0.0})
+	w._spawn_boss("mini_boss_2", false)
+	w.bosses[w.bosses.size() - 1].pos = w.player_pos + Vector2(1500, 300)
+	w.chests.append(w.player_pos + Vector2(-500, 200))
 	w.input_move = Vector2.ZERO
 	await _frames(3)
 	_snap("06i_pills")

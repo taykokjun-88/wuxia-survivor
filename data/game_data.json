@@ -4,7 +4,7 @@
     "max_neili": 100,
     "neili_regen": 12,
     "hp_regen": 0,
-    "move_speed": 200,
+    "move_speed": 140,
     "speed_pct": 0,
     "pickup_range": 90,
     "ult_cost": 100,
@@ -92,7 +92,10 @@
     "yang_regen_mult": 1.5,
     "yang_shield_frac": 0.5,
     "yang_shield_rate": 0.15,
-    "yang_reflect": 0.3
+    "yang_reflect": 0.3,
+    "absorb_chance": 0.01,
+    "absorb_vacuum_time": 3.0,
+    "absorb_min_gap": 25.0
   },
   "skills": {
     "yue_palm": {
@@ -134,13 +137,13 @@
       "school": "fist",
       "tags": [
         "近战",
-        "连击"
+        "范围"
       ],
-      "desc": "近身三连击，第三拳伤害更高、击退更强",
-      "damage": 16,
-      "cooldown": 0.6,
-      "reach": 80,
-      "arc": 1.9,
+      "desc": "近身高伤害的大范围扇形拳，容易暴击；第三拳更重、击退更强",
+      "damage": 38,
+      "cooldown": 0.9,
+      "reach": 72,
+      "arc": 2.4,
       "enhance": {
         "name": "横扫千军",
         "desc": "第三拳必定暴击，并释放一圈冲击波",
@@ -155,7 +158,8 @@
       },
       "anim": "punch",
       "empower_cost": 7,
-      "empower": "末拳变重击：额外震晕前方敌人"
+      "empower": "末拳变重击：额外震晕前方敌人",
+      "crit_base": 0.15
     },
     "quake_fist": {
       "name": "七伤拳",
@@ -221,13 +225,14 @@
       "school": "fist",
       "tags": [
         "控制",
-        "远程"
+        "远程",
+        "贯穿"
       ],
       "proj_kind": "finger",
-      "desc": "指力点穴，命中的敌人被定身",
-      "damage": 24,
+      "desc": "远距离穿透指劲：有几率定身，伤害高（每穿透一个目标衰减）",
+      "damage": 30,
       "cooldown": 1.0,
-      "pierce": 1,
+      "pierce": 3,
       "stun": 1.0,
       "count": 2,
       "radius": 7,
@@ -249,7 +254,9 @@
       },
       "anim": "palm",
       "empower_cost": 6,
-      "empower": "定身时间 ×2"
+      "empower": "定身时间 ×2",
+      "stun_chance": 0.4,
+      "falloff": 0.82
     },
     "vajra_fist": {
       "name": "大金刚拳",
@@ -286,13 +293,14 @@
       "school": "fist",
       "tags": [
         "追踪",
+        "连击",
         "远程"
       ],
       "proj_kind": "palm",
-      "desc": "发出会自动追敌的掌印",
-      "damage": 28,
-      "cooldown": 1.2,
-      "count": 2,
+      "desc": "中距离追踪掌印：命中减速、小范围溅射，容易连击",
+      "damage": 30,
+      "cooldown": 1.3,
+      "count": 1,
       "pierce": 1,
       "radius": 11,
       "speed": 300,
@@ -315,7 +323,11 @@
       },
       "anim": "palm",
       "empower_cost": 8,
-      "empower": "掌印数量 +2"
+      "empower": "掌印数量 +1",
+      "slow_base": 0.25,
+      "splash_radius": 46,
+      "splash_frac": 0.4,
+      "echo_base": 0.18
     },
     "eight_waste": {
       "name": "八荒六合功",
@@ -326,10 +338,10 @@
       ],
       "proj_kind": "bolt",
       "desc": "向四面八方同时打出拳气",
-      "damage": 16,
-      "cooldown": 2.0,
+      "damage": 20,
+      "cooldown": 3.2,
       "count": 8,
-      "pierce": 2,
+      "pierce": 1,
       "radius": 8,
       "speed": 520,
       "life": 0.8,
@@ -350,7 +362,7 @@
       },
       "anim": "palm",
       "empower_cost": 15,
-      "empower": "十六方向齐发"
+      "empower": "十二方向齐发"
     },
     "taiji": {
       "name": "乾坤大挪移",
@@ -898,13 +910,13 @@
               "desc": "盈境伤害 +5%/级"
             },
             {
-              "id": "gang_hold",
-              "name": "蓄势",
+              "id": "gang_dragon",
+              "name": "龙吟九天",
               "max": 2,
               "stat": {
-                "ying_shift": -0.02
+                "skill:yue_palm:targets": 1.0
               },
-              "desc": "盈境门槛 −2%/级"
+              "desc": "降龙十八掌 贯穿 +1/级"
             }
           ],
           [
@@ -938,13 +950,13 @@
               "desc": "催动消耗 −6%/级"
             },
             {
-              "id": "gang_shield",
-              "name": "金身",
+              "id": "gang_vajra",
+              "name": "金刚怒目",
               "max": 2,
               "stat": {
-                "shield_max": 10
+                "skill:vajra_fist:damage": 0.15
               },
-              "desc": "护盾上限 +10/级"
+              "desc": "大金刚拳 伤害 +15%/级"
             }
           ],
           [
@@ -1064,13 +1076,13 @@
               "desc": "格挡几率 +2%/级"
             },
             {
-              "id": "rou_nr",
-              "name": "绵长",
+              "id": "rou_petal",
+              "name": "落英缤纷",
               "max": 2,
               "stat": {
-                "neili_regen": 1.2
+                "skill:whirl_palm:range": 0.12
               },
-              "desc": "回内力 +1.2/秒每级"
+              "desc": "落英神剑掌 范围 +12%/级"
             }
           ],
           [
@@ -1084,13 +1096,13 @@
               "desc": "拾取回血 +0.3/级"
             },
             {
-              "id": "rou_thorn",
-              "name": "借劲",
+              "id": "rou_finger",
+              "name": "一阳连点",
               "max": 2,
               "stat": {
-                "thorns": 4
+                "skill:point_finger:targets": 1.0
               },
-              "desc": "受击反震 +4/级"
+              "desc": "一阳指 指劲 +1/级"
             }
           ],
           [
@@ -1190,13 +1202,13 @@
               "desc": "暴击率 +2%/级"
             },
             {
-              "id": "ling_pick",
-              "name": "摄物",
+              "id": "ling_palm",
+              "name": "六阳初开",
               "max": 2,
               "stat": {
-                "pickup_range": 15
+                "skill:cloud_palm:targets": 1.0
               },
-              "desc": "拾取范围 +15/级"
+              "desc": "天山六阳掌 初始掌印 +1/级（最多 3 个）"
             }
           ],
           [
@@ -1230,13 +1242,13 @@
               "desc": "招式冷却 −1.5%/级"
             },
             {
-              "id": "ling_kill",
-              "name": "采气",
+              "id": "ling_waste",
+              "name": "八荒回响",
               "max": 2,
               "stat": {
-                "kill_neili": 0.5
+                "skill:eight_waste:cooldown": 0.1
               },
-              "desc": "击杀回内力 +0.5/级"
+              "desc": "八荒六合功 冷却 −10%/级"
             }
           ],
           [

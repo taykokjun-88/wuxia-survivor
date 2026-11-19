@@ -28,6 +28,10 @@ func setup(world: GameWorld, skill_id: String, skill_def: Dictionary) -> void:
 	w = world
 	id = skill_id
 	def = skill_def
+	# 招式自带的特色（数据表里的 *_base）：暴击 / 减速 / 连击等从第 1 层就有
+	mods["crit"] += float(def.get("crit_base", 0.0))
+	mods["debuff"] += float(def.get("slow_base", 0.0))
+	mods["hits"] += float(def.get("echo_base", 0.0))
 
 
 ## 当前数值 = Lv1 基础值 × 升级方向加成

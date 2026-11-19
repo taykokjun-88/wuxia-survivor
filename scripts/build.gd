@@ -20,9 +20,11 @@ static func merge(into: Dictionary, add: Dictionary) -> void:
 
 static func apply_to(world: GameWorld, alloc: Dictionary, talents: Dictionary, equip: Dictionary, school_id: String) -> void:
 	var stats := Meta.stats_for(alloc)
-	merge(stats, Talents.stats_for(talents))
+	var tsplit := Talents.split_skill_mods(Talents.stats_for(talents))
+	merge(stats, tsplit[0])
 	var gb := Gear.bonuses(equipped_items(equip, school_id))
 	merge(stats, gb["stats"])
 	world.talent_stats = stats
+	world.talent_skill_mods = tsplit[1]
 	world.gear_skill_mods = gb["skill_mods"]
 	world.gear_xinfa = gb["xinfa"]

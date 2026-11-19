@@ -77,7 +77,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			if event.is_action_pressed("ui_accept"):
 				hud.confirm_loadout()
 		State.PLAY:
-			if event.is_action_pressed("ui_cancel"):
+			if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_TAB:
+				hud.toggle_hud()
+				get_viewport().set_input_as_handled()
+			elif event.is_action_pressed("ui_cancel"):
 				state = State.PAUSED
 				hud.show_pause()
 		State.PAUSED:

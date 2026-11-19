@@ -21,10 +21,13 @@ func _ready() -> void:
 		_neili_test()
 		_build_test()
 		_talent_map_test()
+		_talent_skill_test()
 		_vfx_test()
 		_p2_test()
 		_synergy_test()
 		_burst_pill_test()
+		_absorb_test()
+		_starter_trait_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
 		_skill_matrix()
@@ -405,6 +408,181 @@ func _save_test() -> void:
 
 var net_calls: Array = []
 var fake_reply: Dictionary = {}
+
+
+func _starter_trait_test() -> void:
+	print("\n=== 三个初始技能的定位：拳 / 掌 / 指 ===")
+	var D: Dictionary = Data.skills
+	# 数据定位：拳近 · 范围 · 伤害最高；掌中 · 追踪；指远 · 穿透
+	_check(D["chain_fist"]["tags"].has("范围") and D["chain_fist"]["tags"].has("近战"), "拳：近战 + 范围")
+	_check(D["cloud_palm"]["tags"].has("追踪") and D["cloud_palm"]["tags"].has("连击"), "掌：追踪 + 连击")
+	_check(D["point_finger"]["tags"].has("贯穿") and D["point_finger"]["tags"].has("控制"), "指：贯穿 + 控制")
+	_check(float(D["chain_fist"]["damage"]) > float(D["point_finger"]["damage"]) and float(D["chain_fist"]["damage"]) > float(D["cloud_palm"]["damage"]), "拳的单发伤害最高")
+	var wf := _new_world(121)
+	wf.skills.clear()
+	for sid in ["chain_fist", "cloud_palm", "point_finger"]:
+		wf.add_skill(sid)
+	var fist: SkillBase = wf.skills["chain_fist"]
+	var palm: SkillBase = wf.skills["cloud_palm"]
+	var finger: SkillBase = wf.skills["point_finger"]
+	_check(float(fist.mods["crit"]) >= 0.14 and float(palm.mods["hits"]) >= 0.17 and float(palm.mods["debuff"]) >= 0.24, "拳容易暴击；掌容易连击并减速")
+	_check(fist.p("reach") < float(D["cloud_palm"]["speed"]) and float(finger.p("speed")) * finger.p("life") > 480.0, "距离：拳近、指远")
+	_check(finger.p("pierce") >= 3.0 and float(D["point_finger"]["stun_chance"]) < 1.0, "指：穿透、定身只是几率")
+	# 掌：溅射 + 减速
+	var wp := _new_world(122)
+	wp.skills.clear()
+	wp.add_skill("cloud_palm")
+	var a := Enemy.new()
+	a.hp = 1.0e9
+	a.max_hp = 1.0e9
+	a.pos = wp.player_pos + Vector2(80, 0)
+	a.uid = 9101
+	var b := Enemy.new()
+	b.hp = 1.0e9
+	b.max_hp = 1.0e9
+	b.pos = a.pos + Vector2(30, 0)
+	b.uid = 9102
+	var far := Enemy.new()
+	far.hp = 1.0e9
+	far.max_hp = 1.0e9
+	far.pos = a.pos + Vector2(200, 0)
+	far.uid = 9103
+	wp.enemies.append_array([a, b, far])
+	wp._rebuild_grid()
+	var pr := Projectile.new()
+	var csk: SkillBase = wp.skills["cloud_palm"]
+	pr = wp.spawn_proj(csk, 0.0, {"pos": a.pos - Vector2(4, 0)})
+	var ha := a.hp
+	var hb := b.hp
+	var hf := far.hp
+	for i in 6:
+		wp.step(1.0 / 60.0)
+	_check(a.hp < ha and b.hp < hb and absf(far.hp - hf) < 1e-3, "掌：命中溅射到近处的敌人，远处的不受影响")
+	_check(a.slow_t > 0.0, "掌：命中减速")
+	_free_world(wp)
+	# 指：穿透衰减 + 几率定身
+	var wi := _new_world(123)
+	wi.skills.clear()
+	wi.add_skill("point_finger")
+	wi.stats["crit_chance"] = 0.0
+	var line: Array = []
+	for i in 3:
+		var en := Enemy.new()
+		en.hp = 1.0e9
+		en.max_hp = 1.0e9
+		en.pos = wi.player_pos + Vector2(80 + i * 40, 0)
+		en.uid = 9000 + i
+		wi.enemies.append(en)
+		line.append(en)
+	wi._rebuild_grid()
+	var fsk: SkillBase = wi.skills["point_finger"]
+	wi.spawn_proj(fsk, 0.0, {"pos": wi.player_pos + Vector2(20, 0)})
+	var hp0: Array = [line[0].hp, line[1].hp, line[2].hp]
+	for i in 20:
+		wi.step(1.0 / 60.0)
+	var d0 := float(hp0[0]) - float(line[0].hp)
+	var d1 := float(hp0[1]) - float(line[1].hp)
+	var d2 := float(hp0[2]) - float(line[2].hp)
+	_check(d0 > 0.0 and d1 > 0.0 and d2 > 0.0 and d1 < d0 and d2 < d1, "指：穿透三个目标，伤害逐个衰减（%.0f > %.0f > %.0f）" % [d0, d1, d2])
+	_free_world(wi)
+	var stunned := 0
+	var wr := _new_world(124)
+	wr.skills.clear()
+	for t in 400:
+		var en2 := Enemy.new()
+		en2.hp = 1.0e12
+		en2.max_hp = 1.0e12
+		en2.pos = wr.player_pos + Vector2(60, 0)
+		wr.enemies.append(en2)
+		wr._rebuild_grid()
+		var pj := Projectile.new()
+		pj.stun = 1.0
+		pj.stun_chance = 0.4
+		pj.radius = 12.0
+		pj.pos = en2.pos
+		pj.life = 1.0
+		pj.pierce = 1
+		pj.damage = 1.0
+		pj.skill_id = "x"
+		wr.projs.append(pj)
+		wr.step(1.0 / 60.0)
+		stunned += 1 if en2.stun > 0.0 else 0
+		wr.enemies.clear()
+		wr.projs.clear()
+	_check(stunned > 110 and stunned < 210, "定身几率约 40%%（400 次中 %d）" % stunned)
+	_free_world(wr)
+	_free_world(wf)
+	print("  拳 近·范围·高暴击 / 掌 中·追踪·减速·溅射·连击 / 指 远·穿透衰减·几率定身  OK")
+
+
+func _absorb_test() -> void:
+	print("\n=== 经验珠不自动飞来 / 吸星大法 / 移速 ===")
+	_check(is_equal_approx(float(Data.player_base["move_speed"]), 140.0), "主角基础移速 140（原 200 的 70%）")
+	# 经验珠：远处的珠子放很久也不会自己飞过来
+	var w := _new_world(111)
+	w.skills.clear()
+	w.god = true
+	w.input_move = Vector2.ZERO
+	w._drop_gem(w.player_pos + Vector2(400, 0), 5)
+	for i in int(10.0 / DT):
+		w.step(DT)
+		w.input_move = Vector2.ZERO
+	_check(w.gem_pos.size() >= 1 and (w.gem_pos[0] as Vector2).distance_to(w.player_pos) > 300.0, "经验珠不再自动飞向主角")
+	# 走进拾取范围才会吸过来
+	w.gem_pos.clear()
+	w.gem_val.clear()
+	w.gem_age.clear()
+	w._drop_gem(w.player_pos + Vector2(60, 0), 5)
+	var exp0 := w.exp_total
+	for i in 60:
+		w.step(DT)
+		w.input_move = Vector2.ZERO
+	_check(w.exp_total > exp0, "拾取范围内的经验珠会被吸过来")
+	_free_world(w)
+	# 吸星大法：1% 几率、同时只有一个、间隔限制
+	var wa := _new_world(112)
+	wa.skills.clear()
+	var drops := 0
+	wa.absorb_gap = 999.0
+	for i in 20000:
+		wa.absorb_items.clear()
+		wa.absorb_gap = 999.0
+		wa._maybe_drop_absorb(Vector2(500, 0))
+		drops += wa.absorb_items.size()
+	_check(drops > 130 and drops < 280, "掉落率约 1%%（20000 次中 %d）" % drops)
+	wa.absorb_items.clear()
+	wa.absorb_gap = 999.0
+	for i in 400:
+		wa._maybe_drop_absorb(Vector2(500, 0))
+	_check(wa.absorb_items.size() <= 1, "同一时间最多一个")
+	wa.absorb_items.clear()
+	wa.absorb_gap = 1.0
+	var forced: float = float(Data.tuning["absorb_chance"])
+	Data.tuning["absorb_chance"] = 1.0
+	wa._maybe_drop_absorb(Vector2(500, 0))
+	_check(wa.absorb_items.is_empty(), "刚掉过不久不会再掉（间隔 25 秒）")
+	Data.tuning["absorb_chance"] = forced
+	# 捡到：全场宝石和还丹飞向主角
+	var wv := _new_world(113)
+	wv.skills.clear()
+	wv.god = true
+	wv.input_move = Vector2.ZERO
+	for i in 20:
+		wv._drop_gem(wv.player_pos + Vector2(300 + i * 40, (i % 5) * 80 - 160), 3)
+	wv._drop_pill(wv.player_pos + Vector2(-700, 100), "large")
+	wv.absorb_items.append({"pos": wv.player_pos + Vector2(10, 0), "age": 0.0})
+	var hp_before := wv.hp
+	wv.hp = wv.st("max_hp") * 0.5
+	hp_before = wv.hp
+	var got0 := wv.exp_total
+	for i in int(2.5 / DT):
+		wv.step(DT)
+		wv.input_move = Vector2.ZERO
+	_check(wv.absorb_items.is_empty() and wv.gem_pos.size() == 0, "捡到吸星大法后全场宝石都飞来并被收走（剩 %d）" % wv.gem_pos.size())
+	_check(wv.pills.is_empty() and wv.hp > hp_before, "还丹也飞来了并回血")
+	_check(wv.exp_total > got0 + 40, "宝石经验到账")
+	_free_world(wv)
+	print("  经验珠不自动飞 / 拾取范围 / 吸星 1% · 唯一 · 间隔 / 全场飞来 / 移速 140  OK")
 
 
 func _burst_pill_test() -> void:
@@ -866,6 +1044,54 @@ func _vfx_test() -> void:
 	print("  素材加载 / 取帧 / 回退 / 命中与刀光接入 / 20 个特效 id 与目录一致  OK")
 
 
+func _talent_skill_test() -> void:
+	print("\n=== 天赋：针对招式的强化 / 平衡调整 ===")
+	var wb := _new_world(101)
+	wb.skills.clear()
+	wb.add_skill("cloud_palm")
+	_check(int((wb.skills["cloud_palm"] as SkillBase).p("count")) == 1, "天山六阳掌初始只有 1 个掌印")
+	_free_world(wb)
+	for ranks in [0, 1, 2]:
+		var w := _new_world(102)
+		w.skills.clear()
+		Build.apply_to(w, {}, {"gang_force": 3, "gang_crit": 3, "ling_step": 3, "ling_cd": 3, "ling_palm": ranks} if ranks > 0 else {}, {}, "fist")
+		w.add_skill("cloud_palm")
+		_check(int((w.skills["cloud_palm"] as SkillBase).p("count")) == 1 + ranks, "六阳初开 %d 级：初始 %d 个掌印" % [ranks, 1 + ranks])
+		_free_world(w)
+	# 升级「增加目标」同样加弹数；催动 +1
+	var wu := _new_world(103)
+	wu.skills.clear()
+	wu.add_skill("cloud_palm")
+	var cp: SkillBase = wu.skills["cloud_palm"]
+	cp.add_upgrade("targets", 3)
+	_check(int(cp.p("count")) > 1, "升级增加目标 → 掌印更多（%d）" % int(cp.p("count")))
+	_free_world(wu)
+	# 八荒六合功：8 个、冷却更长
+	var we := _new_world(104)
+	we.skills.clear()
+	we.add_skill("eight_waste")
+	var ew: SkillBase = we.skills["eight_waste"]
+	_check(int(ew.p("count")) == 8 and ew.p("cooldown") >= 3.0, "八荒六合功：8 个、冷却 ≥ 3 秒（%.1f）" % ew.p("cooldown"))
+	_free_world(we)
+	# 其他招式强化：贯穿 / 伤害 / 范围 / 冷却
+	var w2 := _new_world(105)
+	w2.skills.clear()
+	var tl := {"gang_force": 3, "gang_crit": 3, "gang_dragon": 2, "gang_vajra": 0}
+	Build.apply_to(w2, {}, {"gang_force": 3, "gang_crit": 3, "gang_ying": 3, "gang_dragon": 2}, {}, "fist")
+	w2.add_skill("yue_palm")
+	var y0 := float(Data.skills["yue_palm"]["pierce"])
+	_check(absf((w2.skills["yue_palm"] as SkillBase).p("pierce") - (y0 + 2.0)) < 1e-6, "龙吟九天 2 级：降龙十八掌贯穿 +2")
+	_free_world(w2)
+	var w3 := _new_world(106)
+	w3.skills.clear()
+	Build.apply_to(w3, {}, {"ling_step": 3, "ling_cd": 3, "ling_crit": 3, "ling_cd2": 1, "ling_waste": 2}, {}, "fist")
+	w3.add_skill("eight_waste")
+	var cd_base := float(Data.skills["eight_waste"]["cooldown"])
+	_check(absf((w3.skills["eight_waste"] as SkillBase).p("cooldown") - cd_base * 0.8) < 1e-6, "八荒回响 2 级：冷却 −20%")
+	_free_world(w3)
+	print("  初始 1 个掌印 / 天赋加弹数 / 升级加弹数 / 八荒 8 个 · 长冷却 / 贯穿与冷却天赋  OK")
+
+
 func _talent_map_test() -> void:
 	print("\n=== 经脉图（天赋树）布局 / 交互 ===")
 	var tm := TalentMap.new()
@@ -942,7 +1168,11 @@ func _build_test() -> void:
 		_check(sum == 35, "%s 系应共 35 点（实际 %d）" % [b, sum])
 	for id in all:
 		for k in all[id]["stat"]:
-			_check(Data.player_base.has(k), "天赋 %s 用了不存在的属性 %s" % [id, k])
+			if str(k).begins_with("skill:"):
+				var pr := str(k).split(":")
+				_check(pr.size() == 3 and Data.skills.has(pr[1]) and ["targets", "damage", "cooldown", "range", "empower"].has(pr[2]), "天赋 %s 的招式强化键不对：%s" % [id, k])
+			else:
+				_check(Data.player_base.has(k), "天赋 %s 用了不存在的属性 %s" % [id, k])
 	# 解锁规则
 	var t := {}
 	_check(Talents.can_add(t, "gang_force", 10) and not Talents.can_add(t, "gang_crit", 10), "第 1 层要先在更低层投入 3 点")
@@ -1120,7 +1350,7 @@ func _neili_test() -> void:
 	we.projs.clear()
 	ew.empowered = true
 	ew.fire()
-	_check(we.projs.size() == 16, "八荒六合功催动：十六方向（实际 %d）" % we.projs.size())
+	_check(we.projs.size() == int(ew.p("count")) + 4, "八荒六合功催动：基础 8 个 + 4 = 12 个（实际 %d）" % we.projs.size())
 	we.projs.clear()
 	ew.empowered = false
 	ew.emp_burst = false

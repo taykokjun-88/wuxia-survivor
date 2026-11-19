@@ -112,3 +112,20 @@ static func stats_for(t: Dictionary) -> Dictionary:
 		for k in st:
 			out[k] = float(out.get(k, 0.0)) + float(st[k]) * int(t[id])
 	return out
+
+
+## 天赋里「针对具体招式」的强化用 "skill:<招式>:<项>" 作键，开局时并入该招式的 mods（targets 是个数，其余是小数比例）
+static func split_skill_mods(stats: Dictionary) -> Array:
+	var plain := {}
+	var skill_mods := {}
+	for k in stats:
+		var key := str(k)
+		if key.begins_with("skill:"):
+			var parts := key.split(":")
+			if parts.size() == 3:
+				var m: Dictionary = skill_mods.get(parts[1], {})
+				m[parts[2]] = float(m.get(parts[2], 0.0)) + float(stats[k])
+				skill_mods[parts[1]] = m
+		else:
+			plain[key] = stats[k]
+	return [plain, skill_mods]
