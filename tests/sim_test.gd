@@ -35,6 +35,7 @@ func _ready() -> void:
 		_dugu_test()
 		_sword_art_test()
 		_sword_talent_test()
+		_smith_test()
 		await _town_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
@@ -282,6 +283,55 @@ func _sword_talent_test() -> void:
 	_check(seen_f.has("铁指套") and not seen_f.has("青锋剑"), "拳掌武器名不变")
 
 
+func _smith_test() -> void:
+	print("\n=== 铁匠强化 / 银两 ===")
+	var ev: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://backend/test/enh_vectors.json"))
+	_check(ev is Dictionary, "能读到共用向量")
+	var cost: Array = (ev as Dictionary)["cost"]
+	for r in cost.size():
+		for lv in (cost[r] as Array).size():
+			_check(Gear.enhance_cost(r, lv) == int(cost[r][lv]), "强化费用 稀有度%d +%d：%d vs %d" % [r, lv, Gear.enhance_cost(r, lv), int(cost[r][lv])])
+	for row in (ev as Dictionary)["silver"]:
+		var got := Gear.run_silver(int(row[0]), bool(row[1]), float(row[2]))
+		_check(got == int(row[3]), "银两 %d %s ×%s：%d vs %d" % [int(row[0]), str(row[1]), str(row[2]), got, int(row[3])])
+	# 强化加成：+10 → 基础 / 副属性 ×1.8，特殊词条不变；名字带 +N
+	var base := Gear.make("weapon.3.4242", "fist")
+	var up := Gear.make("weapon.3.4242", "fist", 10)
+	for k in base["stats"]:
+		_check(absf(float(up["stats"][k]) - float(base["stats"][k]) * 1.8) < 1e-6, "强化 +10 属性 ×1.8：%s" % str(k))
+	_check((up["affixes"] as Array).size() == (base["affixes"] as Array).size() and str(up["name"]) == str(base["name"]) + " +10", "词条不变、名字带 +10")
+	_check(Gear.make("weapon.3.4242", "fist", 99)["enh"] == Gear.enhance_max(), "强化等级封顶")
+	# 单机存档：强化扣银两、不够不能强化、到顶、丢弃换银两
+	var old_path := Save.path
+	Save.path = "user://test_smith.json"
+	Save.load_data()
+	Save.set_gear(["weapon.0.1", "coat.4.2"], {})
+	Save.store_silver_enh(0, {})
+	var res := Save.enhance_local("weapon.0.1")
+	_check(not bool(res["ok"]) and Save.enh_level("weapon.0.1") == 0, "银两不够不能强化")
+	Save.store_silver_enh(100000, {})
+	var spent := 0
+	for lv in Gear.enhance_max():
+		res = Save.enhance_local("weapon.0.1")
+		_check(bool(res["ok"]) and int(res["level"]) == lv + 1 and int(res["cost"]) == Gear.enhance_cost(0, lv), "强化到 +%d" % (lv + 1))
+		spent += int(res["cost"])
+	_check(Save.silver() == 100000 - spent and Save.enh_level("weapon.0.1") == Gear.enhance_max(), "扣的银两 = 各级费用之和")
+	_check(not bool(Save.enhance_local("weapon.0.1")["ok"]), "到顶不能再强化")
+	_check(not bool(Save.enhance_local("weapon.4.999")["ok"]), "没有的装备不能强化")
+	var before := Save.silver()
+	Save.discard_local(["weapon.0.1"])
+	Save.set_gear(["coat.4.2"], {})
+	_check(Save.silver() == before + Gear.discard_silver(0) and Save.enh_level("weapon.0.1") == 0, "丢弃换银两并清除强化")
+	# 单机结算：得银两
+	var sm := {"won": true, "seconds": 800, "level": 30, "kills": 3000, "bosses": 4, "difficulty": {"count": 100, "hp": 100, "speed": 100}}
+	var s0 := Save.silver()
+	var r2 := Save.add_run_exp(sm)
+	_check(int(r2["silverGained"]) == Gear.run_silver(Score.compute(sm), true, 1.0) and Save.silver() == s0 + int(r2["silverGained"]), "单机结算得银两")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_smith.json"))
+	Save.path = old_path
+	Save.load_data()
+
+
 func _dugu_test() -> void:
 	print("\n=== 独孤九剑：式 / 叠加 / 阶段 / 真·独孤九剑 ===")
 	var w := _new_world(7, "dugu")
@@ -352,6 +402,32 @@ func _dugu_test() -> void:
 	_check(line[0].hp < line[0].max_hp and line[2].hp < line[2].max_hp, "穿透：一剑穿过三名敌人")
 	_check(off.hp < hp_off, "弹射：穿透耗尽后转向旁边的敌人（穿透 + 弹射同时生效）")
 	_free_world(w2)
+	# 弹射范围 = 整个画面：很远但在画面里的敌人会被弹到；画面外的不会
+	for far_x in [560.0, 300.0]:
+		var wf := _new_world(8, "dugu")
+		wf.time = 120.0
+		wf.shi = {"po_bian": 3}
+		var hits: Array[Enemy] = []
+		for i in 2:
+			var en := wf._spawn_enemy("bandit", wf.player_pos + Vector2(150.0 + 40.0 * i, 0))
+			en.uid = 9300 + i
+			hits.append(en)
+		var far := wf._spawn_enemy("bandit", wf.player_pos + Vector2(far_x, -250.0 if far_x > 400.0 else -480.0))
+		far.uid = 9400
+		for en2 in hits + [far]:
+			en2.hp = 1e6
+			en2.max_hp = 1e6
+			en2.speed = 0.0
+		wf._rebuild_grid()
+		wf.skills["dugu"].cd = 0.0
+		for i in 240:
+			wf._rebuild_grid()
+			wf.step(DT)
+		if far_x > 400.0:
+			_check(far.hp < far.max_hp, "弹射：画面里很远的敌人也能被弹到（距离 %d）" % int(Vector2(far_x - 190.0, 250.0).length()))
+		else:
+			_check(far.hp >= far.max_hp, "弹射：画面外的敌人不会被弹到")
+		_free_world(wf)
 
 	# ---- 万法皆破：命中令敌人露出破绽并蔓延 ----
 	var w3 := _new_world(9, "dugu")

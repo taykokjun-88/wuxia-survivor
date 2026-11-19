@@ -22,6 +22,8 @@ var alloc: Dictionary = {}   # 属性点分配
 var talents: Dictionary = {} # 天赋加点
 var items: Array = []        # 背包（装备编码，服务器发放）
 var equip: Dictionary = {}   # 已穿戴：部位 → 编码
+var silver := 0              # 银两（服务器为准）
+var enh: Dictionary = {}     # 强化等级：编码 → 级数
 ## 测试注入：func(is_get: bool, url: String, body: Dictionary) -> Dictionary
 var transport: Callable = Callable()
 
@@ -137,6 +139,8 @@ func _apply_profile(res: Dictionary) -> void:
 	talents = Talents.clean(res.get("talents", {}))
 	items = _codes(res.get("items", []))
 	equip = res.get("equip", {}) if res.get("equip", {}) is Dictionary else {}
+	silver = int(res.get("silver", 0))
+	enh = res.get("enh", {}) if res.get("enh", {}) is Dictionary else {}
 	Save.set_session(nick, token)
 	session_changed.emit()
 
@@ -161,6 +165,8 @@ func _clear_session() -> void:
 	talents = {}
 	items = []
 	equip = {}
+	silver = 0
+	enh = {}
 	Save.clear_session()
 	session_changed.emit()
 
@@ -215,6 +221,7 @@ func submit_run(summary: Dictionary) -> Dictionary:
 	if bool(res.get("ok", false)):
 		bests = res.get("bests", bests)
 		exp = int(res.get("exp", exp))
+		silver = int(res.get("silver", silver))
 	return res
 
 
@@ -255,6 +262,17 @@ func save_gear(p_equip: Dictionary, discard: Array) -> Dictionary:
 	if bool(res.get("ok", false)):
 		items = _codes(res.get("items", items))
 		equip = res.get("equip", p_equip)
+		silver = int(res.get("silver", silver))
+		enh = res.get("enh", enh) if res.get("enh", enh) is Dictionary else enh
+	return res
+
+
+## 铁匠强化一件装备（服务器扣银两、记录等级）
+func enhance(code: String) -> Dictionary:
+	var res := await call_api("enhance", {"code": code})
+	if bool(res.get("ok", false)):
+		silver = int(res.get("silver", silver))
+		enh = res.get("enh", enh) if res.get("enh", enh) is Dictionary else enh
 	return res
 
 

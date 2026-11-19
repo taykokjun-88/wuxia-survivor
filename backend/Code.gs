@@ -170,6 +170,7 @@ function dispatch(req) {
       case 'logout':    return logout(req);
       case 'submit':    return submitScore(req);
       case 'saveState': return saveState(req);
+      case 'enhance':   return enhanceGear(req);
       case 'feedback':  return addFeedback(req);
       case 'log':       return addLog(req);
     }
@@ -217,6 +218,7 @@ function profile(row) {
     nick: row[P.nick], school: String(row[P.school] || ''), state: state,
     exp: xp, level: metaLevel(xp), alloc: state.alloc || {},
     talents: state.talents || {}, items: state.items || [], equip: state.equip || {},
+    silver: Math.max(0, Math.floor(Number(state.silver) || 0)), enh: state.enh || {},
     invite: String(row[P.invite] || ''), group: groupName(row[P.invite]),
     bests: { score: Number(row[P.bestScore]) || 0, winSec: Number(row[P.bestWin]) || 0, level: Number(row[P.bestLevel]) || 0,
              runs: Number(row[P.runs]) || 0, wins: Number(row[P.wins]) || 0 }
@@ -328,7 +330,7 @@ function logout(req) {
 // BEGIN GENERATED (tools/sync_talents.py)
 var TALENT_GATE = 3;
 var TALENTS = {"gang_force":["gang",0,3],"gang_body":["gang",0,2],"gang_crit":["gang",1,3],"gang_armor":["gang",1,2],"gang_ying":["gang",2,3],"gang_dragon":["gang",2,2],"gang_cm":["gang",3,3],"gang_force2":["gang",3,2],"gang_emp":["gang",4,3],"gang_vajra":["gang",4,2],"gang_regen":["gang",5,2],"gang_ying2":["gang",5,3],"gang_peak":["gang",6,1],"gang_force3":["gang",6,4],"rou_regen":["rou",0,3],"rou_body":["rou",0,2],"rou_neili":["rou",1,3],"rou_med":["rou",1,2],"rou_med2":["rou",2,3],"rou_shield":["rou",2,2],"rou_block":["rou",3,3],"rou_petal":["rou",3,2],"rou_heal":["rou",4,3],"rou_finger":["rou",4,2],"rou_full":["rou",5,2],"rou_cut":["rou",5,3],"rou_peak":["rou",6,1],"rou_armor":["rou",6,4],"ling_step":["ling",0,3],"ling_luck":["ling",0,2],"ling_cd":["ling",1,3],"ling_qg":["ling",1,2],"ling_crit":["ling",2,3],"ling_palm":["ling",2,2],"ling_exp":["ling",3,3],"ling_dodge":["ling",3,2],"ling_cd2":["ling",4,3],"ling_waste":["ling",4,2],"ling_luck2":["ling",5,2],"ling_cm":["ling",5,3],"ling_peak":["ling",6,1],"ling_step2":["ling",6,4]};
-var GEAR = {"slots":["weapon","coat","pants","boots","charm"],"weights":[40,30,20,8,2],"invMax":40,"drops":1,"extra":0.5};
+var GEAR = {"slots":["weapon","coat","pants","boots","charm"],"weights":[40,30,20,8,2],"invMax":40,"drops":1,"extra":0.5,"enh":{"max":10,"bonus":0.08,"costBase":[10,20,40,80,160],"costExp":1.6},"silver":{"perScore":120,"cap":300,"winBonus":60,"comp":0.5,"discard":[3,8,20,50,120],"max":999999}};
 var DIFF = {"expMeta":0.5,"dropBonus":1.0,"raritySkew":0.5};
 // END GENERATED
 
@@ -400,6 +402,15 @@ function gearValid(code) {
   var p = String(code).split('.');
   return p.length === 3 && GEAR.slots.indexOf(p[0]) >= 0 && /^\d+$/.test(p[1]) && Number(p[1]) < GEAR.weights.length && /^\d{1,7}$/.test(p[2]);
 }
+/** 强化：第 lv → lv+1 级的银两（稀有度越高越贵；客户端 Gear.enhance_cost 里有同一份，测试用共用向量校验） */
+function enhCost(r, lv) { return Math.round(GEAR.enh.costBase[r] * Math.pow(lv + 1, GEAR.enh.costExp)); }
+/** 一局结算得到的银两（客户端 Meta.run_silver 是同一份公式） */
+function silverForRun(score, won, comp) {
+  var x = Math.min(GEAR.silver.cap, Math.round(score / GEAR.silver.perScore));
+  if (won) x += GEAR.silver.winBonus;
+  return Math.round(x * (1 + ((comp || 1) - 1) * GEAR.silver.comp));
+}
+function addSilver(state, n) { state.silver = Math.min(GEAR.silver.max, Math.max(0, Math.floor(Number(state.silver) || 0)) + Math.max(0, Math.floor(n))); }
 function gearWeight(i, comp) { return GEAR.weights[i] * (1 + ((comp || 1) - 1) * DIFF.raritySkew * i); }
 function gearRoll(comp) {
   var total = 0, i;
@@ -424,6 +435,7 @@ function gearDrops(state, comp) {
       if (r < wr) { wr = r; worst = j; }
     }
     if (worst < 0) break;
+    if (state.enh) delete state.enh[state.items[worst]];
     state.items.splice(worst, 1);
   }
   return codes;
@@ -488,11 +500,11 @@ function submitScore(req) {
     if (bw === 0 || run.seconds < bw) row[P.bestWin] = Math.round(run.seconds);
   }
   var drops = [];
-  if (run.won) {            // 大 Boss 被击败（通关）：掉落装备，写进服务器存档
-    var stt = readState(row);
-    drops = gearDrops(stt, comp);
-    row[P.state] = JSON.stringify(stt);
-  }
+  var stt = readState(row);
+  var silverGained = silverForRun(score, run.won, comp);
+  addSilver(stt, silverGained);
+  if (run.won) drops = gearDrops(stt, comp);          // 大 Boss 被击败（通关）：掉落装备，写进服务器存档
+  row[P.state] = JSON.stringify(stt);
   row[P.updated] = iso();
   row[P.lastSubmit] = iso();
   savePlayer(f);
@@ -503,7 +515,7 @@ function submitScore(req) {
     level: rankOf(row[P.nick], 'level')
   };
   var pr = profile(row);
-  return ok({ score: score, best: best, ranks: ranks, bests: pr.bests, gained: gained, exp: pr.exp, level: pr.level, levelUp: pr.level > oldLevel, drops: drops, comp: comp });
+  return ok({ score: score, best: best, ranks: ranks, bests: pr.bests, gained: gained, exp: pr.exp, level: pr.level, levelUp: pr.level > oldLevel, drops: drops, comp: comp, silverGained: silverGained, silver: pr.silver });
 }
 
 // ---------------------------------------------------------------- 排行榜
@@ -579,6 +591,8 @@ function saveState(req) {
     for (var i = 0; i < st.discard.length; i++) {
       var at = items.indexOf(String(st.discard[i]));
       if (at < 0) return fail('bad_state', '背包里没有这件装备');
+      addSilver(old, GEAR.silver.discard[Number(items[at].split('.')[1])] || 0);      // 丢弃（分解）换银两
+      if (old.enh) delete old.enh[items[at]];
       items.splice(at, 1);
     }
     old.items = items;
@@ -604,7 +618,28 @@ function saveState(req) {
   row[P.school] = school;
   row[P.updated] = iso();
   savePlayer(a.found);
-  return ok({ items: old.items || [], equip: equip });
+  return ok({ items: old.items || [], equip: equip, silver: Math.floor(Number(old.silver) || 0), enh: old.enh || {} });
+}
+
+/** 铁匠强化：消耗银两把背包里一件装备 +1（上限 GEAR.enh.max）；银两和强化等级都以服务器为准 */
+function enhanceGear(req) {
+  var a = authed(req);
+  if (a.err) return a.err;
+  var code = String(req.code || ''), row = a.found.row, st = readState(row);
+  var items = Array.isArray(st.items) ? st.items : [];
+  if (!gearValid(code) || items.indexOf(code) < 0) return fail('bad_state', '背包里没有这件装备');
+  st.enh = st.enh && typeof st.enh === 'object' ? st.enh : {};
+  var lv = Math.floor(Number(st.enh[code]) || 0);
+  if (lv >= GEAR.enh.max) return fail('enh_max', '已经强化到顶了');
+  var cost = enhCost(Number(code.split('.')[1]), lv);
+  var have = Math.floor(Number(st.silver) || 0);
+  if (have < cost) return fail('no_silver', '银两不够（需要 ' + cost + '，现有 ' + have + '）');
+  st.silver = have - cost;
+  st.enh[code] = lv + 1;
+  row[P.state] = JSON.stringify(st);
+  row[P.updated] = iso();
+  savePlayer(a.found);
+  return ok({ silver: st.silver, level: lv + 1, cost: cost, enh: st.enh });
 }
 
 function addFeedback(req) {

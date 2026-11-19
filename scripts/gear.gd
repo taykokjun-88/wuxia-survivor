@@ -77,7 +77,7 @@ static func roll_drops(rng: RandomNumberGenerator, comp: float = 1.0) -> Array:
 
 
 ## 展开：{code, slot, slot_name, rarity, rarity_name, color, name, stats{key: value}, affixes[{kind,id,dir,v,text}]}
-static func make(code: String, school_id: String = "fist") -> Dictionary:
+static func make(code: String, school_id: String = "fist", enh_level: int = 0) -> Dictionary:
 	var pc := parse(code)
 	if pc.is_empty():
 		return {}
@@ -106,10 +106,49 @@ static func make(code: String, school_id: String = "fist") -> Dictionary:
 	var names: Array = sd["names"]
 	if school_id == "sword" and sd.has("sword_names"):
 		names = sd["sword_names"]
+	# 铁匠强化：基础 + 副属性每级 +8%（特殊词条不变）
+	var lvl := clampi(enh_level, 0, enhance_max())
+	if lvl > 0:
+		for k in stats:
+			stats[k] = float(stats[k]) * level_mult(lvl)
 	return {
 		"code": code, "slot": pc["slot"], "slot_name": sd["name"], "rarity": pc["rarity"], "rarity_name": rd["name"],
-		"color": rd["color"], "name": names[int(pc["seed"]) % names.size()], "stats": stats, "affixes": affixes,
+		"color": rd["color"], "name": str(names[int(pc["seed"]) % names.size()]) + (" +%d" % lvl if lvl > 0 else ""),
+		"stats": stats, "affixes": affixes, "enh": lvl,
 	}
+
+
+# ---------------------------------------------------------------------
+# 铁匠强化 / 银两（后端 Code.gs 里有同一份公式，测试用共用向量校验）
+# ---------------------------------------------------------------------
+
+static func enhance_max() -> int:
+	return int(Data.gear["enhance"]["max"])
+
+
+static func level_mult(lvl: int) -> float:
+	return 1.0 + float(Data.gear["enhance"]["bonus"]) * lvl
+
+
+## 把装备从 lvl 级强化到 lvl+1 级需要的银两
+static func enhance_cost(rarity: int, lvl: int) -> int:
+	var base: Array = Data.gear["enhance"]["cost_base"]
+	return int(roundf(float(base[clampi(rarity, 0, base.size() - 1)]) * pow(float(lvl + 1), float(Data.gear["enhance"]["cost_exp"]))))
+
+
+## 一局结算得到的银两（阵亡也有；通关额外 +win_bonus；综合难度越高越多）
+static func run_silver(score: int, won: bool, comp: float) -> int:
+	var s: Dictionary = Data.gear["silver"]
+	var x := mini(int(s["cap"]), int(roundf(float(score) / float(s["per_score"]))))
+	if won:
+		x += int(s["win_bonus"])
+	return int(roundf(float(x) * (1.0 + (comp - 1.0) * float(s["comp"]))))
+
+
+## 丢弃（分解）一件装备换到的银两
+static func discard_silver(rarity: int) -> int:
+	var d: Array = Data.gear["silver"]["discard"]
+	return int(d[clampi(rarity, 0, d.size() - 1)])
 
 
 static func _roll_affix(rng: RandomNumberGenerator, school_id: String, mult: float, rarity: int, used: Dictionary) -> Dictionary:

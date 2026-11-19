@@ -6,6 +6,7 @@ const path = require('path');
 const { makeEnv } = require('./harness');
 
 const vectors = JSON.parse(fs.readFileSync(path.join(__dirname, 'score_vectors.json'), 'utf8'));
+const ev = JSON.parse(fs.readFileSync(path.join(__dirname, 'enh_vectors.json'), 'utf8'));
 const mv = JSON.parse(fs.readFileSync(path.join(__dirname, 'meta_vectors.json'), 'utf8'));
 const cases = [];
 const test = (name, fn) => cases.push({ name, fn });
@@ -342,6 +343,56 @@ test('难度奖励：修为倍率 / 装备数量与稀有度随综合难度提�
   const lo = stat(null), hi = stat(hard);
   assert.ok(hi.n > lo.n * 1.8, '难度 300%：掉落件数明显更多 ' + lo.n + ' → ' + hi.n);
   assert.ok(hi.rate > lo.rate * 1.3, '难度 300%：极品 / 传说占比更高 ' + lo.rate.toFixed(3) + ' → ' + hi.rate.toFixed(3));
+});
+
+function setState(e, nick, fn) { const f = e.ctx.findPlayer(nick); const st = JSON.parse(f.row[e.ctx.P.state] || '{}'); fn(st); f.row[e.ctx.P.state] = JSON.stringify(st); e.ctx.savePlayer(f); }
+
+test('银两 / 强化：费用与银两公式和客户端一致（共用向量）', (e) => {
+  ev.cost.forEach((row, r) => row.forEach((c, lv) => assert.strictEqual(e.ctx.enhCost(r, lv), c, `强化费用 稀有度${r} +${lv}`)));
+  ev.silver.forEach(([score, won, comp, want]) => assert.strictEqual(e.ctx.silverForRun(score, won, comp), want, `银两 ${score} ${won} ${comp}`));
+});
+
+test('银两：每局结算得银两（阵亡也有），难度越高越多；登录返回', (e) => {
+  const me = reg(e, '银两君');
+  const a = submit(e, me, RUN({ level: 12, kills: 800, seconds: 300 }));      // 2000 分 → 17
+  assert.strictEqual(a.silverGained, 17); assert.strictEqual(a.silver, 17);
+  const b = submit(e, me, Object.assign(RUN({ level: 12, kills: 800, seconds: 300 }), { difficulty: { count: 300, hp: 300, speed: 300 } }));
+  assert.strictEqual(b.silverGained, 34); assert.strictEqual(b.silver, 51);
+  const l = e.call({ action: 'login', nick: '银两君', pin: '4815' });
+  assert.strictEqual(l.silver, 51); assert.strictEqual(JSON.stringify(l.enh), '{}');
+  const w = submit(e, l, WIN());
+  assert.ok(w.silverGained >= 60, '通关有额外银两 ' + JSON.stringify(w));
+});
+
+test('强化：消耗银两、等级写入服务器、上限、校验；丢弃装备换银两并清除强化', (e) => {
+  const me = reg(e, '铁匠客');
+  const w = submit(e, me, WIN());
+  const code = w.drops[0], r = Number(code.split('.')[1]);
+  const E = (c) => e.call({ action: 'enhance', nick: '铁匠客', token: me.token, code: c });
+  assert.strictEqual(E('weapon.0.777777').err, 'bad_state', '没有的装备不能强化');
+  assert.strictEqual(E('乱写').err, 'bad_state');
+  setState(e, '铁匠客', (st) => { st.silver = 0; });
+  assert.strictEqual(E(code).err, 'no_silver', '银两不够');
+  setState(e, '铁匠客', (st) => { st.silver = 100000; });
+  let silver = 100000;
+  for (let lv = 0; lv < e.ctx.GEAR.enh.max; lv++) {
+    const x = E(code);
+    assert.ok(x.ok, JSON.stringify(x));
+    silver -= ev.cost[r][lv];
+    assert.strictEqual(x.cost, ev.cost[r][lv]); assert.strictEqual(x.silver, silver); assert.strictEqual(x.level, lv + 1);
+  }
+  assert.strictEqual(E(code).err, 'enh_max', '到顶了');
+  let l = e.call({ action: 'login', nick: '铁匠客', pin: '4815' });
+  assert.strictEqual(l.enh[code], 10); assert.strictEqual(l.silver, silver, '登录返回强化等级和银两');
+  // 客户端不能自己改 silver / enh
+  saveSt(e, l, { school: 'fist', silver: 999999, enh: { [code]: 0 } });
+  l = e.call({ action: 'login', nick: '铁匠客', pin: '4815' });
+  assert.strictEqual(l.silver, silver, '客户端不能改银两'); assert.strictEqual(l.enh[code], 10, '客户端不能改强化等级');
+  // 丢弃：换银两、清掉强化
+  const d = saveSt(e, l, { school: 'fist', discard: [code] });
+  assert.ok(d.ok);
+  assert.strictEqual(d.silver, silver + e.ctx.GEAR.silver.discard[r]);
+  assert.ok(!(code in d.enh), '丢弃后强化记录清除');
 });
 
 test('反馈：入表、类型兜底、限流', (e) => {

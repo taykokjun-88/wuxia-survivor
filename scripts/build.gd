@@ -7,7 +7,7 @@ static func equipped_items(equip: Dictionary, school_id: String) -> Array:
 	var out := []
 	for slot in Gear.slot_ids():
 		if equip.has(slot):
-			var it := Gear.make(str(equip[slot]), school_id)
+			var it := Gear.make(str(equip[slot]), school_id, Save.enh_level(str(equip[slot])))
 			if not it.is_empty():
 				out.append(it)
 	return out

@@ -5,7 +5,7 @@ extends Node
 const DEFAULT_PATH := "user://save.json"
 
 var path := DEFAULT_PATH
-var data: Dictionary = {"school": "", "session": {}, "meta": {"exp": 0, "alloc": {}, "won": false, "talents": {}, "items": [], "equip": {}}}
+var data: Dictionary = {"school": "", "session": {}, "meta": {"exp": 0, "alloc": {}, "won": false, "talents": {}, "items": [], "equip": {}, "silver": 0, "enh": {}}}
 
 
 func _ready() -> void:
@@ -13,7 +13,7 @@ func _ready() -> void:
 
 
 func load_data() -> void:
-	data = {"school": "", "session": {}, "meta": {"exp": 0, "alloc": {}, "won": false, "talents": {}, "items": [], "equip": {}}}
+	data = {"school": "", "session": {}, "meta": {"exp": 0, "alloc": {}, "won": false, "talents": {}, "items": [], "equip": {}, "silver": 0, "enh": {}}}
 	if not FileAccess.file_exists(path):
 		return
 	var f := FileAccess.open(path, FileAccess.READ)
@@ -121,9 +121,11 @@ func add_run_exp(summary: Dictionary) -> Dictionary:
 	m["exp"] = meta_exp() + gained
 	if bool(summary.get("won", false)):
 		m["won"] = true
+	var sg := Gear.run_silver(Score.compute(summary), bool(summary.get("won", false)), Meta.comp_of(summary.get("difficulty", {})))
+	m["silver"] = mini(int(Data.gear["silver"]["max"]), silver() + sg)
 	save_data()
 	var lv := Meta.level_of(meta_exp())
-	return {"gained": gained, "exp": meta_exp(), "level": lv, "levelUp": lv > old_level}
+	return {"gained": gained, "exp": meta_exp(), "level": lv, "levelUp": lv > old_level, "silverGained": sg, "silver": silver()}
 
 
 # ---------------------------------------------------------------------
@@ -189,3 +191,63 @@ func add_items(codes: Array) -> void:
 			break
 		inv.remove_at(worst)
 	set_gear(inv, eq)
+
+
+# ---------------------------------------------------------------------
+# 银两 / 强化（登录时以服务器为准，本地缓存 + 单机存档）
+# ---------------------------------------------------------------------
+
+func silver() -> int:
+	return maxi(0, int(_meta().get("silver", 0)))
+
+
+## 强化等级：编码 → 级数（只保留背包里有的装备）
+func enh() -> Dictionary:
+	var out := {}
+	var e: Variant = _meta().get("enh", {})
+	var inv := items()
+	if e is Dictionary:
+		for c in e:
+			if inv.has(str(c)) and int(e[c]) > 0:
+				out[str(c)] = clampi(int(e[c]), 0, Gear.enhance_max())
+	return out
+
+
+func enh_level(code: String) -> int:
+	return int(enh().get(code, 0))
+
+
+func store_silver_enh(p_silver: int, p_enh: Dictionary) -> void:
+	var m := _meta()
+	m["silver"] = maxi(0, p_silver)
+	m["enh"] = p_enh.duplicate()
+	save_data()
+
+
+## 单机：强化一件装备（扣银两）。返回 {ok, msg, silver, level, cost}
+func enhance_local(code: String) -> Dictionary:
+	var pc := Gear.parse(code)
+	if pc.is_empty() or not items().has(code):
+		return {"ok": false, "msg": "背包里没有这件装备"}
+	var lv := enh_level(code)
+	if lv >= Gear.enhance_max():
+		return {"ok": false, "msg": "已经强化到顶了"}
+	var cost := Gear.enhance_cost(int(pc["rarity"]), lv)
+	if silver() < cost:
+		return {"ok": false, "msg": "银两不够（需要 %d，现有 %d）" % [cost, silver()]}
+	var e := enh()
+	e[code] = lv + 1
+	store_silver_enh(silver() - cost, e)
+	return {"ok": true, "silver": silver(), "level": lv + 1, "cost": cost}
+
+
+## 单机：丢弃（分解）装备换银两，并清掉强化记录
+func discard_local(codes: Array) -> void:
+	var e := enh()
+	var gain := 0
+	for c in codes:
+		var pc := Gear.parse(str(c))
+		if not pc.is_empty():
+			gain += Gear.discard_silver(int(pc["rarity"]))
+		e.erase(str(c))
+	store_silver_enh(silver() + gain, e)

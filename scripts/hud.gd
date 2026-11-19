@@ -23,6 +23,7 @@ signal talents_open_requested
 signal talents_saved(talents: Dictionary)
 signal gear_open_requested
 signal gear_saved(equip: Dictionary, discard: Array)
+signal enhance_requested(code: String)
 
 var world: GameWorld
 var canvas: Control
@@ -78,6 +79,8 @@ var gear_equip: Dictionary = {}
 var gear_discard: Array = []
 var gear_drop_mode := false
 var gear_status: Label
+var smith_panel: Control
+var smith_status: Label
 var feedback_type: OptionButton
 var feedback_text: TextEdit
 var feedback_status: Label
@@ -1191,7 +1194,7 @@ func _gear_item_click(code: String) -> void:
 
 
 func _gear_button(code: String, w_min: int, h_min: int, compact: bool = false) -> Button:
-	var it := Gear.make(code, Save.school())
+	var it := Gear.make(code, Save.school(), Save.enh_level(code))
 	var bt := Button.new()
 	bt.custom_minimum_size = Vector2(w_min, h_min)
 	bt.focus_mode = Control.FOCUS_NONE
@@ -1219,7 +1222,7 @@ func _build_gear() -> void:
 	gear_panel = pb[0]
 	var box: VBoxContainer = pb[1]
 	box.add_theme_constant_override("separation", 8)
-	box.add_child(_label("装备", 36))
+	box.add_child(_label("装备　　银两 %d" % Save.silver(), 36))
 	box.add_child(_label("大 Boss（通关）掉落，只会是本流派的装备。★ 是特殊词条，强化某个招式或心法——没有对应招式 / 心法就用不上。", 15, Color("#cfc6ae")))
 	# 五个部位
 	var srow := _center_row(8)
@@ -1232,7 +1235,7 @@ func _build_gear() -> void:
 			bt.pressed.connect(func():
 				gear_equip.erase(slot)
 				_gear_refresh())
-			worn.append(Gear.make(str(gear_equip[slot]), Save.school()))
+			worn.append(Gear.make(str(gear_equip[slot]), Save.school(), Save.enh_level(str(gear_equip[slot]))))
 		else:
 			bt = _button("%s\n（空）" % sd["name"], Vector2(232, 74), 14)
 			bt.disabled = true
@@ -1284,6 +1287,89 @@ func _build_gear() -> void:
 	btns.add_child(save)
 	btns.add_child(cancel)
 	box.add_child(btns)
+
+
+# ---------------------------------------------------------------------
+# 铁匠铺：强化装备（消耗银两）
+# ---------------------------------------------------------------------
+
+func show_smith(msg: String = "") -> void:
+	if smith_panel:
+		smith_panel.queue_free()
+	var pb := _panel_box()
+	smith_panel = pb[0]
+	var box: VBoxContainer = pb[1]
+	box.add_theme_constant_override("separation", 8)
+	box.add_child(_label("铁匠铺 · 强化装备", 36))
+	box.add_child(_label("银两 %d　　每强化一级，装备的基础 / 副属性 +%d%%（特殊词条不变），最高 +%d。稀有度越高越贵。" % [
+		Save.silver(), int(round(float(Data.gear["enhance"]["bonus"]) * 100.0)), Gear.enhance_max()], 16, Color("#c9a227")))
+	var worn := Save.equip()
+	var inv: Array = Save.items()
+	inv.sort_custom(func(a, b):
+		var wa := 1 if worn.values().has(a) else 0
+		var wb := 1 if worn.values().has(b) else 0
+		if wa != wb:
+			return wa > wb
+		return int(Gear.parse(a)["rarity"]) > int(Gear.parse(b)["rarity"]))
+	var sc := ScrollContainer.new()
+	sc.custom_minimum_size = Vector2(1210, 380)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 6)
+	sc.add_child(grid)
+	box.add_child(sc)
+	if inv.is_empty():
+		grid.add_child(_label("背包里还没有装备。通关一次（击败大 Boss）就会掉落。", 16, Color("#8d8670")))
+	for c in inv:
+		var code := str(c)
+		var lv := Save.enh_level(code)
+		var it := Gear.make(code, Save.school(), lv)
+		var pc := Gear.parse(code)
+		var bt := Button.new()
+		bt.custom_minimum_size = Vector2(596, 66)
+		bt.focus_mode = Control.FOCUS_NONE
+		bt.add_theme_font_size_override("font_size", 13)
+		bt.clip_text = true
+		var head := "%s【%s】%s（%s）" % ["✔ " if worn.values().has(code) else "", it["rarity_name"], it["name"], it["slot_name"]]
+		var next := ""
+		if lv >= Gear.enhance_max():
+			next = "已强化到顶"
+			bt.disabled = true
+		else:
+			var cost := Gear.enhance_cost(int(pc["rarity"]), lv)
+			next = "强化到 +%d：%d 银两" % [lv + 1, cost]
+			if Save.silver() < cost:
+				next += "（银两不够）"
+				bt.disabled = true
+		bt.text = "%s\n%s\n%s" % [head, Gear.describe(it), next]
+		var col := Color(str(it["color"]))
+		bt.add_theme_color_override("font_color", col)
+		bt.add_theme_color_override("font_hover_color", col)
+		bt.add_theme_color_override("font_disabled_color", col.darkened(0.25))
+		bt.pressed.connect(func(): enhance_requested.emit(code))
+		grid.add_child(bt)
+	smith_status = _label(msg, 16, Color("#9ad0a0"))
+	smith_status.custom_minimum_size = Vector2(0, 22)
+	box.add_child(smith_status)
+	var back := _button("返回  [Esc]", Vector2(180, 44), 18)
+	back.pressed.connect(func(): modal_closed.emit())
+	var brow := _center_row()
+	brow.add_child(back)
+	box.add_child(brow)
+	smith_panel.visible = true
+
+
+func set_smith_status(msg: String, is_error: bool) -> void:
+	if smith_status:
+		smith_status.text = msg
+		smith_status.add_theme_color_override("font_color", Color("#f08070") if is_error else Color("#9ad0a0"))
+
+
+func hide_smith() -> void:
+	if smith_panel:
+		smith_panel.visible = false
 
 
 # ---------------------------------------------------------------------
@@ -1455,7 +1541,7 @@ func show_town_hud(on: bool) -> void:
 		town_layer.add_child(who)
 	var w := town_layer.get_node("Who") as Label
 	var lv := int(Meta.progress(Save.meta_exp())["level"])
-	var line := "局外 Lv%d" % lv
+	var line := "银两 %d　局外 Lv%d" % [Save.silver(), lv]
 	if Net.logged_in():
 		line = "玩家：%s　" % Net.nick + (("群：%s　" % Net.group_name) if Net.group_name != "" else "") + line
 	w.text = line

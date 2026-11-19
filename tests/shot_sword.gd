@@ -38,6 +38,18 @@ func _ready() -> void:
 	main.town.queue_redraw()
 	await _frames(3)
 	_snap("t4_town_south")
+	Save.set_gear(["weapon.4.4242", "coat.3.77", "charm.2.9", "boots.1.5", "pants.0.12", "weapon.2.31"], {"weapon": "weapon.4.4242", "coat": "coat.3.77"})
+	Save.store_silver_enh(1200, {"weapon.4.4242": 3, "coat.3.77": 10})
+	main.state = main.State.TOWN
+	main._open_smith()
+	await _frames(3)
+	_snap("m1_smith")
+	main._on_enhance("weapon.4.4242")
+	await _frames(3)
+	_snap("m2_smith_after")
+	main._close_modal()
+	Save.set_gear([], {})
+	Save.store_silver_enh(0, {})
 	main.state = main.State.LOADOUT
 	main.hud.show_loadout("sword", "black_wind")
 	await _frames(3)

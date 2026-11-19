@@ -52,6 +52,7 @@ func _ready() -> void:
 	hud.talents_saved.connect(_on_talents_saved)
 	hud.gear_open_requested.connect(_open_gear)
 	hud.gear_saved.connect(_on_gear_saved)
+	hud.enhance_requested.connect(_on_enhance)
 	world.player_died.connect(_on_end.bind(false))
 	world.victory.connect(_on_end.bind(true))
 	_show_game(false)
@@ -197,6 +198,7 @@ func _after_login() -> void:
 	Save.store_meta(Net.exp, Net.alloc)        # 修为 / 属性点 / 天赋 / 装备以服务器为准
 	Save.set_meta_talents(Net.talents)
 	Save.set_gear(Net.items, Net.equip)
+	Save.store_silver_enh(Net.silver, Net.enh)
 	if Net.school != "":
 		Save.create_character(Net.school)
 	elif Save.has_character():
@@ -372,6 +374,7 @@ func _on_end(won: bool) -> void:
 		Save.store_meta(Net.exp, Save.meta_alloc())
 		if won and res.get("drops", []) is Array:
 			Save.add_items(res["drops"])
+		Save.store_silver_enh(int(res.get("silver", Net.silver)), Save.enh())
 		var ranks: Dictionary = res.get("ranks", {})
 		var line := "已上榜：总分榜第 %d 名" % int(ranks.get("score", 0))
 		if bool(res.get("best", false)):
@@ -382,7 +385,7 @@ func _on_end(won: bool) -> void:
 
 
 func _exp_line(r: Dictionary) -> String:
-	var line := "修为 +%d　局外 Lv%d" % [int(r.get("gained", 0)), int(r.get("level", 1))]
+	var line := "修为 +%d　银两 +%d　局外 Lv%d" % [int(r.get("gained", 0)), int(r.get("silverGained", 0)), int(r.get("level", 1))]
 	if bool(r.get("levelUp", false)):
 		line += "　升级了！获得 3 个属性点、1 个天赋点"
 	var drops: Variant = r.get("drops", [])
@@ -446,8 +449,9 @@ func _talk(npc: Dictionary) -> void:
 		"clerk":
 			opts = [{"label": "出发历练（选择地图）", "action": "depart"}, {"label": "再逛逛", "action": "close"}]
 		"smith":
-			opts = [{"label": "整备装备（穿戴 / 丢弃）", "action": "gear"},
-				{"label": "强化装备（需要银两，下个版本开放）", "action": "close", "enabled": false}, {"label": "告辞", "action": "close"}]
+			greet += "\n\n你有银两 %d。每局结算都会得到银两，丢弃（分解）装备也能换银两。" % Save.silver()
+			opts = [{"label": "强化装备（消耗银两，最高 +%d）" % Gear.enhance_max(), "action": "enhance"},
+				{"label": "整备装备（穿戴 / 丢弃）", "action": "gear"}, {"label": "告辞", "action": "close"}]
 		"herbalist":
 			opts = [{"label": "告辞", "action": "close"}]
 		"master":
@@ -508,11 +512,12 @@ func _on_dialog_option(i: int) -> void:
 			hud.hide_dialog()
 			state = State.TOWN
 			_on_recreate()
-		"gear", "meta", "board", "feedback", "guide", "logout":
+		"gear", "enhance", "meta", "board", "feedback", "guide", "logout":
 			hud.hide_dialog()
 			state = State.TOWN
 			match act:
 				"gear": _open_gear()
+				"enhance": _open_smith()
 				"meta": _open_meta()
 				"board": _open_board()
 				"feedback": _open_feedback()
@@ -569,6 +574,33 @@ func _open_gear() -> void:
 	hud.show_gear()
 
 
+func _open_smith() -> void:
+	if state != State.TOWN:
+		return
+	_open_modal()
+	hud.show_smith()
+
+
+## 铁匠强化：联网时由服务器扣银两、记录等级；单机直接改本地存档
+func _on_enhance(code: String) -> void:
+	if state != State.MODAL:
+		return
+	hud.set_smith_status("锻打中…", false)
+	var res: Dictionary
+	if Net.logged_in():
+		res = await Net.enhance(code)
+		if bool(res.get("ok", false)):
+			Save.store_silver_enh(Net.silver, Net.enh)
+	else:
+		res = Save.enhance_local(code)
+	if state != State.MODAL:
+		return
+	if bool(res.get("ok", false)):
+		hud.show_smith("强化成功！+%d（花费 %d 银两）" % [int(res["level"]), int(res["cost"])])
+	else:
+		hud.set_smith_status(str(res.get("msg", "强化失败，请稍后再试")), true)
+
+
 func _on_gear_saved(equip: Dictionary, discard: Array) -> void:
 	if state != State.MODAL:
 		return
@@ -579,8 +611,10 @@ func _on_gear_saved(equip: Dictionary, discard: Array) -> void:
 			hud.set_gear_status(str(res.get("msg", "保存失败，请稍后再试")), true)
 			return
 		Save.set_gear(Net.items, Net.equip)
+		Save.store_silver_enh(Net.silver, Net.enh)
 	else:
 		var inv := Save.items()
+		Save.discard_local(discard)
 		for c in discard:
 			inv.erase(c)
 		Save.set_gear(inv, equip)
@@ -614,6 +648,7 @@ func _close_modal() -> void:
 	hud.hide_meta()
 	hud.hide_talents()
 	hud.hide_gear()
+	hud.hide_smith()
 	hud.hide_guide()
 	state = modal_return
 	if modal_return == State.LOADOUT:

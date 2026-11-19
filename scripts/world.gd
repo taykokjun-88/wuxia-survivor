@@ -330,7 +330,7 @@ func _burn_tick(dt: float) -> void:
 		if e.alive and e.stun > 0.0:
 			damage_enemy(e, dmg * (0.3 if e.is_boss else 1.0), Vector2.ZERO)
 			if effects.size() < MAX_EFFECTS and e.weak_fx <= 0.0:
-				add_fx("text", e.pos + Vector2(0, -e.radius - 6), 0.4, {"text": "灼", "size": 14, "color": VERMILION})
+				add_fx("text", e.pos + Vector2(0, -e.radius - 6), 0.6, {"text": "灼", "size": 20, "color": VERMILION})
 
 
 ## 选心法卡片上的提示：和已学心法搭配会出现什么
@@ -817,7 +817,7 @@ func _update_enemies(dt: float) -> void:
 				e.flash = 0.05
 				skill_dmg["jinshe"] = float(skill_dmg.get("jinshe", 0.0)) + pd
 				if effects.size() < MAX_EFFECTS / 2:
-					add_fx("text", e.pos + Vector2(rng.randf_range(-8, 8), -e.radius), 0.45, {"text": str(int(pd)), "size": 13, "color": Color("#5a8a2a")})
+					add_fx("text", e.pos + Vector2(rng.randf_range(-8, 8), -e.radius), 0.7, {"text": str(int(pd)), "size": 17, "color": Color("#9be05a")})
 				if e.hp <= 0.0:
 					_kill(e)
 					continue
@@ -978,8 +978,8 @@ func damage_enemy(e: Enemy, amount: float, knock_vec: Vector2, crit: bool = fals
 		add_fx("hit", e.pos, 0.2, {"vfx": hid, "size": (46.0 if crit else 34.0) + e.radius, "angle": knock_vec.angle() if knock_vec != Vector2.ZERO else rng.randf() * TAU})
 	if effects.size() < MAX_EFFECTS:
 		var big := crit
-		add_fx("text", e.pos + Vector2(rng.randf_range(-8, 8), -e.radius), 0.55 if big else 0.45,
-			{"text": str(int(amount)), "size": 20 if big else 14, "color": GOLD if big else INK})
+		add_fx("text", e.pos + Vector2(rng.randf_range(-8, 8), -e.radius), 0.9 if big else 0.7,
+			{"text": str(int(amount)), "size": 28 if big else 19, "color": Color("#ffd24a") if big else Color("#fff4d6")})
 	if e.hp <= 0.0:
 		_kill(e)
 
@@ -1084,7 +1084,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 		weak_hit = true
 	if weak_hit and e.weak_fx <= 0.0 and effects.size() < MAX_EFFECTS:
 		e.weak_fx = 0.8
-		add_fx("text", e.pos + Vector2(0, -e.radius - 14), 0.6, {"text": "破绽", "size": 16, "color": JADE})
+		add_fx("text", e.pos + Vector2(0, -e.radius - 14), 0.85, {"text": "破绽", "size": 22, "color": JADE})
 	var crit := force_crit or rng.randf() < crit_p
 	if crit:
 		m *= st("crit_mult")
@@ -1211,6 +1211,20 @@ func fx_slash(at: Vector2, angle: float, reach: float, arc: float, heavy: bool) 
 # 弹体 / 区域
 # =====================================================================
 
+## 破鞭式弹射：整个画面（不是整张地图）里离 pos 最近的敌人
+func _nearest_on_screen(pos: Vector2, exclude: Dictionary) -> Enemy:
+	var best: Enemy = null
+	var bd := INF
+	for e in enemies:
+		if not e.alive or exclude.has(e.uid) or not _vis(e.pos, 0.0):
+			continue
+		var d2 := pos.distance_squared_to(e.pos)
+		if d2 < bd:
+			bd = d2
+			best = e
+	return best
+
+
 func _nearest_from(pos: Vector2, max_dist: float, exclude: Dictionary) -> Enemy:
 	var best: Enemy = null
 	var bd := max_dist * max_dist
@@ -1280,14 +1294,14 @@ func _update_projectiles(dt: float) -> void:
 							p.split = 0
 						p.pierce -= 1
 						if p.pierce <= 0 and p.bounce > 0:
-							var nt := _nearest_from(p.pos, 300.0, p.hit)
+							var nt := _nearest_on_screen(p.pos, p.hit)
 							if nt != null:
 								p.bounce -= 1
 								p.pierce = p.pierce_reset
 								p.damage *= p.bounce_dmg
 								p.vel = (nt.pos - p.pos).normalized() * p.speed
 								p.angle = p.vel.angle()
-								p.life = maxf(p.life, 0.5)
+								p.life = maxf(p.life, p.pos.distance_to(nt.pos) / maxf(p.speed, 1.0) + 0.4)
 								add_fx("ring", p.pos, 0.2, {"r0": 4.0, "r1": 26.0, "color": Color("#8ab4d8")})
 								break
 							p.bounce = 0
@@ -2033,9 +2047,18 @@ func _draw_effects() -> void:
 			continue
 		match str(fx["kind"]):
 			"text":
+				# 飘字：游戏字体 + 深色描边（深色地面上也看得清）；出现时先「弹」一下变大，大半寿命保持不透明再淡出
 				var col: Color = fx["color"]
-				draw_string(font, at - Vector2(60, 0), str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, 120.0,
-					int(fx["size"]), Color(col, a))
+				if col.get_luminance() < 0.45:
+					col = col.lightened(0.4)
+				var tfont: Font = Data.font_bold if Data.font_bold != null else font
+				var pop := 1.0 + 0.35 * maxf(0.0, 1.0 - t / 0.12)
+				var fs := int(float(fx["size"]) * pop)
+				var ta := clampf(a * 2.2, 0.0, 1.0)
+				var tw := 200.0
+				var tp := at - Vector2(tw * 0.5, 0)
+				draw_string_outline(tfont, tp, str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, tw, fs, maxi(4, fs / 4), Color(0.05, 0.03, 0.02, ta))
+				draw_string(tfont, tp, str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, tw, fs, Color(col, ta))
 			"ring":
 				var r := lerpf(float(fx["r0"]), float(fx["r1"]), t / life)
 				var col2: Color = fx["color"]
@@ -2063,7 +2086,7 @@ func apply_vuln(e: Enemy, v: float, spread: bool = false) -> void:
 	var t := Data.T("dugu_vuln_t")
 	if e.vuln_t <= 0.0 and e.weak_fx <= 0.0 and effects.size() < MAX_EFFECTS:
 		e.weak_fx = 0.8
-		add_fx("text", e.pos + Vector2(0, -e.radius - 14), 0.6, {"text": "破绽", "size": 16, "color": JADE})
+		add_fx("text", e.pos + Vector2(0, -e.radius - 14), 0.85, {"text": "破绽", "size": 22, "color": JADE})
 	e.vuln = maxf(e.vuln if e.vuln_t > 0.0 else 0.0, v)
 	e.vuln_t = t
 	if spread:

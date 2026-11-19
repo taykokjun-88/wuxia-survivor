@@ -391,7 +391,7 @@ class Dugu extends SkillBase:
 			var seen := {first.uid: true}
 			var src := first.pos
 			for i in ceili(L("po_bian") / 3.0):
-				var nb := w._nearest_from(src, 300.0, seen)
+				var nb := w._nearest_on_screen(src, seen)
 				if nb == null:
 					break
 				seen[nb.uid] = true
