@@ -71,6 +71,9 @@ func _ready() -> void:
 		enabled = false
 		return
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	var ui: Variant = Save.data.get("ui", {})
+	if ui is Dictionary and bool((ui as Dictionary).get("sfx_off", false)):
+		enabled = false
 	_setup_bus()
 	for i in POOL_SIZE:
 		var p := AudioStreamPlayer.new()
@@ -79,6 +82,19 @@ func _ready() -> void:
 		_players.append(p)
 		_playing_id.append("")
 	_build_all_streams()
+
+
+## 音效开关（暂停菜单里切换，记在本地存档的 ui 里）
+func set_enabled(on: bool) -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	enabled = on
+	var ui: Variant = Save.data.get("ui", {})
+	if not ui is Dictionary:
+		ui = {}
+	(ui as Dictionary)["sfx_off"] = not on
+	Save.data["ui"] = ui
+	Save.save_data()
 
 
 func _sfx_bus_name() -> String:

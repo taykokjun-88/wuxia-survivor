@@ -211,6 +211,12 @@ class Dugu extends SkillBase:
 	var combo_t := 0.0
 	var combo_idx := 0
 	var combo_total := 0
+	var sb_left := 0                 # 剑破天下：剩余闪现次数
+	var sb_t := 0.0
+	var sb_idx := 0
+	var sb_mult := 1.0
+	var sb_strikes := 0              # 统计：累计闪现次数（测试用）
+	var sb_seen: Dictionary = {}
 	var _base_dmg := -1.0
 	var _base_crit := 0.0
 	var _base_debuff := 0.0
@@ -246,21 +252,25 @@ class Dugu extends SkillBase:
 				if t != null:
 					w.spawn_proj(self, (t.pos - w.player_pos).angle(), _opts(0.6, true))
 		if w.dugu_true():
-			if combo_left > 0:
+			if sb_left > 0:                     # 剑破天下：九连闪现，每一次是一个「式」
+				w.invuln = maxf(w.invuln, 0.25)
+				sb_t -= dt
+				if sb_t <= 0.0:
+					_sb_step()
+				return
+			if combo_left > 0:                  # 连击：近身范围斩连续出手
 				combo_t -= dt
 				if combo_t <= 0.0:
 					combo_left -= 1
 					combo_idx += 1
-					combo_t = 0.07
-					_strike()
+					combo_t = 0.09
+					_pulse(_shi_label(), 1.0)
 				return
 			cd -= dt
 			if cd <= 0.0:
 				if _begin_true():
 					cd = Data.T("dugu_true_cd") * w.cd_mult()
 					cd_total = cd
-					if def.has("anim"):
-						w.play_anim(str(def["anim"]), 0.2)
 				else:
 					cd = 0.1
 					cd_total = 0.0
@@ -308,9 +318,101 @@ class Dugu extends SkillBase:
 
 	# ---------------- 真·独孤九剑 ----------------
 
-	func _begin_true() -> bool:
-		var t := w.nearest_enemy(flash_range())
+	func pulse_radius() -> float:
+		return (Data.T("dugu_pulse_radius") + 6.0 * L("po_dao")) * (1.0 + float(mods["range"]))
+
+	## 觉醒 / 真气爆发时触发：「真·独孤九剑·剑破天下」——连续闪现九次，每一次是一个「式」
+	func start_sword_break(delay: float = 0.0, mult: float = 1.0) -> void:
+		sb_left = 9
+		sb_idx = 0
+		sb_t = delay
+		sb_mult = mult
+		sb_seen.clear()
+		combo_left = 0
+		w.sword_break_count += 1
+		w.invuln = maxf(w.invuln, delay + 1.4)
+		w.add_fx("text", w.player_pos + Vector2(0, -96), 1.6, {"text": "真·独孤九剑 · 剑破天下", "size": 30, "color": GameWorld.VERMILION})
+		w.shake = maxf(w.shake, 6.0)
+
+	func _sb_step() -> void:
+		var t := w._nearest_on_screen(w.player_pos, sb_seen)
 		if t == null:
+			sb_seen.clear()                     # 九个都打过了一轮（敌人少）：再从头找
+			t = w._nearest_on_screen(w.player_pos, {})
+		if t == null:
+			sb_left = 0                         # 画面里没有敌人了
+			return
+		sb_seen[t.uid] = true
+		_flash_strike(t, TRUE_NAMES[sb_idx], 1.6 * sb_mult)
+		sb_idx += 1
+		sb_left -= 1
+		sb_strikes += 1
+		sb_t = Data.T("dugu_sb_gap")
+		if sb_left == 0:
+			w.play_anim("finish", 0.45)
+
+	## 一次闪现刺击：闪到敌人身旁，必破绽、必暴击，各式同时生效
+	func _flash_strike(t: Enemy, label: String, mult: float) -> void:
+		var dir := (t.pos - w.player_pos).normalized()
+		var from := w.player_pos
+		w.player_pos = t.pos - dir * (t.radius + 26.0)
+		w.facing = dir
+		var dist := from.distance_to(w.player_pos)
+		if w.vfx.has("flash_streak"):
+			w.add_fx("trail", (from + w.player_pos) * 0.5, 0.25, {"vfx": "flash_streak", "size": maxf(90.0, dist * 1.25), "angle": dir.angle()})
+			w.add_fx("trail", from, 0.4, {"vfx": "afterimage", "size": 110.0, "tint": Color(1, 1, 1, 0.75)})
+		else:
+			w.add_fx("ring", from, 0.3, {"r0": 30.0, "r1": 4.0, "color": SwordSkills.SWORD_BLUE})
+			for i in 5:
+				w.add_fx("trail", from.lerp(w.player_pos, i / 5.0), 0.3)
+		w.play_anim("true_thrust", 0.2)
+		Sfx.play_skill("dugu", 1 + sb_idx)
+		var a := dir.angle()
+		var reach := 96.0 * (1.0 + 0.04 * L("po_qiang"))
+		w.fx_slash(w.player_pos, a, reach, 1.0, true)
+		var dmg := p("damage") * 2.4 * Data.T("dugu_true_mult") * mult
+		var vuln := Data.T("dugu_vuln3") * vuln_scale()
+		var first: Enemy = null
+		for e in w._query(w.player_pos, reach + 40.0):
+			if not e.alive:
+				continue
+			var to := e.pos - w.player_pos
+			if to.length() >= reach + e.radius:
+				continue
+			if to.length() > 20.0 and absf(wrapf(to.angle() - a, -PI, PI)) > 0.65:
+				continue
+			w.apply_vuln(e, vuln, false)
+			w.hit_enemy(e, dmg, tags(), to.normalized() * 220.0, id, true)
+			if L("po_suo") > 0 and w.rng.randf() < (0.08 + 0.02 * L("po_suo")) * vuln_scale():
+				w.stun_enemy(e, 0.8)
+			if first == null:
+				first = e
+		if first == null:
+			first = t
+		w.add_fx("text", first.pos + Vector2(0, -first.radius - 34), 0.9, {"text": label, "size": 26, "color": GameWorld.VERMILION})
+		_chain_effects(first, dmg, vuln)
+
+	## 破鞭式（剑势转向画面里另一名敌人）和破掌式（落点爆开），闪现与范围斩共用
+	func _chain_effects(first: Enemy, dmg: float, vuln: float) -> void:
+		if L("po_bian") > 0:
+			var seen := {first.uid: true}
+			var src := first.pos
+			for i in ceili(L("po_bian") / 3.0):
+				var nb := w._nearest_on_screen(src, seen)
+				if nb == null:
+					break
+				seen[nb.uid] = true
+				w.apply_vuln(nb, vuln, false)
+				w.hit_enemy(nb, dmg * (0.4 + 0.03 * L("po_bian")), tags(), Vector2.ZERO, id, true)
+				w.add_fx("ring", nb.pos, 0.2, {"r0": 4.0, "r1": 28.0, "color": SwordSkills.SWORD_BLUE})
+				src = nb.pos
+		if L("po_zhang") > 0:
+			var sr := 50.0 + 4.0 * L("po_zhang")
+			w.area_hit_raw(first.pos, sr, dmg * (0.35 + 0.03 * L("po_zhang")), tags(), id, 80.0, 0.0, false, true)
+
+	## 平时的真·独孤九剑：近身范围群攻（一圈剑气斩）。必破绽、必暴击；攻速快、有几率 2 / 4 / 9 连击
+	func _begin_true() -> bool:
+		if not w.any_enemy_within(w.player_pos, pulse_radius() + 20.0):
 			return false
 		var r := w.rng.randf()
 		var c9 := Data.T("dugu_combo9")
@@ -326,9 +428,9 @@ class Dugu extends SkillBase:
 			combo_total = 1
 		combo_idx = 0
 		combo_left = combo_total - 1
-		combo_t = 0.07
+		combo_t = 0.09
 		w.dugu_combo_log.append(combo_total)
-		_strike()
+		_pulse(_shi_label(), 1.0)
 		return true
 
 	func _shi_label() -> String:
@@ -340,68 +442,25 @@ class Dugu extends SkillBase:
 		var pick := str(learned[w.rng.randi() % learned.size()])
 		return w.shi_name(pick) if pick != "zong" else "总诀式"
 
-	## 一次闪现刺击：闪到最近的敌人身旁，必破绽、必暴击，各式同时生效
-	func _strike() -> void:
-		var t := w.nearest_enemy(flash_range())
-		if t == null:
-			combo_left = 0
-			return
-		var dir := (t.pos - w.player_pos).normalized()
-		var from := w.player_pos
-		w.player_pos = t.pos - dir * (t.radius + 26.0)
-		w.facing = dir
-		w.invuln = maxf(w.invuln, 0.25)
-		var dist := from.distance_to(w.player_pos)
-		if w.vfx.has("flash_streak"):
-			w.add_fx("trail", (from + w.player_pos) * 0.5, 0.25, {"vfx": "flash_streak", "size": maxf(90.0, dist * 1.25), "angle": dir.angle()})
-			w.add_fx("trail", from, 0.4, {"vfx": "afterimage", "size": 110.0, "tint": Color(1, 1, 1, 0.75)})
-		else:
-			w.add_fx("ring", from, 0.3, {"r0": 30.0, "r1": 4.0, "color": SwordSkills.SWORD_BLUE})
-			for i in 5:
-				w.add_fx("trail", from.lerp(w.player_pos, i / 5.0), 0.3)
-		w.play_anim("true_thrust", 0.2)
-		var a := dir.angle()
-		var reach := 96.0 * (1.0 + 0.04 * L("po_qiang"))
-		w.fx_slash(w.player_pos, a, reach, 1.0, true)
-		var dmg := p("damage") * 2.4 * Data.T("dugu_true_mult")
-		var hits := 0
+	func _pulse(label: String, mult: float) -> void:
+		var R := pulse_radius()
+		var dmg := p("damage") * 1.7 * Data.T("dugu_true_mult") * mult
 		var vuln := Data.T("dugu_vuln3") * vuln_scale()
+		w.play_anim("true_thrust", 0.2)
+		Sfx.play_skill("dugu", 1 + combo_idx)
+		w.add_fx("ring", w.player_pos, 0.3, {"r0": 20.0, "r1": R, "color": SwordSkills.SWORD_BLUE, "vfx": "burst_wind"})
+		w.fx_slash(w.player_pos, w.facing.angle(), R * 0.8, TAU * 0.9, true)
 		var first: Enemy = null
-		for e in w._query(w.player_pos, reach + 40.0):
-			if not e.alive:
-				continue
-			var to := e.pos - w.player_pos
-			if to.length() >= reach + e.radius:
-				continue
-			if to.length() > 20.0 and absf(wrapf(to.angle() - a, -PI, PI)) > 0.65:
+		for e in w._query(w.player_pos, R + 30.0):
+			if not e.alive or e.pos.distance_to(w.player_pos) >= R + e.radius:
 				continue
 			w.apply_vuln(e, vuln, false)
-			var tgt := e
-			w.hit_enemy(tgt, dmg, tags(), to.normalized() * 220.0, id, true)
+			var to := e.pos - w.player_pos
+			w.hit_enemy(e, dmg, tags(), (to.normalized() if to.length() > 0.01 else Vector2.RIGHT) * 260.0, id, true)
 			if L("po_suo") > 0 and w.rng.randf() < (0.08 + 0.02 * L("po_suo")) * vuln_scale():
-				w.stun_enemy(tgt, 0.8)
-			if first == null:
-				first = tgt
-			hits += 1
-		if first == null:
-			first = t
-		w.add_fx("text", first.pos + Vector2(0, -first.radius - 34), 0.9, {"text": _shi_label(), "size": 26, "color": GameWorld.VERMILION})
-		# 破鞭式：剑势转向另一名敌人
-		if L("po_bian") > 0:
-			var seen := {first.uid: true}
-			var src := first.pos
-			for i in ceili(L("po_bian") / 3.0):
-				var nb := w._nearest_on_screen(src, seen)
-				if nb == null:
-					break
-				seen[nb.uid] = true
-				w.apply_vuln(nb, vuln, false)
-				w.hit_enemy(nb, dmg * (0.4 + 0.03 * L("po_bian")), tags(), Vector2.ZERO, id, true)
-				w.add_fx("ring", nb.pos, 0.2, {"r0": 4.0, "r1": 28.0, "color": SwordSkills.SWORD_BLUE})
-				src = nb.pos
-		# 破掌式：落点爆开
-		if L("po_zhang") > 0:
-			var sr := 50.0 + 4.0 * L("po_zhang")
-			w.area_hit_raw(first.pos, sr, dmg * (0.35 + 0.03 * L("po_zhang")), tags(), id, 80.0, 0.0, false, true)
-		if combo_total == 9 and combo_left == 0:      # 九连击打完：收势
-			w.play_anim("finish", 0.45)
+				w.stun_enemy(e, 0.8)
+			if first == null or to.length() < (first.pos - w.player_pos).length():
+				first = e
+		if first != null:
+			w.add_fx("text", first.pos + Vector2(0, -first.radius - 34), 0.9, {"text": label, "size": 26, "color": GameWorld.VERMILION})
+			_chain_effects(first, dmg, vuln)

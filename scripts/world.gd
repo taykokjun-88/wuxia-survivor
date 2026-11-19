@@ -47,6 +47,7 @@ var reward_comp := 1.0              # 综合难度（1.0 ~ 3.0），决定经验
 var difficulty := {"count": 1.0, "hp": 1.0, "speed": 1.0}   # 开局前选择的难度倍率（1.0 ~ 3.0）
 var map_id := "black_wind"       # 当前地图（见 data 的 maps）
 var shi: Dictionary = {}            # 独孤九剑：已领悟的「式」→ 层数（最多 4 种）
+var sword_break_count := 0           # 统计：「剑破天下」触发次数（测试用）
 var dugu_combo_log: Array = []     # 统计：真·独孤九剑的连击段数（测试用）
 var school_id := "fist"           # 创建角色时选定，决定可学的招式池
 var qinggong_id := "tashue"
@@ -159,6 +160,7 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	starter_id = p_starter
 	shi.clear()
 	dugu_combo_log.clear()
+	sword_break_count = 0
 	qinggong_id = p_qinggong
 	qg = Data.qinggong[qinggong_id]
 	skills.clear()
@@ -498,6 +500,7 @@ func _update_player(dt: float) -> void:
 
 
 func _start_dash(move: Vector2, max_charges: int) -> void:
+	Sfx.play("dash_qg")
 	dash_count += 1
 	neili -= float(qg["cost"])
 	dash_charges -= 1
@@ -561,10 +564,21 @@ func burst_power() -> float:
 	return clampf(neili / maxf(1.0, st("max_neili")), 0.0, 1.0)
 
 
+## 真·独孤九剑：觉醒、或按「真气爆发」时触发「剑破天下」（九连闪现）
+func _trigger_sword_break(delay: float, mult: float) -> void:
+	var s: SkillBase = skills.get("dugu")
+	if s != null and s.has_method("start_sword_break"):
+		s.call("start_sword_break", delay, mult)
+
+
 func _burst() -> void:
 	var f := burst_power()
+	Sfx.play("burst_ult")
 	burst_used += 1
 	neili = 0.0                                   # 消耗全部内力
+	if dugu_true():
+		_trigger_sword_break(0.15, 0.7 + 0.8 * f)
+		return
 	play_anim("ult", 0.5)
 	var radius := lerpf(Data.T("burst_radius_min"), Data.T("burst_radius_max"), f)
 	var dmg := Data.T("burst_damage") * (0.4 + 4.6 * f)
@@ -700,6 +714,7 @@ func _spawn_boss(id: String, final: bool) -> void:
 	e.guard_max = e.max_hp * Data.T("boss_guard_pct")
 	e.guard = e.guard_max
 	bosses.append(e)
+	Sfx.play("boss_warn")
 	add_fx("text", player_pos + Vector2(0, -80), 2.0, {"text": "%s 现身！" % e.boss_name, "size": 28, "color": VERMILION})
 
 
@@ -900,6 +915,7 @@ func _boss_ai(e: Enemy, dt: float, dir: Vector2) -> Vector2:
 			if e.boss_timer >= 0.9:
 				e.boss_state = "charge"
 				e.boss_timer = 0.0
+				Sfx.play("boss_cleave")
 			return Vector2.ZERO
 		"charge":
 			if e.boss_timer >= 0.5:
@@ -910,6 +926,7 @@ func _boss_ai(e: Enemy, dt: float, dir: Vector2) -> Vector2:
 
 
 func _boss_radial(e: Enemy, n: int) -> void:
+	Sfx.play("enemy_ranged")
 	var offset := time * 0.7
 	for i in n:
 		var a := offset + TAU * i / n
@@ -937,6 +954,7 @@ func _hurt(amount: float) -> void:
 		return
 	if rng.randf() < st("block_chance"):
 		invuln = 0.3
+		Sfx.play("block_shield")
 		add_fx("text", player_pos + Vector2(0, -24), 0.6, {"text": "挡", "size": 24, "color": JADE})
 		return
 	var dmg := amount
@@ -959,6 +977,7 @@ func _hurt(amount: float) -> void:
 		return
 	hp -= dmg
 	shake = 8.0
+	Sfx.play("player_hurt")
 	add_fx("text", player_pos + Vector2(0, -24), 0.7, {"text": "-%d" % int(dmg), "size": 22, "color": VERMILION})
 	if hp <= 0.0 and not over:
 		hp = 0.0
@@ -985,6 +1004,7 @@ func damage_enemy(e: Enemy, amount: float, knock_vec: Vector2, crit: bool = fals
 
 
 func _kill(e: Enemy) -> void:
+	Sfx.play("enemy_death")
 	e.alive = false
 	kills += 1
 	neili = minf(st("max_neili"), neili + st("kill_neili"))
@@ -1084,6 +1104,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 		weak_hit = true
 	if weak_hit and e.weak_fx <= 0.0 and effects.size() < MAX_EFFECTS:
 		e.weak_fx = 0.8
+		Sfx.play("vuln_break")
 		add_fx("text", e.pos + Vector2(0, -e.radius - 14), 0.85, {"text": "破绽", "size": 22, "color": JADE})
 	var crit := force_crit or rng.randf() < crit_p
 	if crit:
@@ -1105,6 +1126,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 	if e.is_boss:
 		amount = _boss_guard(e, amount, emp)
 	damage_enemy(e, amount, knock_vec, crit)
+	Sfx.play("hit_crit" if crit else ("hit_sword" if school_id == "sword" else "hit_fist"))
 	return amount
 
 
@@ -1120,6 +1142,7 @@ func _boss_guard(e: Enemy, amount: float, emp: bool) -> float:
 		e.weak_t = Data.T("break_t")
 		e.guard_regen = Data.T("guard_regen_t")
 		break_count += 1
+		Sfx.play("armor_break")
 		shake = maxf(shake, 9.0)
 		add_fx("text", e.pos + Vector2(0, -e.radius - 30), 1.4, {"text": "破罡！", "size": 30, "color": Color("#4fe0d0")})
 		add_fx("ring", e.pos, 0.5, {"r0": 20.0, "r1": 130.0, "color": Color("#4fe0d0"), "vfx": "burst_break"})
@@ -1468,6 +1491,7 @@ func _update_gems(dt: float) -> void:
 	while i < gem_pos.size():
 		var d := gem_pos[i].distance_to(player_pos)
 		if d < 14.0:
+			Sfx.play_exp()
 			_gain_exp(gem_val[i])
 			hp = minf(st("max_hp"), hp + st("pickup_heal"))
 			var last := gem_pos.size() - 1
@@ -1498,6 +1522,7 @@ func _gain_exp(v: int) -> void:
 		pending_levels += 1
 		leveled = true
 	if leveled:
+		Sfx.play("level_up")
 		var old_max := st("max_hp")
 		recalc()
 		hp += maxf(0.0, st("max_hp") - old_max)
@@ -2055,7 +2080,7 @@ func _draw_effects() -> void:
 				var pop := 1.0 + 0.35 * maxf(0.0, 1.0 - t / 0.12)
 				var fs := int(float(fx["size"]) * pop)
 				var ta := clampf(a * 2.2, 0.0, 1.0)
-				var tw := 200.0
+				var tw := maxf(200.0, float(fs) * float(str(fx["text"]).length()) + 24.0)
 				var tp := at - Vector2(tw * 0.5, 0)
 				draw_string_outline(tfont, tp, str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, tw, fs, maxi(4, fs / 4), Color(0.05, 0.03, 0.02, ta))
 				draw_string(tfont, tp, str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, tw, fs, Color(col, ta))
@@ -2154,7 +2179,9 @@ func add_shi(id: String, n: int) -> int:
 		add_fx("ring", player_pos, 0.9, {"r0": 10.0, "r1": 260.0, "color": GOLD})
 		shake = maxf(shake, 8.0)
 		if stage == 3:
+			Sfx.play("dugu_awaken")
 			play_anim("awaken", 0.6)
+			_trigger_sword_break(0.6, 1.0)
 	return int(shi[id]) - old
 
 

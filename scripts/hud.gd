@@ -162,7 +162,12 @@ func _build_overlay() -> void:
 		pause_main.visible = false
 		pause_confirm.visible = true
 		overlay_body.text = "确定放弃？本局按阵亡结算（得分和修为照常计算），然后返回村子")
+	var snd := _button("音效：%s" % ("开" if Sfx.enabled else "关"), Vector2(220, 48), 20)
+	snd.pressed.connect(func():
+		Sfx.set_enabled(not Sfx.enabled)
+		snd.text = "音效：%s" % ("开" if Sfx.enabled else "关"))
 	pause_main.add_child(resume)
+	pause_main.add_child(snd)
 	pause_main.add_child(quit)
 	pause_box.add_child(pause_main)
 	pause_confirm = _center_row(16)

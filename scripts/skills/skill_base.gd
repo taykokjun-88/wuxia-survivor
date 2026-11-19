@@ -160,6 +160,7 @@ func tick(dt: float) -> void:
 	if cd <= 0.0:
 		empowered = w.can_empower(empower_cost())
 		if fire():
+			Sfx.play_skill(id)
 			if empowered:
 				w.pay_empower(empower_cost())
 			cd = p("cooldown") * w.cd_mult()

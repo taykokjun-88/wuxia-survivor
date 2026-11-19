@@ -448,50 +448,79 @@ func _dugu_test() -> void:
 	_check(a.vuln_t > 0.0 and b.vuln_t > 0.0, "万法皆破：破绽蔓延到附近敌人")
 	_free_world(w3)
 
-	# ---- 真·独孤九剑 ----
+	# ---- 真·独孤九剑：觉醒触发「剑破天下」九连闪现 → 之后近身范围群攻；真气爆发可再次触发 ----
 	var w4 := _new_world(10, "dugu")
 	w4.time = 120.0
-	w4.shi = {"zong": 10, "po_jian": 10, "po_dao": 6, "po_bian": 6}
+	w4.shi = {"zong": 10, "po_jian": 10, "po_dao": 6, "po_bian": 6}      # 总层 32，已是真形态（直接赋值不触发觉醒）
 	_check(w4.dugu_true(), "真·独孤九剑已觉醒")
 	var dsk: SkillBase = w4.skills["dugu"]
-	var pop := 0
 	for i in 40:
-		var en3 := w4._spawn_enemy("bandit", w4.player_pos + Vector2(250 + 10 * i, (i % 5) * 20.0))
+		var en3 := w4._spawn_enemy("bandit", w4.player_pos + Vector2(200 + 12 * i, ((i % 5) - 2) * 40.0))
 		en3.speed = 0.0
 		en3.hp = 1e5
 		en3.max_hp = 1e5
 	w4._rebuild_grid()
 	var p0 := w4.player_pos
+	w4.shi = {"zong": 10, "po_jian": 10, "po_dao": 6, "po_bian": 4}      # 总层 30：还不是真形态
+	w4.add_shi("po_bian", 2)                                             # 再领悟 → 越过 30 层，觉醒
+	_check(w4.dugu_true() and w4.sword_break_count == 1, "越过 30 层自动触发一次剑破天下")
+	var names := {}
+	for i in 60 * 4:
+		w4._rebuild_grid()
+		w4.step(DT)
+		for fx in w4.effects:
+			var tx := str(fx.get("text", ""))
+			if tx.begins_with("破") and tx.ends_with("式") or tx == "总诀式":
+				names[tx] = true
+	_check(int(dsk.get("sb_strikes")) == 9, "剑破天下连续闪现 9 次，实际 %d" % int(dsk.get("sb_strikes")))
+	_check(int(dsk.get("sb_left")) == 0, "九次打完")
+	_check(names.size() >= 8, "九次各是一个「式」（飘字 %d 种）" % names.size())
+	_check(w4.player_pos.distance_to(p0) > 100.0, "闪现到了敌人身边")
+	# 之后：近身范围群攻（不再闪现），连击几率保持，攻速快
+	var pos1 := w4.player_pos
+	var dmg0 := float(w4.skill_dmg.get("dugu", 0.0))
+	var log0 := w4.dugu_combo_log.size()
 	w4.input_dash = true
 	var dc0 := w4.dash_count
-	for i in 60 * 40:
+	for en5 in w4.enemies:
+		if en5.alive:
+			en5.pos = w4.player_pos + Vector2.from_angle(w4.rng.randf() * TAU) * w4.rng.randf_range(40.0, 130.0)
+	for i in 60 * 30:
 		w4._rebuild_grid()
 		w4.step(DT)
 		w4.input_move = Vector2.ZERO
-		if i % 120 == 0:
-			for en4 in w4.enemies:
-				if en4.alive:
-					en4.hp = 1e5
-	_check(w4.dash_count == dc0, "真·独孤九剑：轻功被封印（冲刺次数不变）")
-	_check(w4.player_pos.distance_to(p0) > 100.0, "真·独孤九剑：闪现到敌人身边")
-	for fx in w4.effects:
-		if str(fx["kind"]) == "text" and str(fx.get("text", "")).begins_with("破") and str(fx.get("text", "")).ends_with("式"):
-			pop += 1
-	var log: Array = w4.dugu_combo_log
+		if i % 90 == 0:
+			for en6 in w4.enemies:
+				if en6.alive:
+					en6.hp = 1e5
+					en6.pos = w4.player_pos + Vector2.from_angle(w4.rng.randf() * TAU) * w4.rng.randf_range(40.0, 130.0)
+	_check(w4.dash_count == dc0, "真形态：轻功仍被封印")
+	_check(w4.player_pos.distance_to(pos1) < 60.0, "之后不再闪现，原地近身群攻（位移 %d）" % int(w4.player_pos.distance_to(pos1)))
+	var log: Array = w4.dugu_combo_log.slice(log0)
 	var c1 := log.count(1)
 	var c2 := log.count(2)
 	var c4 := log.count(4)
 	var c9 := log.count(9)
-	print("  40 秒出手 %d 次：单 %d / 2连 %d / 4连 %d / 9连 %d；当前飘字 %d" % [log.size(), c1, c2, c4, c9, pop])
-	_check(log.size() >= 40, "真形态攻速快：40 秒应出手 ≥ 40 次，实际 %d" % log.size())
+	print("  30 秒出手 %d 次：单 %d / 2连 %d / 4连 %d / 9连 %d" % [log.size(), c1, c2, c4, c9])
+	_check(log.size() >= 40, "攻速快：30 秒出手 ≥ 40 次，实际 %d" % log.size())
 	_check(c2 > 0 and c4 > 0, "连击：2 连 / 4 连都应出现")
-	_check(c1 > c2 and c2 > c4, "连击几率递减：单 > 2 连 > 4 连")
-	_check(float(w4.skill_dmg.get("dugu", 0.0)) > 40000.0, "真形态输出应很高，实际 %d" % int(float(w4.skill_dmg.get("dugu", 0.0))))
+	_check(c2 > c4 and c4 >= c9 and c1 + c2 > 2 * (c4 + c9), "连击几率：单 / 2 连多，4 连少，9 连最少")
+	_check(float(w4.skill_dmg.get("dugu", 0.0)) - dmg0 > 100000.0, "近身群攻输出很高，实际 %d" % int(float(w4.skill_dmg.get("dugu", 0.0)) - dmg0))
 	var any_vuln := false
-	for en5 in w4.enemies:
-		if en5.alive and en5.vuln_t > 0.0:
+	for en7 in w4.enemies:
+		if en7.alive and en7.vuln_t > 0.0:
 			any_vuln = true
-	_check(any_vuln, "真形态命中必破绽")
+	_check(any_vuln, "群攻命中必破绽")
+	# 真气爆发再次触发剑破天下
+	w4.neili = w4.st("max_neili")
+	w4.input_ult = true
+	w4._rebuild_grid()
+	w4.step(DT)
+	_check(w4.burst_used == 1 and w4.sword_break_count == 2 and int(dsk.get("sb_left")) > 0, "按真气爆发再次触发剑破天下")
+	for i in 60 * 3:
+		w4._rebuild_grid()
+		w4.step(DT)
+	_check(int(dsk.get("sb_strikes")) == 18, "第二次也闪现 9 次（累计 18），实际 %d" % int(dsk.get("sb_strikes")))
 	_free_world(w4)
 
 

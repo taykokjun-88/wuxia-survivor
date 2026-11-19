@@ -13,6 +13,7 @@ config/features=PackedStringArray("4.4", "GL Compatibility")
 Data="*res://scripts/data.gd"
 Save="*res://scripts/save.gd"
 Net="*res://scripts/net.gd"
+Sfx="*res://scripts/sfx.gd"
 
 [gui]
 
