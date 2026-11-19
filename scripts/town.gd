@@ -19,6 +19,7 @@ var obstacles: Array[Rect2] = []      # 建筑 / 水井 / 摊位：不可穿过
 var bounds := Rect2()
 var map_art: MapArt
 var sprite_anim: SpriteAnim
+var hero_art: EnemyArt            # 村子专用的主角走路素材：hero_down / hero_up / hero_side（朝右，朝左时翻转）
 var banner_font: Font
 
 
@@ -31,6 +32,9 @@ func _ready() -> void:
 	sprite_anim = SpriteAnim.new()
 	if not sprite_anim.load_dir("res://assets/sprites/player"):
 		sprite_anim = null
+	hero_art = EnemyArt.new()
+	if hero_art.load_dir("res://assets/town/hero") == 0:
+		hero_art = null
 	banner_font = Data.font_bold
 	for n in Data.town["npcs"]:
 		var d: Dictionary = (n as Dictionary).duplicate(true)
@@ -343,6 +347,14 @@ func _draw_npc(n: Dictionary, near: bool) -> void:
 
 func _draw_player() -> void:
 	_px_circle(player_pos + Vector2(0, 2), 14.0, Color(0, 0, 0, 0.22))
+	if hero_art != null:
+		# 村子专用素材：按朝向选 正面 / 背面 / 侧面；站着不动时停在第一帧
+		var key := "hero_side"
+		if absf(facing.y) > absf(facing.x):
+			key = "hero_down" if facing.y > 0.0 else "hero_up"
+		if hero_art.has(key):
+			hero_art.draw(self, key, time if moving else 0.0, player_pos + Vector2(0, 4), facing.x < 0.0 and key == "hero_side")
+			return
 	if sprite_anim != null:
 		if sprite_anim.draw(self, "walk" if moving else "idle", time, player_pos + Vector2(0, 14), facing.x < 0.0):
 			return
