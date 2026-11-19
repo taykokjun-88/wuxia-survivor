@@ -249,13 +249,14 @@ func _sword_talent_test() -> void:
 	for id in expect:
 		_check(str(sw[id]["name"]) == str(expect[id]), "剑客节点名 %s" % id)
 	_check(str(base["gang_ying"]["name"]) == "盈劲" and str(Talents.nodes("fist")["gang_ying"]["name"]) == "盈劲", "拳掌流派的节点不变")
-	var ts := Talents.stats_for({"gang_ying": 2, "ling_qg": 2, "gang_peak": 1, "ling_peak": 1}, "sword")
+	var ts := Talents.stats_for({"gang_ying": 2, "ling_qg": 2, "gang_peak": 1, "ling_peak": 1, "ling_crit": 2}, "sword")
 	_check(absf(float(ts.get("skill_range", 0.0)) - 0.10) < 1e-6, "剑心 +5%%/级")
 	_check(absf(float(ts.get("ying_dmg", 0.0)) - 0.10) < 1e-6, "剑意凌霄 盈境伤害 +10%%")
-	_check(absf(float(ts.get("crit_mult", 0.0)) - 0.25) < 1e-6, "剑意凌霄 暴击伤害 +25%")
+	_check(float(ts.get("burst_yang", 0.0)) == 1.0 and float(ts.get("burst_harmony", 0.0)) == 1.0, "剑客的第 7 层保留阳性 / 调和内力")
+	_check(not ts.has("crit_mult"), "剑客天赋不再额外给暴击伤害")
+	_check(absf(float(ts.get("crit_chance", 0.0)) - 0.04) < 1e-6, "剑气贯虹 暴击率 +2%%/级")
 	_check(absf(float(ts.get("cd_reduce", 0.0)) - (0.03 + 0.05)) < 1e-6, "御风剑步 + 独孤剑悟 冷却：%s" % str(ts.get("cd_reduce", 0.0)))
-	_check(absf(float(ts.get("exp_pct", 0.0)) - 0.08) < 1e-6 and absf(float(ts.get("qg_cd_reduce", 0.0)) - 0.08) < 1e-6, "经验 +8%，轻功冷却 −8%")
-	_check(not ts.has("burst_yang") and not ts.has("burst_harmony"), "剑客的第 7 层不再给阴阳内力")
+	_check(absf(float(ts.get("exp_pct", 0.0)) - 0.08) < 1e-6 and absf(float(ts.get("qg_cd_reduce", 0.0)) - 0.08) < 1e-6, "经验 +8%%，轻功冷却 −8%%")
 	var tf := Talents.stats_for({"gang_ying": 2}, "fist")
 	_check(float(tf.get("ying_dmg", 0.0)) > 0.0 and not tf.has("skill_range"), "拳掌的盈劲仍是盈境伤害")
 	# 进入局内：范围 / 减益并入招式
