@@ -26,7 +26,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ ' : '  ✗ ') + 
   await shot('01_auth');
   // 没有游客入口：登录界面只能登录或注册（注册必须有邀请码）
   let st = await state(); ok(st.players === 3, '开始时服务器有 3 个预置玩家');
-  await page.mouse.click(720, 305); await page.waitForTimeout(400);                // 切到「注册」
+  await page.mouse.click(400, 305); await page.waitForTimeout(400);                // 切到「注册」
   // 错误的邀请码 → 被拒绝，不会创建账号
   await page.keyboard.type('Tester1'); await page.keyboard.press('Tab');
   await page.keyboard.type('2468'); await page.keyboard.press('Tab');
@@ -34,7 +34,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ ' : '  ✗ ') + 
   await page.waitForTimeout(3000); await shot('01b_wrong_code');
   st = await state(); ok(st.players === 3, '错误的邀请码不能注册（服务器玩家数仍为 ' + st.players + '）');
   // 改成正确的邀请码（不分大小写）
-  await page.mouse.click(640, 452); await page.waitForTimeout(400);                  // 点进邀请码输入框（软件渲染很慢，操作要放慢）
+  await page.mouse.click(320, 452); await page.waitForTimeout(400);                  // 点进邀请码输入框（软件渲染很慢，操作要放慢）
   await page.keyboard.press('Control+A'); await page.waitForTimeout(400);
   await page.keyboard.type('friend'); await page.waitForTimeout(500);
   await page.keyboard.press('Enter');
@@ -62,7 +62,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ ' : '  ✗ ') + 
   await page.keyboard.press('3'); await page.waitForTimeout(2500);
   await page.keyboard.type('Tester1'); await page.keyboard.press('Tab'); await page.keyboard.type('0000'); await page.keyboard.press('Enter');
   await page.waitForTimeout(2500); await shot('05_wrong_pin');
-  await page.mouse.click(640, 425); await page.keyboard.press('Control+A'); await page.keyboard.type('2468'); await page.keyboard.press('Enter');
+  await page.mouse.click(320, 425); await page.keyboard.press('Control+A'); await page.keyboard.type('2468'); await page.keyboard.press('Enter');
   await page.waitForTimeout(3000); await shot('06_relogin');
   await page.waitForTimeout(9000);                                                  // 村子在软件渲染下很慢，等浏览器把登录状态写进本地存储再刷新
   // 打完一局（加速 4 倍；本机后端才允许 speed 参数）
