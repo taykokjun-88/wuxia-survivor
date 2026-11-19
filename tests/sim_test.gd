@@ -173,6 +173,10 @@ func _sword_test() -> void:
 		for c in w.roll_choices(3):
 			if str(c["kind"]) == "new_skill":
 				_check(str(Data.skills[c["id"]]["school"]) == "sword", "不应出现其他流派招式: %s" % c["id"])
+	# 起手不选独孤九剑：升级 / 秘籍选项里永远不会出现独孤九剑
+	for i in 300:
+		for c in w.roll_choices(3):
+			_check(not (str(c["kind"]) == "new_skill" and str(c["id"]) == "dugu"), "非独孤路线的升级选项里不应出现独孤九剑")
 	# 破绽：受伤加成
 	w.time = 120.0
 	var e := w._spawn_enemy("bandit", w.player_pos + Vector2(200, 0))
@@ -554,7 +558,7 @@ func _dugu_test() -> void:
 	print("  30 秒出手 %d 次：单 %d / 2连 %d / 4连 %d / 9连 %d" % [log.size(), c1, c2, c4, c9])
 	_check(log.size() >= 40, "攻速快：30 秒出手 ≥ 40 次，实际 %d" % log.size())
 	_check(c2 > 0 and c4 > 0, "连击：2 连 / 4 连都应出现")
-	_check(c2 > c4 and c4 >= c9 and c1 + c2 > 2 * (c4 + c9), "连击几率：单 / 2 连多，4 连少，9 连最少")
+	_check(c2 > c4 and c4 >= c9 and c2 >= c1, "连击几率 21%% / 50%% / 20%% / 9%%：2 连最多，其次单 / 4 连，9 连最少")
 	_check(float(w4.skill_dmg.get("dugu", 0.0)) - dmg0 > 100000.0, "近身群攻输出很高，实际 %d" % int(float(w4.skill_dmg.get("dugu", 0.0)) - dmg0))
 	var any_vuln := false
 	for en7 in w4.enemies:
@@ -572,6 +576,29 @@ func _dugu_test() -> void:
 		w4.step(DT)
 	_check(int(dsk.get("sb_strikes")) == 18, "第二次也闪现 9 次（累计 18），实际 %d" % int(dsk.get("sb_strikes")))
 	_free_world(w4)
+	# 真形态下，原本针对飞剑的式也要有效：破剑 = 多圈余波，破刀 / 破枪 = 范围更大
+	var dmgs := []
+	var radii := []
+	for shi_set in [{"zong": 22, "po_arrow": 9}, {"zong": 22, "po_jian": 9}, {"zong": 22, "po_dao": 9}, {"zong": 22, "po_qiang": 9}]:
+		var wp := _new_world(14, "dugu")
+		wp.time = 120.0
+		wp.shi = shi_set
+		wp.props_enabled = false
+		var tgt := wp._spawn_enemy("bandit", wp.player_pos + Vector2(100, 0))
+		tgt.hp = 1e9
+		tgt.max_hp = 1e9
+		tgt.speed = 0.0
+		wp._rebuild_grid()
+		var ds: SkillBase = wp.skills["dugu"]
+		ds.call("refresh")
+		var h0 := tgt.hp
+		ds.call("_pulse", "破剑式", 1.0)
+		dmgs.append(h0 - tgt.hp)
+		radii.append(float(ds.call("pulse_radius")))
+		_free_world(wp)
+	_check(float(dmgs[1]) > float(dmgs[0]) * 1.4, "破剑式：真形态每 3 层多一圈余波（伤害 %d → %d）" % [int(dmgs[0]), int(dmgs[1])])
+	_check(float(radii[2]) > float(radii[0]) + 40.0, "破刀式：真形态斩击范围变大（%d → %d）" % [int(radii[0]), int(radii[2])])
+	_check(float(radii[3]) > float(radii[0]) * 1.2 and float(dmgs[3]) > float(dmgs[0]) * 1.1, "破枪式：真形态斩击范围和伤害提高")
 
 
 func _check(cond: bool, msg: String) -> void:

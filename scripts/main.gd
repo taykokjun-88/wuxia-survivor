@@ -11,6 +11,7 @@ enum State { BOOT, AUTH, CREATE, TOWN, DIALOG, LOADOUT, PLAY, CHOOSE, PAUSED, EN
 var state: State = State.BOOT
 var modal_return: State = State.TOWN
 var current_map := "black_wind"
+var stage_bgm := "black_wind"       # 当前关卡的曲子（没有专属曲目就用黑风寨的）
 var dialog_actions: Array = []
 var dialog_npc: Dictionary = {}
 var town: Town
@@ -76,7 +77,30 @@ func _physics_process(dt: float) -> void:
 		_check_pending()
 
 
+## 当前场景该放哪首曲子：登录 / 小镇 / 关卡（有 Boss 在场时换 Boss 曲）；结算时淡出
+func _desired_bgm() -> String:
+	match state:
+		State.BOOT, State.AUTH, State.CREATE:
+			return "login"
+		State.TOWN, State.DIALOG, State.LOADOUT:
+			return "town"
+		State.MODAL:
+			return "town" if modal_return != State.END else ""
+		State.END:
+			return ""
+	var mini := false
+	for b in world.bosses:
+		if b.alive:
+			if b.is_final:
+				return "final_boss"
+			mini = true
+	if mini:
+		return "boss"
+	return stage_bgm
+
+
 func _process(_dt: float) -> void:
+	Bgm.play(_desired_bgm())
 	if town.visible:
 		cam.position = town.player_pos
 		cam.offset = Vector2.ZERO
@@ -261,6 +285,7 @@ func _debug_place_near_npc() -> void:
 func _enter_loadout(map_id: String = "") -> void:
 	if map_id != "":
 		current_map = map_id
+	stage_bgm = current_map if ResourceLoader.exists("res://assets/bgm/%s.ogg" % current_map) else "black_wind"
 	state = State.LOADOUT
 	_show_game(false)
 	hud.show_loadout(Save.school(), current_map)

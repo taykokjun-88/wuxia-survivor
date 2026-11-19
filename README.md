@@ -184,3 +184,6 @@ python3 tools/process_sprites.py strip $S/hurt.jpg  hurt  --frames 2 --fps 10 --
 ## 阿罗拉村（小镇）
 
 登录并创建角色后进入阿罗拉村：WASD 走动，靠近 NPC 按 E 交谈。驿卒（出发 / 选地图）、武馆师父（属性与天赋、转修流派）、铁匠（整备装备，强化暂未开放）、掌柜（排行榜 / 反馈 / 退出登录）、百晓生（图鉴说明书，内容由数据表生成）、药师（暂未开张）。地图数据在 `data/game_data.json` 的 `maps`，目前开放黑风寨，华山为预告。
+
+## 音乐与音效
+背景音乐按场景切换（登录 / 小镇 / 黑风寨 / 小 Boss / 大 Boss），暂停菜单可分别开关音乐和音效。来源与署名见 [`docs/credits.md`](docs/credits.md)。

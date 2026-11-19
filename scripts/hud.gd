@@ -196,8 +196,13 @@ func _build_overlay() -> void:
 	snd.pressed.connect(func():
 		Sfx.set_enabled(not Sfx.enabled)
 		snd.text = "音效：%s" % ("开" if Sfx.enabled else "关"))
+	var mus := _button("音乐：%s" % ("开" if Bgm.enabled else "关"), Vector2(220, 48), 20)
+	mus.pressed.connect(func():
+		Bgm.set_enabled(not Bgm.enabled)
+		mus.text = "音乐：%s" % ("开" if Bgm.enabled else "关"))
 	pause_main.add_child(resume)
 	pause_main.add_child(snd)
+	pause_main.add_child(mus)
 	pause_main.add_child(quit)
 	pause_box.add_child(pause_main)
 	pause_confirm = _center_row(16)

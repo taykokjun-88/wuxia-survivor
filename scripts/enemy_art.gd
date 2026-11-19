@@ -23,7 +23,13 @@ func load_dir(dir: String) -> int:
 
 
 func add(id: String, tex: Texture2D, frames: int, fps: float, w: int, h: int) -> void:
-	sprites[id] = {"tex": tex, "frames": maxi(1, frames), "fps": fps, "w": w, "h": h}
+	# 预先生成水平翻转的整条（帧顺序也反过来）：怪物很多时用它直接绘制，不需要逐个设置变换
+	var tex_f: Texture2D = null
+	var img := tex.get_image()
+	if img != null and not img.is_empty():
+		img.flip_x()
+		tex_f = ImageTexture.create_from_image(img)
+	sprites[id] = {"tex": tex, "tex_f": tex_f, "frames": maxi(1, frames), "fps": fps, "w": w, "h": h}
 
 
 func has(id: String) -> bool:
@@ -32,6 +38,20 @@ func has(id: String) -> bool:
 
 func height_of(id: String) -> float:
 	return float(sprites[id]["h"])
+
+
+## 快速绘制（同屏怪物很多时用）：不做倾斜 / 挤压，没有变换，一次绘制调用
+func draw_fast(ci: CanvasItem, id: String, t: float, feet: Vector2, flip: bool, tint: Color = Color.WHITE) -> void:
+	var d: Dictionary = sprites[id]
+	var w: int = d["w"]
+	var h: int = d["h"]
+	var frames: int = d["frames"]
+	var f := int(maxf(t, 0.0) * float(d["fps"])) % frames
+	var tex: Texture2D = d["tex"]
+	if flip and d["tex_f"] != null:
+		tex = d["tex_f"]
+		f = frames - 1 - f
+	ci.draw_texture_rect_region(tex, Rect2(feet.x - w * 0.5, feet.y - h, w, h), Rect2(f * w, 0, w, h), tint)
 
 
 ## feet：脚底中心（世界坐标）；flip：朝左

@@ -18,6 +18,7 @@ const VACUUM_SPEED := 1100.0       # 吸星大法：道具飞向主角的速度
 const MAX_EFFECTS := 160
 const CELL := 64.0
 const MAX_SKILLS := 4
+const LITE_ENEMIES := 140          # 画面里怪物超过这个数：普通怪用快速画法（没有倾斜 / 挤压）
 const MAX_XINFA := 2
 # 气海三境：盈（真气外放，伤害加成、可催动招式）/ 平 / 虚（回气加快）。数值见 data 的 tuning。
 enum Realm { XU, PING, YING }
@@ -47,6 +48,8 @@ var reward_comp := 1.0              # 综合难度（1.0 ~ 3.0），决定经验
 var difficulty := {"count": 1.0, "hp": 1.0, "speed": 1.0}   # 开局前选择的难度倍率（1.0 ~ 3.0）
 var map_id := "black_wind"       # 当前地图（见 data 的 maps）
 var shi: Dictionary = {}            # 独孤九剑：已领悟的「式」→ 层数（最多 4 种）
+var _sh_tex: Texture2D = Depth.shadow_texture()
+var _lite := false                  # 本帧画面里怪太多：普通怪走快速绘制
 var props_enabled := true          # 场景里随机出现可打碎的木箱 / 酒坛 / 火盆
 var prop_t := 3.0
 var pickup_art: Dictionary = {}    # 掉落物素材（assets/pickups）：id → {tex, w, h}
@@ -1620,7 +1623,7 @@ func roll_choices(n: int = 3) -> Array:
 			})
 	for id in Data.skills:
 		var def: Dictionary = Data.skills[id]
-		if dugu_route or skills.has(id) or str(def["school"]) != school_id:
+		if dugu_route or skills.has(id) or str(def["school"]) != school_id or id == "dugu":      # 独孤九剑只能当起手招式选，升级时不会出现
 			continue
 		if skills.size() < MAX_SKILLS:
 			pool.append({
@@ -1748,16 +1751,20 @@ func _draw() -> void:
 			draw_arc(c + Vector2(0, bob), 20.0, 0.0, TAU, 20, Color(GOLD, 0.4 + 0.3 * sin(time * 5.0)), 2.0)
 	# 角色、怪物、场景物件按「脚底的 y」从上到下排序再画：靠下的盖住靠上的，前后关系才对
 	var ents: Array = []
+	var uniq := 0.0
 	for e in enemies:
 		if _vis(e.pos, 60.0):
 			var key := _enemy_art_key(e)
 			var fy := e.pos.y + (enemy_art.height_of(key) * 0.42 if enemy_art != null and enemy_art.has(key) else e.radius)
-			ents.append([fy, 0, e])
+			uniq += 1e-6
+			ents.append([fy + uniq, 0, e])         # 加一点点序号让第一项互不相同：用原生排序，比 sort_custom 快得多
+	_lite = ents.size() > LITE_ENEMIES
 	if map_art != null:
 		for pr in map_art.visible_props(player_pos, Vector2(700.0, 420.0)):
-			ents.append([(pr["pos"] as Vector2).y, 1, pr])
-	ents.append([player_pos.y + 14.0, 2, null])
-	ents.sort_custom(func(a, b): return a[0] < b[0])
+			uniq += 1e-6
+			ents.append([(pr["pos"] as Vector2).y + uniq, 1, pr])
+	ents.append([player_pos.y + 14.0 + 0.5, 2, null])
+	ents.sort()
 	for it in ents:
 		match int(it[1]):
 			0: _draw_enemy(it[2])
@@ -1929,6 +1936,18 @@ func _draw_enemy_sprite(e: Enemy, key: String) -> void:
 	var h := enemy_art.height_of(key)
 	var feet := e.pos + Vector2(0, h * 0.42)
 	var flip := player_pos.x < e.pos.x
+	if _lite and not e.is_boss and not e.is_elite:      # 同屏很多怪：快速画法（影子贴图 + 翻转好的图集，一次绘制）
+		var tf := Color.WHITE
+		if e.flash > 0.0:
+			tf = Color(1.6, 1.3, 1.3)
+		elif e.slow_t > 0.0:
+			tf = Color(0.72, 0.88, 1.0)
+		elif e.stun > 0.0:
+			tf = Color(0.85, 0.85, 0.85)
+		var rw := h * 0.46
+		draw_texture_rect(_sh_tex, Rect2(feet.x - rw, feet.y - 1.0 - rw * 0.3, rw * 2.0, rw * 0.6), false)
+		enemy_art.draw_fast(self, key, time + float(e.uid % 11) * 0.13, feet, flip, tf)
+		return
 	var walking := e.stun <= 0.0
 	var ph := float(e.uid % 11)
 	# 素材每帧几乎一样：用起伏 / 前倾 / 轻微挤压补出「走路」的体积感；被打中时被压扁一下

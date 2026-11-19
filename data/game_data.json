@@ -109,9 +109,9 @@
     "dugu_vuln2": 0.35,
     "dugu_vuln3": 0.6,
     "dugu_vuln_t": 3.0,
-    "dugu_combo9": 0.06,
-    "dugu_combo4": 0.18,
-    "dugu_combo2": 0.36,
+    "dugu_combo9": 0.09,
+    "dugu_combo4": 0.2,
+    "dugu_combo2": 0.5,
     "dugu_true_mult": 1.0,
     "dugu_pulse_radius": 150,
     "dugu_sb_gap": 0.14,
@@ -2997,17 +2997,17 @@
     {
       "id": "po_jian",
       "name": "破剑式",
-      "desc": "每 3 层多一柄剑（齐射），剑速 +4%/层"
+      "desc": "每 3 层多一柄剑（齐射），剑速 +4%/层；真形态：每 3 层剑气斩多一圈余波（60% 伤害）"
     },
     {
       "id": "po_dao",
       "name": "破刀式",
-      "desc": "穿透 +1/2 层，剑气更粗"
+      "desc": "穿透 +1/2 层，剑气更粗；真形态：斩击范围 +6/层"
     },
     {
       "id": "po_qiang",
       "name": "破枪式",
-      "desc": "飞行更快更远，伤害 +3%/层"
+      "desc": "飞行更快更远，伤害 +3%/层；真形态：斩击范围、伤害 +3%/层"
     },
     {
       "id": "po_bian",

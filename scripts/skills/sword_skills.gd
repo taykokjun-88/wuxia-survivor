@@ -319,7 +319,7 @@ class Dugu extends SkillBase:
 	# ---------------- 真·独孤九剑 ----------------
 
 	func pulse_radius() -> float:
-		return (Data.T("dugu_pulse_radius") + 6.0 * L("po_dao")) * (1.0 + float(mods["range"]))
+		return (Data.T("dugu_pulse_radius") + 6.0 * L("po_dao")) * (1.0 + float(mods["range"])) * (1.0 + 0.03 * L("po_qiang"))
 
 	## 觉醒 / 真气爆发时触发：「真·独孤九剑·剑破天下」——连续闪现九次，每一次是一个「式」
 	func start_sword_break(delay: float = 0.0, mult: float = 1.0) -> void:
@@ -430,8 +430,21 @@ class Dugu extends SkillBase:
 		combo_left = combo_total - 1
 		combo_t = 0.09
 		w.dugu_combo_log.append(combo_total)
+		_combo_banner()
 		_pulse(_shi_label(), 1.0)
 		return true
+
+	## 连击的醒目大字：二连击 / 四连击 / 九连击，越多越大越红，一眼就能看出
+	func _combo_banner() -> void:
+		if combo_total < 2:
+			return
+		var txt := {2: "二连击", 4: "四连击！", 9: "九连击！！！"}[combo_total] as String
+		var size := {2: 36, 4: 46, 9: 62}[combo_total] as int
+		var col: Color = {2: Color("#ffb347"), 4: Color("#ff6a3d"), 9: Color("#ff2d55")}[combo_total]
+		w.add_fx("text", w.player_pos + Vector2(0, -78 - (combo_total / 3) * 8), 1.1, {"text": txt, "size": size, "color": col})
+		if combo_total >= 4:
+			w.shake = maxf(w.shake, 3.0 if combo_total == 4 else 8.0)
+			w.add_fx("ring", w.player_pos, 0.5, {"r0": 10.0, "r1": pulse_radius() * 1.4, "color": col})
 
 	func _shi_label() -> String:
 		if combo_total == 9:
@@ -444,7 +457,7 @@ class Dugu extends SkillBase:
 
 	func _pulse(label: String, mult: float) -> void:
 		var R := pulse_radius()
-		var dmg := p("damage") * 1.7 * Data.T("dugu_true_mult") * mult
+		var dmg := p("damage") * 1.7 * Data.T("dugu_true_mult") * mult * (1.0 + 0.03 * L("po_qiang"))
 		var vuln := Data.T("dugu_vuln3") * vuln_scale()
 		w.play_anim("true_thrust", 0.2)
 		Sfx.play_skill("dugu", 1 + combo_idx)
@@ -461,6 +474,11 @@ class Dugu extends SkillBase:
 				w.stun_enemy(e, 0.8)
 			if first == null or to.length() < (first.pos - w.player_pos).length():
 				first = e
+		# 破剑式：每 3 层多一圈余波（更大一圈，60% 伤害）
+		for i in mini(3, L("po_jian") / 3):
+			var Ri := R * (1.0 + 0.16 * (i + 1))
+			w.area_hit_raw(w.player_pos, Ri, dmg * 0.6, tags(), id, 160.0, 0.0, false, true)
+			w.add_fx("ring", w.player_pos, 0.35 + 0.05 * i, {"r0": R * 0.6, "r1": Ri, "color": SwordSkills.SWORD_BLUE})
 		if first != null:
 			w.add_fx("text", first.pos + Vector2(0, -first.radius - 34), 0.9, {"text": label, "size": 26, "color": GameWorld.VERMILION})
 			_chain_effects(first, dmg, vuln)
