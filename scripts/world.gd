@@ -168,6 +168,7 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	deferred_upgrades = 0
 	level = 1
 	school_id = str(Data.skills[starter_id]["school"])
+	_load_school_sprites()
 	add_skill(starter_id)
 	stats = {}
 	recalc()
@@ -228,6 +229,20 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 # =====================================================================
 # 装备 / 属性
 # =====================================================================
+
+var _sprite_cache: Dictionary = {}
+
+
+## 每个流派有自己的角色动画（Data.schools[..].sprite_dir）；加载失败时回退占位图形
+func _load_school_sprites() -> void:
+	var dir := str(Data.schools.get(school_id, {}).get("sprite_dir", "res://assets/sprites/player"))
+	if dir == "":
+		dir = "res://assets/sprites/player"
+	if not _sprite_cache.has(dir):
+		var sa := SpriteAnim.new()
+		_sprite_cache[dir] = sa if sa.load_dir(dir) else null
+	sprite_anim = _sprite_cache[dir]
+
 
 func add_skill(id: String) -> void:
 	var s: SkillBase = SwordSkills.create(id) if str(Data.skills[id]["school"]) == "sword" else FistSkills.create(id)
@@ -1933,6 +1948,16 @@ func play_anim(name: String, dur: float) -> void:
 
 ## 当前应播放的角色动画：[名称, 该动画内的时间]
 func _player_anim_state() -> Array:
+	var st := _player_anim_state_base()
+	if dugu_true():         # 真·独孤九剑：散发、持剑、周身气场的另一套动作
+		match str(st[0]):
+			"idle": st[0] = "true_idle"
+			"walk": st[0] = "true_walk"
+			"thrust", "slash", "palm", "punch": st[0] = "true_thrust"
+	return st
+
+
+func _player_anim_state_base() -> Array:
 	if over and not won:
 		return ["death", death_t]
 	if anim_ovr_t > 0.0:
@@ -1964,6 +1989,8 @@ func _draw_player() -> void:
 		Depth.shadow(self, player_pos + Vector2(0, 14), 30.0, _player_bob())
 	else:
 		draw_circle(player_pos + Vector2(0, 9), 10.0, Color(0, 0, 0, 0.12))
+	if dugu_true() and vfx.has("awaken_aura"):
+		vfx.draw(self, "awaken_aura", vfx.frame_loop("awaken_aura", time), player_pos + Vector2(0, 8), 120.0, 0.0, Color(1, 1, 1, 0.6))
 	if realm() == Realm.YING:
 		draw_arc(player_pos, 19.0, 0.0, TAU, 28, Color("#4fe0d0", 0.55 * alpha), 2.0)
 	if meditating():
@@ -2097,10 +2124,12 @@ func add_shi(id: String, n: int) -> int:
 	shi[id] = mini(cap, old + n)
 	var stage := dugu_stage()
 	if stage > old_stage and stage >= 2:
-		var txt := "万法皆破" if stage == 2 else "九剑真传 · 真·独孤九剑"
+		var txt := "万法皆破" if stage == 2 else "九剑真传"
 		add_fx("text", player_pos + Vector2(0, -60), 2.4, {"text": txt, "size": 30, "color": VERMILION})
 		add_fx("ring", player_pos, 0.9, {"r0": 10.0, "r1": 260.0, "color": GOLD})
 		shake = maxf(shake, 8.0)
+		if stage == 3:
+			play_anim("awaken", 0.6)
 	return int(shi[id]) - old
 
 

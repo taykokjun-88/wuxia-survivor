@@ -103,6 +103,72 @@
       "fps": 20,
       "cell": 256,
       "loop": false
+    },
+    "zone_crack": {
+      "file": "zone_crack.png",
+      "frames": 4,
+      "fps": 8.0,
+      "cell": 256,
+      "loop": true
+    },
+    "zone_vortex": {
+      "file": "zone_vortex.png",
+      "frames": 6,
+      "fps": 12.0,
+      "cell": 256,
+      "loop": true
+    },
+    "hit_impact": {
+      "file": "hit_impact.png",
+      "frames": 4,
+      "fps": 20.0,
+      "cell": 64,
+      "loop": false
+    },
+    "hit_crit": {
+      "file": "hit_crit.png",
+      "frames": 5,
+      "fps": 20.0,
+      "cell": 96,
+      "loop": false
+    },
+    "trail_dash": {
+      "file": "trail_dash.png",
+      "frames": 4,
+      "fps": 16.0,
+      "cell": 96,
+      "loop": false
+    },
+    "death_puff": {
+      "file": "death_puff.png",
+      "frames": 5,
+      "fps": 14.0,
+      "cell": 96,
+      "loop": false
+    },
+    "afterimage": {
+      "file": "afterimage.png",
+      "frames": 3,
+      "fps": 8.0,
+      "cell": 128,
+      "loop": false,
+      "world_size": 110.0
+    },
+    "flash_streak": {
+      "file": "flash_streak.png",
+      "frames": 4,
+      "fps": 20.0,
+      "cell": 128,
+      "loop": false,
+      "world_size": 160.0
+    },
+    "awaken_aura": {
+      "file": "awaken_aura.png",
+      "frames": 4,
+      "fps": 10.0,
+      "cell": 192,
+      "loop": true,
+      "world_size": 150.0
     }
   }
 }

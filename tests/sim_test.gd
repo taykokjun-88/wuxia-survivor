@@ -33,6 +33,7 @@ func _ready() -> void:
 		_difficulty_reward_test()
 		_sword_test()
 		_dugu_test()
+		_sword_art_test()
 		await _town_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
@@ -195,6 +196,45 @@ func _sword_test() -> void:
 		w._update_enemies(DT)
 	_check(hp0 - e2.hp > 20.0, "中毒 2 秒应掉血 > 20，实际 %.1f" % (hp0 - e2.hp))
 	_free_world(w)
+
+
+func _sword_art_test() -> void:
+	print("\n=== 剑客美术接入（角色动画 / 小镇 / 小 Boss / 特效）===")
+	var sa := SpriteAnim.new()
+	_check(sa.load_dir(str(Data.schools["sword"]["sprite_dir"])), "剑客角色动画能加载")
+	for n in ["idle", "walk", "slash", "thrust", "dash", "ult", "hurt", "death", "true_idle", "true_walk", "true_thrust", "awaken", "finish"]:
+		_check(sa.anims.has(n), "剑客动画缺少 %s" % n)
+	_check(ResourceLoader.exists(str(Data.schools["sword"]["portrait"])), "剑客立绘存在")
+	var w := _new_world(3, "dugu")
+	_check(w.sprite_anim != null and w.sprite_anim.anims.has("true_walk"), "独孤九剑开局使用剑客动画")
+	w.shi = {"zong": 31}
+	var st := w._player_anim_state()
+	_check(str(st[0]) == "true_idle", "真形态站立用 true_idle，实际 %s" % str(st[0]))
+	w.input_move = Vector2.RIGHT
+	_check(str(w._player_anim_state()[0]) == "true_walk", "真形态行走用 true_walk")
+	_free_world(w)
+	var wf := _new_world(3, "chain_fist")
+	_check(wf.sprite_anim != null and not wf.sprite_anim.anims.has("true_walk"), "拳掌流派仍用原来的动画")
+	_free_world(wf)
+	var ea := EnemyArt.new()
+	ea.load_dir("res://assets/enemies")
+	for id in ["mini_boss_1", "mini_boss_2", "mini_boss_3", "boss", "elite"]:
+		_check(ea.has(id), "怪物素材缺少 %s" % id)
+	var hero := EnemyArt.new()
+	_check(hero.load_dir(str(Data.schools["sword"]["town_hero_dir"])) == 3, "剑客村子走路素材（正 / 背 / 侧）")
+	var t := Town.new()
+	add_child(t)
+	_check(t.building_art.size() == 6, "小镇 6 座建筑素材，实际 %d" % t.building_art.size())
+	t.set_school("sword")
+	_check(t.hero_art != null and t.hero_art.has("hero_down"), "小镇主角跟随流派")
+	remove_child(t)
+	t.free()
+	var v := Vfx.new()
+	v.load_dir("res://assets/vfx")
+	for id in ["zone_crack", "zone_vortex", "hit_impact", "hit_crit", "trail_dash", "death_puff", "afterimage", "flash_streak", "awaken_aura"]:
+		_check(v.has(id), "特效缺少 %s" % id)
+	for id in ["dugu", "zong", "po_jian", "po_dao", "po_qiang", "po_bian", "po_suo", "po_zhang", "po_arrow", "po_qi"]:
+		_check(Data.icon("skills", id) != null if id == "dugu" else Data.icon("shi", id) != null, "图标缺少 %s" % id)
 
 
 func _dugu_test() -> void:

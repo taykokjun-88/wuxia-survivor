@@ -20,6 +20,24 @@ func _ready() -> void:
 	main.hud.confirm_create()
 	await _frames(2)
 	Save.create_character("sword")
+	main._enter_town()
+	main.town.player_pos = Vector2(0, -170)
+	main.town.queue_redraw()
+	await _frames(3)
+	_snap("t1_town_clerk")
+	main.town.player_pos = Vector2(-330, 40)
+	main.town.queue_redraw()
+	await _frames(3)
+	_snap("t2_town_west")
+	main.town.player_pos = Vector2(330, 40)
+	main.town.queue_redraw()
+	await _frames(3)
+	_snap("t3_town_east")
+	main.town.player_pos = Vector2(0, 260)
+	main.town.facing = Vector2.UP
+	main.town.queue_redraw()
+	await _frames(3)
+	_snap("t4_town_south")
 	main.state = main.State.LOADOUT
 	main.hud.show_loadout("sword", "black_wind")
 	await _frames(3)
@@ -35,7 +53,12 @@ func _ready() -> void:
 		w.step(DT)
 	await _frames(2)
 	_snap("s1_dugu_stage1")
-	w.shi = {"po_jian": 10, "po_dao": 10, "po_bian": 6, "zong": 10}
+	w.shi = {"po_jian": 10, "po_dao": 10, "po_bian": 6, "zong": 4}
+	w.add_shi("zong", 7)
+	for i in 12:
+		w.step(DT)
+	await _frames(2)
+	_snap("s1b_awaken")
 	main.hud.hud_expanded = true
 	for i in 70:
 		w.step(DT)

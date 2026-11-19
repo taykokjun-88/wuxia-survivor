@@ -33,5 +33,26 @@
   "fps": 6.0,
   "w": 134,
   "h": 126
+ },
+ "mini_boss_1": {
+  "file": "mini_boss_1.png",
+  "frames": 4,
+  "fps": 6.0,
+  "w": 112,
+  "h": 102
+ },
+ "mini_boss_2": {
+  "file": "mini_boss_2.png",
+  "frames": 4,
+  "fps": 6.0,
+  "w": 114,
+  "h": 106
+ },
+ "mini_boss_3": {
+  "file": "mini_boss_3.png",
+  "frames": 4,
+  "fps": 6.0,
+  "w": 88,
+  "h": 98
  }
 }

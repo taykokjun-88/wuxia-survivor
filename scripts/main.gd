@@ -233,6 +233,7 @@ var _debug_npc_done := false
 
 func _enter_town() -> void:
 	state = State.TOWN
+	town.set_school(Save.school())
 	_show_game(false)
 	hud.hide_dialog()
 	town.visible = true

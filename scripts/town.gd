@@ -21,6 +21,8 @@ var map_art: MapArt
 var sprite_anim: SpriteAnim
 var hero_art: EnemyArt            # 村子专用的主角走路素材：hero_down / hero_up / hero_side（朝右，朝左时翻转）
 var banner_font: Font
+var building_art: Dictionary = {}    # 建筑 id → {tex, w, h, sign:[x, y, 宽]}（assets/town/buildings；没有素材的建筑用代码画）
+var _school := ""
 
 
 func _ready() -> void:
@@ -29,12 +31,8 @@ func _ready() -> void:
 	map_art = MapArt.new()
 	if not map_art.load_dir("res://assets/maps/black_wind"):
 		map_art = null
-	sprite_anim = SpriteAnim.new()
-	if not sprite_anim.load_dir("res://assets/sprites/player"):
-		sprite_anim = null
-	hero_art = EnemyArt.new()
-	if hero_art.load_dir("res://assets/town/hero") == 0:
-		hero_art = null
+	_load_buildings()
+	set_school("fist")
 	banner_font = Data.font_bold
 	for n in Data.town["npcs"]:
 		var d: Dictionary = (n as Dictionary).duplicate(true)
@@ -46,6 +44,61 @@ func _ready() -> void:
 		_add_building_obstacle(d)
 	obstacles.append(Rect2(-40, -10, 80, 70))          # 水井
 	reset_player()
+
+
+## 主角形象跟随流派：村子走路素材 + 战斗动画（后者只作回退）
+func set_school(school_id: String) -> void:
+	if not Data.schools.has(school_id):
+		school_id = "fist"
+	if _school == school_id:
+		return
+	_school = school_id
+	var sd: Dictionary = Data.schools[school_id]
+	sprite_anim = SpriteAnim.new()
+	if not sprite_anim.load_dir(str(sd.get("sprite_dir", "res://assets/sprites/player"))):
+		sprite_anim = null
+	hero_art = EnemyArt.new()
+	if hero_art.load_dir(str(sd.get("town_hero_dir", "res://assets/town/hero"))) == 0:
+		hero_art = null
+	queue_redraw()
+
+
+func _load_buildings() -> void:
+	var path := "res://assets/town/buildings/meta.json"
+	if not FileAccess.file_exists(path):
+		return
+	var js: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not js is Dictionary:
+		return
+	for id in js:
+		var d: Dictionary = js[id]
+		var f := "res://assets/town/buildings/%s" % str(d["file"])
+		if ResourceLoader.exists(f):
+			building_art[str(id)] = {"tex": load(f), "w": int(d["w"]), "h": int(d["h"]), "sign": d.get("sign", [0, 0, 0])}
+
+
+## 建筑素材：底边落在建筑矩形的底边，水平居中；木牌上写店名
+func _draw_building_art(n: Dictionary, r: Rect2) -> bool:
+	var key := str((n["building"] as Dictionary).get("art", ""))
+	if not building_art.has(key):
+		return false
+	var a: Dictionary = building_art[key]
+	var w := float(a["w"])
+	var h := float(a["h"])
+	var pos: Vector2 = n["pos"]
+	var base_y := r.end.y + 10.0
+	var tl := Vector2(pos.x - w * 0.5, base_y - h)
+	draw_rect(Rect2(tl.x + w * 0.1, base_y - 10.0, w * 0.8, 14.0), Color(0, 0, 0, 0.18))
+	draw_texture(a["tex"], tl)
+	var sg: Array = a["sign"]
+	var sign_w := float(sg[2])
+	var sx := tl.x + float(sg[0])
+	var sy := tl.y + float(sg[1])
+	var txt := str((n["building"] as Dictionary)["sign"])
+	var fs := int(clampf(sign_w / maxf(2.0, float(txt.length())) * 0.9, 14.0, 24.0))
+	draw_string_outline(banner_font, Vector2(sx - sign_w * 0.5, sy + fs * 0.35), txt, HORIZONTAL_ALIGNMENT_CENTER, sign_w, fs, 4, Color("#2a1a08"))
+	draw_string(banner_font, Vector2(sx - sign_w * 0.5, sy + fs * 0.35), txt, HORIZONTAL_ALIGNMENT_CENTER, sign_w, fs, Color("#f0c050"))
+	return true
 
 
 func reset_player() -> void:
@@ -250,6 +303,8 @@ func _draw_tree(at: Vector2, s: float) -> void:
 func _draw_building(n: Dictionary) -> void:
 	var bd: Dictionary = n["building"]
 	var r := building_rect(n)
+	if _draw_building_art(n, r):
+		return
 	if str(bd.get("kind", "")) == "stall":
 		_draw_stall(n, r)
 		return

@@ -465,7 +465,7 @@ func _build_stage_info(left: VBoxContainer) -> void:
 	var m: Dictionary = Data.maps[loadout_map]
 	# 横幅：地图背景 + 三个 Boss 的立绘 + 关卡名
 	var banner := Control.new()
-	banner.custom_minimum_size = Vector2(580, 270)
+	banner.custom_minimum_size = Vector2(580, 326)
 	banner.clip_contents = true
 	left.add_child(banner)
 	var bg := TextureRect.new()
@@ -526,11 +526,11 @@ func _build_stage_info(left: VBoxContainer) -> void:
 		sb.set_corner_radius_all(4)
 		sb.set_content_margin_all(4)
 		card.add_theme_stylebox_override("panel", sb)
-		card.custom_minimum_size = Vector2(139, 128)
+		card.custom_minimum_size = Vector2(139, 112)
 		var v := VBoxContainer.new()
 		v.add_theme_constant_override("separation", 2)
 		card.add_child(v)
-		var ic2 := _monster_icon(loadout_map, str(md["id"]), Vector2(120, 62))
+		var ic2 := _monster_icon(loadout_map, str(md["id"]), Vector2(120, 52))
 		v.add_child(ic2)
 		var nm := _label(str(md["name"]), 14, Color("#f3ead2"))
 		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -1750,8 +1750,11 @@ func _draw_hud() -> void:
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 12, GameWorld.VERMILION)
 			y += 28.0
 			for sid in w.shi:
-				canvas.draw_string(font, Vector2(24, y), "%s　Lv%d" % [w.shi_name(str(sid)), int(w.shi[sid])], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#2a2a2a"))
-				y += 18.0
+				var sit := Data.icon("shi", str(sid))
+				if sit != null:
+					canvas.draw_texture_rect(sit, Rect2(22, y - 15, 20, 20), false)
+				canvas.draw_string(font, Vector2(48 if sit != null else 24, y), "%s　Lv%d" % [w.shi_name(str(sid)), int(w.shi[sid])], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#2a2a2a"))
+				y += 22.0
 		y += 8.0
 		canvas.draw_string(font, Vector2(16, y), "心法 %d/%d" % [w.xinfa.size(), GameWorld.MAX_XINFA],
 			HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#7a6a3a"))
@@ -1788,7 +1791,7 @@ func _draw_hud() -> void:
 func _shi_extra_h() -> float:
 	if not (world != null and world.skills.has("dugu")):
 		return 0.0
-	return 40.0 + (world.shi.size() * 18.0 if hud_expanded else 0.0)
+	return 40.0 + (world.shi.size() * 22.0 if hud_expanded else 0.0)
 
 
 func _stage_name() -> String:

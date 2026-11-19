@@ -345,9 +345,15 @@ class Dugu extends SkillBase:
 		w.player_pos = t.pos - dir * (t.radius + 26.0)
 		w.facing = dir
 		w.invuln = maxf(w.invuln, 0.25)
-		w.add_fx("ring", from, 0.3, {"r0": 30.0, "r1": 4.0, "color": SwordSkills.SWORD_BLUE})
-		for i in 5:
-			w.add_fx("trail", from.lerp(w.player_pos, i / 5.0), 0.3)
+		var dist := from.distance_to(w.player_pos)
+		if w.vfx.has("flash_streak"):
+			w.add_fx("trail", (from + w.player_pos) * 0.5, 0.25, {"vfx": "flash_streak", "size": maxf(90.0, dist * 1.25), "angle": dir.angle()})
+			w.add_fx("trail", from, 0.4, {"vfx": "afterimage", "size": 110.0, "tint": Color(1, 1, 1, 0.75)})
+		else:
+			w.add_fx("ring", from, 0.3, {"r0": 30.0, "r1": 4.0, "color": SwordSkills.SWORD_BLUE})
+			for i in 5:
+				w.add_fx("trail", from.lerp(w.player_pos, i / 5.0), 0.3)
+		w.play_anim("true_thrust", 0.2)
 		var a := dir.angle()
 		var reach := 96.0 * (1.0 + 0.04 * L("po_qiang"))
 		w.fx_slash(w.player_pos, a, reach, 1.0, true)
@@ -391,3 +397,5 @@ class Dugu extends SkillBase:
 		if L("po_zhang") > 0:
 			var sr := 50.0 + 4.0 * L("po_zhang")
 			w.area_hit_raw(first.pos, sr, dmg * (0.35 + 0.03 * L("po_zhang")), tags(), id, 80.0, 0.0, false, true)
+		if combo_total == 9 and combo_left == 0:      # 九连击打完：收势
+			w.play_anim("finish", 0.45)

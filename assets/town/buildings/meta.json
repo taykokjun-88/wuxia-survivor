@@ -1,0 +1,62 @@
+{
+ "clerk": {
+  "file": "clerk.png",
+  "w": 290,
+  "h": 224,
+  "sign": [
+   142,
+   135,
+   37
+  ]
+ },
+ "smith": {
+  "file": "smith.png",
+  "w": 310,
+  "h": 217,
+  "sign": [
+   175,
+   118,
+   36
+  ]
+ },
+ "herbalist": {
+  "file": "herbalist.png",
+  "w": 300,
+  "h": 218,
+  "sign": [
+   107,
+   88,
+   67
+  ]
+ },
+ "master": {
+  "file": "master.png",
+  "w": 340,
+  "h": 213,
+  "sign": [
+   170,
+   106,
+   57
+  ]
+ },
+ "innkeeper": {
+  "file": "innkeeper.png",
+  "w": 310,
+  "h": 213,
+  "sign": [
+   113,
+   109,
+   57
+  ]
+ },
+ "sage": {
+  "file": "sage.png",
+  "w": 200,
+  "h": 189,
+  "sign": [
+   75,
+   66,
+   67
+  ]
+ }
+}

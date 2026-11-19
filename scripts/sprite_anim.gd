@@ -6,6 +6,8 @@ extends RefCounted
 const FALLBACK := {
 	"walk": "idle", "dash": "walk", "hurt": "idle", "punch": "idle",
 	"palm": "punch", "ult": "palm", "death": "hurt",
+	"slash": "punch", "thrust": "palm",
+	"true_idle": "idle", "true_walk": "walk", "true_thrust": "thrust", "awaken": "ult", "finish": "true_thrust",
 }
 
 var cell := 64

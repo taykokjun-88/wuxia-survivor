@@ -1,0 +1,83 @@
+{
+  "cell": 128,
+  "anims": {
+    "idle": {
+      "file": "idle.png",
+      "frames": 4,
+      "fps": 4.0,
+      "loop": true
+    },
+    "walk": {
+      "file": "walk.png",
+      "frames": 6,
+      "fps": 10.0,
+      "loop": true
+    },
+    "slash": {
+      "file": "slash.png",
+      "frames": 4,
+      "fps": 16.0,
+      "loop": false
+    },
+    "thrust": {
+      "file": "thrust.png",
+      "frames": 3,
+      "fps": 12.0,
+      "loop": false
+    },
+    "dash": {
+      "file": "dash.png",
+      "frames": 3,
+      "fps": 14.0,
+      "loop": false
+    },
+    "ult": {
+      "file": "ult.png",
+      "frames": 4,
+      "fps": 8.0,
+      "loop": false
+    },
+    "hurt": {
+      "file": "hurt.png",
+      "frames": 2,
+      "fps": 10.0,
+      "loop": false
+    },
+    "death": {
+      "file": "death.png",
+      "frames": 4,
+      "fps": 6.0,
+      "loop": false
+    },
+    "true_idle": {
+      "file": "true_idle.png",
+      "frames": 4,
+      "fps": 5.0,
+      "loop": true
+    },
+    "true_walk": {
+      "file": "true_walk.png",
+      "frames": 6,
+      "fps": 10.0,
+      "loop": true
+    },
+    "true_thrust": {
+      "file": "true_thrust.png",
+      "frames": 3,
+      "fps": 14.0,
+      "loop": false
+    },
+    "awaken": {
+      "file": "awaken.png",
+      "frames": 4,
+      "fps": 8.0,
+      "loop": false
+    },
+    "finish": {
+      "file": "finish.png",
+      "frames": 3,
+      "fps": 8.0,
+      "loop": false
+    }
+  }
+}

@@ -1149,7 +1149,8 @@
         "cloud_palm"
       ],
       "portrait": "res://assets/portraits/fist_hero.jpg",
-      "sprite_dir": "res://assets/sprites/player"
+      "sprite_dir": "res://assets/sprites/player",
+      "town_hero_dir": "res://assets/town/hero"
     },
     "sword": {
       "name": "剑客",
@@ -1160,8 +1161,9 @@
         "qingsong",
         "dugu"
       ],
-      "portrait": "res://assets/portraits/fist_hero.jpg",
-      "sprite_dir": "res://assets/sprites/player"
+      "portrait": "res://assets/portraits/sword_hero.jpg",
+      "sprite_dir": "res://assets/sprites/sword",
+      "town_hero_dir": "res://assets/town/hero_sword"
     },
     "blade": {
       "name": "刀",
@@ -2266,7 +2268,8 @@
           "h": 150,
           "roof": "#2f6f6a",
           "wall": "#8a6a45",
-          "sign": "驿站"
+          "sign": "驿站",
+          "art": "clerk"
         },
         "greet": "客官要出远门？从这儿走，驿站送你去各处险地历练。"
       },
@@ -2284,7 +2287,8 @@
           "h": 140,
           "roof": "#6b3a2a",
           "wall": "#7a5a3a",
-          "sign": "铁匠铺"
+          "sign": "铁匠铺",
+          "art": "smith"
         },
         "greet": "好刀好甲，都得经我这双手。装备拿来我看看。"
       },
@@ -2302,7 +2306,8 @@
           "h": 140,
           "roof": "#3f6a3a",
           "wall": "#8a6a45",
-          "sign": "药铺"
+          "sign": "药铺",
+          "art": "herbalist"
         },
         "greet": "小店刚开张，丹药还在炼，过些日子再来吧。"
       },
@@ -2320,7 +2325,8 @@
           "h": 140,
           "roof": "#4a4a5a",
           "wall": "#9a8a6a",
-          "sign": "武馆"
+          "sign": "武馆",
+          "art": "master"
         },
         "greet": "习武之人，根基为本。属性点与天赋，都在这里打磨。"
       },
@@ -2338,7 +2344,8 @@
           "h": 150,
           "roof": "#8a3a2a",
           "wall": "#8a6a45",
-          "sign": "客栈"
+          "sign": "客栈",
+          "art": "innkeeper"
         },
         "greet": "客官里边请！想打听江湖排名、给我们提点意见，都可以。"
       },
@@ -2353,7 +2360,8 @@
         ],
         "building": {
           "kind": "stall",
-          "sign": "百晓阁"
+          "sign": "百晓阁",
+          "art": "sage"
         },
         "greet": "天下武功，我无所不知。想知道什么，尽管问。"
       }
