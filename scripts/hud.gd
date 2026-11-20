@@ -1933,6 +1933,7 @@ func show_end(won: bool) -> void:
 	var dd: Dictionary = w.run_summary()["difficulty"]
 	if int(dd["count"]) != 100 or int(dd["hp"]) != 100 or int(dd["speed"]) != 100:
 		end_base += "\n难度：数量 %d%% · 血量 %d%% · 速度 %d%%" % [dd["count"], dd["hp"], dd["speed"]]
+	end_locked = false
 	set_end_extra("")
 	var art := _load_tex("res://assets/ui/screens/%s_%s.jpg" % ["victory" if won else "defeat", w.map_id])
 	if art == null:
@@ -1944,8 +1945,21 @@ func show_end(won: bool) -> void:
 
 
 ## 结算界面的补充行（成绩上传结果等）
+var end_locked := false
+
+
+## 成绩上传中：结算页不能离开（按键无效），上传结束才恢复
+func set_end_locked(on: bool) -> void:
+	end_locked = on
+	set_end_extra(end_extra_cur)
+
+
+var end_extra_cur := ""
+
+
 func set_end_extra(extra: String) -> void:
-	var tail := "按 Enter / R 回小镇" + ("　·　按 B 查看排行榜" if Net.configured() else "")
+	end_extra_cur = extra
+	var tail := "成绩上传中，请稍候……（上传完成前无法离开）" if end_locked else "按 Enter / R 回小镇" + ("　·　按 B 查看排行榜" if Net.configured() else "")
 	overlay_body.text = end_base + ("\n" + extra if extra != "" else "") + "\n\n" + tail
 
 

@@ -173,6 +173,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			if event.is_action_pressed("ui_cancel"):
 				_close_modal()
 		State.END:
+			if _uploading:
+				return
 			if event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and event.keycode == KEY_R):
 				_end_to_town()
 			elif event is InputEventKey and event.pressed and event.keycode == KEY_B and Net.configured():
@@ -495,7 +497,12 @@ func _on_pause_abandon() -> void:
 
 
 ## 局结束后回到小镇（不回登录画面；已登录状态、局外成长、装备都保留）
+var _uploading := false       # 结算成绩上传中：不允许离开结算页（上传结束——成功或失败——才放行）
+
+
 func _end_to_town() -> void:
+	if _uploading:
+		return
 	hud.hide_overlay()
 	_enter_town()
 
@@ -519,9 +526,13 @@ func _on_end(won: bool) -> void:
 		return
 	if not Net.logged_in() or world.time < 30.0:
 		return
+	_uploading = true
+	hud.set_end_locked(true)
 	hud.set_end_extra("成绩上传中…")
 	var sent_char := Net.char_id
 	var res: Dictionary = await Net.submit_run(world.run_summary())
+	_uploading = false
+	hud.set_end_locked(false)
 	if Net.char_id != sent_char or not Net.logged_in():        # 等上传期间已经换了角色 / 退出登录：不要把结果写进别的角色
 		return
 	if bool(res.get("ok", false)):
