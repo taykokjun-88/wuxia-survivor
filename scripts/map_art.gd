@@ -188,7 +188,7 @@ func push_out(pos: Vector2, r: float) -> Vector2:
 	var cy := int(floorf(pos.y / PROP_CELL))
 	for dy in range(-1, 2):
 		for dx in range(-1, 2):
-			for rc in _cell_blockers(cx + dx, cy + dy):
+			for rc: Rect2 in _cell_blockers(cx + dx, cy + dy):
 				var q := Vector2(clampf(pos.x, rc.position.x, rc.end.x), clampf(pos.y, rc.position.y, rc.end.y))
 				var diff := pos - q
 				var dd := diff.length()
@@ -197,11 +197,11 @@ func push_out(pos: Vector2, r: float) -> Vector2:
 				if dd > 0.001:
 					pos = q + diff / dd * r
 				else:    # 圆心落在块里面：沿最近的边顶出去
-					var l := pos.x - rc.position.x
-					var rr := rc.end.x - pos.x
-					var t := pos.y - rc.position.y
-					var b := rc.end.y - pos.y
-					var m := minf(minf(l, rr), minf(t, b))
+					var l: float = pos.x - rc.position.x
+					var rr: float = rc.end.x - pos.x
+					var t: float = pos.y - rc.position.y
+					var b: float = rc.end.y - pos.y
+					var m: float = minf(minf(l, rr), minf(t, b))
 					if m == l:
 						pos.x = rc.position.x - r
 					elif m == rr:
@@ -220,8 +220,8 @@ func blocked(pos: Vector2, r: float = 2.0) -> bool:
 	var cy := int(floorf(pos.y / PROP_CELL))
 	for dy in range(-1, 2):
 		for dx in range(-1, 2):
-			for rc in _cell_blockers(cx + dx, cy + dy):
-				if (rc as Rect2).grow(r).has_point(pos):
+			for rc: Rect2 in _cell_blockers(cx + dx, cy + dy):
+				if rc.grow(r).has_point(pos):
 					return true
 	return false
 
