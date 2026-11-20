@@ -2576,14 +2576,14 @@ func _absorb_test() -> void:
 func _burst_pill_test() -> void:
 	print("\n=== 真气爆发 / 还丹 ===")
 	# --- 爆发：消耗全部内力，消耗越多越强；次数有限 ---
-	var base_w := _new_world(91)
+	var base_w := _new_world(91, "kuang_feng")
 	base_w.skills.clear()
 	_check(base_w.burst_max() == 1 and base_w.burst_left() == 1, "基础 1 次爆发")
 	base_w.neili = base_w.st("max_neili") * 0.05
 	_check(not base_w.can_burst(), "内力低于 10% 不能爆发")
 	var dmg_at := {}
 	for f in [0.3, 1.0]:
-		var w := _new_world(92)
+		var w := _new_world(92, "kuang_feng")
 		w.skills.clear()
 		w.stats["crit_chance"] = 0.0
 		var en := Enemy.new()
@@ -2607,7 +2607,7 @@ func _burst_pill_test() -> void:
 		_free_world(w)
 	_check(float(dmg_at[1.0]) > float(dmg_at[0.3]) * 2.5, "消耗越多威力越大（30%% 内力 %.0f → 满内力 %.0f）" % [dmg_at[0.3], dmg_at[1.0]])
 	# --- 内力属性 + 天赋 ---
-	var wn := _new_world(93)
+	var wn := _new_world(93, "kuang_feng")
 	wn.skills.clear()
 	wn.xinfa = {"wuxiang": 1, "tiegu": 1}
 	wn.recalc()
