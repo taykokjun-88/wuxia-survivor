@@ -1467,7 +1467,8 @@
       "desc": "",
       "starters": [],
       "portrait": "res://assets/portraits/blade_hero.jpg",
-      "sprite_dir": ""
+      "sprite_dir": "res://assets/sprites/blade",
+      "town_hero_dir": "res://assets/town/hero_blade"
     },
     "spear": {
       "name": "长兵",

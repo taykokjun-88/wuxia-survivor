@@ -229,7 +229,7 @@ def cmd_strip(args):
     anim["cell"] = cell
     anim["anims"][args.name] = {"file": f"{args.name}.png", "frames": len(tiles), "fps": args.fps, "loop": not args.once}
     anim_file.write_text(json.dumps(anim, ensure_ascii=False, indent=2))
-    print(f"已写入 {out_png.relative_to(ROOT)}：{len(tiles)} 帧 × {cell}px")
+    print(f"已写入 {out_png.resolve().relative_to(ROOT)}：{len(tiles)} 帧 × {cell}px")
 
 
 def main():
