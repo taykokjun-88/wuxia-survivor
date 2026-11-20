@@ -3274,7 +3274,7 @@
         },
         "hp_mult": {
           "mini": 3.5,
-          "final": 2.8
+          "final": 2.4
         },
         "min_win": 800
       },
