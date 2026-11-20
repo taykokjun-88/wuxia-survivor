@@ -1011,11 +1011,13 @@ func _build_auth(prefill: String) -> void:
 	(auth_panel.get_child(auth_panel.get_child_count() - 1) as Control).anchor_right = 0.5       # 表单放在左半边，不挡住封面上的人物
 	var box: VBoxContainer = pb[1]
 	var at := _label("武侠幸存者", 52)
+	var ver := _label("V%s" % str(ProjectSettings.get_setting("application/config/version", "0")), 22, Color("#e6c65a"))
 	var ah := _label("请登录。还没有账号？点「注册」，需要管理员给你的邀请码", 18, Color("#f3ead2"))
-	for l: Label in [at, ah]:       # 封面偏亮：加深色描边
+	for l: Label in [at, ver, ah]:       # 封面偏亮：加深色描边
 		l.add_theme_color_override("font_outline_color", Color(0.04, 0.03, 0.03, 0.95))
 		l.add_theme_constant_override("outline_size", 8)
 	box.add_child(at)
+	box.add_child(ver)
 	box.add_child(ah)
 	var mode_row := _center_row(10)
 	box.add_child(mode_row)
