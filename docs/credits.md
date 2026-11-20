@@ -29,3 +29,4 @@
   **steprock**（Treasure Chest Open）、**LiamG_SFX**（Arrow Fly-by）、**JohnBuhr**（Sword Clash）、**AardsReal**（Basic Metal Clang）、
   **Kane53126**（Body Thud）、**courtneyeck**（Falling body）— 均为 CC0。
 - 原始文件放在作者的云端硬盘 `sfx_raw`（不进仓库）；重新生成：`python3 tools/build_sfx_real.py <原始采样目录>`。
+- **Kenney**：RPG Audio（CC0）— 脚步声、翻页（升级选卡）。

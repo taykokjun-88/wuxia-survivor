@@ -12,6 +12,7 @@ var player_pos := Vector2.ZERO
 var facing := Vector2.DOWN
 var input_move := Vector2.ZERO
 var moving := false
+var step_t := 0.0                # 脚步声计时
 var time := 0.0
 
 var npcs: Array = []                  # [{id, name, title, pos, tex, building}]
@@ -145,6 +146,10 @@ func step(dt: float) -> void:
 		m = m.normalized()
 	moving = m.length() > 0.1
 	if moving:
+		step_t -= dt
+		if step_t <= 0.0:
+			step_t = 0.36
+			Sfx.play("footstep", 0.06, 0.0)
 		facing = m.normalized()
 		var d := m * SPEED * dt
 		# 分轴移动：贴着墙能滑过去

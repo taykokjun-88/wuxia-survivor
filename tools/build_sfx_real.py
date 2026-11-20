@@ -57,7 +57,7 @@ def mix(*parts):
     return y
 
 
-LOUD = {"pickup_exp": -27, "ui_click": -23, "ui_confirm": -23, "ui_back": -23, "chest_open": -22, "enemy_ranged": -21,
+LOUD = {"pickup_exp": -27, "footstep": -27, "card_pick": -22, "ui_click": -23, "ui_confirm": -23, "ui_back": -23, "chest_open": -22, "enemy_ranged": -21,
         "level_up": -20, "realm_ying": -20, "win_jingle": -19, "lose_jingle": -19, "hit_sword": -21, "enemy_death": -22,
         "boss_warn": -15, "boss_cleave": -15, "burst_break": -16, "burst_ult": -15, "bl_dragon": -15, "bl_quake": -16,
         "palm_dragon": -15, "fist_quake": -17, "sw_yitian": -17, "dugu_awaken": -17}
@@ -124,7 +124,6 @@ J["enemy_ranged"] = lambda: S("arrow.wav", .6)
 J["ui_click"] = lambda: S("ui_click1.wav", .1)
 J["ui_confirm"] = lambda: S("ui_click2.wav", .12, semis=3)
 J["ui_back"] = lambda: S("ui_click2.wav", .12, semis=-4)
-J["card_pick"] = lambda: mix((S("k_wood_001.ogg", semis=3), 1, 0), (S("chime.wav", .35, semis=4), .35, .03))
 J["chest_open"] = lambda: S("chest.mp3", 1.3)
 J["gear_upgrade"] = lambda: mix((S("anvil.wav", .5), 1, 0), (S("q_chime.wav", .8), .6, .15))
 J["gear_fail"] = lambda: mix((S("k_soft_000.ogg"), 1, 0), (S("q_deepsub.wav", .45, lp=350, semis=-2), .6, 0))
@@ -146,6 +145,8 @@ V["player_hurt"] = [lambda: mix((S("k_soft_000.ogg", .2), 1, 0), (S("q_punchyboo
                     lambda: S("p_07.wav", .2, semis=-4), lambda: S("k_soft_002.ogg", .2, semis=-2)]
 V["armor_break"] = [lambda: S("k_metal_001.ogg"), lambda: S("k_metal_003.ogg", semis=-3), lambda: mix((S("k_metal_004.ogg"), 1, 0), (S("k_wood_001.ogg"), .6, .02))]
 V["block_shield"] = [lambda: S("swordclash.wav", .3), lambda: S("clang.wav", .3), lambda: mix((S("k_metal_000.ogg"), 1, 0), (S("k_tin_000.ogg", semis=-4), .6, 0))]
+V["footstep"] = [lambda: S("foot0.ogg"), lambda: S("foot1.ogg"), lambda: S("foot2.ogg"), lambda: S("foot3.ogg")]
+V["card_pick"] = [lambda: S("flip2.ogg"), lambda: S("flip3.ogg")]
 V["vuln_break"] = [lambda: S("k_wood_000.ogg", .2, semis=2), lambda: S("k_wood_001.ogg", .2, semis=2), lambda: S("k_wood_002.ogg", .2, semis=2)]
 
 if __name__ == "__main__":

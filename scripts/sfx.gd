@@ -52,7 +52,7 @@ const RULES := {
 	"fist_finger": [75, 3, 1], "fist_quake": [260, 1, 3], "fist_vajra": [260, 1, 3],
 	"palm_multi": [140, 2, 1], "palm_dragon": [200, 2, 2], "palm_soft": [200, 2, 2],
 	# 界面 / 结算
-	"ui_click": [40, 2, 1], "ui_confirm": [60, 1, 2], "ui_back": [60, 1, 2], "card_pick": [80, 1, 2], "chest_open": [300, 1, 2],
+	"footstep": [180, 1, 0], "ui_click": [40, 2, 1], "ui_confirm": [60, 1, 2], "ui_back": [60, 1, 2], "card_pick": [80, 1, 2], "chest_open": [300, 1, 2],
 	"gear_upgrade": [300, 1, 3], "gear_fail": [300, 1, 3], "win_jingle": [2000, 1, 5], "lose_jingle": [2000, 1, 5],
 }
 

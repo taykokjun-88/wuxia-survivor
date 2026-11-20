@@ -349,6 +349,7 @@ func _check_pending() -> void:
 func _on_choice(i: int) -> void:
 	if state != State.CHOOSE or i >= choices.size():
 		return
+	Sfx.play("card_pick", 0.03, -1.0)
 	world.apply_choice(choices[i])
 	hud.hide_choices()
 	state = State.PLAY
