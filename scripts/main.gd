@@ -385,6 +385,7 @@ func _on_end(won: bool) -> void:
 	state = State.END
 	hud.hide_choices()
 	hud.show_end(won)
+	Sfx.play("win_jingle" if won else "lose_jingle", 0.0, -2.0, 1.0)
 	if not Net.configured():
 		# 单机：本地直接结算修为，通关掉落装备
 		if world.time >= 30.0:

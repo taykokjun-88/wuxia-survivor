@@ -51,7 +51,12 @@ const RULES := {
 	# 拳 / 掌
 	"fist_finger": [75, 3, 1], "fist_quake": [260, 1, 3], "fist_vajra": [260, 1, 3],
 	"palm_multi": [140, 2, 1], "palm_dragon": [200, 2, 2], "palm_soft": [200, 2, 2],
+	# 界面 / 结算
+	"ui_click": [40, 2, 1], "ui_confirm": [60, 1, 2], "ui_back": [60, 1, 2], "card_pick": [80, 1, 2], "chest_open": [300, 1, 2],
+	"gear_upgrade": [300, 1, 3], "gear_fail": [300, 1, 3], "win_jingle": [2000, 1, 5], "lose_jingle": [2000, 1, 5],
 }
+
+var _variants: Dictionary = {}     # id -> [AudioStream]：<id>_1 / _2 / _3 …（命中 / 受击等随机轮换，避免听腻）
 
 const SKILL_MAP := {
 	# 剑侠：细、亮、带「铮」
@@ -127,7 +132,8 @@ func play(id: String, pitch_jitter: float = 0.10, vol_db: float = 0.0, pitch_ove
 		return
 	var p := _players[idx]
 	_playing_id[idx] = id
-	p.stream = _streams[id]
+	var vs: Array = _variants.get(id, [])
+	p.stream = vs[randi() % vs.size()] if not vs.is_empty() else _streams[id]
 	if pitch_override > 0.0:
 		p.pitch_scale = pitch_override
 	else:
@@ -175,6 +181,15 @@ func _borrow_slot(prio: int) -> int:
 
 func _build_all_streams() -> void:
 	for id in RULES:
+		var vs: Array = []
+		for i in range(1, 7):
+			for ext in ["ogg", "wav"]:
+				var vp := "res://assets/sfx/%s_%d.%s" % [id, i, ext]
+				if ResourceLoader.exists(vp):
+					vs.append(load(vp))
+					break
+		if not vs.is_empty():
+			_variants[id] = vs
 		var ogg := "res://assets/sfx/%s.ogg" % id
 		var wav := "res://assets/sfx/%s.wav" % id
 		if ResourceLoader.exists(ogg):

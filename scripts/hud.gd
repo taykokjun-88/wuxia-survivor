@@ -741,6 +741,7 @@ func _button(text: String, size: Vector2, font_size: int = 20) -> Button:
 	b.custom_minimum_size = size
 	b.focus_mode = Control.FOCUS_NONE
 	b.add_theme_font_size_override("font_size", font_size)
+	b.pressed.connect(func() -> void: Sfx.play("ui_click", 0.04, -3.0))
 	return b
 
 
