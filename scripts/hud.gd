@@ -854,7 +854,7 @@ func _build_chars(online: bool) -> void:
 	box.add_child(row)
 	for i in Save.MAX_CHARS:
 		var card := PanelContainer.new()
-		card.custom_minimum_size = Vector2(228, 400)
+		card.custom_minimum_size = Vector2(228, 458)
 		var v := VBoxContainer.new()
 		v.add_theme_constant_override("separation", 8)
 		v.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -864,7 +864,7 @@ func _build_chars(online: bool) -> void:
 			card.add_theme_stylebox_override("panel", _char_card_style(i == chars_sel, false))
 			var av := TextureRect.new()
 			av.texture = select_sprite_of(str(c["school"]))
-			av.custom_minimum_size = Vector2(190, 200)
+			av.custom_minimum_size = Vector2(206, 258)
 			av.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			av.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			av.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
