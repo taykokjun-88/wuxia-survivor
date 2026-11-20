@@ -1700,6 +1700,7 @@ func _level_growth_test() -> void:
 	var w := _new_world(61)
 	var hp0 := w.st("max_hp")
 	var arm0 := w.st("armor")
+	var dmg0 := w.st("damage_pct")                # 含流派被动（武者 +8%）
 	var e := Enemy.new()
 	e.hp = 1.0e9
 	e.max_hp = 1.0e9
@@ -1712,10 +1713,10 @@ func _level_growth_test() -> void:
 	var steps := w.level - 1
 	_check(is_equal_approx(w.st("max_hp"), hp0 + float(g["max_hp"]) * steps), "气血上限应随等级线性成长")
 	_check(is_equal_approx(w.st("armor"), arm0 + float(g["armor"]) * steps), "防御应随等级线性成长")
-	_check(is_equal_approx(w.st("damage_pct"), float(g["damage_pct"]) * steps), "基础伤害加成应随等级成长")
+	_check(is_equal_approx(w.st("damage_pct"), dmg0 + float(g["damage_pct"]) * steps), "基础伤害加成应随等级成长")
 	_check(w.hp > hp_before, "升级时应同步补上新增的气血上限")
 	var d2 := w.hit_enemy(e, 100.0, [], Vector2.ZERO, "probe")
-	_check(is_equal_approx(d2 / d1, 1.0 + float(g["damage_pct"]) * steps), "同一次攻击的伤害应按基础伤害加成放大，实际 ×%.3f" % (d2 / d1))
+	_check(is_equal_approx(d2 / d1, (1.0 + dmg0 + float(g["damage_pct"]) * steps) / (1.0 + dmg0)), "同一次攻击的伤害应按基础伤害加成放大，实际 ×%.3f" % (d2 / d1))
 	# 防御：固定减伤，但至少保留 25%
 	var w2 := _new_world(62)
 	w2.god = false
