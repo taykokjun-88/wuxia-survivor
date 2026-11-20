@@ -41,37 +41,28 @@ const RULES := {
 	"palm_wave": [110, 2, 1],
 	"enemy_ranged": [140, 2, 1],
 	"boss_cleave": [220, 1, 3],
+	"burst_break": [300, 1, 4],
+	"hit_blade": [45, 3, 1],
+	# 剑
+	"sw_ring": [150, 2, 2], "sw_multi": [140, 2, 2], "sw_blink": [120, 2, 2], "sw_snake": [100, 3, 1], "sw_yitian": [300, 1, 3],
+	# 刀
+	"bl_slash": [80, 3, 1], "bl_heavy": [180, 2, 2], "bl_proj": [90, 3, 1], "bl_fire": [200, 2, 2], "bl_blood": [90, 3, 1],
+	"bl_wheel": [220, 1, 2], "bl_quake": [260, 1, 3], "bl_spin": [200, 2, 2], "bl_dragon": [400, 1, 4],
+	# 拳 / 掌
+	"fist_finger": [75, 3, 1], "fist_quake": [260, 1, 3], "fist_vajra": [260, 1, 3],
+	"palm_multi": [140, 2, 1], "palm_dragon": [200, 2, 2], "palm_soft": [200, 2, 2],
 }
 
 const SKILL_MAP := {
-	"wuhu_blade": "sw_heavy",
-	"kuangfeng_blade": "sw_slash",
-	"hujia_blade": "sw_proj",
-	"ranmu_blade": "sw_heavy",
-	"xuedao": "sw_slash",
-	"fanliangyi": "sw_slash",
-	"xuanxu_blade": "sw_heavy",
-	"yuanyang_blade": "sw_proj",
-	"tulong_art": "sw_heavy",
-	"kuang_feng": "sw_slash",
-	"qingsong": "sw_thrust",
-	"zhongjian": "sw_heavy",
-	"taiji_sword": "sw_slash",
-	"wanjian": "sw_proj",
-	"yunv": "sw_slash",
-	"pixie": "sw_thrust",
-	"jinshe": "sw_proj",
-	"yitian": "sw_heavy",
-	"dugu": "sw_proj",
-	"chain_fist": "fist_punch",
-	"yue_palm": "palm_wave",
-	"point_finger": "sw_thrust",
-	"quake_fist": "sw_heavy",
-	"whirl_palm": "palm_wave",
-	"eight_waste": "palm_wave",
-	"taiji": "palm_wave",
-	"cloud_palm": "palm_wave",
-	"vajra_fist": "sw_heavy",
+	# 剑侠：细、亮、带「铮」
+	"kuang_feng": "sw_slash", "qingsong": "sw_thrust", "zhongjian": "sw_heavy", "taiji_sword": "sw_ring",
+	"wanjian": "sw_multi", "yunv": "sw_slash", "pixie": "sw_blink", "jinshe": "sw_snake", "yitian": "sw_yitian", "dugu": "sw_proj",
+	# 刀客：宽、重
+	"wuhu_blade": "bl_heavy", "kuangfeng_blade": "bl_slash", "hujia_blade": "bl_proj", "ranmu_blade": "bl_fire", "xuedao": "bl_blood",
+	"fanliangyi": "bl_wheel", "xuanxu_blade": "bl_quake", "yuanyang_blade": "bl_spin", "tulong_art": "bl_dragon",
+	# 武者：拳闷、掌有气浪
+	"chain_fist": "fist_punch", "point_finger": "fist_finger", "quake_fist": "fist_quake", "vajra_fist": "fist_vajra",
+	"yue_palm": "palm_dragon", "whirl_palm": "palm_wave", "eight_waste": "palm_multi", "taiji": "palm_soft", "cloud_palm": "palm_wave",
 }
 
 

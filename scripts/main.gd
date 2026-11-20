@@ -156,7 +156,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				_close_modal()
 		State.END:
 			if event.is_action_pressed("ui_accept") or (event is InputEventKey and event.pressed and event.keycode == KEY_R):
-				get_tree().reload_current_scene()
+				_end_to_town()
 			elif event is InputEventKey and event.pressed and event.keycode == KEY_B and Net.configured():
 				_open_board()
 
@@ -373,6 +373,12 @@ func _on_pause_abandon() -> void:
 	world.over = true
 	world.won = false
 	_on_end(false)
+
+
+## 局结束后回到小镇（不回登录画面；已登录状态、局外成长、装备都保留）
+func _end_to_town() -> void:
+	hud.hide_overlay()
+	_enter_town()
 
 
 func _on_end(won: bool) -> void:

@@ -1339,7 +1339,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 			add_fx("ring", e.pos, 0.5, {"r0": 20.0, "r1": 140.0, "color": Color("#9ae8ff"), "vfx": "boss_shield_break" if vfx.has("boss_shield_break") else "burst_break", "size": maxf(e.radius * 4.0, 150.0)})
 			shake = maxf(shake, 7.0)
 	damage_enemy(e, amount, knock_vec, crit)
-	Sfx.play("hit_crit" if crit else ("hit_sword" if (school_id == "sword" or school_id == "blade") else "hit_fist"))
+	Sfx.play("hit_crit" if crit else ("hit_blade" if school_id == "blade" else ("hit_sword" if school_id == "sword" else "hit_fist")))
 	return amount
 
 
@@ -2084,10 +2084,7 @@ func _draw_zones() -> void:
 		var zr: float = z["r"]
 		match str(z["kind"]):
 			"impact":
-				var f := clampf(float(z["t"]) / float(z["delay"]), 0.0, 1.0)
-				draw_circle(zpos, zr, Color(VERMILION, 0.10))
-				draw_circle(zpos, zr * f, Color(VERMILION, 0.18))
-				draw_arc(zpos, zr, 0.0, TAU, 32, Color(VERMILION, 0.6), 2.0)
+				pass       # 玩家自己的招式不画预警圈（红色预警只属于敌人，避免混淆）；落地时才有特效
 			"crack":
 				if vfx.has("zone_crack"):
 					continue

@@ -1677,7 +1677,7 @@ func show_end(won: bool) -> void:
 
 ## 结算界面的补充行（成绩上传结果等）
 func set_end_extra(extra: String) -> void:
-	var tail := "按 Enter / R 重新开始" + ("　·　按 B 查看排行榜" if Net.configured() else "")
+	var tail := "按 Enter / R 回小镇" + ("　·　按 B 查看排行榜" if Net.configured() else "")
 	overlay_body.text = end_base + ("\n" + extra if extra != "" else "") + "\n\n" + tail
 
 
