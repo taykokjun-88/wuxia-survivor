@@ -64,8 +64,12 @@ static func _exec_len(id: String, d: Dictionary) -> float:
 			return float(d["gap"]) * float(int(d["count"]) - 1) + 0.25
 		"whirl":
 			return float(d["gap"]) * float(int(d["rounds"])) + 0.2
-		"blink":
+		"blink", "backstab":
 			return float(d["after"]) + 0.4
+		"palm_seal", "sword_rain":
+			return float(d["gap"]) * float(int(d["n"])) + 0.3
+		"eagle_snake", "snow_palm":
+			return float(d["dur"])
 		"leap":
 			return float(d["fly"]) + 0.3
 	return 0.35
@@ -80,6 +84,11 @@ static func _start(w: GameWorld, e: Enemy, id: String, dir: Vector2) -> void:
 	e.cast_start = e.pos
 	e.cast_pos = w.player_pos
 	e.cast_dur = float(d["warn"]) + _exec_len(id, d)
+	e.cast_list.clear()
+	if str(d["shape"]) == "spots":                 # 多点落点：第一个落在玩家脚下，其余散在周围
+		for k in int(d["n"]):
+			var off := Vector2.ZERO if k == 0 else Vector2.from_angle(w.rng.randf() * TAU) * w.rng.randf_range(40.0, float(d["around"]))
+			e.cast_list.append(w.player_pos + off)
 	if e.is_boss and e.is_final or e.is_boss:
 		w.add_fx("text", e.pos + Vector2(0, -e.radius - 34), 1.0, {"text": str(d["name"]), "size": 24, "color": Color("#ff6a4a")})
 
@@ -111,6 +120,33 @@ static func _in_circle(w: GameWorld, c: Vector2, r: float) -> bool:
 static func _hurt(w: GameWorld, e: Enemy, dmg: float) -> void:
 	if w.invuln <= 0.0:
 		w._hurt(dmg * _mult(e))
+
+
+static func _near_segment(p: Vector2, a: Vector2, b: Vector2, r: float) -> bool:
+	var ab := b - a
+	var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 1.0), 0.0, 1.0)
+	return p.distance_to(a + ab * t) <= r
+
+
+## 大 Boss 进入第二阶段：震退玩家、大字、护盾、加攻 / 速 / 防，追加招式
+static func enter_phase2(w: GameWorld, e: Enemy) -> void:
+	e.phase2 = true
+	var d: Dictionary = e.phase2_def
+	e.shield_max = e.max_hp * float(d["shield"])
+	e.shield = e.shield_max
+	e.damage *= float(d["atk"])
+	e.speed *= float(d["speed"])
+	e.defense = float(d["defense"])
+	for sk in d.get("add", []):
+		e.skills.append(str(sk))
+	e.cast_id = ""
+	e.skill_gap = 1.2
+	e.invuln_t = 0.0
+	_knock(w, e.pos, float(d.get("knock", 600.0)))
+	w.add_fx("text", e.pos + Vector2(0, -e.radius - 70), 3.0, {"text": str(d.get("text", "")), "size": 44, "color": Color("#bfe8ff")})
+	w.add_fx("ring", e.pos, 0.8, {"r0": 20.0, "r1": 420.0, "color": Color("#bfe8ff"), "vfx": "burst_break"})
+	w.shake = maxf(w.shake, 14.0)
+	Sfx.play("boss_warn")
 
 
 static func _knock(w: GameWorld, from: Vector2, power: float) -> void:
@@ -148,12 +184,12 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 		if t < warn - 0.25:
 			e.cast_dir = dir
 			e.cast_pos = w.player_pos
-		if id == "blink":
+		if id == "blink" or id == "backstab":
 			e.cast_pos = w.player_pos - w.facing * 72.0
 		return vel
 	var u := t - warn                               # 施放后经过的时间
 	match id:
-		"charge", "rush":
+		"charge", "rush", "eagle_snake", "snow_palm":
 			if u < float(d["dur"]):
 				vel = e.cast_dir * float(d["speed"])
 		"claw":
@@ -164,7 +200,7 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 				if _in_fan(w, e.pos, e.cast_dir, float(d["reach"]), float(d["arc"])):
 					_hurt(w, e, float(d["dmg"]))
 				Sfx.play("boss_cleave")
-		"whip", "cleave":
+		"whip", "cleave", "dragon_claw", "snow_cleave":
 			if e.cast_stage == 0:
 				e.cast_stage = 1
 				_slash_fx(w, e, d, e.cast_dir)
@@ -174,7 +210,7 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 						w.player_slow_t = float(d["slow"])
 				w.shake = maxf(w.shake, 5.0)
 				Sfx.play("boss_cleave")
-		"stomp", "shock":
+		"stomp", "shock", "bell_shock", "buddha_light":
 			if e.cast_stage == 0:
 				e.cast_stage = 1
 				var r := float(d["r"])
@@ -197,7 +233,7 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 				e.cast_stage = i2 + 1
 				_shot(w, e.pos, (w.player_pos - e.pos).angle(), float(d["speed"]), float(d["dmg"]) * _mult(e), 14.0, str(d["kind"]), 3.0)
 				Sfx.play("enemy_ranged")
-		"blink":
+		"blink", "backstab":
 			if e.cast_stage == 0:
 				e.cast_stage = 1
 				w.add_fx("splat", e.pos, 0.5, {"r": e.radius * 1.6, "color": Color(0.05, 0.05, 0.08)})
@@ -206,7 +242,7 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 				e.cast_dir = (w.player_pos - e.pos).normalized()
 			elif e.cast_stage == 1 and u >= float(d["after"]):
 				e.cast_stage = 2
-				var cd := _d("whip")
+				var cd := _d("whip") if id == "blink" else {"reach": 150.0, "arc": 2.2, "dmg": float(d["dmg2"]), "vfx": "boss_whip_arc"}
 				_slash_fx(w, e, cd, e.cast_dir)
 				if _in_fan(w, e.pos, e.cast_dir, float(cd["reach"]), float(cd["arc"])):
 					_hurt(w, e, float(cd["dmg"]))
@@ -233,6 +269,55 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 				for k2 in n2:
 					_shot(w, e.pos, off + TAU * k2 / n2, float(d["speed"]), float(d["dmg"]) * _mult(e), 12.0, str(d["kind"]), 4.0)
 				Sfx.play("enemy_ranged")
+		"fan_blade":
+			if e.cast_stage == 0:
+				e.cast_stage = 1
+				var nb := int(d["count"])
+				for kb in nb:
+					_shot(w, e.pos, e.cast_dir.angle() + (kb - (nb - 1) * 0.5) * float(d["spread"]), float(d["speed"]), float(d["dmg"]) * _mult(e), 12.0, str(d["kind"]), 3.0)
+				Sfx.play("enemy_ranged")
+		"poison_mist":
+			if e.cast_stage == 0:
+				e.cast_stage = 1
+				var zd: Dictionary = d["zone"]
+				w.add_hzone({"kind": "mist", "shape": "circle", "pos": e.cast_pos, "r": float(d["r"]), "life": float(zd["life"]), "dps": float(zd["dps"]) * _mult(e), "slow": float(zd["slow"]), "vfx": str(d.get("vfx", ""))})
+		"cross_blade", "yitian_cross":
+			if e.cast_stage == 0:
+				e.cast_stage = 1
+				var nr := int(d["n"])
+				var base := e.cast_dir.angle() + float(d["offset"])
+				var hit := false
+				for kr in nr:
+					var ang := base + TAU * float(kr) / float(nr)
+					var tip := e.pos + Vector2.from_angle(ang) * float(d["len"])
+					w.add_fx("ray", e.pos, 0.35, {"to": tip, "width": float(d["width"]), "color": Color("#bfe8ff") if id == "yitian_cross" else Color("#ff6a4a")})
+					if _near_segment(w.player_pos, e.pos, tip, float(d["width"]) * 0.5 + GameWorld.PLAYER_RADIUS):
+						hit = true
+				if hit:
+					_hurt(w, e, float(d["dmg"]))
+				w.shake = maxf(w.shake, 7.0)
+				Sfx.play("boss_cleave")
+		"frost_slash":
+			if e.cast_stage == 0:
+				e.cast_stage = 1
+				var tip2 := e.pos + e.cast_dir * float(d["len"])
+				w.add_fx("ray", e.pos, 0.4, {"to": tip2, "width": float(d["width"]), "color": Color("#9ad8ff")})
+				if _near_segment(w.player_pos, e.pos, tip2, float(d["width"]) * 0.5 + GameWorld.PLAYER_RADIUS):
+					_hurt(w, e, float(d["dmg"]))
+				var iz: Dictionary = d["zone"]
+				w.add_hzone({"kind": "ice", "shape": "line", "pos": e.pos, "end": tip2, "r": float(d["width"]), "life": float(iz["life"]), "dps": float(iz["dps"]) * _mult(e), "slow": float(iz["slow"])})
+				Sfx.play("boss_cleave")
+		"palm_seal", "sword_rain":
+			var i4 := int(u / float(d["gap"]))
+			while e.cast_stage <= i4 and e.cast_stage < e.cast_list.size():
+				var sp: Vector2 = e.cast_list[e.cast_stage]
+				e.cast_stage += 1
+				var sr := float(d["r"])
+				w.add_fx("ring", sp, 0.4, {"r0": 10.0, "r1": sr, "color": Color("#ffd070") if id == "palm_seal" else Color("#bfe8ff"), "vfx": str(d.get("vfx", "")), "size": sr * 2.4})
+				if _in_circle(w, sp, sr):
+					_hurt(w, e, float(d["dmg"]))
+				w.shake = maxf(w.shake, 4.0)
+				Sfx.play("boss_cleave")
 		"summon":
 			if e.cast_stage == 0:
 				e.cast_stage = 1
@@ -244,7 +329,11 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 				w.add_fx("text", e.pos + Vector2(0, -e.radius - 50), 1.4, {"text": "狂暴！", "size": 30, "color": Color("#ff3a2a")})
 				w.shake = maxf(w.shake, 6.0)
 	if e.cast_t >= e.cast_dur:
-		_end(e)
+		var follow := str(d.get("follow", ""))
+		if follow != "" and _d(follow).size() > 0:
+			_start(w, e, follow, e.cast_dir)
+		else:
+			_end(e)
 	return vel
 
 
@@ -260,7 +349,17 @@ static func minion(w: GameWorld, e: Enemy, dt: float, dir: Vector2, d: float) ->
 			return Vector2.ZERO
 		var u := e.cast_t - warn
 		var vel := Vector2.ZERO
-		if e.cast_id == "arrow":
+		if e.cast_id == "minion_stomp":
+			if e.cast_stage == 0:
+				e.cast_stage = 1
+				w.add_fx("ring", e.pos, 0.35, {"r0": 8.0, "r1": float(sd["r"]), "color": Color("#ffb070")})
+				if _in_circle(w, e.pos, float(sd["r"])):
+					w._hurt(float(sd["dmg"]) * maxf(1.0, e.damage / 12.0))
+					_knock(w, e.pos, float(sd["knock"]))
+				w.shake = maxf(w.shake, 3.0)
+			if u > 0.25:
+				_end(e, 2.0, 3.0)
+		elif e.cast_id == "arrow":
 			if e.cast_stage == 0:
 				e.cast_stage = 1
 				_shot(w, e.pos, e.cast_dir.angle(), float(sd["speed"]), float(sd["dmg"]) * maxf(1.0, e.damage / 6.0), 7.0, "arrow", 2.5)
@@ -281,8 +380,13 @@ static func minion(w: GameWorld, e: Enemy, dt: float, dir: Vector2, d: float) ->
 		if d > 330.0:
 			return dir * e.speed
 		return dir.orthogonal() * e.speed * 0.5
-	if e.skill_gap <= 0.0 and d < 380.0 and d > 90.0:
-		_start(w, e, "rush", dir)
+	if e.behavior == "stomper":
+		if e.skill_gap <= 0.0 and d < 120.0:
+			_start(w, e, "minion_stomp", dir)
+		return dir * e.speed
+	if e.behavior == "thruster" or e.behavior == "charger":
+		if e.skill_gap <= 0.0 and d < 380.0 and d > 60.0:
+			_start(w, e, e.mskill if e.mskill != "" else "rush", dir)
 	return dir * e.speed
 
 
@@ -321,9 +425,30 @@ static func draw_telegraph(w: GameWorld, e: Enemy) -> void:
 			w.draw_colored_polygon(pts2, inner)
 			w.draw_polyline(pts, edge, 2.0)
 			w.draw_line(pts[pts.size() - 1], e.pos, edge, 2.0)
+		"rays":
+			var nr := int(d["n"])
+			var base := e.cast_dir.angle() + float(d["offset"])
+			for kr in nr:
+				var ang := base + TAU * float(kr) / float(nr)
+				var tip := e.pos + Vector2.from_angle(ang) * float(d["len"])
+				var wd2 := float(d["width"])
+				var nrm := Vector2.from_angle(ang).orthogonal() * wd2 * 0.5
+				var quad := PackedVector2Array([e.pos + nrm, tip + nrm, tip - nrm, e.pos - nrm])
+				w.draw_colored_polygon(quad, fill)
+				var tipp := e.pos + Vector2.from_angle(ang) * float(d["len"]) * p
+				w.draw_colored_polygon(PackedVector2Array([e.pos + nrm, tipp + nrm, tipp - nrm, e.pos - nrm]), inner)
+				w.draw_polyline(PackedVector2Array([e.pos + nrm, tip + nrm, tip - nrm, e.pos - nrm, e.pos + nrm]), edge, 2.0)
+		"spots":
+			var sr := float(d["r"])
+			for sp in e.cast_list:
+				w.draw_circle(sp, sr, fill)
+				w.draw_circle(sp, sr * p, inner)
+				w.draw_arc(sp, sr, 0.0, TAU, 28, edge, 3.0)
 		"circle":
 			var c := e.pos
-			if e.cast_id == "leap" or e.cast_id == "blink":
+			if e.cast_id == "leap" or e.cast_id == "blink" or e.cast_id == "backstab":
+				c = e.cast_pos
+			elif d.get("at", "") == "player":
 				c = e.cast_pos
 			var r := float(d["r"])
 			w.draw_circle(c, r, fill)

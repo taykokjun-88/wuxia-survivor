@@ -53,6 +53,7 @@ var _lite := false                  # 本帧画面里怪太多：普通怪走快
 var props_enabled := true          # 场景里随机出现可打碎的木箱 / 酒坛 / 火盆
 var prop_t := 3.0
 var pickup_art: Dictionary = {}    # 掉落物素材（assets/pickups）：id → {tex, w, h}
+var hzones: Array = []                # Boss 留下的地面区域：毒雾 / 冰封带（持续伤害 / 减速）
 var player_knock := Vector2.ZERO       # Boss 技能击退
 var player_slow_t := 0.0           # 银鞭减速
 var boss_deadline := -1.0          # 大 Boss 现身后的限时（秒，游戏内时间）；超时 = 寨主逃遁，判负
@@ -174,6 +175,7 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	dugu_combo_log.clear()
 	boss_deadline = -1.0
 	timeout_fail = false
+	hzones.clear()
 	sword_break_count = 0
 	qinggong_id = p_qinggong
 	qg = Data.qinggong[qinggong_id]
@@ -439,6 +441,7 @@ func step(dt: float) -> void:
 		s.tick(dt)
 	_update_projectiles(dt)
 	_update_zones(dt)
+	_update_hzones(dt)
 	_update_gems(dt)
 	_update_pills(dt)
 	_update_absorb(dt)
@@ -700,6 +703,7 @@ func _clear_for_final() -> void:
 	bosses = keep
 	projs = projs.filter(func(p): return not p.hostile)
 	zones.clear()
+	hzones.clear()
 	add_fx("text", player_pos + Vector2(0, -130), 2.2, {"text": "大敌当前，杂兵尽退！", "size": 30, "color": VERMILION})
 
 
@@ -715,6 +719,22 @@ func _ring_pos() -> Vector2:
 
 
 func _pick_type() -> String:
+	var tbl: Array = Data.maps[map_id].get("spawn_table", [])
+	if not tbl.is_empty():                                # 按门派时间表刷怪：当前阶段的权重 1，已过的阶段留一点（0.3）
+		var tot := 0.0
+		var ws: Array[float] = []
+		for row in tbl:
+			var wt := 0.0
+			if time >= float(row["t0"]):
+				wt = 1.0 if time < float(row["t1"]) else 0.25
+			ws.append(wt)
+			tot += wt
+		var rr := rng.randf() * tot
+		for i in tbl.size():
+			rr -= ws[i]
+			if rr < 0.0:
+				return str(tbl[i]["id"])
+		return str(tbl[0]["id"])
 	var w_blade := clampf((time - 30.0) / 180.0, 0.0, 0.8)
 	var w_soldier := clampf((time - 90.0) / 240.0, 0.0, 0.7)
 	var w_archer := clampf((time - 140.0) / 220.0, 0.0, 0.45)      # 弓手：保持距离放冷箭（有红线预警）
@@ -750,6 +770,10 @@ func _spawn_enemy(type: String, at: Vector2) -> Enemy:
 	e.exp_value = int(def["exp"])
 	e.color = Color(str(def["color"]))
 	e.behavior = str(def.get("behavior", ""))
+	e.mskill = str(def.get("mskill", ""))
+	e.skill_gap = rng.randf_range(0.5, 2.0)
+	e.touch_slow = float(def.get("touch_slow", 0.0))
+	e.defense = float(def.get("defense", 0.0))
 	e.art_key = str(def.get("art", ""))
 	if def.has("tint"):
 		e.tint = Color(str(def["tint"]))
@@ -806,6 +830,7 @@ func _spawn_boss(id: String, final: bool) -> void:
 	e.skills = (def.get("skills", []) as Array).duplicate()
 	e.skills2 = (def.get("skills2", []) as Array).duplicate()
 	e.phase_hp = float(def.get("phase_hp", 0.0))
+	e.phase2_def = (def.get("phase2", {}) as Dictionary).duplicate()
 	e.skill_gap = 2.0
 	e.guard_max = e.max_hp * Data.T("boss_guard_pct")
 	e.guard = e.guard_max
@@ -938,6 +963,8 @@ func _update_enemies(dt: float) -> void:
 					continue
 			if e.poison_t <= 0.0:
 				e.poison_dps = 0.0
+		if e.is_boss and not e.phase2 and not e.phase2_def.is_empty() and e.hp <= e.max_hp * float(e.phase2_def["hp"]):
+			BossAI.enter_phase2(self, e)
 		if e.is_boss:
 			if e.weak_t > 0.0:
 				e.weak_t -= dt
@@ -973,6 +1000,8 @@ func _update_enemies(dt: float) -> void:
 		e.knock *= maxf(0.0, 1.0 - 7.0 * dt)
 		if e.stun <= 0.0 and d < e.radius + PLAYER_RADIUS and invuln <= 0.0:
 			_hurt(e.damage)
+			if e.touch_slow > 0.0:
+				player_slow_t = maxf(player_slow_t, e.touch_slow)
 
 
 ## 简易分离：只看自己所在格的少量邻居，避免敌人叠成一团。
@@ -1206,8 +1235,22 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 	if sk != null and float(sk.mods["heal"]) > 0.0:
 		hp = minf(st("max_hp"), hp + minf(3.0, amount * float(sk.mods["heal"])))
 	skill_dmg[sid] = float(skill_dmg.get(sid, 0.0)) + amount
+	if e.defense > 0.0:
+		amount *= 1.0 - e.defense * (1.0 - clampf(st("armor_pierce"), 0.0, 1.0))
 	if e.is_boss:
 		amount = _boss_guard(e, amount, emp)
+		if e.shield > 0.0:                               # 护盾：先吃伤害；Boss 破防（虚弱）时以双倍伤害打掉
+			var sd := amount * (2.0 if e.weak_t > 0.0 else 1.0)
+			if sd < e.shield:
+				e.shield -= sd
+				e.flash = 0.08
+				add_fx("text", e.pos + Vector2(rng.randf_range(-8, 8), -e.radius), 0.6, {"text": str(int(sd)), "size": 17, "color": Color("#9ae8ff")})
+				return amount
+			amount = (sd - e.shield) / (2.0 if e.weak_t > 0.0 else 1.0)
+			e.shield = 0.0
+			add_fx("text", e.pos + Vector2(0, -e.radius - 30), 1.2, {"text": "护盾破碎！", "size": 28, "color": Color("#9ae8ff")})
+			add_fx("ring", e.pos, 0.5, {"r0": 20.0, "r1": 140.0, "color": Color("#9ae8ff"), "vfx": "burst_break"})
+			shake = maxf(shake, 7.0)
 	damage_enemy(e, amount, knock_vec, crit)
 	Sfx.play("hit_crit" if crit else ("hit_sword" if school_id == "sword" else "hit_fist"))
 	return amount
@@ -1793,6 +1836,7 @@ func _vis(p: Vector2, margin: float = 40.0) -> bool:
 func _draw() -> void:
 	_draw_background()
 	_draw_zones()
+	_draw_hzones()
 	for i in gem_pos.size():
 		var g := gem_pos[i]
 		if _vis(g):
@@ -2047,6 +2091,19 @@ func _draw_enemy_sprite(e: Enemy, key: String) -> void:
 			draw_arc(e.pos, r + 8.0, 0.0, TAU, 32, Color(GOLD, 0.5 + 0.5 * sin(time * 16.0)), 4.0)
 		elif e.guard > 0.0:
 			draw_arc(e.pos, r + 8.0, 0.0, TAU * e.guard / maxf(1.0, e.guard_max), 32, Color("#4fe0d0", 0.85), 4.0)
+	if e.shield > 0.0:                                 # 护盾光罩
+		if vfx.has("boss_shield"):
+			vfx.draw(self, "boss_shield", vfx.frame_loop("boss_shield", time), e.pos + Vector2(0, -h * 0.1), h * 1.5, 0.0, Color(1, 1, 1, 0.8))
+		else:
+			draw_circle(e.pos + Vector2(0, -h * 0.1), h * 0.62, Color("#9ae8ff", 0.14))
+			draw_arc(e.pos + Vector2(0, -h * 0.1), h * 0.62, 0.0, TAU, 36, Color("#bfe8ff", 0.7 + 0.2 * sin(time * 8.0)), 3.0)
+	if e.phase2:                                       # 二阶段气场
+		if vfx.has("boss_aura_phase2"):
+			vfx.draw(self, "boss_aura_phase2", vfx.frame_loop("boss_aura_phase2", time), e.pos + Vector2(0, h * 0.25), h * 1.3, 0.0, Color(1, 1, 1, 0.7))
+		else:
+			for kk in 3:
+				var aa := time * 2.5 + kk * 2.09
+				draw_arc(e.pos, h * 0.55, aa, aa + 1.2, 12, Color("#bfe8ff", 0.8), 3.0)
 	if e.stun > 0.0:
 		var ang := time * 8.0
 		for k in 3:
@@ -2233,6 +2290,11 @@ func _draw_effects() -> void:
 				draw_circle(at, float(fx["r"]) * (1.0 + t), Color(col3, a * 0.35))
 			"trail":
 				draw_circle(at, PLAYER_RADIUS * a, Color(JADE, a * 0.4))
+			"ray":
+				var rc: Color = fx["color"]
+				var rto: Vector2 = fx["to"]
+				draw_line(at, rto, Color(rc, a * 0.35), float(fx["width"]))
+				draw_line(at, rto, Color(1, 1, 1, a * 0.9), 4.0)
 			"slash":
 				var ang: float = fx["angle"]
 				var arc: float = fx["arc"]
@@ -2435,3 +2497,67 @@ func _draw_prop(e: Enemy) -> void:
 		_draw_pickup(id, at, h, 0.0, Color(1.6, 1.6, 1.6) if e.flash > 0.0 else Color.WHITE)
 	else:
 		draw_circle(e.pos, e.radius, Color.WHITE if e.flash > 0.0 else e.color)
+
+
+# =====================================================================
+# Boss 留下的地面区域（毒雾 / 冰封带）
+# =====================================================================
+
+func add_hzone(z: Dictionary) -> void:
+	z["t"] = 0.0
+	z["tick"] = 0.0
+	hzones.append(z)
+
+
+func _hz_contains(z: Dictionary, p: Vector2) -> bool:
+	if str(z["shape"]) == "circle":
+		return p.distance_to(z["pos"]) <= float(z["r"]) + PLAYER_RADIUS
+	var a: Vector2 = z["pos"]
+	var b: Vector2 = z["end"]
+	var ab := b - a
+	var tt := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 1.0), 0.0, 1.0)
+	return p.distance_to(a + ab * tt) <= float(z["r"]) * 0.5 + PLAYER_RADIUS
+
+
+func _update_hzones(dt: float) -> void:
+	var j := 0
+	for z in hzones:
+		z["t"] = float(z["t"]) + dt
+		if float(z["t"]) < float(z["life"]):
+			if _hz_contains(z, player_pos):
+				if float(z["slow"]) > 0.0:
+					player_slow_t = maxf(player_slow_t, 0.25)
+				z["tick"] = float(z["tick"]) + dt
+				if float(z["tick"]) >= 0.5:
+					z["tick"] = 0.0
+					hurt_dot(float(z["dps"]) * 0.5)
+			hzones[j] = z
+			j += 1
+	hzones.resize(j)
+
+
+## 持续伤害（毒 / 冰）：不触发受击无敌，护盾和内力减伤不生效，但仍会死
+func hurt_dot(amount: float) -> void:
+	if god or over or invuln > 0.3:
+		return
+	hp -= maxf(0.5, amount - st("armor") * 0.25)
+	add_fx("text", player_pos + Vector2(rng.randf_range(-10, 10), -24), 0.5, {"text": "-%d" % int(amount), "size": 16, "color": Color("#a0e060")})
+	if hp <= 0.0 and not over:
+		hp = 0.0
+		over = true
+		won = false
+		player_died.emit()
+
+
+func _draw_hzones() -> void:
+	for z in hzones:
+		var a := clampf(minf(float(z["t"]) * 3.0, (float(z["life"]) - float(z["t"])) * 1.5), 0.0, 1.0)
+		var col: Color = Color("#7ac040") if str(z["kind"]) == "mist" else Color("#8ad0ff")
+		if vfx.has(str(z.get("vfx", ""))) and str(z["shape"]) == "circle":
+			vfx.draw(self, str(z["vfx"]), vfx.frame_loop(str(z["vfx"]), time), z["pos"], float(z["r"]) * 2.2, 0.0, Color(1, 1, 1, a))
+		elif str(z["shape"]) == "circle":
+			draw_circle(z["pos"], float(z["r"]), Color(col, 0.22 * a))
+			draw_arc(z["pos"], float(z["r"]), 0.0, TAU, 36, Color(col, 0.7 * a), 3.0)
+		else:
+			draw_line(z["pos"], z["end"], Color(col, 0.28 * a), float(z["r"]))
+			draw_line(z["pos"], z["end"], Color(col, 0.6 * a), 3.0)

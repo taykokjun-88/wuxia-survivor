@@ -497,8 +497,11 @@ func _monster_icon(map_id: String, id: String, size: Vector2) -> Control:
 	var tex := _load_tex("res://assets/maps/%s/portrait_%s.png" % [map_id, id])
 	if tex == null:
 		var ea := _stage_art()
-		if ea.has(id):
-			var d: Dictionary = ea.sprites[id]
+		var akey := id
+		if not ea.has(akey) and Data.enemies.has(id) and ea.has(str(Data.enemies[id].get("art", ""))):
+			akey = str(Data.enemies[id]["art"])        # 没有专属素材：借用别的怪的图（光明顶占位）
+		if ea.has(akey):
+			var d: Dictionary = ea.sprites[akey]
 			var at := AtlasTexture.new()
 			at.atlas = d["tex"]
 			at.region = Rect2(0, 0, int(d["w"]), int(d["h"]))
@@ -1901,6 +1904,9 @@ func _draw_hud() -> void:
 			elif b.guard > 0.0:
 				canvas.draw_rect(Rect2(vw * 0.5 - bw * 0.5, by + 19, bw * b.guard / b.guard_max, 5), Color("#4fe0d0"))
 				canvas.draw_string(font, Vector2(vw * 0.5 + bw * 0.5 + 8, by + 15), "罡气 减伤 50%　催动 ×3", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#1f6f6a"))
+			if b.shield > 0.0:
+				canvas.draw_rect(Rect2(vw * 0.5 - bw * 0.5, by, bw * b.shield / maxf(1.0, b.shield_max), 18), Color("#9ae8ff", 0.85))
+				canvas.draw_string(font, Vector2(vw * 0.5 + bw * 0.5 + 8, by + 14), "护盾 %d%%" % int(100.0 * b.shield / maxf(1.0, b.shield_max)), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#2a6a8a"))
 			if b.is_final and w.boss_deadline > 0.0:
 				var left := maxf(0.0, w.boss_deadline - w.time)
 				var urgent := left < 15.0

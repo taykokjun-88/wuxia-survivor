@@ -40,7 +40,8 @@
     "burst_yin": 0,
     "burst_harmony": 0,
     "skill_range": 0,
-    "skill_debuff": 0
+    "skill_debuff": 0,
+    "armor_pierce": 0
   },
   "tuning": {
     "spawn_base": 1.0,
@@ -1152,6 +1153,159 @@
       "behavior": "charger",
       "art": "soldier",
       "tint": "#e08a7a"
+    },
+    "s2_mini_1": {
+      "name": "鲜于桶",
+      "hp": 4000,
+      "speed": 62,
+      "damage": 18,
+      "radius": 32,
+      "exp": 90,
+      "color": "#6a4a8a",
+      "bolts": 10,
+      "art": "mini_boss_1",
+      "tint": "#c9a0ff",
+      "skills": [
+        "fan_blade",
+        "poison_mist",
+        "eagle_snake"
+      ],
+      "phase_hp": 0.0,
+      "skills2": []
+    },
+    "s2_mini_2": {
+      "name": "何太虫",
+      "hp": 6000,
+      "speed": 64,
+      "damage": 18,
+      "radius": 32,
+      "exp": 110,
+      "color": "#2a4a6a",
+      "bolts": 12,
+      "art": "mini_boss_3",
+      "tint": "#9ad0ff",
+      "skills": [
+        "cross_blade",
+        "frost_slash"
+      ],
+      "phase_hp": 0.5,
+      "skills2": [
+        "backstab"
+      ]
+    },
+    "s2_mini_3": {
+      "name": "空腥大师",
+      "hp": 8500,
+      "speed": 56,
+      "damage": 20,
+      "radius": 34,
+      "exp": 130,
+      "color": "#c9a227",
+      "bolts": 12,
+      "art": "mini_boss_2",
+      "tint": "#ffd070",
+      "skills": [
+        "dragon_claw",
+        "bell_shock",
+        "palm_seal"
+      ],
+      "phase_hp": 0.0,
+      "skills2": []
+    },
+    "s2_boss": {
+      "name": "灭绝师泰",
+      "hp": 14000,
+      "speed": 58,
+      "damage": 24,
+      "radius": 40,
+      "exp": 60,
+      "color": "#1f3a4a",
+      "bolts": 14,
+      "art": "boss",
+      "tint": "#a0e8ff",
+      "skills": [
+        "yitian_cross",
+        "buddha_light",
+        "snow_palm"
+      ],
+      "phase_hp": 0.0,
+      "skills2": [],
+      "phase2": {
+        "hp": 0.5,
+        "shield": 0.5,
+        "atk": 1.3,
+        "speed": 1.1,
+        "defense": 0.3,
+        "add": [
+          "sword_rain"
+        ],
+        "knock": 760,
+        "text": "倚天不出，谁与争锋",
+        "aura": "boss_aura_phase2"
+      }
+    },
+    "huashan": {
+      "name": "华山弟子",
+      "hp": 22,
+      "speed": 78,
+      "damage": 8,
+      "radius": 12,
+      "exp": 2,
+      "color": "#4a7a5a",
+      "behavior": "thruster",
+      "mskill": "thrust",
+      "art": "blade",
+      "tint": "#a0e0a8"
+    },
+    "kunlun": {
+      "name": "昆仑弟子",
+      "hp": 30,
+      "speed": 66,
+      "damage": 8,
+      "radius": 12,
+      "exp": 3,
+      "color": "#9ab8d8",
+      "touch_slow": 0.9,
+      "art": "bandit",
+      "tint": "#c8e4ff"
+    },
+    "kongtong": {
+      "name": "崆峒弟子",
+      "hp": 44,
+      "speed": 60,
+      "damage": 12,
+      "radius": 14,
+      "exp": 4,
+      "color": "#8a6a3a",
+      "behavior": "stomper",
+      "mskill": "minion_stomp",
+      "art": "soldier",
+      "tint": "#e8c890"
+    },
+    "shaolin": {
+      "name": "少林武僧",
+      "hp": 90,
+      "speed": 52,
+      "damage": 13,
+      "radius": 16,
+      "exp": 5,
+      "color": "#7a7a6a",
+      "defense": 0.4,
+      "art": "soldier",
+      "tint": "#b8b8a0"
+    },
+    "emei": {
+      "name": "峨眉弟子",
+      "hp": 26,
+      "speed": 58,
+      "damage": 7,
+      "radius": 11,
+      "exp": 3,
+      "color": "#5a9a9a",
+      "behavior": "archer",
+      "mskill": "arrow",
+      "art": "bandit",
+      "tint": "#b8f0e8"
     }
   },
   "tiers": [
@@ -3114,11 +3268,95 @@
           "limit": 90
         },
         "hp_mult": {
-          "mini": 1.0,
-          "final": 1.0
+          "mini": 12.0,
+          "final": 8.0
         },
         "min_win": 800
-      }
+      },
+      "monsters": [
+        {
+          "id": "huashan",
+          "name": "华山弟子",
+          "tag": "小怪 · 前期"
+        },
+        {
+          "id": "kunlun",
+          "name": "昆仑弟子",
+          "tag": "小怪 · 减速"
+        },
+        {
+          "id": "kongtong",
+          "name": "崆峒弟子",
+          "tag": "小怪 · 震击"
+        },
+        {
+          "id": "shaolin",
+          "name": "少林武僧",
+          "tag": "小怪 · 高防御"
+        },
+        {
+          "id": "emei",
+          "name": "峨眉弟子",
+          "tag": "小怪 · 剑气"
+        },
+        {
+          "id": "elite",
+          "name": "精英",
+          "tag": "金圈 · 掉还丹"
+        },
+        {
+          "id": "s2_mini_1",
+          "name": "鲜于桶",
+          "tag": "小 Boss 3:00"
+        },
+        {
+          "id": "s2_mini_2",
+          "name": "何太虫",
+          "tag": "小 Boss 6:00"
+        },
+        {
+          "id": "s2_mini_3",
+          "name": "空腥大师",
+          "tag": "小 Boss 9:00"
+        },
+        {
+          "id": "s2_boss",
+          "name": "灭绝师泰",
+          "tag": "大 Boss 13:00（限时 1:30）"
+        }
+      ],
+      "spawn_table": [
+        {
+          "id": "huashan",
+          "t0": 0,
+          "t1": 180
+        },
+        {
+          "id": "kunlun",
+          "t0": 150,
+          "t1": 360
+        },
+        {
+          "id": "kongtong",
+          "t0": 330,
+          "t1": 540
+        },
+        {
+          "id": "shaolin",
+          "t0": 510,
+          "t1": 720
+        },
+        {
+          "id": "emei",
+          "t0": 690,
+          "t1": 9999
+        }
+      ],
+      "banner_bosses": [
+        "s2_mini_1",
+        "s2_mini_2",
+        "s2_mini_3"
+      ]
     }
   },
   "guide": {
@@ -3361,6 +3599,177 @@
       "dmg": 0,
       "speed": 420,
       "dur": 0.45
+    },
+    "fan_blade": {
+      "name": "扇风三连气刃",
+      "warn": 0.6,
+      "shape": "fan",
+      "reach": 300,
+      "arc": 1.1,
+      "dmg": 13,
+      "count": 3,
+      "spread": 0.34,
+      "speed": 340,
+      "kind": "blade",
+      "fire": true
+    },
+    "poison_mist": {
+      "name": "金蚕毒雾",
+      "warn": 0.9,
+      "shape": "circle",
+      "r": 120,
+      "dmg": 0,
+      "zone": {
+        "kind": "mist",
+        "life": 6.0,
+        "dps": 9,
+        "slow": 0.0
+      },
+      "at": "player",
+      "vfx": "boss_poison_mist"
+    },
+    "eagle_snake": {
+      "name": "鹰蛇生死搏",
+      "warn": 0.8,
+      "shape": "line",
+      "len": 460,
+      "width": 70,
+      "dmg": 0,
+      "speed": 600,
+      "dur": 0.6
+    },
+    "cross_blade": {
+      "name": "两仪剑阵",
+      "warn": 0.9,
+      "shape": "rays",
+      "n": 4,
+      "len": 520,
+      "width": 46,
+      "dmg": 18,
+      "offset": 0.0,
+      "vfx": "boss_cross_blade"
+    },
+    "frost_slash": {
+      "name": "昆仑寒霜斩",
+      "warn": 0.8,
+      "shape": "line",
+      "len": 520,
+      "width": 60,
+      "dmg": 10,
+      "zone": {
+        "kind": "ice",
+        "life": 5.0,
+        "dps": 5,
+        "slow": 0.5
+      },
+      "vfx": "boss_ice_band"
+    },
+    "backstab": {
+      "name": "瞬步背刺",
+      "warn": 0.7,
+      "shape": "circle",
+      "r": 58,
+      "dmg": 0,
+      "after": 0.4,
+      "dmg2": 20
+    },
+    "dragon_claw": {
+      "name": "龙爪手擒拿",
+      "warn": 0.6,
+      "shape": "fan",
+      "reach": 190,
+      "arc": 1.5,
+      "dmg": 24,
+      "vfx": "boss_dragon_claw"
+    },
+    "bell_shock": {
+      "name": "金钟罩震荡波",
+      "warn": 1.0,
+      "shape": "circle",
+      "r": 200,
+      "dmg": 16,
+      "knock": 560,
+      "vfx": "boss_golden_bell_ring"
+    },
+    "palm_seal": {
+      "name": "伏魔掌印",
+      "warn": 0.9,
+      "shape": "spots",
+      "n": 4,
+      "r": 70,
+      "around": 170,
+      "dmg": 20,
+      "gap": 0.28,
+      "vfx": "boss_palm_seal"
+    },
+    "yitian_cross": {
+      "name": "倚天剑气纵横",
+      "warn": 1.3,
+      "shape": "rays",
+      "n": 8,
+      "len": 640,
+      "width": 54,
+      "dmg": 22,
+      "offset": 0.2,
+      "vfx": "boss_yitian_cross"
+    },
+    "buddha_light": {
+      "name": "佛光普照",
+      "warn": 1.1,
+      "shape": "circle",
+      "r": 260,
+      "dmg": 20,
+      "knock": 420,
+      "vfx": "boss_buddha_light"
+    },
+    "snow_palm": {
+      "name": "飘雪穿云掌",
+      "warn": 0.8,
+      "shape": "line",
+      "len": 420,
+      "width": 60,
+      "dmg": 0,
+      "speed": 640,
+      "dur": 0.55,
+      "follow": "snow_cleave"
+    },
+    "snow_cleave": {
+      "name": "追击连斩",
+      "warn": 0.5,
+      "shape": "fan",
+      "reach": 210,
+      "arc": 2.4,
+      "dmg": 18,
+      "vfx": "boss_whip_arc"
+    },
+    "sword_rain": {
+      "name": "倚天剑雨",
+      "warn": 1.0,
+      "shape": "spots",
+      "n": 9,
+      "r": 62,
+      "around": 300,
+      "dmg": 18,
+      "gap": 0.14,
+      "vfx": "boss_sword_rain"
+    },
+    "thrust": {
+      "name": "突刺",
+      "warn": 0.45,
+      "shape": "line",
+      "len": 240,
+      "width": 26,
+      "dmg": 0,
+      "speed": 600,
+      "dur": 0.3
+    },
+    "minion_stomp": {
+      "name": "震击",
+      "warn": 0.6,
+      "shape": "circle",
+      "r": 80,
+      "dmg": 11,
+      "knock": 300
     }
   }
 }

@@ -40,6 +40,7 @@ func _ready() -> void:
 		_boss_skill_test()
 		_skill_fx_test()
 		_stage_test()
+		_stage2_boss_test()
 		await _town_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
@@ -594,6 +595,167 @@ func _stage_test() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_stage.json"))
 	Save.path = old_path
 	Save.load_data()
+
+
+func _s2_world(seed_v: int) -> GameWorld:
+	var w := GameWorld.new()
+	w.rng_seed = seed_v
+	add_child(w)
+	w.start_run("chain_fist", "tashue", "guangming", {})
+	w.god = false
+	w.props_enabled = false
+	w.skills.clear()
+	w.hp = 1e7
+	return w
+
+
+func _stage2_boss_test() -> void:
+	print("\n=== 光明顶 Boss：新招式 / 红色预警 / 毒雾冰封 / 二阶段 + 护盾 / 破防 / 无视防御 ===")
+	for id in ["s2_mini_1", "s2_mini_2", "s2_mini_3", "s2_boss"]:
+		var w := _s2_world(81)
+		w._spawn_boss(id, id == "s2_boss")
+		var b: Enemy = w.bosses[0]
+		b.pos = w.player_pos + Vector2(170, 0)
+		b.max_hp = 1e9
+		b.hp = 4e8 if id != "s2_boss" else 9e8
+		var used := {}
+		var warned := {}
+		var hurt := false
+		var zone_seen := false
+		for i in 60 * 120:
+			w.input_move = Vector2.ZERO
+			w.hp = 1e7
+			w.step(DT)
+			if w.hp < 1e7 - 0.5:
+				hurt = true
+			if not w.hzones.is_empty():
+				zone_seen = true
+			if b.cast_id != "":
+				used[b.cast_id] = true
+				if b.cast_t < float(Data.boss_skills[b.cast_id]["warn"]) - 0.05:
+					warned[b.cast_id] = true
+			b.hp = 4e8 if id != "s2_boss" else 9e8
+			if id == "s2_boss" and i == 60 * 60:
+				b.hp = 4e8                          # 低于 50%：触发二阶段
+			if id == "s2_boss" and i > 60 * 60:
+				b.hp = maxf(b.hp, 4e8)
+			if b.pos.distance_to(w.player_pos) > 500.0:
+				b.pos = w.player_pos + Vector2(220, 0)
+		var want: Array = (Data.enemies[id]["skills"] as Array).duplicate()
+		want.append_array(Data.enemies[id]["skills2"])
+		if id == "s2_boss":
+			want.append("sword_rain")
+		for k in want:
+			_check(used.has(k), "%s 用过 %s（用过 %s）" % [id, k, str(used.keys())])
+			_check(warned.has(k) or not used.has(k), "%s 的 %s 施放前有红色预警" % [id, k])
+		_check(hurt, "%s 的招式能伤到玩家" % id)
+		if id == "s2_mini_1" or id == "s2_mini_2":
+			_check(zone_seen, "%s 留下毒雾 / 冰封带" % id)
+		if id == "s2_boss":
+			_check(b.phase2 and b.defense > 0.29 and b.shield_max > 0.0, "灭绝师泰进入二阶段")
+		_free_world(w)
+	# 五大派小怪：按时间表刷出；华山突刺 / 昆仑减速 / 崆峒震击 / 少林高防御 / 峨眉远程
+	var wm := _s2_world(83)
+	var counts := {}
+	for t in [60.0, 250.0, 450.0, 620.0, 800.0]:
+		wm.time = t
+		var c := {}
+		for i in 400:
+			var tp := wm._pick_type()
+			c[tp] = int(c.get(tp, 0)) + 1
+		var top := ""
+		for k in c:
+			if top == "" or int(c[k]) > int(c[top]):
+				top = k
+		counts[t] = top
+	_check(str(counts[60.0]) == "huashan" and str(counts[250.0]) == "kunlun" and str(counts[450.0]) == "kongtong" and str(counts[620.0]) == "shaolin" and str(counts[800.0]) == "emei", "门派刷怪时间表：%s" % str(counts))
+	wm.time = 100.0
+	var hs := wm._spawn_enemy("huashan", wm.player_pos + Vector2(250, 0))
+	var kt := wm._spawn_enemy("kongtong", wm.player_pos + Vector2(0, 300))
+	var em := wm._spawn_enemy("emei", wm.player_pos + Vector2(-300, 0))
+	for e in [hs, kt, em]:
+		e.hp = 1e9
+		e.max_hp = 1e9
+	var sl := wm._spawn_enemy("shaolin", wm.player_pos + Vector2(0, -400))
+	sl.hp = 1e9
+	sl.max_hp = 1e9
+	sl.speed = 0.0
+	var thrust := false
+	var stomp := false
+	var arrow := false
+	for i in 60 * 25:
+		wm.input_move = Vector2.ZERO
+		wm.hp = 1e7
+		wm.step(DT)
+		if hs.cast_id == "thrust":
+			thrust = true
+		if kt.cast_id == "minion_stomp":
+			stomp = true
+		for pr in wm.projs:
+			if pr.hostile and pr.kind == "arrow":
+				arrow = true
+	_check(thrust and stomp and arrow, "华山突刺 / 崆峒震击 / 峨眉剑气（%s %s %s）" % [str(thrust), str(stomp), str(arrow)])
+	var bd := wm._spawn_enemy("bandit", wm.player_pos + Vector2(0, -420))
+	bd.hp = 1e9
+	bd.max_hp = 1e9
+	bd.speed = 0.0
+	var hp_a := sl.hp
+	var hp_b := bd.hp
+	wm.hit_enemy(sl, 100.0, [], Vector2.ZERO, "x")
+	wm.hit_enemy(bd, 100.0, [], Vector2.ZERO, "x")
+	_check(absf((hp_a - sl.hp) / (hp_b - bd.hp) - 0.6) < 0.02, "少林武僧防御 40%%：只受 60%%（%.2f）" % ((hp_a - sl.hp) / (hp_b - bd.hp)))
+	_free_world(wm)
+	var wk := _s2_world(84)
+	var kl := wk._spawn_enemy("kunlun", wk.player_pos + Vector2(10, 0))
+	kl.hp = 1e9
+	wk.invuln = 0.0
+	wk.player_slow_t = 0.0
+	wk.step(DT)
+	_check(wk.player_slow_t > 0.3, "昆仑弟子碰到玩家会减速")
+	_free_world(wk)
+	# 二阶段细节：护盾 = 最大血量 50%；攻 +30% 速 +10% 防 +30%；护盾先吃伤害；破防双倍；无视防御
+	var w2 := _s2_world(82)
+	w2._spawn_boss("s2_boss", true)
+	var b2: Enemy = w2.bosses[0]
+	var dmg0 := b2.damage
+	var spd0 := b2.speed
+	var hpm := b2.max_hp
+	b2.pos = w2.player_pos + Vector2(100, 0)
+	b2.hp = hpm * 0.49
+	w2.step(DT)
+	_check(b2.phase2 and absf(b2.shield - hpm * 0.5) < 1.0, "护盾 = 最大血量的 50%%（%.0f / %.0f）" % [b2.shield, hpm * 0.5])
+	_check(absf(b2.damage - dmg0 * 1.3) < 0.01 and absf(b2.speed - spd0 * 1.1) < 0.01 and absf(b2.defense - 0.3) < 1e-6, "攻击 +30%% / 移速 +10%% / 防御 +30%%")
+	_check(w2.player_knock.length() > 100.0, "二阶段震退玩家")
+	var found_text := false
+	for fx in w2.effects:
+		if str(fx.get("text", "")) == "倚天不出，谁与争锋":
+			found_text = true
+	_check(found_text, "弹出「倚天不出，谁与争锋」")
+	b2.guard = 0.0
+	b2.weak_t = 0.0
+	var hp1 := b2.hp
+	var sh1 := b2.shield
+	w2.hit_enemy(b2, 1000.0, [], Vector2.ZERO, "x", false)
+	var sh_loss1 := sh1 - b2.shield
+	_check(b2.hp == hp1 and sh_loss1 > 0.0, "伤害先打护盾，血量不动")
+	b2.weak_t = 5.0
+	var sh2 := b2.shield
+	w2.hit_enemy(b2, 1000.0, [], Vector2.ZERO, "x", false)
+	var sh_loss2 := sh2 - b2.shield
+	_check(sh_loss2 > sh_loss1 * 2.0, "破防时双倍伤害打护盾（%.0f vs %.0f，另有破防的伤害加成）" % [sh_loss2, sh_loss1])
+	b2.weak_t = 0.0
+	b2.shield = 0.0
+	b2.guard = 0.0
+	var hp2 := b2.hp
+	w2.hit_enemy(b2, 1000.0, [], Vector2.ZERO, "x", false)
+	var plain := hp2 - b2.hp
+	w2.talent_stats = {"armor_pierce": 0.5}
+	w2.recalc()
+	var hp3 := b2.hp
+	w2.hit_enemy(b2, 1000.0, [], Vector2.ZERO, "x", false)
+	var pierced := hp3 - b2.hp
+	_check(pierced > plain * 1.1, "无视 50%% 防御：伤害更高（%.0f → %.0f）" % [plain, pierced])
+	_free_world(w2)
 
 
 func _dugu_test() -> void:
