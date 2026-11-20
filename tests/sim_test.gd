@@ -507,7 +507,7 @@ func _sword_art_test() -> void:
 	_check(ResourceLoader.exists(str(Data.schools["sword"]["portrait"])), "剑侠立绘存在")
 	var w := _new_world(3, "dugu")
 	_check(w.sprite_anim != null and w.sprite_anim.anims.has("true_walk"), "独孤九剑开局使用剑侠动画")
-	w.shi = {"zong": 31}
+	w.shi = {"zong": 36}
 	var st := w._player_anim_state()
 	_check(str(st[0]) == "true_idle", "真形态站立用 true_idle，实际 %s" % str(st[0]))
 	w.input_move = Vector2.RIGHT
@@ -1127,8 +1127,10 @@ func _dugu_test() -> void:
 	w.add_shi("po_dao", 0)
 	w.shi["zong"] = 1
 	_check(w.dugu_stage() == 2, "总层 21 → 万法皆破")
-	w.shi["zong"] = 11
-	_check(w.dugu_stage() == 3 and w.dugu_true() and w.dash_sealed(), "总层 > 30 → 真·独孤九剑，轻功封印")
+	w.shi["zong"] = 15
+	_check(w.dugu_stage() == 2, "总层 35：仍是万法皆破")
+	w.shi["zong"] = 16
+	_check(w.dugu_stage() == 3 and w.dugu_true() and w.dash_sealed(), "总层 > 35 → 真·独孤九剑，轻功封印")
 	# 秘籍：+3 层的式
 	w.shi = {"po_jian": 2}
 	var cc := w.roll_chest_choices()
@@ -1216,7 +1218,7 @@ func _dugu_test() -> void:
 	# ---- 真·独孤九剑：觉醒触发「剑破天下」九连闪现 → 之后近身范围群攻；真气爆发可再次触发 ----
 	var w4 := _new_world(10, "dugu")
 	w4.time = 120.0
-	w4.shi = {"zong": 10, "po_jian": 10, "po_dao": 6, "po_bian": 6}      # 总层 32，已是真形态（直接赋值不触发觉醒）
+	w4.shi = {"zong": 10, "po_jian": 10, "po_dao": 10, "po_bian": 6}      # 总层 36，已是真形态（直接赋值不触发觉醒）
 	_check(w4.dugu_true(), "真·独孤九剑已觉醒")
 	var dsk: SkillBase = w4.skills["dugu"]
 	for i in 40:
@@ -1226,9 +1228,9 @@ func _dugu_test() -> void:
 		en3.max_hp = 1e5
 	w4._rebuild_grid()
 	var p0 := w4.player_pos
-	w4.shi = {"zong": 10, "po_jian": 10, "po_dao": 6, "po_bian": 4}      # 总层 30：还不是真形态
-	w4.add_shi("po_bian", 2)                                             # 再领悟 → 越过 30 层，觉醒
-	_check(w4.dugu_true() and w4.sword_break_count == 1, "越过 30 层自动触发一次剑破天下")
+	w4.shi = {"zong": 10, "po_jian": 10, "po_dao": 6, "po_bian": 9}      # 总层 35：还不是真形态
+	w4.add_shi("po_bian", 2)                                             # 再领悟 → 越过 35 层，觉醒
+	_check(w4.dugu_true() and w4.sword_break_count == 1, "越过 35 层自动触发一次剑破天下")
 	var names := {}
 	for i in 60 * 4:
 		w4._rebuild_grid()
@@ -1290,7 +1292,7 @@ func _dugu_test() -> void:
 	# 真形态下，原本针对飞剑的式也要有效：破剑 = 多圈余波，破刀 / 破枪 = 范围更大
 	var dmgs := []
 	var radii := []
-	for shi_set in [{"zong": 22, "po_arrow": 9}, {"zong": 22, "po_jian": 9}, {"zong": 22, "po_dao": 9}, {"zong": 22, "po_qiang": 9}]:
+	for shi_set in [{"zong": 27, "po_arrow": 9}, {"zong": 27, "po_jian": 9}, {"zong": 27, "po_dao": 9}, {"zong": 27, "po_qiang": 9}]:
 		var wp := _new_world(14, "dugu")
 		wp.time = 120.0
 		wp.shi = shi_set
@@ -1677,7 +1679,7 @@ func _level_growth_test() -> void:
 	var s0: SkillBase = w2.skills["chain_fist"]
 	for i in Data.max_upgrades:
 		s0.add_upgrade("damage", 0)
-	_check(s0.level == 12, "升满后应为 12 层，实际 %d" % s0.level)
+	_check(s0.level == 1 + Data.max_upgrades, "升满后应为 %d 层，实际 %d" % [1 + Data.max_upgrades, s0.level])
 	var offered := false
 	for c in w2.roll_choices(30):
 		if str(c["kind"]) == "up_skill" and str(c["id"]) == "chain_fist":
