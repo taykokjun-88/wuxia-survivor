@@ -398,7 +398,7 @@ func _blade_test() -> void:
 	wpay.hp = wpay.st("max_hp")
 	wpay.soul = 0.0
 	wpay.skills["tulong_art"].pay_hp()
-	_check(absf((wpay.st("max_hp") - wpay.hp) - wpay.st("max_hp") * 0.08) < 0.01 and wpay.soul > 5.0, "屠龙刀法耗 8%% 气血并涨刀魂（%.1f）" % wpay.soul)
+	_check(absf((wpay.st("max_hp") - wpay.hp) - wpay.st("max_hp") * 0.06) < 0.01 and wpay.soul > 4.0, "屠龙刀法耗 6%% 气血并涨刀魂（%.1f）" % wpay.soul)
 	wpay.hp = wpay.st("max_hp")
 	wpay.soul = 0.0
 	wpay.skills["tulong_art"].free_cast = true
@@ -1613,7 +1613,7 @@ func _enhance_rework_test() -> void:
 	wbl2.hp = 10.0
 	var ke: Enemy = wbl2._spawn_enemy("bandit", wbl2.player_pos + Vector2(40, 0))
 	wbl2._kill(ke)
-	_check(wbl2.hp > 10.02, "刀客：击杀回血（%.2f）" % wbl2.hp)
+	_check(wbl2.hp > 10.04, "刀客：击杀回血（%.2f）" % wbl2.hp)
 	wbl2.hp = hpk
 	var wdu := _new_world(91, "dugu")
 	var cdu: float = wdu.skills["dugu"].empower_cost()

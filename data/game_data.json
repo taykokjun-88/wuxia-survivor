@@ -132,7 +132,7 @@
     "blade_break_mult": 2.5,
     "blade_break_shield": 3.0,
     "blade_break_stacks": 3,
-    "blade_break_heal": 0.06,
+    "blade_break_heal": 0.12,
     "bleed_dur": 4.0,
     "bleed_max": 5,
     "bleed_pct": 0.1,
@@ -921,7 +921,7 @@
         "范围",
         "控制"
       ],
-      "desc": "【耗血 4%】劈出炽热的火焰刀浪，地面留下 3 秒火海，持续灼烧并减速",
+      "desc": "【耗血 3%】劈出炽热的火焰刀浪，地面留下 3 秒火海，持续灼烧并减速",
       "damage": 44.4,
       "cooldown": 5.0,
       "reach": 130,
@@ -951,7 +951,7 @@
         "slash": "fx_blade_ranmu",
         "zone": "fx_blade_fire"
       },
-      "hp_cost": 0.04
+      "hp_cost": 0.03
     },
     "xuedao": {
       "name": "血刀经",
@@ -1029,7 +1029,7 @@
         "蓄力",
         "范围"
       ],
-      "desc": "【耗血 5%】震地劈出三道向前蔓延的裂地刀痕，短暂震晕路径上的敌人",
+      "desc": "【耗血 4%】震地劈出三道向前蔓延的裂地刀痕，短暂震晕路径上的敌人",
       "damage": 69.6,
       "cooldown": 8.0,
       "pierce": 99,
@@ -1060,7 +1060,7 @@
       "fx": {
         "proj": "fx_blade_xuanxu"
       },
-      "hp_cost": 0.05
+      "hp_cost": 0.04
     },
     "yuanyang_blade": {
       "name": "鸳鸯双刀",
@@ -1107,7 +1107,7 @@
         "蓄力",
         "范围"
       ],
-      "desc": "【耗血 8%】黑铁巨刀虚影轰然砸落：大范围巨额伤害，击碎护盾，并使全场敌人减速",
+      "desc": "【耗血 6%】黑铁巨刀虚影轰然砸落：大范围巨额伤害，击碎护盾，并使全场敌人减速",
       "damage": 93.8,
       "cooldown": 10.0,
       "radius": 220,
@@ -1133,7 +1133,7 @@
       "fx": {
         "impact": "fx_blade_tulong"
       },
-      "hp_cost": 0.08
+      "hp_cost": 0.06
     }
   },
   "xinfa": {
@@ -2045,10 +2045,10 @@
       "town_hero_dir": "res://assets/town/hero_blade",
       "passive": {
         "max_hp": 10,
-        "hp_regen": 0.03,
-        "kill_hp": 0.05
+        "hp_regen": 0.05,
+        "kill_hp": 0.07
       },
-      "passive_text": "悍勇不屈：气血上限 +10，气血回复 +0.03/秒，击杀回血 +0.05；燃木 / 血刀经 / 玄虚 / 屠龙四个刀法会消耗气血（自己耗的血同样涨刀魂，更容易触发霸刀破岳），要靠回复撑住"
+      "passive_text": "悍勇不屈：气血上限 +10，气血回复 +0.05/秒，击杀回血 +0.07；燃木 / 血刀经 / 玄虚 / 屠龙四个刀法会消耗气血（自己耗的血同样涨刀魂，更容易触发霸刀破岳，破岳时回复已损气血的 12%），要靠回复撑住"
     },
     "spear": {
       "name": "长兵",
