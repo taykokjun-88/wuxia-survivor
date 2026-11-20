@@ -175,7 +175,8 @@
     "enemy_speed_mult": 0.7,
     "stagger_hit": 0.05,
     "stagger_crit": 0.1,
-    "stagger_gap": 0.25
+    "stagger_gap": 0.25,
+    "boss_hp_mult": 1.25
   },
   "skills": {
     "yue_palm": {
@@ -3937,7 +3938,7 @@
         {
           "id": "boss",
           "name": "黑风寨主·胡千刀",
-          "tag": "大 Boss 10:00（限时 1:30）"
+          "tag": "大 Boss 10:00（限时 2:30）"
         }
       ],
       "timeline": {
@@ -3958,7 +3959,7 @@
         "final": {
           "t": 600,
           "id": "boss",
-          "limit": 90
+          "limit": 150
         },
         "hp_mult": {
           "mini": 5.0,
@@ -4008,7 +4009,7 @@
         "final": {
           "t": 780,
           "id": "s2_boss",
-          "limit": 90
+          "limit": 150
         },
         "hp_mult": {
           "mini": 3.5,
@@ -4065,7 +4066,7 @@
         {
           "id": "s2_boss",
           "name": "灭绝师泰",
-          "tag": "大 Boss 13:00（限时 1:30）"
+          "tag": "大 Boss 13:00（限时 2:30）"
         }
       ],
       "spawn_table": [

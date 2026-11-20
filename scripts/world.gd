@@ -976,7 +976,7 @@ func _spawn_boss(id: String, final: bool) -> void:
 	e.is_final = final
 	e.boss_name = str(def["name"])
 	var hpm: Dictionary = _timeline().get("hp_mult", {})
-	e.max_hp = float(def["hp"]) * float(hpm.get("final" if final else "mini", 1.0)) * float(difficulty["hp"]) * Data.T("enemy_hp_mult")   # Boss 不随时间缩放血量，保持固定的战斗时长（难度倍率照样生效）
+	e.max_hp = float(def["hp"]) * float(hpm.get("final" if final else "mini", 1.0)) * float(difficulty["hp"]) * Data.T("boss_hp_mult")   # Boss 不随时间缩放血量，保持固定的战斗时长（难度倍率照样生效）
 	e.hp = e.max_hp
 	e.speed = float(def["speed"]) * float(difficulty["speed"]) * Data.T("enemy_speed_mult")
 	e.damage = float(def["damage"])
