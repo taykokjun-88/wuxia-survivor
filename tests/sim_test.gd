@@ -1574,7 +1574,7 @@ func _save_test() -> void:
 	sv2.load_data()
 	_check(sv2.has_character() and sv2.school() == "fist", "创建角色后应能从存档读回流派")
 	# 未开放的流派 / 不存在的流派 视为没有角色
-	for bad in ["blade", "nonexistent"]:
+	for bad in ["spear", "nonexistent"]:
 		var f := FileAccess.open(path, FileAccess.WRITE)
 		f.store_string(JSON.stringify({"school": bad}))
 		f.close()

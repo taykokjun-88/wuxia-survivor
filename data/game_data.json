@@ -871,7 +871,7 @@
       "empower_cost": 6,
       "empower": "刀卷残云：每次出刀把周围小怪向刀锋拉拢",
       "fx": {
-        "ring": "fx_blade_kuangfeng"
+        "slash": "fx_blade_kuangfeng"
       },
       "echo_base": 0.15
     },
