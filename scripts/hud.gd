@@ -55,6 +55,7 @@ var auth_busy := false
 var board_panel: Control
 var board_kind := "score"
 var board_group_only := false
+var board_map := ""                    # 排行榜按地图筛选；空 = 全部地图
 var board_grid: GridContainer
 var board_status: Label
 var feedback_panel: Control
@@ -857,6 +858,20 @@ func _build_board() -> void:
 	box.add_child(_label("排行榜", 44))
 	var tabs := _center_row(10)
 	box.add_child(tabs)
+	var mgroup := ButtonGroup.new()
+	var map_row := _center_row(8)
+	var map_opts: Array = [["", "全部地图"]]
+	for mid in Data.maps:
+		if bool(Data.maps[mid].get("enabled", false)):
+			map_opts.append([str(mid), str(Data.maps[mid]["name"])])
+	for mo in map_opts:
+		var mb := _button(str(mo[1]), Vector2(130, 36), 16)
+		mb.toggle_mode = true
+		mb.button_group = mgroup
+		mb.button_pressed = board_map == str(mo[0])
+		mb.pressed.connect(func(): board_map = str(mo[0]); board_kind_requested.emit(board_kind))
+		map_row.add_child(mb)
+	box.add_child(map_row)
 	var group := ButtonGroup.new()
 	if Net.group_name != "":
 		var scope := CheckButton.new()
@@ -928,7 +943,7 @@ func update_board(kind: String, res: Dictionary) -> void:
 		board_grid.add_child(_cell(str(Data.schools[sch]["name"]) if Data.schools.has(sch) else "", col))
 	var me: Variant = res.get("me")
 	if (res["rows"] as Array).is_empty():
-		board_status.text = "还没有人上榜，来当第一个吧"
+		board_status.text = "这张地图还没有人上榜，来当第一个吧" if board_map != "" else "还没有人上榜，来当第一个吧"
 	elif me is Dictionary:
 		board_status.text = "我的名次：第 %d 名（%s）　共 %d 人上榜" % [int(me["rank"]), _board_value(kind, float(me["value"])), int(res["total"])]
 	elif Net.logged_in():

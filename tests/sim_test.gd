@@ -55,6 +55,8 @@ func _ready() -> void:
 		_levels_report()
 	if only == "survive":
 		_survive_report()
+	if only == "boss":
+		_boss_time_report(OS.get_environment("MAP") if OS.get_environment("MAP") != "" else "guangming")
 	if only == "dugu":
 		_dugu_report()
 	print("\nRESULT: %s" % ("FAIL (%d)" % failures if failures > 0 else "OK"))
@@ -89,6 +91,54 @@ func _survive_report() -> void:
 	var tot: float = rsum[0] + rsum[1] + rsum[2]
 	print("  通关 %d/%d　平均存活 %ds　气海 虚 %d%% / 平 %d%% / 盈 %d%%" % [wins, seeds.size(), int(tsum / seeds.size()),
 		int(rsum[0] / tot * 100.0), int(rsum[1] / tot * 100.0), int(rsum[2] / tot * 100.0)])
+
+
+## 每个 Boss 从现身到被击败用了多久（会选卡的无敌 bot ≈ 理想玩家）；目标：小 Boss 60~120 秒，大 Boss 70~85 秒（限时 90）
+func _boss_time_report(map_id: String) -> void:
+	print("\n=== %s Boss 战斗时长（会选卡无敌 bot）===" % map_id)
+	var seeds := [11, 12, 13, 14]
+	var sums := {}
+	for sd in seeds:
+		var w := GameWorld.new()
+		w.god = true
+		w.rng_seed = sd
+		add_child(w)
+		w.start_run(["chain_fist", "point_finger", "cloud_palm"][sd % 3], "tashue", map_id)
+		var pick_rng := RandomNumberGenerator.new()
+		pick_rng.seed = sd
+		var seen := {}
+		var refs := {}
+		var done := {}
+		var line := "  种子 %d：" % sd
+		for i in int(1000.0 / DT):
+			TestBot.drive(w, TestBot.engage_for(w))
+			w.step(DT)
+			TestBot.resolve_choices(w, pick_rng, true)
+			for b in w.bosses:
+				if not seen.has(b.type_id):
+					seen[b.type_id] = w.time
+					refs[b.type_id] = b
+			for k in refs:
+				if not done.has(k) and not (refs[k] as Enemy).alive:
+					done[k] = w.time - float(seen[k])
+					if not sums.has(k):
+						sums[k] = []
+					sums[k].append(done[k])
+					line += "%s %ds  " % [k, int(done[k])]
+			if w.over:
+				break
+		for k in refs:
+			var rb: Enemy = refs[k]
+			if rb.alive:
+				line += "[%s 未击败：血量 %d%%（含护盾 %d%%）] " % [k, int(rb.hp / rb.max_hp * 100.0), int((rb.hp + rb.shield) / rb.max_hp * 100.0)]
+		print(line + ("通关 @%ds Lv%d" % [int(w.time), w.level] if w.won else "未通关 @%ds Lv%d" % [int(w.time), w.level]))
+		_free_world(w)
+	for k in sums:
+		var a: Array = sums[k]
+		var t := 0.0
+		for v in a:
+			t += float(v)
+		print("  平均 %s：%.0f 秒（%d 次）" % [k, t / a.size(), a.size()])
 
 
 ## 测量「打完一局」的角色等级：会选卡的无敌 bot（≈ 理想玩家）多个种子，打到大 Boss 被击败为止

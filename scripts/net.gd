@@ -231,8 +231,10 @@ func submit_run(summary: Dictionary) -> Dictionary:
 
 
 ## group_only：只看自己所属群（邀请码相同的玩家）
-func board(kind: String, group_only: bool = false) -> Dictionary:
+func board(kind: String, group_only: bool = false, map_id: String = "") -> Dictionary:
 	var body := {"kind": kind, "nick": nick}
+	if map_id != "":
+		body["map"] = map_id
 	if group_only and invite != "":
 		body["group"] = invite
 	return await call_api("board", body)

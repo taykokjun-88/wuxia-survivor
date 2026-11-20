@@ -494,6 +494,7 @@ function submitScore(req) {
   if (now() - toMs(row[P.lastSubmit]) < CFG.SUBMIT_GAP_SEC * 1000) return fail('too_fast', '提交太频繁，请稍后再试');
 
   var score = computeScore(run);
+  var preBest = { score: Number(row[P.bestScore]) || 0, win: Number(row[P.bestWin]) || 0, level: Number(row[P.bestLevel]) || 0 };   // 分地图成绩的旧数据迁移用：改版前所有成绩都来自黑风寨
   var school = str(req.school, 16), starter = str(req.starter, 24), qg = str(req.qinggong, 24), enh = str(req.enhance, 40);
   var build = str(typeof req.build === 'string' ? req.build : JSON.stringify(req.build || []), 600);
   sheet('scores').appendRow([iso(), row[P.nick], run.won ? '通关' : '阵亡', score, Math.round(run.seconds), run.level, run.kills,
@@ -516,6 +517,15 @@ function submitScore(req) {
   }
   var drops = [];
   var stt = readState(row);
+  // 分地图最佳成绩（地图榜用）：第一次写入时，把改版前的总成绩当作黑风寨成绩
+  var mb = stt.mapBests && typeof stt.mapBests === 'object' && !Array.isArray(stt.mapBests) ? stt.mapBests : null;
+  if (!mb) { mb = {}; if (preBest.score > 0 || preBest.level > 0) mb.black_wind = { score: preBest.score, win: preBest.win, level: preBest.level }; }
+  var cur = mb[run.map] || { score: 0, win: 0, level: 0 };
+  if (score > cur.score) cur.score = score;
+  if (run.level > cur.level) cur.level = run.level;
+  if (run.won && (!cur.win || run.seconds < cur.win)) cur.win = Math.round(run.seconds);
+  mb[run.map] = cur;
+  stt.mapBests = mb;
   var silverGained = silverForRun(score, run.won, comp);
   addSilver(stt, silverGained);
   // 掉落：每个被击败的小 Boss 1 件，通关（大 Boss）1~2 件；小 Boss 的数量不能超过该用时内已刷出的个数
@@ -545,7 +555,9 @@ var BOARD = {
   level: { col: P.bestLevel, asc: false }
 };
 
-function boardRows(kind, group) {
+var BOARD_FIELD = { score: 'score', speed: 'win', level: 'level' };
+
+function boardRows(kind, group, map) {
   var spec = BOARD[kind];
   var pl = loadPlayers();
   var list = [];
@@ -554,6 +566,10 @@ function boardRows(kind, group) {
     if (truthy(r[P.banned])) return;
     if (want && String(r[P.invite]).toUpperCase() !== want) return;
     var v = Number(r[spec.col]) || 0;
+    if (map) {     // 地图榜：取该玩家在这张地图上的最佳；没有记录 = 没打过
+      var mbs = readState(r).mapBests;
+      v = mbs && mbs[map] ? Number(mbs[map][BOARD_FIELD[kind]]) || 0 : 0;
+    }
     if (v <= 0) return;
     list.push({ nick: String(r[P.nick]), value: v, school: String(r[P.school] || ''), wins: Number(r[P.wins]) || 0 });
   });
@@ -571,12 +587,14 @@ function board(req) {
   var kind = String(req.kind || 'score');
   if (!BOARD[kind]) return fail('bad_kind', '未知的榜单');
   var group = String(req.group || '');
-  var list = boardRows(kind, group);
+  var map = String(req.map || '');
+  if (map && !MAPS[map]) return fail('bad_map', '未知的地图');
+  var list = boardRows(kind, group, map);
   var me = null;
   var want = String(req.nick || '').toLowerCase();
   var rows = list.slice(0, CFG.BOARD_SIZE).map(function (e, i) { e.rank = i + 1; return e; });
   if (want) for (var i = 0; i < list.length; i++) if (list[i].nick.toLowerCase() === want) me = { rank: i + 1, value: list[i].value };
-  return ok({ kind: kind, rows: rows, me: me, total: list.length, group: group ? groupName(group) : '' });
+  return ok({ kind: kind, rows: rows, me: me, total: list.length, group: group ? groupName(group) : '', map: map });
 }
 
 // ---------------------------------------------------------------- 云存档 / 反馈 / 日志

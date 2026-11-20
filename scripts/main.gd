@@ -451,7 +451,7 @@ func _open_board() -> void:
 
 
 func _load_board(kind: String) -> void:
-	var res: Dictionary = await Net.board(kind, hud.board_group_only)
+	var res: Dictionary = await Net.board(kind, hud.board_group_only, hud.board_map)
 	hud.update_board(kind, res)
 
 

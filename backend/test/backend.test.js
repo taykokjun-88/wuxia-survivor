@@ -339,6 +339,46 @@ test('地图：按地图校验通关时长；通关记录；光明顶需先通�
   assert.strictEqual(submit(e, l, RUN({ map: 'guangming', won: true, seconds: 820, level: 30, kills: 3000, bosses: 4 })).ok, true, '通关后可以打光明顶');
 });
 
+test('分地图榜：每张地图单独排名；旧成绩迁移为黑风寨；全部榜不变', (e) => {
+  reg(e, '榜甲'); reg(e, '榜乙'); reg(e, '榜丙');
+  const lg = (n) => e.call({ action: 'login', nick: n, pin: '4815' });
+  const a = lg('榜甲'), b = lg('榜乙'), c = lg('榜丙');
+  // 乙、丙各打一局黑风寨
+  submit(e, b, RUN({ level: 10, kills: 500, seconds: 300 }));
+  submit(e, c, RUN({ level: 20, kills: 1500, seconds: 300 }));
+  // 甲：先通关黑风寨，再打光明顶
+  const w1 = submit(e, a, RUN({ won: true, seconds: 640, level: 30, kills: 3000, bosses: 4 }));
+  assert.ok(w1.ok, JSON.stringify(w1));
+  const w2 = submit(e, a, RUN({ map: 'guangming', won: true, seconds: 820, level: 30, kills: 6000, bosses: 4 }));
+  assert.ok(w2.ok, JSON.stringify(w2));
+  const bw = e.get({ action: 'board', kind: 'score', map: 'black_wind' });
+  assert.ok(bw.ok); assert.strictEqual(bw.map, 'black_wind'); assert.strictEqual(bw.total, 3, '三人都打过黑风寨');
+  const gm = e.get({ action: 'board', kind: 'score', map: 'guangming', nick: '榜甲' });
+  assert.strictEqual(gm.total, 1, '光明顶只有甲'); assert.strictEqual(gm.rows[0].nick, '榜甲'); assert.strictEqual(gm.me.rank, 1);
+  const gsp = e.get({ action: 'board', kind: 'speed', map: 'guangming' });
+  assert.strictEqual(gsp.rows[0].value, 820);
+  const bsp = e.get({ action: 'board', kind: 'speed', map: 'black_wind' });
+  assert.strictEqual(bsp.rows.length, 1); assert.strictEqual(bsp.rows[0].value, 640, '黑风寨最快通关不受光明顶成绩影响');
+  assert.strictEqual(e.get({ action: 'board', kind: 'score', map: 'nowhere' }).err, 'bad_map');
+  assert.strictEqual(e.get({ action: 'board', kind: 'score' }).total, 3, '不带地图 = 全部榜，和以前一样');
+  // 旧数据迁移：模拟「改版前」的玩家（有总成绩、没有 mapBests）第一次提交光明顶 / 黑风寨成绩
+  reg(e, '榜丁');
+  const pl = e.sheetRows('players');
+  const di = pl.findIndex((r) => r[0] === '榜丁');
+  assert.ok(di > 0);
+  const hdr = pl[0];
+  const col = (n) => hdr.findIndex((h) => String(h).startsWith(n));
+  pl[di][col('最高分')] = 5000;
+  pl[di][col('最高等级')] = 25;
+  const dl = lg('榜丁');
+  const old = e.get({ action: 'board', kind: 'score', map: 'black_wind' });
+  assert.ok(!old.rows.some((r) => r.nick === '榜丁'), '没有 mapBests 之前不上地图榜');
+  assert.ok(submit(e, dl, RUN({ level: 8, kills: 300, seconds: 200 })).ok);
+  const mig = e.get({ action: 'board', kind: 'score', map: 'black_wind' });
+  const mine = mig.rows.find((r) => r.nick === '榜丁');
+  assert.ok(mine && mine.value >= 5000, '旧总成绩迁移为黑风寨成绩：' + JSON.stringify(mine));
+});
+
 test('难度奖励：修为倍率 / 装备数量与稀有度随综合难度提高；非法难度按 100% 算', (e) => {
   const me = reg(e, '难度君');
   const hard = { count: 300, hp: 300, speed: 300 };
