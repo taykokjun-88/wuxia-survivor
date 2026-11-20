@@ -323,6 +323,9 @@ func recalc() -> void:
 		stats[k] = st(k) + float(qs[k])
 	for k in talent_stats:
 		stats[k] = st(k) + float(talent_stats[k])
+	var sp: Dictionary = Data.schools.get(school_id, {}).get("passive", {})       # 流派特色（剑侠：身法 / 武者：内力 / 刀客：气血）
+	for k in sp:
+		stats[k] = st(k) + float(sp[k])
 	_apply_synergies()
 	# 标签加成：心法每升 1 级，加成 ×(1 + 0.5 × (等级-1))
 	tag_bonus.clear()
@@ -352,18 +355,19 @@ func xinfa_scale(id: String) -> float:
 	return 1.0 + 0.12 * (xinfa_power(id) - 1.0)
 
 
-## 心法「同修」：学会的心法对它指定的 2~3 个招式（非起手招式）额外加成 / 特殊效果
+## 心法「同修」：学会的心法点名 3 个招式（可以跨流派、起手招式除外），每个招式有各自的加成 / 特殊效果；强度随心法的份数提高
 func _apply_xinfa_links() -> void:
 	var per_skill: Dictionary = {}       # 技能 id -> {mods: {}, flags: {}}
 	for id in xinfa:
 		var def: Dictionary = Data.xinfa[id]
 		var sc := xinfa_scale(id)
-		for sid in def.get("skills", []):
+		var lk_all: Dictionary = def.get("link", {})
+		for sid in lk_all:
 			if not skills.has(sid):
 				continue
 			if not per_skill.has(sid):
 				per_skill[sid] = {"mods": {}, "flags": {}}
-			var lk: Dictionary = def.get("link", {})
+			var lk: Dictionary = lk_all[sid]
 			for k in lk:
 				var v := float(lk[k]) * sc
 				if ["ying", "neili_hit", "vuln", "bleed"].has(k):
@@ -420,6 +424,15 @@ func _burn_tick(dt: float) -> void:
 				add_fx("text", e.pos + Vector2(0, -e.radius - 6), 0.6, {"text": "灼", "size": 20, "color": VERMILION})
 
 
+## 选心法卡片上的提示：这个心法点名的招式里，你现在已有 / 可以领悟到的
+func _link_hint(id: String) -> String:
+	var have: Array = []
+	for sid in Data.xinfa[id].get("skills", []):
+		if skills.has(sid):
+			have.append(str(Data.skills[sid]["name"]))
+	return "\n◆ 你已有的同修招式：%s" % "、".join(have) if not have.is_empty() else ""
+
+
 ## 选心法卡片上的提示：和已学心法搭配会出现什么
 func _synergy_hint(new_id: String) -> String:
 	if xinfa.size() != 1:
@@ -440,7 +453,9 @@ func _exp_for(l: int) -> int:
 
 
 func cd_mult() -> float:
-	return maxf(0.4, 1.0 - st("cd_reduce") - (Data.T("burst_yin_cd") if atk_buff_t > 0.0 else 0.0))
+	# 剑侠：移速越高攻速越快（speed_cd × 移速加成）
+	var sc := st("speed_cd") * maxf(0.0, st("speed_pct"))
+	return maxf(0.4, 1.0 - st("cd_reduce") - sc - (Data.T("burst_yin_cd") if atk_buff_t > 0.0 else 0.0))
 
 
 ## 内力充盈（≥50%）时全部伤害 +25%
@@ -1220,6 +1235,8 @@ func _kill(e: Enemy) -> void:
 		return
 	kills += 1
 	neili = minf(st("max_neili"), neili + st("kill_neili"))
+	if st("kill_hp") > 0.0:
+		hp = minf(st("max_hp"), hp + st("kill_hp"))
 	_drop_gem(e.pos, e.exp_value)
 	if not e.is_boss and not e.is_elite:
 		_maybe_drop_absorb(e.pos)
@@ -1916,8 +1933,6 @@ func roll_choices(n: int = 3) -> Array:
 			})
 	for id in Data.xinfa:
 		var def2: Dictionary = Data.xinfa[id]
-		if str(def2.get("school", school_id)) != school_id:        # 心法按流派提供，只出现本流派的
-			continue
 		if xinfa.has(id):
 			if xinfa[id] < int(def2["max_level"]):
 				var xt := Data.roll_tier(rng, st("luck"))
@@ -1932,7 +1947,7 @@ func roll_choices(n: int = 3) -> Array:
 			pool.append({
 				"kind": "new_xinfa", "id": id, "tag": "心法", "src": "level",
 				"title": "修习：%s【%s】" % [def2["name"], "阳" if str(def2.get("yy", "")) == "yang" else "阴"],
-				"desc": str(def2["desc"]) + _synergy_hint(id),
+				"desc": str(def2["desc"]) + _link_hint(id) + _synergy_hint(id),
 			})
 	_shuffle(pool)
 	var out: Array = shi_pool.duplicate()    # 独孤九剑：每次至少两张「式」

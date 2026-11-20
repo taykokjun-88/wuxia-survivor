@@ -801,11 +801,12 @@
         "targets": "pierce"
       },
       "anim": "thrust",
-      "empower_cost": 6,
+      "empower_cost": 3.0,
       "empower": "无",
       "fx": {
         "proj": "sw_dugu"
-      }
+      },
+      "empower_note": "只有一个招式，催动消耗大幅降低"
     },
     "wuhu_blade": {
       "name": "五虎断门刀",
@@ -1136,7 +1137,7 @@
     "chunyang": {
       "name": "九阳神功",
       "max_level": 4,
-      "desc": "【刚猛】武者心法。与降龙十八掌 / 大金刚拳 / 七伤拳同修：这三招伤害 +12%，盈境下再 +10%（品质越高越强）。另有 蓄力+25%　范围+12% 的标签加成与被动属性。",
+      "desc": "【刚猛】被动：内力上限与回复提升，内力满时缓慢回血，盈境更容易进入。同修（学会后这三个招式额外加成，品质越高越强）：降龙十八掌：伤害 +12%、盈境额外增伤 +10%；玄铁重剑：伤害 +10%、范围 +6%；屠龙刀法：伤害 +10%、催动消耗减少 +8%。标签加成 蓄力+25%　范围+12%。",
       "bonus": {
         "蓄力": 0.25,
         "范围": 0.12
@@ -1148,22 +1149,32 @@
         "ying_shift": -0.02
       },
       "yy": "yang",
-      "school": "fist",
       "role": "刚猛",
       "skills": [
         "yue_palm",
-        "vajra_fist",
-        "quake_fist"
+        "zhongjian",
+        "tulong_art"
       ],
       "link": {
-        "damage": 0.12,
-        "ying": 0.1
-      }
+        "yue_palm": {
+          "damage": 0.12,
+          "ying": 0.1
+        },
+        "zhongjian": {
+          "damage": 0.1,
+          "range": 0.06
+        },
+        "tulong_art": {
+          "damage": 0.1,
+          "empower": 0.08
+        }
+      },
+      "passive": "内力上限与回复提升，内力满时缓慢回血，盈境更容易进入"
     },
     "tiegu": {
       "name": "铁布衫",
       "max_level": 4,
-      "desc": "【金钟】武者心法。与大金刚拳 / 七伤拳 / 乾坤大挪移同修：这三招伤害 +8%，命中时回复一点气血（品质越高越强）。另有 近战+25%　防御+15% 的标签加成与被动属性。",
+      "desc": "【金钟】被动：气血上限、格挡几率和反震提升。同修（学会后这三个招式额外加成，品质越高越强）：大金刚拳：伤害 +8%、命中回血（伤害的 1.0%）；倚天剑法：伤害 +8%、持续/射程 +8%；血刀经：命中回血（伤害的 1.2%）、冷却缩短 +5%。标签加成 近战+25%　防御+15%。",
       "bonus": {
         "近战": 0.25,
         "防御": 0.15
@@ -1174,22 +1185,32 @@
         "thorns": 4
       },
       "yy": "yang",
-      "school": "fist",
       "role": "金钟",
       "skills": [
         "vajra_fist",
-        "quake_fist",
-        "taiji"
+        "yitian",
+        "xuedao"
       ],
       "link": {
-        "damage": 0.08,
-        "heal": 0.01
-      }
+        "vajra_fist": {
+          "damage": 0.08,
+          "heal": 0.01
+        },
+        "yitian": {
+          "damage": 0.08,
+          "duration": 0.08
+        },
+        "xuedao": {
+          "heal": 0.012,
+          "cooldown": 0.05
+        }
+      },
+      "passive": "气血上限、格挡几率和反震提升"
     },
     "tunhai": {
       "name": "北冥神功",
       "max_level": 4,
-      "desc": "【吸化】武者心法。与八荒六合功 / 乾坤大挪移 / 落英神剑掌同修：这三招每次命中回复内力，冷却缩短 6%（品质越高越强）。另有 多向+20%　防御+15% 的标签加成与被动属性。",
+      "desc": "【吸化】被动：击杀敌人回复内力。同修（学会后这三个招式额外加成，品质越高越强）：乾坤大挪移：命中回内力 0.7、冷却缩短 +6%；金蛇剑法：命中回内力 0.5、命中减速 +6%；燃木刀法：命中回内力 0.5、范围 +5%。标签加成 多向+20%　防御+15%。",
       "bonus": {
         "多向": 0.2,
         "防御": 0.15
@@ -1198,22 +1219,32 @@
         "kill_neili": 0.7
       },
       "yy": "yin",
-      "school": "fist",
       "role": "吸化",
       "skills": [
-        "eight_waste",
         "taiji",
-        "whirl_palm"
+        "jinshe",
+        "ranmu_blade"
       ],
       "link": {
-        "neili_hit": 0.7,
-        "cooldown": 0.06
-      }
+        "taiji": {
+          "neili_hit": 0.7,
+          "cooldown": 0.06
+        },
+        "jinshe": {
+          "neili_hit": 0.5,
+          "debuff": 0.06
+        },
+        "ranmu_blade": {
+          "neili_hit": 0.5,
+          "range": 0.05
+        }
+      },
+      "passive": "击杀敌人回复内力"
     },
     "hanshuang": {
       "name": "玄冥神功",
       "max_level": 4,
-      "desc": "【寒毒】剑侠心法。与太极剑 / 玉女素心剑 / 金蛇剑法同修：这三招命中使敌人减速，并有机会露出破绽（受到的伤害 +4%）（品质越高越强）。另有 控制+25%　范围+12% 的标签加成与被动属性。",
+      "desc": "【寒毒】被动：攻击使敌人减速。同修（学会后这三个招式额外加成，品质越高越强）：七伤拳：命中减速 +8%、露出破绽 +4%；玉女素心剑：命中减速 +8%、露出破绽 +4%；反两仪刀法：露出破绽 +5%、伤害 +6%。标签加成 控制+25%　范围+12%。",
       "bonus": {
         "控制": 0.25,
         "范围": 0.12
@@ -1222,22 +1253,32 @@
         "hit_slow": 0.07
       },
       "yy": "yin",
-      "school": "sword",
       "role": "寒毒",
       "skills": [
-        "taiji_sword",
+        "quake_fist",
         "yunv",
-        "jinshe"
+        "fanliangyi"
       ],
       "link": {
-        "debuff": 0.08,
-        "vuln": 0.04
-      }
+        "quake_fist": {
+          "debuff": 0.08,
+          "vuln": 0.04
+        },
+        "yunv": {
+          "debuff": 0.08,
+          "vuln": 0.04
+        },
+        "fanliangyi": {
+          "vuln": 0.05,
+          "damage": 0.06
+        }
+      },
+      "passive": "攻击使敌人减速"
     },
     "jieli": {
       "name": "斗转星移",
       "max_level": 4,
-      "desc": "【借力】剑侠心法。与太极剑 / 玉女素心剑 / 玄铁重剑同修：这三招伤害 +10%，持续 / 射程 +10%（品质越高越强）。另有 防御+30%　近战+10% 的标签加成与被动属性。",
+      "desc": "【借力】被动：受击时对周围敌人造成反震伤害。同修（学会后这三个招式额外加成，品质越高越强）：乾坤大挪移：伤害 +10%、持续/射程 +10%；太极剑：伤害 +10%、持续/射程 +10%；倚天剑法：伤害 +8%、冷却缩短 +5%。标签加成 防御+30%　近战+10%。",
       "bonus": {
         "防御": 0.3,
         "近战": 0.1
@@ -1246,22 +1287,32 @@
         "thorns": 6
       },
       "yy": "yin",
-      "school": "sword",
       "role": "借力",
       "skills": [
+        "taiji",
         "taiji_sword",
-        "yunv",
-        "zhongjian"
+        "yitian"
       ],
       "link": {
-        "damage": 0.1,
-        "duration": 0.1
-      }
+        "taiji": {
+          "damage": 0.1,
+          "duration": 0.1
+        },
+        "taiji_sword": {
+          "damage": 0.1,
+          "duration": 0.1
+        },
+        "yitian": {
+          "damage": 0.08,
+          "cooldown": 0.05
+        }
+      },
+      "passive": "受击时对周围敌人造成反震伤害"
     },
     "wuxiang": {
       "name": "小无相功",
       "max_level": 4,
-      "desc": "【千变】剑侠心法。与万剑归宗 / 倚天剑法 / 玄铁重剑同修：这三招冷却缩短 6%，范围 +5%（品质越高越强）。另有 多向+25%　远程+15% 的标签加成与被动属性。",
+      "desc": "【千变】被动：所有招式冷却缩短。同修（学会后这三个招式额外加成，品质越高越强）：八荒六合功：冷却缩短 +8%、范围 +5%；万剑归宗：冷却缩短 +6%、目标 +1；玄虚刀法：冷却缩短 +6%、范围 +5%。标签加成 多向+25%　远程+15%。",
       "bonus": {
         "多向": 0.25,
         "远程": 0.15
@@ -1270,22 +1321,32 @@
         "cd_reduce": 0.03
       },
       "yy": "yang",
-      "school": "sword",
       "role": "千变",
       "skills": [
+        "eight_waste",
         "wanjian",
-        "yitian",
-        "zhongjian"
+        "xuanxu_blade"
       ],
       "link": {
-        "cooldown": 0.06,
-        "range": 0.05
-      }
+        "eight_waste": {
+          "cooldown": 0.08,
+          "range": 0.05
+        },
+        "wanjian": {
+          "cooldown": 0.06,
+          "targets": 0.6
+        },
+        "xuanxu_blade": {
+          "cooldown": 0.06,
+          "range": 0.05
+        }
+      },
+      "passive": "所有招式冷却缩短"
     },
     "changsheng": {
       "name": "先天功",
       "max_level": 4,
-      "desc": "【回春】刀客心法。与血刀经 / 燃木刀法 / 鸳鸯双刀同修：这三招命中回复气血，并有几率让敌人流血（撕裂）（品质越高越强）。另有 防御+15%　控制+10% 的标签加成与被动属性。",
+      "desc": "【回春】被动：气血回复提升，拾取经验时回血。同修（学会后这三个招式额外加成，品质越高越强）：降龙十八掌：命中回血（伤害的 1.2%）；玉女素心剑：命中回血（伤害的 1.5%）；血刀经：命中回血（伤害的 1.5%）、流血几率 +30%。标签加成 防御+15%　控制+10%。",
       "bonus": {
         "防御": 0.15,
         "控制": 0.1
@@ -1295,22 +1356,30 @@
         "pickup_heal": 0.2
       },
       "yy": "yin",
-      "school": "blade",
       "role": "回春",
       "skills": [
-        "xuedao",
-        "ranmu_blade",
-        "yuanyang_blade"
+        "yue_palm",
+        "yunv",
+        "xuedao"
       ],
       "link": {
-        "heal": 0.012,
-        "bleed": 0.3
-      }
+        "yue_palm": {
+          "heal": 0.012
+        },
+        "yunv": {
+          "heal": 0.015
+        },
+        "xuedao": {
+          "heal": 0.015,
+          "bleed": 0.3
+        }
+      },
+      "passive": "气血回复提升，拾取经验时回血"
     },
     "gangqi": {
       "name": "易筋经",
       "max_level": 4,
-      "desc": "【镇岳】刀客心法。与玄虚刀法 / 反两仪刀法 / 屠龙刀法同修：这三招范围 +8%，催动消耗 −8%（品质越高越强）。另有 范围+25%　近战+10% 的标签加成与被动属性。",
+      "desc": "【镇岳】被动：获得可再生的护盾。同修（学会后这三个招式额外加成，品质越高越强）：七伤拳：范围 +8%、持续/射程 +10%；太极剑：范围 +8%、催动消耗减少 +8%；反两仪刀法：范围 +8%、持续/射程 +10%。标签加成 范围+25%　近战+10%。",
       "bonus": {
         "范围": 0.25,
         "近战": 0.1
@@ -1320,22 +1389,32 @@
         "shield_regen": 1
       },
       "yy": "yang",
-      "school": "blade",
       "role": "镇岳",
       "skills": [
-        "xuanxu_blade",
-        "fanliangyi",
-        "tulong_art"
+        "quake_fist",
+        "taiji_sword",
+        "fanliangyi"
       ],
       "link": {
-        "range": 0.08,
-        "empower": 0.08
-      }
+        "quake_fist": {
+          "range": 0.08,
+          "duration": 0.1
+        },
+        "taiji_sword": {
+          "range": 0.08,
+          "empower": 0.08
+        },
+        "fanliangyi": {
+          "range": 0.08,
+          "duration": 0.1
+        }
+      },
+      "passive": "获得可再生的护盾"
     },
     "lingxi": {
       "name": "葵花宝典",
       "max_level": 4,
-      "desc": "【疾锐】剑侠心法。与辟邪剑法 / 金蛇剑法 / 万剑归宗同修：这三招暴击率 +6%，连击几率 +6%（品质越高越强）。另有 追踪+20%　连击+20% 的标签加成与被动属性。",
+      "desc": "【疾锐】被动：暴击率与暴击伤害提升。同修（学会后这三个招式额外加成，品质越高越强）：落英神剑掌：暴击率 +6%、连击几率 +6%；辟邪剑法：暴击率 +8%、冷却缩短 +5%；鸳鸯双刀：连击几率 +8%、暴击率 +5%。标签加成 追踪+20%　连击+20%。",
       "bonus": {
         "追踪": 0.2,
         "连击": 0.2
@@ -1345,22 +1424,32 @@
         "crit_mult": 0.07
       },
       "yy": "yang",
-      "school": "sword",
       "role": "疾锐",
       "skills": [
+        "whirl_palm",
         "pixie",
-        "jinshe",
-        "wanjian"
+        "yuanyang_blade"
       ],
       "link": {
-        "crit": 0.06,
-        "hits": 0.06
-      }
+        "whirl_palm": {
+          "crit": 0.06,
+          "hits": 0.06
+        },
+        "pixie": {
+          "crit": 0.08,
+          "cooldown": 0.05
+        },
+        "yuanyang_blade": {
+          "hits": 0.08,
+          "crit": 0.05
+        }
+      },
+      "passive": "暴击率与暴击伤害提升"
     },
     "puti": {
       "name": "九阴真经",
       "max_level": 4,
-      "desc": "【厚积】刀客心法。与屠龙刀法 / 玄虚刀法 / 鸳鸯双刀同修：这三招伤害 +10%，暴击率 +4%（品质越高越强）。另有 控制+20%　蓄力+15% 的标签加成与被动属性。",
+      "desc": "【厚积】被动：经验获取提升，拾取范围扩大。同修（学会后这三个招式额外加成，品质越高越强）：玄铁重剑：伤害 +10%、暴击率 +4%；屠龙刀法：伤害 +8%、暴击率 +5%；大金刚拳：伤害 +8%、暴击率 +4%。标签加成 控制+20%　蓄力+15%。",
       "bonus": {
         "控制": 0.2,
         "蓄力": 0.15
@@ -1370,17 +1459,27 @@
         "pickup_range": 10
       },
       "yy": "yin",
-      "school": "blade",
       "role": "厚积",
       "skills": [
+        "zhongjian",
         "tulong_art",
-        "xuanxu_blade",
-        "yuanyang_blade"
+        "vajra_fist"
       ],
       "link": {
-        "damage": 0.1,
-        "crit": 0.04
-      }
+        "zhongjian": {
+          "damage": 0.1,
+          "crit": 0.04
+        },
+        "tulong_art": {
+          "damage": 0.08,
+          "crit": 0.05
+        },
+        "vajra_fist": {
+          "damage": 0.08,
+          "crit": 0.04
+        }
+      },
+      "passive": "经验获取提升，拾取范围扩大"
     }
   },
   "qinggong": {
@@ -1899,7 +1998,13 @@
       ],
       "portrait": "res://assets/portraits/fist_hero.jpg",
       "sprite_dir": "res://assets/sprites/player",
-      "town_hero_dir": "res://assets/town/hero"
+      "town_hero_dir": "res://assets/town/hero",
+      "passive": {
+        "ying_dmg": 0.1,
+        "empower_cut": -0.25,
+        "max_neili": 25
+      },
+      "passive_text": "内力深厚：内力上限 +25，盈境伤害加成 +10%；但催动消耗 +25%，更依赖内力回复"
     },
     "sword": {
       "name": "剑侠",
@@ -1912,7 +2017,14 @@
       ],
       "portrait": "res://assets/portraits/sword_hero.jpg",
       "sprite_dir": "res://assets/sprites/sword",
-      "town_hero_dir": "res://assets/town/hero_sword"
+      "town_hero_dir": "res://assets/town/hero_sword",
+      "passive": {
+        "speed_pct": 0.1,
+        "qg_cd_reduce": 0.1,
+        "cd_reduce": 0.05,
+        "speed_cd": 0.5
+      },
+      "passive_text": "身法见长：移速 +10%，轻功冷却 −10%，招式冷却 −5%，另外移速每提高 10%，招式冷却再缩短 5%（攻速随速度提高）"
     },
     "blade": {
       "name": "刀客",
@@ -1925,7 +2037,13 @@
       ],
       "portrait": "res://assets/portraits/blade_hero.jpg",
       "sprite_dir": "res://assets/sprites/blade",
-      "town_hero_dir": "res://assets/town/hero_blade"
+      "town_hero_dir": "res://assets/town/hero_blade",
+      "passive": {
+        "max_hp": 20,
+        "hp_regen": 0.15,
+        "kill_hp": 0.3
+      },
+      "passive_text": "悍勇不屈：气血上限 +20，气血回复 +0.15/秒，击杀回血 +0.3；耗血的刀法（血刀经）与刀魂机制更吃气血，要靠回复撑住"
     },
     "spear": {
       "name": "长兵",
@@ -2011,6 +2129,13 @@
                   "stat": {
                     "skill_range": 0.05,
                     "crit_mult": 0.05
+                  }
+                },
+                "fist": {
+                  "name": "盈劲",
+                  "desc": "盈境伤害 +6%/级",
+                  "stat": {
+                    "ying_dmg": 0.06
                   }
                 }
               }
@@ -2138,7 +2263,16 @@
               "stat": {
                 "hp_regen": 0.3
               },
-              "desc": "气血回复 +0.3/秒每级"
+              "desc": "气血回复 +0.3/秒每级",
+              "schools": {
+                "blade": {
+                  "name": "调息",
+                  "desc": "气血回复 +0.5/秒每级",
+                  "stat": {
+                    "hp_regen": 0.5
+                  }
+                }
+              }
             },
             {
               "id": "rou_body",
@@ -2147,7 +2281,16 @@
               "stat": {
                 "max_hp": 8
               },
-              "desc": "气血 +8/级"
+              "desc": "气血 +8/级",
+              "schools": {
+                "blade": {
+                  "name": "柔骨",
+                  "desc": "气血上限 +12/级",
+                  "stat": {
+                    "max_hp": 12
+                  }
+                }
+              }
             }
           ],
           [
@@ -2158,7 +2301,17 @@
               "stat": {
                 "max_neili": 6
               },
-              "desc": "内力上限 +6/级"
+              "desc": "内力上限 +6/级",
+              "schools": {
+                "fist": {
+                  "name": "养气",
+                  "desc": "内力上限 +8、回内力 +0.4/秒每级",
+                  "stat": {
+                    "max_neili": 8,
+                    "neili_regen": 0.4
+                  }
+                }
+              }
             },
             {
               "id": "rou_med",
@@ -2218,7 +2371,17 @@
               "stat": {
                 "pickup_heal": 0.3
               },
-              "desc": "拾取回血 +0.3/级"
+              "desc": "拾取回血 +0.3/级",
+              "schools": {
+                "blade": {
+                  "name": "回春",
+                  "desc": "拾取回血 +0.3/级，击杀回血 +0.3/级",
+                  "stat": {
+                    "pickup_heal": 0.3,
+                    "kill_hp": 0.3
+                  }
+                }
+              }
             },
             {
               "id": "rou_finger",
@@ -2254,7 +2417,16 @@
               "stat": {
                 "full_hp_regen": 0.6
               },
-              "desc": "充盈时气血回复 +0.6/秒每级"
+              "desc": "充盈时气血回复 +0.6/秒每级",
+              "schools": {
+                "blade": {
+                  "name": "太和",
+                  "desc": "内力充盈时气血回复 +1/秒每级",
+                  "stat": {
+                    "full_hp_regen": 1.0
+                  }
+                }
+              }
             },
             {
               "id": "rou_cut",
@@ -2300,7 +2472,16 @@
               "stat": {
                 "speed_pct": 0.015
               },
-              "desc": "移速 +1.5%/级"
+              "desc": "移速 +1.5%/级",
+              "schools": {
+                "sword": {
+                  "name": "轻灵",
+                  "desc": "移速 +2.5%/级（剑侠身法更强）",
+                  "stat": {
+                    "speed_pct": 0.025
+                  }
+                }
+              }
             },
             {
               "id": "ling_luck",
@@ -2320,7 +2501,16 @@
               "stat": {
                 "cd_reduce": 0.015
               },
-              "desc": "招式冷却 −1.5%/级"
+              "desc": "招式冷却 −1.5%/级",
+              "schools": {
+                "sword": {
+                  "name": "迅捷",
+                  "desc": "招式冷却 −2.5%/级（攻速）",
+                  "stat": {
+                    "cd_reduce": 0.025
+                  }
+                }
+              }
             },
             {
               "id": "ling_qg",
@@ -2395,7 +2585,16 @@
               "stat": {
                 "exp_pct": 0.03
               },
-              "desc": "经验获取 +3%/级"
+              "desc": "经验获取 +3%/级",
+              "schools": {
+                "fist": {
+                  "name": "引气",
+                  "desc": "击杀回内力 +0.5/级",
+                  "stat": {
+                    "kill_neili": 0.5
+                  }
+                }
+              }
             },
             {
               "id": "ling_dodge",
@@ -2404,7 +2603,23 @@
               "stat": {
                 "dodge_chance": 0.02
               },
-              "desc": "闪避几率 +2%/级"
+              "desc": "闪避几率 +2%/级",
+              "schools": {
+                "sword": {
+                  "name": "灵蛇",
+                  "desc": "闪避几率 +3%/级（敏捷）",
+                  "stat": {
+                    "dodge_chance": 0.03
+                  }
+                },
+                "fist": {
+                  "name": "聚息",
+                  "desc": "回内力 +0.5/秒每级",
+                  "stat": {
+                    "neili_regen": 0.5
+                  }
+                }
+              }
             }
           ],
           [
@@ -2415,7 +2630,16 @@
               "stat": {
                 "cd_reduce": 0.015
               },
-              "desc": "招式冷却 −1.5%/级"
+              "desc": "招式冷却 −1.5%/级",
+              "schools": {
+                "sword": {
+                  "name": "疾风",
+                  "desc": "招式冷却 −2.5%/级（攻速）",
+                  "stat": {
+                    "cd_reduce": 0.025
+                  }
+                }
+              }
             },
             {
               "id": "ling_waste",
@@ -2484,7 +2708,16 @@
               "stat": {
                 "speed_pct": 0.015
               },
-              "desc": "移速 +1.5%/级"
+              "desc": "移速 +1.5%/级",
+              "schools": {
+                "sword": {
+                  "name": "凌波",
+                  "desc": "移速 +2.5%/级",
+                  "stat": {
+                    "speed_pct": 0.025
+                  }
+                }
+              }
             }
           ]
         ]
@@ -3458,7 +3691,7 @@
   },
   "yinyang": {
     "harmony": {
-      "name": "阴阳调和",
+      "name": "调和体",
       "desc": "回气 +20%；平境更宽（不容易掉进虚境）",
       "stats": {
         "ping_widen": 0.06
@@ -3468,7 +3701,7 @@
       }
     },
     "double_yang": {
-      "name": "烈火",
+      "name": "纯阳体",
       "desc": "催动威力 +30%，回气 −20%，入定无效",
       "stats": {
         "emp_power": 0.3,
@@ -3479,7 +3712,7 @@
       }
     },
     "double_yin": {
-      "name": "寒潭",
+      "name": "纯阴体",
       "desc": "内力上限 +30%，回气 +15%，催动威力 −15%",
       "stats": {
         "emp_power": -0.15
@@ -4042,7 +4275,7 @@
       },
       {
         "title": "阴阳与合璧",
-        "text": "每个心法分阴阳。两个心法槽学满后：一阴一阳 = 阴阳调和（回气 +20%，平境更宽）；双阳 = 烈火（催动威力 +30%，回气 −20%，入定无效）；双阴 = 寒潭（内力上限 +30%，回气 +15%，催动威力 −15%）。\\n另有 8 种特定的两个心法搭配会「合璧」，效果见心法图鉴。选心法时，卡片上会提示它和你已学心法的搭配结果。"
+        "text": "每个心法分阴阳。两个心法槽学满后：一阴一阳 = 调和体（回气 +20%，平境更宽）；双阳 = 纯阳体（催动威力 +30%，回气 −20%，入定无效）；双阴 = 纯阴体（内力上限 +30%，回气 +15%，催动威力 −15%）。\\n另有 10 种特定的两个心法搭配会「合璧」，效果见心法图鉴。选心法时，卡片上会提示它和你已学心法的搭配结果。"
       },
       {
         "title": "还丹与吸星大法",

@@ -1477,7 +1477,7 @@ func _enhance_rework_test() -> void:
 	wx.apply_choice({"kind": "up_xinfa", "id": "chunyang", "tier": 0, "src": "level"})
 	_check(is_equal_approx(wx.xinfa_power("chunyang"), 6.0), "普通强化 +1 份（共 6 份）")
 	var yue: SkillBase = wx.skills["yue_palm"]
-	var want := float(Data.xinfa["chunyang"]["link"]["damage"]) * wx.xinfa_scale("chunyang")
+	var want := float(Data.xinfa["chunyang"]["link"]["yue_palm"]["damage"]) * wx.xinfa_scale("chunyang")
 	_check(absf(float(yue.link_applied.get("damage", 0.0)) - want) < 1e-9, "同修：降龙十八掌伤害 +%.0f%%" % (want * 100.0))
 	var d_before := float(yue.mods["damage"])
 	for i in 5:
@@ -1494,13 +1494,13 @@ func _enhance_rework_test() -> void:
 	# 联动特殊效果：命中回内力 / 破绽 / 撕裂
 	var wn := _new_world(85)
 	wn.skills.clear()
-	wn.add_skill("eight_waste")
+	wn.add_skill("taiji")
 	wn.apply_choice({"kind": "new_xinfa", "id": "tunhai", "src": "level"})
 	var tgt := Enemy.new()
 	tgt.hp = 1e12
 	tgt.max_hp = 1e12
 	wn.neili = 10.0
-	wn.hit_enemy(tgt, 10.0, ["多向"], Vector2.ZERO, "eight_waste")
+	wn.hit_enemy(tgt, 10.0, ["防御"], Vector2.ZERO, "taiji")
 	_check(wn.neili > 10.4, "北冥神功同修：命中回内力（%.2f）" % wn.neili)
 	_free_world(wn)
 	var wv := _new_world(86, "kuang_feng")
@@ -1531,20 +1531,68 @@ func _enhance_rework_test() -> void:
 		bled += 1 if tb.bleed_stacks > 0 else 0
 	_check(bled > 10, "先天功同修：命中有几率撕裂（%d/60）" % bled)
 	_free_world(wbl)
-	# 每个心法对应 2~3 个本流派的非起手招式；每个非起手招式至少被一个心法点名
+	# 每个心法点名 3 个非起手招式（可以跨流派，各自的加成不同）；每个非起手招式至少被一个心法点名
 	var covered := {}
+	var cross := 0
 	for id in Data.xinfa:
-		var xs: Array = Data.xinfa[id]["skills"]
-		_check(xs.size() >= 2 and xs.size() <= 3, "%s 对应 %d 个招式（要求 2~3）" % [id, xs.size()])
-		for sid in xs:
+		var lk: Dictionary = Data.xinfa[id]["link"]
+		_check(lk.size() == 3, "%s 点名 %d 个招式（要求 3 个）" % [id, lk.size()])
+		var sch_set := {}
+		for sid in lk:
 			covered[sid] = true
-			_check(not Data.is_starter(str(sid)) and str(Data.skills[sid]["school"]) == str(Data.xinfa[id]["school"]), "%s → %s：非起手招式且同流派" % [id, sid])
+			sch_set[str(Data.skills[sid]["school"])] = true
+			_check(not Data.is_starter(str(sid)), "%s → %s：不能是起手招式" % [id, sid])
+		cross += 1 if sch_set.size() > 1 else 0
+	_check(cross >= 8, "心法点名的招式多数跨流派（%d / 10）" % cross)
 	for sid in Data.skills:
 		if not Data.is_starter(sid):
 			_check(covered.has(sid), "非起手招式 %s 至少被一个心法点名" % sid)
+	var ny := 0
+	for id in Data.xinfa:
+		ny += 1 if str(Data.xinfa[id]["yy"]) == "yang" else 0
+	_check(ny == 5, "5 个阳性 + 5 个阴性心法（阳 %d）" % ny)
 	# 初始恢复：内力回复 −30%，气血每 5 秒 1 点
 	_check(absf(float(Data.player_base["neili_regen"]) - 8.4) < 1e-6, "初始内力回复 8.4（原 12 的 70%）")
 	_check(absf(float(Data.player_base["hp_regen"]) - 0.2) < 1e-6, "初始气血回复 0.2 / 秒（每 5 秒 1 点）")
+	# 流派特色：剑侠 = 速度 / 攻速；武者 = 内力（盈境加成高、催动贵）；刀客 = 气血；独孤九剑催动消耗减半
+	var wsw := _new_world(88, "kuang_feng")
+	var wfi := _new_world(89, "chain_fist")
+	var wbl2 := _new_world(90, "wuhu_blade")
+	_check(wsw.st("speed_pct") >= 0.10 - 1e-9 and wsw.st("qg_cd_reduce") >= 0.10 - 1e-9, "剑侠：移速 +10%、轻功冷却 −10%")
+	wsw.stats["speed_pct"] = 0.30
+	var cm_fast := wsw.cd_mult()
+	wsw.stats["speed_pct"] = 0.0
+	_check(cm_fast < wsw.cd_mult() - 0.1, "剑侠：移速越高攻速越快（%.2f < %.2f）" % [cm_fast, wsw.cd_mult()])
+	_check(wfi.st("ying_dmg") >= 0.10 - 1e-9 and wfi.st("empower_cut") < 0.0 and wfi.st("max_neili") > float(Data.player_base["max_neili"]), "武者：盈境加成更高、催动更贵、内力更深")
+	_check(wbl2.st("max_hp") > float(Data.player_base["max_hp"]) and wbl2.st("hp_regen") > float(Data.player_base["hp_regen"]), "刀客：气血上限与回复更高")
+	var hpk := wbl2.hp
+	wbl2.hp = 10.0
+	var ke: Enemy = wbl2._spawn_enemy("bandit", wbl2.player_pos + Vector2(40, 0))
+	wbl2._kill(ke)
+	_check(wbl2.hp > 10.2, "刀客：击杀回血（%.2f）" % wbl2.hp)
+	wbl2.hp = hpk
+	var wdu := _new_world(91, "dugu")
+	var cdu: float = wdu.skills["dugu"].empower_cost()
+	var cqs: float = wsw.skills["kuang_feng"].empower_cost() if wsw.skills.has("kuang_feng") else 1.0
+	_check(float(Data.skills["dugu"]["empower_cost"]) <= 4.5 and cdu > 0.0, "独孤九剑：催动消耗大幅降低（%.1f）" % cdu)
+	_free_world(wdu)
+	_free_world(wsw)
+	_free_world(wfi)
+	_free_world(wbl2)
+	# 局外属性 / 天赋：内力和气血恢复相关，数量不多；各流派覆盖不改节点 id / 上限
+	var ms := Meta.stats_for({"pow": 0, "agi": 0, "vit": 30, "int": 30, "luk": 0})
+	_check(float(ms["hp_regen"]) > 0.1 and float(ms["neili_regen"]) > 2.0, "根骨加气血回复、内息加内力回复（%.2f / %.2f）" % [ms["hp_regen"], ms["neili_regen"]])
+	var base_nodes: Dictionary = Talents.nodes()
+	for sc in ["fist", "sword", "blade"]:
+		var sn: Dictionary = Talents.nodes(sc)
+		var diff := 0
+		for nid in sn:
+			_check(int(sn[nid]["max"]) == int(base_nodes[nid]["max"]), "%s 流派天赋 %s 上限不变" % [sc, nid])
+			diff += 1 if str(sn[nid]["name"]) != str(base_nodes[nid]["name"]) or str(sn[nid]["desc"]) != str(base_nodes[nid]["desc"]) else 0
+		_check(diff >= 4, "%s 流派有专属天赋覆盖（%d 个）" % [sc, diff])
+	_check(float(Talents.stats_for({"ling_step": 3}, "sword")["speed_pct"]) > float(Talents.stats_for({"ling_step": 3}, "fist")["speed_pct"]), "剑侠的移速天赋更强")
+	_check(float(Talents.stats_for({"rou_regen": 3}, "blade")["hp_regen"]) > float(Talents.stats_for({"rou_regen": 3}, "fist")["hp_regen"]), "刀客的气血回复天赋更强")
+	_check(float(Talents.stats_for({"rou_neili": 3}, "fist")["neili_regen"]) > 0.0, "武者的养气带回内力")
 	# 独孤九剑：破 X 式总共强化 20 次 / 35 次
 	_check(int(Data.T("shi_stage2")) == 20 and int(Data.T("shi_stage3")) == 35, "独孤九剑门槛 20 / 35")
 
@@ -2384,7 +2432,7 @@ func _synergy_test() -> void:
 	wa.skills.clear()
 	wa.xinfa = {"wuxiang": 1, "hanshuang": 1}
 	wa.recalc()
-	_check(absf(wa.st("neili_regen") - base_regen * 1.2) < 1e-6 and wa.st("ping_widen") > 0.0 and wa.synergies[0]["name"] == "阴阳调和", "阴阳调和：回气 +20%，平境更宽")
+	_check(absf(wa.st("neili_regen") - base_regen * 1.2) < 1e-6 and wa.st("ping_widen") > 0.0 and wa.synergies[0]["name"] == "调和体", "调和体：回气 +20%，平境更宽")
 	var xu0 := Data.T("xu_below")
 	wa.neili = wa.st("max_neili") * (xu0 - 0.03)
 	_check(wa.realm() == GameWorld.Realm.PING, "平境更宽：略低于虚境线时仍算平")
@@ -2393,11 +2441,11 @@ func _synergy_test() -> void:
 	wb.skills.clear()
 	wb.xinfa = {"wuxiang": 1, "tiegu": 1}
 	wb.recalc()
-	_check(absf(wb.st("neili_regen") - base_regen * 0.8) < 1e-6 and absf(wb.st("emp_power") - 0.3) < 1e-9 and wb.synergies[0]["name"] == "烈火", "烈火：回气 −20%，催动威力 +30%")
+	_check(absf(wb.st("neili_regen") - base_regen * 0.8) < 1e-6 and absf(wb.st("emp_power") - 0.3) < 1e-9 and wb.synergies[0]["name"] == "纯阳体", "纯阳体：回气 −20%，催动威力 +30%")
 	wb.input_move = Vector2.ZERO
 	for i in int(3.0 / DT):
 		wb.step(DT)
-	_check(not wb.meditating(), "烈火：入定无效")
+	_check(not wb.meditating(), "纯阳体：入定无效")
 	var probe := Enemy.new()
 	probe.hp = 1.0e12
 	probe.max_hp = 1.0e12
@@ -2406,14 +2454,14 @@ func _synergy_test() -> void:
 	var plain := wb.hit_enemy(probe, 100.0, ["远程"], Vector2.ZERO, "probe")
 	wb._emp_ctx = 1
 	var emp := wb.hit_enemy(probe, 100.0, ["远程"], Vector2.ZERO, "probe")
-	_check(absf(emp / plain - 1.3) < 1e-6, "烈火：催动版伤害 ×1.3（实际 ×%.2f）" % (emp / plain))
+	_check(absf(emp / plain - 1.3) < 1e-6, "纯阳体：催动版伤害 ×1.3（实际 ×%.2f）" % (emp / plain))
 	_free_world(wb)
 	var wc := _new_world(73)
 	wc.skills.clear()
 	wc.xinfa = {"hanshuang": 1, "tunhai": 1}
 	wc.recalc()
 	var per_max := float(Data.xinfa["hanshuang"]["per_level"].get("max_neili", 0.0)) + float(Data.xinfa["tunhai"]["per_level"].get("max_neili", 0.0))
-	_check(absf(wc.st("max_neili") - (base_max + per_max) * 1.3) < 1e-6 and absf(wc.st("emp_power") + 0.15) < 1e-9 and wc.synergies[0]["name"] == "寒潭", "寒潭：内力上限 +30%，催动威力 −15%")
+	_check(absf(wc.st("max_neili") - (base_max + float(Data.schools["fist"]["passive"]["max_neili"]) + per_max) * 1.3) < 1e-6 and absf(wc.st("emp_power") + 0.15) < 1e-9 and wc.synergies[0]["name"] == "纯阴体", "纯阴体：内力上限 +30%，催动威力 −15%")
 	_free_world(wc)
 	# 合璧效果
 	var wd := _new_world(74)
@@ -2468,7 +2516,7 @@ func _synergy_test() -> void:
 				if c["id"] == "tunhai":
 					hinted = hinted or str(c["desc"]).contains("合璧「吞吐万象」")
 	_check(hinted, "能合璧的卡片提示合璧")
-	_check(seen_x.has("tunhai") and seen_x.has("tiegu") and not seen_x.has("lingxi") and not seen_x.has("gangqi"), "武者只会看到武者心法（%s）" % str(seen_x.keys()))
+	_check(seen_x.size() == 9, "所有心法都会出现在升级卡里（已学 1 个，其余 9 个；实际 %d）" % seen_x.size())
 	wg.xinfa.clear()
 	for c in wg.roll_choices(30):
 		if str(c["kind"]) == "new_xinfa":
@@ -2484,7 +2532,7 @@ func _synergy_test() -> void:
 				spoil = spoil or str(c["desc"]).contains("合璧")
 	_check(not spoil, "不能合璧的卡片不提示合璧")
 	_free_world(wh)
-	print("  阴阳属性 / 45 种搭配 / 调和·烈火·寒潭 / 合璧效果 / 选卡提示  OK")
+	print("  阴阳属性 / 45 种搭配 / 调和体·纯阳体·纯阴体 / 合璧效果 / 选卡提示  OK")
 
 
 func _p2_test() -> void:
@@ -2857,7 +2905,7 @@ func _build_test() -> void:
 	_check(absf(w.st("max_hp") - (hp0 + 20.0)) < 0.01 and w.st("damage_pct") >= 0.1, "装备基础属性生效")
 	var sk: SkillBase = w.skills["chain_fist"]
 	var c0 := float(Data.skills["chain_fist"]["empower_cost"]) * Data.T("empower_cost_mult")
-	_check(absf(float(sk.mods["damage"]) - 0.3) < 1e-9 and absf(sk.empower_cost() - c0 * 0.8) < 1e-6, "技能词条：伤害 +30%、催动消耗 −20%")
+	_check(absf(float(sk.mods["damage"]) - 0.3) < 1e-9 and absf(sk.empower_cost() - c0 * (1.0 - 0.2 - w.st("empower_cut"))) < 1e-6, "技能词条：伤害 +30%、催动消耗 −20%（武者基础催动更贵）")
 	w.xinfa["tiegu"] = 1
 	w.recalc()
 	_check(absf(w.st("block_chance") - float(Data.xinfa["tiegu"]["per_level"]["block_chance"]) * 3.0) < 1e-9, "心法词条：已学的心法 +2 级（1 → 3）")
@@ -2898,7 +2946,7 @@ func _neili_test() -> void:
 	var mx := w.st("max_neili")
 	# 三境判定与伤害加成
 	w.neili = mx * 0.9
-	_check(w.realm() == GameWorld.Realm.YING and is_equal_approx(w.dmg_mult(), Data.T("ying_dmg")), "达到盈境门槛为盈，伤害加成")
+	_check(w.realm() == GameWorld.Realm.YING and is_equal_approx(w.dmg_mult(), Data.T("ying_dmg") + w.st("ying_dmg")), "达到盈境门槛为盈，伤害加成（含武者的盈境加成）")
 	w.neili = mx * 0.5
 	_check(w.realm() == GameWorld.Realm.PING and is_equal_approx(w.dmg_mult(), 1.0), "平境无加成")
 	w.neili = mx * 0.2
@@ -2984,8 +3032,9 @@ func _neili_test() -> void:
 	var sb := SkillBase.new()
 	sb.setup(_new_world(1), "yue_palm", Data.skills["yue_palm"])
 	var c0 := sb.empower_cost()
+	var ecut := sb.w.st("empower_cut")
 	sb.add_upgrade("empower", 3)
-	_check(absf(sb.empower_cost() - c0 * 0.6) < 1e-6, "运功·传说：催动消耗 −40%")
+	_check(absf(sb.empower_cost() - c0 * (1.0 - 0.4 - ecut) / (1.0 - ecut)) < 1e-6, "运功·传说：催动消耗再 −40%")
 	print("  三境 / 门槛心法 / 回气 / 外泄 / 入定 / 9 招催动 / 运功  OK")
 
 

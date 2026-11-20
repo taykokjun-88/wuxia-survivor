@@ -88,26 +88,31 @@ static func skill_text(id: String) -> String:
 static func xinfa_text(id: String) -> String:
 	var d: Dictionary = Data.xinfa[id]
 	var lines: Array = []
-	var sch := str(Data.schools.get(str(d.get("school", "")), {}).get("name", ""))
-	lines.append("【%s】%s心法" % [str(d.get("role", "")), sch])
-	lines.append(str(d["desc"]))
-	lines.append("\n获得方式：局内升级时，从三张卡里选「修习」即可学会（一局最多 2 个心法，只会出现本流派的心法）；之后每次升级选到它的强化卡，可再强化 %d 次。" % (int(d["max_level"]) - 1))
-	lines.append("强化的品质：普通 / 特别 / 优秀 / 传说，每高一档强化量再多 1 份（1 / 2 / 3 / 4 份）；份数越多，同修效果、标签加成和被动属性越强。")
-	var sk: Array = []
-	for sid in d.get("skills", []):
-		sk.append(str(Data.skills[sid]["name"]))
-	if not sk.is_empty():
-		lines.append("\n同修招式（学会后这些招式有额外加成）：" + "　".join(sk))
+	lines.append("【%s】%s" % [str(d.get("role", "")), "阳性心法" if str(d.get("yy", "")) == "yang" else "阴性心法"])
+	lines.append("被动：" + str(d.get("passive", "")))
+	lines.append("\n获得方式：局内升级时，从三张卡里选「修习」即可学会（一局最多 2 个心法）；之后每次升级选到它的强化卡，可再强化 %d 次。" % (int(d["max_level"]) - 1))
+	lines.append("强化的品质：普通 / 特别 / 优秀 / 传说，每高一档强化量再多 1 份（1 / 2 / 3 / 4 份）；份数越多，被动、标签加成和同修效果越强。")
+	var names := {"damage": "伤害", "cooldown": "冷却缩短", "range": "范围", "targets": "目标", "duration": "持续/射程", "crit": "暴击率", "debuff": "命中减速",
+		"heal": "命中回血", "hits": "连击几率", "buff": "出招回内力", "empower": "催动消耗减少", "ying": "盈境额外增伤", "neili_hit": "命中回内力", "vuln": "露出破绽", "bleed": "流血几率"}
+	var lk: Dictionary = d.get("link", {})
+	if not lk.is_empty():
+		lines.append("\n同修招式（可以是任何流派的非起手招式，学会后额外加成，每个招式效果不同）：")
+		for sid in lk:
+			var eff: Array = []
+			for k in lk[sid]:
+				var v := float(lk[sid][k])
+				eff.append(("%s +%d%%" % [names.get(k, k), int(round(v * 100.0))]) if not ["targets", "neili_hit"].has(k) else ("%s" % names.get(k, k) if k == "targets" else "%s %.1f" % [names[k], v]))
+			lines.append("  · %s（%s）：%s" % [Data.skills[sid]["name"], Data.skills[sid]["school"] == "fist" and "武者" or (Data.skills[sid]["school"] == "sword" and "剑侠" or "刀客"), "　".join(eff)])
 	var per: Array = []
 	for k in d["per_level"]:
 		var pv := float(d["per_level"][k])
 		per.append("%s %s%s" % [Guide.stat_name(str(k)), "+" if pv >= 0.0 else "", str(snappedf(pv, 0.01))])
-	lines.append("\n每份强度的被动：" + "　".join(per))
+	lines.append("\n每份强度的被动属性：" + "　".join(per))
 	var bonus: Array = []
 	for tg in d["bonus"]:
 		bonus.append("%s招式 +%d%%" % [tg, int(float(d["bonus"][tg]) * 100.0)])
 	lines.append("标签加成：" + "　".join(bonus))
-	lines.append("\n内力属性：" + ("阳（两个阳心法 = 阳性；一阴一阳 = 调和）" if str(d.get("yy", "")) == "yang" else "阴（两个阴心法 = 阴性；一阴一阳 = 调和）"))
+	lines.append("\n内力属性：" + ("阳（两个阳心法 = 纯阳体；一阴一阳 = 调和体）" if str(d.get("yy", "")) == "yang" else "阴（两个阴心法 = 纯阴体；一阴一阳 = 调和体）"))
 	var pairs: Array = []
 	for h in Data.harmony:
 		var pr: Array = h["pair"]

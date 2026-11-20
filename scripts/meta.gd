@@ -14,7 +14,7 @@ const FIRST_WIN_BONUS := 100
 const ATTRS := [
 	{"id": "pow", "name": "力道", "desc": "招式伤害 +%.1f%%"},
 	{"id": "agi", "name": "身法", "desc": "移速 +%.1f%%　轻功冷却 −%.1f%%"},
-	{"id": "vit", "name": "根骨", "desc": "气血 +%.0f　防御 +%.1f"},
+	{"id": "vit", "name": "根骨", "desc": "气血 +%.0f　防御 +%.1f　气血回复 +%.2f/秒"},
 	{"id": "int", "name": "内息", "desc": "内力上限 +%.0f　回复 +%.1f/秒"},
 	{"id": "luk", "name": "福缘", "desc": "暴击率 +%.1f%%　高档位升级概率 +%.0f%%"},
 ]
@@ -122,8 +122,9 @@ static func stats_for(alloc: Dictionary) -> Dictionary:
 		"qg_cd_reduce": 0.004 * ag,
 		"max_hp": 1.5 * vi,
 		"armor": 0.04 * vi,
+		"hp_regen": 0.004 * vi,
 		"max_neili": 0.7 * ne,
-		"neili_regen": 0.06 * ne,
+		"neili_regen": 0.09 * ne,
 		"crit_chance": 0.0015 * lu,
 		"luck": 0.008 * lu,
 	}
@@ -138,7 +139,7 @@ static func effect_text(attr_id: String, points: int) -> String:
 		match attr_id:
 			"pow": return str(a["desc"]) % (0.5 * e)
 			"agi": return str(a["desc"]) % [0.3 * e, 0.4 * e]
-			"vit": return str(a["desc"]) % [1.5 * e, 0.04 * e]
-			"int": return str(a["desc"]) % [0.7 * e, 0.06 * e]
+			"vit": return str(a["desc"]) % [1.5 * e, 0.04 * e, 0.004 * e]
+			"int": return str(a["desc"]) % [0.7 * e, 0.09 * e]
 			"luk": return str(a["desc"]) % [0.15 * e, 0.8 * e]
 	return ""

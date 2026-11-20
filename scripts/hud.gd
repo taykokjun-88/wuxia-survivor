@@ -260,6 +260,15 @@ func _panel_box() -> Array:
 	return [panel, box]
 
 
+## 流派介绍 + 流派特色
+func _school_text(id: String) -> String:
+	var sd: Dictionary = Data.schools[id]
+	var t := str(sd["desc"])
+	if str(sd.get("passive_text", "")) != "":
+		t += "\n特色：" + str(sd["passive_text"])
+	return t
+
+
 ## 创建角色（只在第一次进入游戏时出现）：选择武学流派
 func _school_portrait(school_id: String) -> Texture2D:
 	var path := str(Data.schools[school_id].get("portrait", ""))
@@ -275,7 +284,7 @@ func _on_school_selected(id: String) -> void:
 	if create_preview:
 		create_preview.setup(id)
 	if create_desc:
-		create_desc.text = str(Data.schools[id]["desc"])
+		create_desc.text = _school_text(id)
 
 
 ## 创建角色（只在第一次进入游戏时出现）：立绘 + 选择流派 + 像素形象预览
@@ -336,7 +345,7 @@ func _build_create() -> void:
 		b.add_theme_font_size_override("font_size", 18)
 		b.pressed.connect(_on_school_selected.bind(id))
 		srow.add_child(b)
-	create_desc = _label(str(Data.schools[sel_school]["desc"]), 18, Color("#f3ead2"))
+	create_desc = _label(_school_text(sel_school), 18, Color("#f3ead2"))
 	right.add_child(create_desc)
 	create_preview = SpritePreview.new()
 	create_preview.custom_minimum_size = Vector2(560, 330)
