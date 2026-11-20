@@ -2152,7 +2152,23 @@
               "stat": {
                 "skill:yue_palm:targets": 1.0
               },
-              "desc": "降龙十八掌 贯穿 +1/级"
+              "desc": "降龙十八掌 贯穿 +1/级",
+              "schools": {
+                "sword": {
+                  "name": "剑冢",
+                  "desc": "万剑归宗 飞剑 +1/级",
+                  "stat": {
+                    "skill:wanjian:targets": 1.0
+                  }
+                },
+                "blade": {
+                  "name": "屠龙余威",
+                  "desc": "屠龙刀法 范围 +10%/级",
+                  "stat": {
+                    "skill:tulong_art:range": 0.1
+                  }
+                }
+              }
             }
           ],
           [
@@ -2192,7 +2208,23 @@
               "stat": {
                 "skill:vajra_fist:damage": 0.15
               },
-              "desc": "大金刚拳 伤害 +15%/级"
+              "desc": "大金刚拳 伤害 +15%/级",
+              "schools": {
+                "sword": {
+                  "name": "重剑无锋",
+                  "desc": "玄铁重剑 伤害 +15%/级",
+                  "stat": {
+                    "skill:zhongjian:damage": 0.15
+                  }
+                },
+                "blade": {
+                  "name": "断门",
+                  "desc": "五虎断门刀 伤害 +15%/级",
+                  "stat": {
+                    "skill:wuhu_blade:damage": 0.15
+                  }
+                }
+              }
             }
           ],
           [
@@ -2365,7 +2397,23 @@
               "stat": {
                 "skill:whirl_palm:range": 0.12
               },
-              "desc": "落英神剑掌 范围 +12%/级"
+              "desc": "落英神剑掌 范围 +12%/级",
+              "schools": {
+                "sword": {
+                  "name": "太极圆转",
+                  "desc": "太极剑 剑圈范围 +12%/级",
+                  "stat": {
+                    "skill:taiji_sword:range": 0.12
+                  }
+                },
+                "blade": {
+                  "name": "两仪化气",
+                  "desc": "反两仪刀法 刀轮范围 +12%/级",
+                  "stat": {
+                    "skill:fanliangyi:range": 0.12
+                  }
+                }
+              }
             }
           ],
           [
@@ -2579,7 +2627,23 @@
               "stat": {
                 "skill:cloud_palm:targets": 1.0
               },
-              "desc": "天山六阳掌 初始掌印 +1/级（最多 3 个）"
+              "desc": "天山六阳掌 初始掌印 +1/级（最多 3 个）",
+              "schools": {
+                "sword": {
+                  "name": "金蛇缠丝",
+                  "desc": "金蛇剑法 金蛇锥 +1/级",
+                  "stat": {
+                    "skill:jinshe:targets": 1.0
+                  }
+                },
+                "blade": {
+                  "name": "鸳鸯连环",
+                  "desc": "鸳鸯双刀 飞刀 +1 对/级",
+                  "stat": {
+                    "skill:yuanyang_blade:targets": 1.0
+                  }
+                }
+              }
             }
           ],
           [
@@ -2653,7 +2717,23 @@
               "stat": {
                 "skill:eight_waste:cooldown": 0.1
               },
-              "desc": "八荒六合功 冷却 −10%/级"
+              "desc": "八荒六合功 冷却 −10%/级",
+              "schools": {
+                "sword": {
+                  "name": "快剑如风",
+                  "desc": "狂风快剑 冷却 −10%/级",
+                  "stat": {
+                    "skill:kuang_feng:cooldown": 0.1
+                  }
+                },
+                "blade": {
+                  "name": "狂风刀势",
+                  "desc": "狂风刀法 冷却 −10%/级",
+                  "stat": {
+                    "skill:kuangfeng_blade:cooldown": 0.1
+                  }
+                }
+              }
             }
           ],
           [

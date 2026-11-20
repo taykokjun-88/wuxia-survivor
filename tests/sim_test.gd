@@ -1634,6 +1634,17 @@ func _enhance_rework_test() -> void:
 			_check(int(sn[nid]["max"]) == int(base_nodes[nid]["max"]), "%s 流派天赋 %s 上限不变" % [sc, nid])
 			diff += 1 if str(sn[nid]["name"]) != str(base_nodes[nid]["name"]) or str(sn[nid]["desc"]) != str(base_nodes[nid]["desc"]) else 0
 		_check(diff >= 4, "%s 流派有专属天赋覆盖（%d 个）" % [sc, diff])
+	# 每个流派的天赋树只能加成本流派的招式（不能在刀客的树里看到降龙十八掌）
+	for sc in ["fist", "sword", "blade"]:
+		for nid in Talents.nodes(sc):
+			var nn: Dictionary = Talents.nodes(sc)[nid]
+			for k in nn.get("stat", {}):
+				if str(k).begins_with("skill:"):
+					var sid := str(k).split(":")[1]
+					_check(str(Data.skills[sid]["school"]) == sc, "%s 流派天赋 %s 加成了别的流派的招式 %s" % [sc, nid, sid])
+			for sid2 in Data.skills:
+				if str(Data.skills[sid2]["school"]) != sc:
+					_check(not str(nn["desc"]).contains(str(Data.skills[sid2]["name"])), "%s 流派天赋 %s 的说明提到了别的流派的招式 %s" % [sc, nid, str(Data.skills[sid2]["name"])])
 	_check(float(Talents.stats_for({"ling_step": 3}, "sword")["speed_pct"]) > float(Talents.stats_for({"ling_step": 3}, "fist")["speed_pct"]), "剑侠的移速天赋更强")
 	_check(float(Talents.stats_for({"rou_regen": 3}, "blade")["hp_regen"]) > float(Talents.stats_for({"rou_regen": 3}, "fist")["hp_regen"]), "刀客的气血回复天赋更强")
 	_check(float(Talents.stats_for({"rou_neili": 3}, "fist")["neili_regen"]) > 0.0, "武者的养气带回内力")
