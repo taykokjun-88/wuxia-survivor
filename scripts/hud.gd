@@ -236,10 +236,16 @@ func _build_levelup() -> void:
 	box.add_child(choice_title)
 	for i in 3:
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(700, 88)
+		b.custom_minimum_size = Vector2(780, 104)
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.expand_icon = true
+		b.add_theme_constant_override("icon_max_width", 72)
+		b.add_theme_constant_override("h_separation", 14)
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART        # 长说明自动换行，不再超出格子
+		b.clip_text = true
 		b.focus_mode = Control.FOCUS_NONE
-		b.add_theme_font_size_override("font_size", 20)
+		b.add_theme_font_size_override("font_size", 17)
 		b.pressed.connect(func(): choice_selected.emit(i))
 		box.add_child(b)
 		choice_buttons.append(b)
@@ -387,7 +393,14 @@ func _build_loadout() -> void:
 		var sd: Dictionary = Data.skills[id]
 		var b := Button.new()
 		b.text = "%s　【%s】\n%s" % [sd["name"], Data.tags_text(id), sd["desc"]]
-		b.custom_minimum_size = Vector2(600, 58)
+		b.icon = Data.icon("skills", id)
+		b.expand_icon = true
+		b.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.add_theme_constant_override("icon_max_width", 48)
+		b.add_theme_constant_override("h_separation", 10)
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.clip_text = true
+		b.custom_minimum_size = Vector2(600, 66)
 		b.toggle_mode = true
 		b.button_group = sgroup
 		b.button_pressed = id == sel_starter
@@ -409,14 +422,20 @@ func _build_loadout() -> void:
 		var qd: Dictionary = Data.qinggong[id]
 		var b := Button.new()
 		b.text = "%s　%s" % [qd["name"], qd["desc"]]
-		b.custom_minimum_size = Vector2(296, 44)
+		b.icon = Data.icon("qinggong", id)
+		b.expand_icon = true
+		b.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.add_theme_constant_override("icon_max_width", 36)
+		b.add_theme_constant_override("h_separation", 8)
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.custom_minimum_size = Vector2(296, 54)
 		b.toggle_mode = true
 		b.button_group = qgroup
 		b.button_pressed = id == sel_qg
 		b.focus_mode = Control.FOCUS_NONE
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		b.clip_text = true
-		b.add_theme_font_size_override("font_size", 13)
+		b.add_theme_font_size_override("font_size", 12)
 		b.pressed.connect(func(): sel_qg = id)
 		grid.add_child(b)
 
@@ -1703,7 +1722,8 @@ func show_choices(choices: Array, title: String) -> void:
 		var b := choice_buttons[i]
 		if i < choices.size():
 			var c: Dictionary = choices[i]
-			b.text = "[%d] 【%s】%s\n      %s" % [i + 1, c["tag"], c["title"], c["desc"]]
+			b.text = "[%d] 【%s】%s\n%s" % [i + 1, c["tag"], c["title"], c["desc"]]
+			b.icon = _choice_icon(c)
 			if c.has("color"):                  # 强化卡：框和字都用品质色（白 / 蓝 / 紫 / 金）
 				var col := Color(str(c["color"]))
 				b.add_theme_color_override("font_color", col)
@@ -1711,16 +1731,30 @@ func show_choices(choices: Array, title: String) -> void:
 				b.add_theme_stylebox_override("normal", _choice_style(col, false))
 				b.add_theme_stylebox_override("hover", _choice_style(col, true))
 				b.add_theme_stylebox_override("pressed", _choice_style(col, true))
-			else:
-				b.remove_theme_color_override("font_color")
-				b.remove_theme_color_override("font_hover_color")
-				b.remove_theme_stylebox_override("normal")
-				b.remove_theme_stylebox_override("hover")
-				b.remove_theme_stylebox_override("pressed")
+			else:                               # 领悟招式 / 修习心法：古铜色框
+				var bronze := Color("#a8895a")
+				b.add_theme_color_override("font_color", Color("#f3ead2"))
+				b.add_theme_color_override("font_hover_color", Color.WHITE)
+				b.add_theme_stylebox_override("normal", _choice_style(bronze, false))
+				b.add_theme_stylebox_override("hover", _choice_style(bronze, true))
+				b.add_theme_stylebox_override("pressed", _choice_style(bronze, true))
 			b.visible = true
 		else:
 			b.visible = false
 	levelup_panel.visible = true
+
+
+## 选卡上的图标：招式 / 心法 / 独孤九剑的式；没有图标的（调息）返回 null
+func _choice_icon(c: Dictionary) -> Texture2D:
+	var id := str(c.get("id", ""))
+	match str(c.get("kind", "")):
+		"new_skill", "up_skill", "enhance":
+			return Data.icon("skills", id)
+		"new_xinfa", "up_xinfa":
+			return Data.icon("xinfa", id)
+		"shi_new", "shi_up":
+			return Data.icon("shi", id)
+	return null
 
 
 func _choice_style(border: Color, hover: bool) -> StyleBoxFlat:
@@ -1919,12 +1953,15 @@ func _draw_hud() -> void:
 	var realm := w.realm()
 	var realm_col: Color = [Color("#6f86a8"), Color("#3aa6a0"), Color("#3fe0cf")][realm]
 	_bar(Vector2(16, 52), Vector2(236, 20), w.neili / max_n, realm_col, "内力 %d/%d" % [int(w.neili), int(max_n)])
-	if w.school_id == "blade":                       # 刀魂条：满了会提示「霸刀破岳」
+	if w.school_id == "blade":                       # 刀魂条：屏幕下方居中，文字在条内；满了提示「霸刀破岳」
 		var sfull := w.soul >= 100.0
-		canvas.draw_rect(Rect2(16, 75, 236, 8), Color(0.1, 0.1, 0.12, 0.55))
-		canvas.draw_rect(Rect2(16, 75, 236.0 * w.soul / 100.0, 8), Color("#ffd030") if sfull else Color("#e8923a"))
-		canvas.draw_rect(Rect2(16, 75, 236, 8), Color(0, 0, 0, 0.8), false, 1.5)
-		canvas.draw_string(font, Vector2(258, 83), "霸刀破岳！" if sfull else "刀魂 %d" % int(w.soul), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#a8400a") if sfull else Color("#6a4a1a"))
+		var bx := vw * 0.5 - 190.0
+		var by2 := canvas.size.y - 72.0
+		_plate(Rect2(bx - 8.0, by2 - 6.0, 396.0, 30.0))
+		canvas.draw_rect(Rect2(bx, by2, 380, 18), Color(0.1, 0.1, 0.12, 0.6))
+		canvas.draw_rect(Rect2(bx, by2, 380.0 * w.soul / 100.0, 18), Color("#ffd030") if sfull else Color("#e8923a"))
+		canvas.draw_rect(Rect2(bx, by2, 380, 18), Color(0, 0, 0, 0.85), false, 2.0)
+		canvas.draw_string(Data.font_bold if Data.font_bold != null else font, Vector2(bx, by2 + 14.0), "霸刀破岳！下一刀必暴击 ×2.5" if sfull else "刀魂 %d / 100" % int(w.soul), HORIZONTAL_ALIGNMENT_CENTER, 380, 14, Color("#3a1d05") if sfull else Color.WHITE)
 	# 三境分界线：虚 | 平 | 盈
 	for t in [Data.T("xu_below"), w.ying_at()]:
 		canvas.draw_line(Vector2(16 + 236 * float(t), 52), Vector2(16 + 236 * float(t), 72), Color(1, 1, 1, 0.9), 2.0)
