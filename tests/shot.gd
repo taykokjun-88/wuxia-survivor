@@ -25,6 +25,11 @@ func _ready() -> void:
 	w = main.world
 	await _frames(3)
 	_snap("00_create_character")
+	for sc in ["sword", "blade"]:
+		main.hud._on_school_selected(sc)
+		await _frames(30)
+		_snap("00_create_" + sc)
+	main.hud._on_school_selected("fist")
 	main.hud.confirm_create()
 	await _frames(3)
 	_snap("00b_town_spawn")

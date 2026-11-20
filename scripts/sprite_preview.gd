@@ -5,7 +5,7 @@ extends Control
 const SEQUENCE := ["idle", "punch", "palm", "dash", "ult"]
 const NAMES := {"idle": "待机", "punch": "出拳", "palm": "推掌", "dash": "轻功", "ult": "真气爆发"}
 const SEGMENT := 1.4      # 每条动画播放的秒数
-const ZOOM := 4.0
+const ZOOM := 4.0           # 最大放大倍数；实际按预览框高度缩小，保证角色（含出招、腾空）完整入画
 
 var anim: SpriteAnim = null
 var clock := 0.0
@@ -42,5 +42,6 @@ func _draw() -> void:
 	var t := fmod(clock, SEGMENT)
 	var ground := size.y - 46.0
 	draw_line(Vector2(size.x * 0.2, ground + 4.0), Vector2(size.x * 0.8, ground + 4.0), Color(1, 1, 1, 0.12), 2.0)
-	anim.draw(self, name, t, Vector2(size.x * 0.5, ground), false, Color.WHITE, ZOOM)
+	var zoom := clampf((ground - 8.0) / 66.0, 1.5, ZOOM)      # 角色约 56~66 像素高（含举手 / 腾空）
+	anim.draw(self, name, t, Vector2(size.x * 0.5, ground), false, Color.WHITE, zoom)
 	draw_string(font, Vector2(0, size.y - 14.0), "像素形象 · %s" % NAMES[name], HORIZONTAL_ALIGNMENT_CENTER, size.x, 16, Color("#cfc6ae"))

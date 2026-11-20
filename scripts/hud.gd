@@ -293,7 +293,10 @@ func _school_text(id: String) -> String:
 	var sd: Dictionary = Data.schools[id]
 	var t := str(sd["desc"])
 	if str(sd.get("passive_text", "")) != "":
-		t += "\n特色：" + str(sd["passive_text"])
+		t += "\n特色："
+		for part in str(sd["passive_text"]).split("；"):      # 每一条特色单独一行，好读
+			if part.strip_edges() != "":
+				t += "\n· " + part.strip_edges()
 	return t
 
 
@@ -376,7 +379,7 @@ func _build_create() -> void:
 	create_name.text_submitted.connect(func(_t: String) -> void: confirm_create())
 	nrow.add_child(create_name)
 	var srow := _center_row(10)
-	srow.custom_minimum_size = Vector2(560, 70)
+	srow.custom_minimum_size = Vector2(560, 56)
 	right.add_child(srow)
 	var group := ButtonGroup.new()
 	for id in Data.schools:
@@ -384,7 +387,7 @@ func _build_create() -> void:
 		var enabled := bool(sd["enabled"])
 		var b := Button.new()
 		b.text = "%s\n%s" % [sd["name"], "可选" if enabled else "敬请期待"]
-		b.custom_minimum_size = Vector2(128, 70)
+		b.custom_minimum_size = Vector2(128, 56)
 		b.disabled = not enabled
 		b.toggle_mode = true
 		b.button_group = group
@@ -393,15 +396,19 @@ func _build_create() -> void:
 		b.add_theme_font_size_override("font_size", 18)
 		b.pressed.connect(_on_school_selected.bind(id))
 		srow.add_child(b)
-	create_desc = _label(_school_text(sel_school), 15, Color("#f3ead2"))
+	# 流派介绍：固定大小的滚动框（内容长也不会被截断，鼠标滚轮 / 拖动滚动；换职业文字长短不同也不会让框移动）
+	var desc_scroll := ScrollContainer.new()
+	desc_scroll.custom_minimum_size = Vector2(560, 198)
+	desc_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	right.add_child(desc_scroll)
+	create_desc = _label(_school_text(sel_school), 14, Color("#f3ead2"))
 	create_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	create_desc.custom_minimum_size = Vector2(560, 124)     # 固定大小：换职业文字长短不同也不会让框移动
-	create_desc.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	create_desc.vertical_alignment = VERTICAL_ALIGNMENT_TOP
-	create_desc.clip_text = true
-	right.add_child(create_desc)
+	create_desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	create_desc.custom_minimum_size = Vector2(540, 0)
+	create_desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	desc_scroll.add_child(create_desc)
 	create_preview = SpritePreview.new()
-	create_preview.custom_minimum_size = Vector2(560, 250)
+	create_preview.custom_minimum_size = Vector2(560, 204)
 	create_preview.setup(sel_school)
 	right.add_child(create_preview)
 	create_status = _label("", 16, Color("#f08070"))
