@@ -585,6 +585,13 @@ func _build_stage_info(left: VBoxContainer) -> void:
 	desc.size = Vector2(250, 80)
 	desc.position = Vector2(20, 104)
 	banner.add_child(desc)
+	var rec_y := 206.0
+	for r in Save.recommend_status(loadout_map):
+		var rl := _label("%s 推荐 %s" % ["✔" if bool(r["ok"]) else "✘", r["label"]], 15, Color("#9ad0a0") if bool(r["ok"]) else Color("#f0c050"))
+		rl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		rl.position = Vector2(20, rec_y)
+		banner.add_child(rl)
+		rec_y += 22.0
 
 	left.add_child(_label("会出现的怪物", 20, Color("#c9a227")))
 	var grid := GridContainer.new()
@@ -1280,7 +1287,7 @@ func _build_gear() -> void:
 	gear_panel = pb[0]
 	var box: VBoxContainer = pb[1]
 	box.add_theme_constant_override("separation", 8)
-	box.add_child(_label("装备　　银两 %d" % Save.silver(), 36))
+	box.add_child(_label("装备　　银两 %d　　装备分数 %d" % [Save.silver(), Gear.total_score(gear_equip, Save.enh())], 36))
 	box.add_child(_label("大 Boss（通关）掉落，只会是本流派的装备。★ 是特殊词条，强化某个招式或心法——没有对应招式 / 心法就用不上。", 15, Color("#cfc6ae")))
 	# 五个部位
 	var srow := _center_row(8)
@@ -1897,7 +1904,8 @@ func _draw_hud() -> void:
 			if b.is_final and w.boss_deadline > 0.0:
 				var left := maxf(0.0, w.boss_deadline - w.time)
 				var urgent := left < 15.0
-				canvas.draw_string(font, Vector2(vw * 0.5 - 200.0, by + 40), "寨主将在 %d 秒后逃遁！" % int(ceil(left)), HORIZONTAL_ALIGNMENT_CENTER, 400, 22,
+				var secs := int(ceil(left))
+				canvas.draw_string(font, Vector2(vw * 0.5 - 200.0, by + 40), "剩余 %d:%02d　超时则 %s 逃遁！" % [secs / 60, secs % 60, "大敌"], HORIZONTAL_ALIGNMENT_CENTER, 400, 22,
 					Color("#ff4a3a") if (urgent and int(w.time * 4.0) % 2 == 0) else Color("#ffd24a"))
 				by += 26.0
 			by += 30.0

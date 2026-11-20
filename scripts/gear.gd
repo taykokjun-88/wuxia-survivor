@@ -230,3 +230,22 @@ static func bonuses(items: Array) -> Dictionary:
 			else:
 				xinfa[a["id"]] = int(xinfa.get(a["id"], 0)) + int(a["v"])
 	return {"stats": stats, "skill_mods": skill_mods, "xinfa": xinfa}
+
+
+# ---------------------------------------------------------------------
+# 装备分数：每件 = 品级基础分 × (1 + 强化加成)；总分 = 已穿戴各件之和（选关推荐线用）
+# ---------------------------------------------------------------------
+
+static func item_score(rarity: int, enh_level: int = 0) -> int:
+	var base: Array = Data.gear["score"]["base"]
+	return int(roundf(float(base[clampi(rarity, 0, base.size() - 1)]) * level_mult(clampi(enh_level, 0, enhance_max()))))
+
+
+## equip：部位 → 编码；enh：编码 → 强化等级
+static func total_score(equip: Dictionary, enh: Dictionary) -> int:
+	var t := 0
+	for slot in equip:
+		var pc := parse(str(equip[slot]))
+		if not pc.is_empty():
+			t += item_score(int(pc["rarity"]), int(enh.get(str(equip[slot]), 0)))
+	return t

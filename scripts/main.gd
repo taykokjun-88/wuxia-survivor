@@ -223,6 +223,7 @@ func _after_login() -> void:
 	Save.set_meta_talents(Net.talents)
 	Save.set_gear(Net.items, Net.equip)
 	Save.store_silver_enh(Net.silver, Net.enh)
+	Save.set_cleared(Net.cleared)
 	if Net.school != "":
 		Save.create_character(Net.school)
 	elif Save.has_character():
@@ -401,6 +402,7 @@ func _on_end(won: bool) -> void:
 		if res.get("drops", []) is Array:
 			Save.add_items(res["drops"])
 		Save.store_silver_enh(int(res.get("silver", Net.silver)), Save.enh())
+		Save.set_cleared(Net.cleared)
 		var ranks: Dictionary = res.get("ranks", {})
 		var line := "已上榜：总分榜第 %d 名" % int(ranks.get("score", 0))
 		if bool(res.get("best", false)):
@@ -527,8 +529,13 @@ func _on_dialog_option(i: int) -> void:
 					opts.append({"label": "%s　%s　（敬请期待 · 需局外 Lv%d）" % [m["name"], stars, int(m["min_meta_level"])], "action": "close", "enabled": false})
 				elif lv < int(m["min_meta_level"]):
 					opts.append({"label": "%s　%s　（需局外 Lv%d）" % [m["name"], stars, int(m["min_meta_level"])], "action": "close", "enabled": false})
+				elif not Save.map_unlocked(str(id)):
+					opts.append({"label": "%s　%s　（需先通关 %s）" % [m["name"], stars, Data.maps[str(m["requires_clear"])]["name"]], "action": "close", "enabled": false})
 				else:
-					opts.append({"label": "%s　%s　%s" % [m["name"], stars, m["desc"]], "action": "map:" + str(id)})
+					var rec := ""
+					for r in Save.recommend_status(str(id)):
+						rec += "　%s %s" % ["✔" if bool(r["ok"]) else "✘", r["label"]]
+					opts.append({"label": "%s　%s　%s%s" % [m["name"], stars, m["desc"], ("\n推荐：" + rec) if rec != "" else ""], "action": "map:" + str(id)})
 			opts.append({"label": "返回", "action": "talk"})
 			_dlg(dialog_npc, "想去哪儿历练？", opts)
 		"recreate":

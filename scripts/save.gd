@@ -5,7 +5,7 @@ extends Node
 const DEFAULT_PATH := "user://save.json"
 
 var path := DEFAULT_PATH
-var data: Dictionary = {"school": "", "session": {}, "meta": {"exp": 0, "alloc": {}, "won": false, "talents": {}, "items": [], "equip": {}, "silver": 0, "enh": {}}}
+var data: Dictionary = {"school": "", "session": {}, "meta": {"exp": 0, "alloc": {}, "won": false, "talents": {}, "items": [], "equip": {}, "silver": 0, "enh": {}, "cleared": {}}}
 
 
 func _ready() -> void:
@@ -13,7 +13,7 @@ func _ready() -> void:
 
 
 func load_data() -> void:
-	data = {"school": "", "session": {}, "meta": {"exp": 0, "alloc": {}, "won": false, "talents": {}, "items": [], "equip": {}, "silver": 0, "enh": {}}}
+	data = {"school": "", "session": {}, "meta": {"exp": 0, "alloc": {}, "won": false, "talents": {}, "items": [], "equip": {}, "silver": 0, "enh": {}, "cleared": {}}}
 	if not FileAccess.file_exists(path):
 		return
 	var f := FileAccess.open(path, FileAccess.READ)
@@ -121,6 +121,9 @@ func add_run_exp(summary: Dictionary) -> Dictionary:
 	m["exp"] = meta_exp() + gained
 	if bool(summary.get("won", false)):
 		m["won"] = true
+		var cl := cleared()
+		cl[str(summary.get("map", "black_wind"))] = true
+		m["cleared"] = cl
 	var sg := Gear.run_silver(Score.compute(summary), bool(summary.get("won", false)), Meta.comp_of(summary.get("difficulty", {})))
 	m["silver"] = mini(int(Data.gear["silver"]["max"]), silver() + sg)
 	save_data()
@@ -251,3 +254,44 @@ func discard_local(codes: Array) -> void:
 			gain += Gear.discard_silver(int(pc["rarity"]))
 		e.erase(str(c))
 	store_silver_enh(silver() + gain, e)
+
+
+# ---------------------------------------------------------------------
+# 通关记录（解锁新地图）与选关推荐条件
+# ---------------------------------------------------------------------
+
+func cleared() -> Dictionary:
+	var c: Variant = _meta().get("cleared", {})
+	return c if c is Dictionary else {}
+
+
+func is_cleared(map_id: String) -> bool:
+	return bool(cleared().get(map_id, false))
+
+
+func set_cleared(c: Dictionary) -> void:
+	_meta()["cleared"] = c.duplicate()
+	save_data()
+
+
+func gear_score() -> int:
+	return Gear.total_score(equip(), enh())
+
+
+## 地图是否已解锁：需要先通关 requires_clear 指定的地图
+func map_unlocked(map_id: String) -> bool:
+	var req := str(Data.maps[map_id].get("requires_clear", ""))
+	return req == "" or is_cleared(req)
+
+
+## 推荐条件（天赋点已投入 / 装备分数）→ [{label, ok}]
+func recommend_status(map_id: String) -> Array:
+	var rec: Dictionary = Data.maps[map_id].get("recommend", {})
+	var out: Array = []
+	if rec.has("talent_points"):
+		var sp := Talents.spent(meta_talents())
+		out.append({"label": "天赋点 %d / %d" % [sp, int(rec["talent_points"])], "ok": sp >= int(rec["talent_points"])})
+	if rec.has("gear_score"):
+		var gs := gear_score()
+		out.append({"label": "装备分数 %d / %d" % [gs, int(rec["gear_score"])], "ok": gs >= int(rec["gear_score"])})
+	return out

@@ -39,6 +39,7 @@ func _ready() -> void:
 		_prop_test()
 		_boss_skill_test()
 		_skill_fx_test()
+		_stage_test()
 		await _town_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
@@ -537,6 +538,62 @@ func _skill_fx_test() -> void:
 			pass
 		_check(found, "%s 出招会用到自己的特效 %s" % [id, str(want)])
 		_free_world(w)
+
+
+func _stage_test() -> void:
+	print("\n=== 关卡时间轴 / 大 Boss 清场与倒计时 / 通关解锁 / 装备分数 ===")
+	var tl: Dictionary = Data.maps["black_wind"]["timeline"]
+	_check(float(tl["final"]["t"]) == 600.0 and float(tl["final"]["limit"]) == 90.0, "黑风寨：大 Boss 10:00 现身，限时 1:30")
+	_check(float(tl["minis"][0]["t"]) == 180.0 and float(tl["minis"][1]["t"]) == 330.0 and float(tl["minis"][2]["t"]) == 480.0, "小 Boss 3:00 / 5:30 / 8:00")
+	var w := _new_world(70, "chain_fist")
+	w.god = true
+	w.props_enabled = false
+	w.skills.clear()
+	w.time = 595.0
+	w.mini_idx = 2
+	for i in 30:
+		w._spawn_enemy("bandit", w.player_pos + Vector2(200 + i * 5, 0))
+	w._spawn_boss("mini_boss_3", false)              # 一个还没击杀的小 Boss
+	var mb: Enemy = w.bosses[0]
+	_check(w.enemies.size() >= 31, "清场前场上有怪")
+	for i in 60 * 7:
+		w.step(DT)
+	_check(w.boss_spawned and w.boss_deadline > 0.0, "10:00 大 Boss 现身并开始倒计时")
+	_check(not mb.alive, "大 Boss 现身时，没击杀的小 Boss 消失")
+	var alive := 0
+	for e in w.enemies:
+		if e.alive:
+			alive += 1
+			_check(e.is_final, "场上只剩大 Boss")
+	_check(alive == 1 and w.bosses.size() == 1 and w.bosses[0].is_final, "清场后只剩大 Boss（%d）" % alive)
+	_check(absf((w.boss_deadline - w.time) - 90.0) < 8.0, "倒计时约 90 秒（%.0f）" % (w.boss_deadline - w.time))
+	var n0 := 0
+	for i in 60 * 5:
+		w.step(DT)
+	for e in w.enemies:
+		if e.alive and not e.is_final:
+			n0 += 1
+	_check(n0 == 0, "大 Boss 在场期间不再刷小怪（%d）" % n0)
+	_free_world(w)
+	# 通关解锁（单机存档）
+	var old_path := Save.path
+	Save.path = "user://test_stage.json"
+	Save.load_data()
+	_check(Save.map_unlocked("black_wind") and not Save.map_unlocked("guangming"), "光明顶需要先通关黑风寨")
+	Save.add_run_exp({"won": false, "map": "black_wind", "seconds": 300, "level": 5, "kills": 100, "bosses": 0, "difficulty": {}})
+	_check(not Save.map_unlocked("guangming"), "阵亡不解锁")
+	Save.add_run_exp({"won": true, "map": "black_wind", "seconds": 650, "level": 25, "kills": 2000, "bosses": 4, "difficulty": {}})
+	_check(Save.map_unlocked("guangming"), "通关黑风寨后解锁光明顶")
+	# 装备分数
+	_check(Gear.item_score(0) == 5 and Gear.item_score(1) == 10 and Gear.item_score(2) == 20 and Gear.item_score(3) == 40, "装备基础分 5 / 10 / 20 / 40")
+	_check(Gear.item_score(3, 10) == 72, "传说 +10 = 72 分（实际 %d）" % Gear.item_score(3, 10))
+	Save.set_gear(["weapon.1.1", "coat.1.2", "boots.0.3"], {"weapon": "weapon.1.1", "coat": "coat.1.2", "boots": "boots.0.3"})
+	_check(Save.gear_score() == 25, "已穿戴三件（10+10+5）= 25 分（实际 %d）" % Save.gear_score())
+	var rec: Array = Save.recommend_status("guangming")
+	_check(rec.size() == 2 and bool(rec[1]["ok"]) and not bool(rec[0]["ok"]), "推荐条件：装备分数达标、天赋点未达标")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_stage.json"))
+	Save.path = old_path
+	Save.load_data()
 
 
 func _dugu_test() -> void:

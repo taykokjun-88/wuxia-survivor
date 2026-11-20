@@ -24,6 +24,7 @@ var items: Array = []        # 背包（装备编码，服务器发放）
 var equip: Dictionary = {}   # 已穿戴：部位 → 编码
 var silver := 0              # 银两（服务器为准）
 var enh: Dictionary = {}     # 强化等级：编码 → 级数
+var cleared: Dictionary = {} # 通关记录：地图 → true（服务器记录）
 ## 测试注入：func(is_get: bool, url: String, body: Dictionary) -> Dictionary
 var transport: Callable = Callable()
 
@@ -141,6 +142,7 @@ func _apply_profile(res: Dictionary) -> void:
 	equip = res.get("equip", {}) if res.get("equip", {}) is Dictionary else {}
 	silver = int(res.get("silver", 0))
 	enh = res.get("enh", {}) if res.get("enh", {}) is Dictionary else {}
+	cleared = res.get("cleared", {}) if res.get("cleared", {}) is Dictionary else {}
 	Save.set_session(nick, token)
 	session_changed.emit()
 
@@ -167,6 +169,7 @@ func _clear_session() -> void:
 	equip = {}
 	silver = 0
 	enh = {}
+	cleared = {}
 	Save.clear_session()
 	session_changed.emit()
 
@@ -222,6 +225,8 @@ func submit_run(summary: Dictionary) -> Dictionary:
 		bests = res.get("bests", bests)
 		exp = int(res.get("exp", exp))
 		silver = int(res.get("silver", silver))
+		if res.get("cleared", null) is Dictionary:
+			cleared = res["cleared"]
 	return res
 
 

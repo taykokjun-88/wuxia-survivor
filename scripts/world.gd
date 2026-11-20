@@ -648,7 +648,9 @@ func set_difficulty(d: Dictionary) -> void:
 
 func _spawn(dt: float) -> void:
 	var rate := (Data.T("spawn_base") + time * Data.T("spawn_slope")) * float(difficulty["count"])
-	if _boss_alive():
+	if boss_spawned:
+		rate = 0.0                          # 大 Boss 现身后不再刷小怪（只有 Boss 自己召唤的）
+	elif _boss_alive():
 		rate *= 0.5
 	spawn_acc += rate * dt
 	while spawn_acc >= 1.0:
@@ -656,26 +658,49 @@ func _spawn(dt: float) -> void:
 		if enemies.size() < max_enemies:
 			_spawn_enemy(_pick_type(), _ring_pos())
 	# 合围：定时在四周刷出一圈敌人
-	if time >= next_burst:
+	if time >= next_burst and not boss_spawned:
 		next_burst += Data.T("burst_interval")
 		var ring_n := int(round(24.0 * float(difficulty["count"])))
 		for i in ring_n:
 			if enemies.size() < max_enemies:
 				_spawn_enemy("bandit", player_pos + Vector2.from_angle(TAU * i / float(ring_n)) * SPAWN_DIST)
-	if time >= next_elite:
+	if time >= next_elite and not boss_spawned:
 		next_elite += Data.T("elite_interval")
 		for i in 1 + int(time / 420.0):          # 越到后面精英越多：每 7 分钟多一只
 			_spawn_elite()
-	if time >= next_wave:                       # 怪潮：从一个方向压过来的一大群
+	if time >= next_wave and not boss_spawned:                       # 怪潮：从一个方向压过来的一大群
 		next_wave += Data.T("wave_interval")
 		_spawn_wave()
-	var mini_times: Array = Data.tuning["mini_boss_times"]
-	if mini_idx < mini_times.size() and time >= float(mini_times[mini_idx]):
+	var tl := _timeline()
+	var minis: Array = tl["minis"]
+	if mini_idx < minis.size() and time >= float(minis[mini_idx]["t"]) and not boss_spawned:
+		_spawn_boss(str(minis[mini_idx]["id"]), false)
 		mini_idx += 1
-		_spawn_boss("mini_boss_%d" % mini_idx, false)
-	if not boss_spawned and time >= Data.T("boss_time"):
+	var fin: Dictionary = tl["final"]
+	if not boss_spawned and time >= float(fin["t"]):
 		boss_spawned = true
-		_spawn_boss("boss", true)
+		_clear_for_final()
+		_spawn_boss(str(fin["id"]), true)
+
+
+## 当前地图的时间轴（小 Boss 时间 / 大 Boss 现身时间与限时 / 血量倍数）
+func _timeline() -> Dictionary:
+	return Data.maps[map_id]["timeline"]
+
+
+## 大 Boss 现身：场上所有还没击杀的小 Boss 和小怪立刻消失（不掉经验 / 装备）；没击杀的小 Boss 也不计入击杀
+func _clear_for_final() -> void:
+	for e in enemies:
+		if e.alive and not e.is_prop:
+			e.alive = false
+	var keep: Array[Enemy] = []
+	for b in bosses:
+		if not b.alive and b.hp <= 0.0:
+			keep.append(b)          # 已击杀的小 Boss 保留（统计用）
+	bosses = keep
+	projs = projs.filter(func(p): return not p.hostile)
+	zones.clear()
+	add_fx("text", player_pos + Vector2(0, -130), 2.2, {"text": "大敌当前，杂兵尽退！", "size": 30, "color": VERMILION})
 
 
 func _boss_alive() -> bool:
@@ -772,7 +797,8 @@ func _spawn_boss(id: String, final: bool) -> void:
 	e.is_boss = true
 	e.is_final = final
 	e.boss_name = str(def["name"])
-	e.max_hp = float(def["hp"]) * float(difficulty["hp"])   # Boss 不随时间缩放血量，保持固定的战斗时长（难度倍率照样生效）
+	var hpm: Dictionary = _timeline().get("hp_mult", {})
+	e.max_hp = float(def["hp"]) * float(hpm.get("final" if final else "mini", 1.0)) * float(difficulty["hp"])   # Boss 不随时间缩放血量，保持固定的战斗时长（难度倍率照样生效）
 	e.hp = e.max_hp
 	e.speed = float(def["speed"]) * float(difficulty["speed"])
 	e.damage = float(def["damage"])
@@ -785,7 +811,7 @@ func _spawn_boss(id: String, final: bool) -> void:
 	e.guard = e.guard_max
 	bosses.append(e)
 	if final:
-		boss_deadline = time + Data.T("final_boss_limit")
+		boss_deadline = time + float((_timeline()["final"] as Dictionary)["limit"])
 	Sfx.play("boss_warn")
 	add_fx("text", player_pos + Vector2(0, -80), 2.0, {"text": "%s 现身！" % e.boss_name, "size": 28, "color": VERMILION})
 

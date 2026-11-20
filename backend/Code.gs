@@ -217,7 +217,7 @@ function profile(row) {
     nick: row[P.nick], school: String(row[P.school] || ''), state: state,
     exp: xp, level: metaLevel(xp), alloc: state.alloc || {},
     talents: state.talents || {}, items: state.items || [], equip: state.equip || {},
-    silver: Math.max(0, Math.floor(Number(state.silver) || 0)), enh: state.enh || {},
+    silver: Math.max(0, Math.floor(Number(state.silver) || 0)), enh: state.enh || {}, cleared: state.cleared || {},
     invite: String(row[P.invite] || ''), group: groupName(row[P.invite]),
     bests: { score: Number(row[P.bestScore]) || 0, winSec: Number(row[P.bestWin]) || 0, level: Number(row[P.bestLevel]) || 0,
              runs: Number(row[P.runs]) || 0, wins: Number(row[P.wins]) || 0 }
@@ -329,7 +329,8 @@ function logout(req) {
 // BEGIN GENERATED (tools/sync_talents.py)
 var TALENT_GATE = 3;
 var TALENTS = {"gang_force":["gang",0,3],"gang_body":["gang",0,2],"gang_crit":["gang",1,3],"gang_armor":["gang",1,2],"gang_ying":["gang",2,3],"gang_dragon":["gang",2,2],"gang_cm":["gang",3,3],"gang_force2":["gang",3,2],"gang_emp":["gang",4,3],"gang_vajra":["gang",4,2],"gang_regen":["gang",5,2],"gang_ying2":["gang",5,3],"gang_peak":["gang",6,1],"gang_force3":["gang",6,4],"rou_regen":["rou",0,3],"rou_body":["rou",0,2],"rou_neili":["rou",1,3],"rou_med":["rou",1,2],"rou_med2":["rou",2,3],"rou_shield":["rou",2,2],"rou_block":["rou",3,3],"rou_petal":["rou",3,2],"rou_heal":["rou",4,3],"rou_finger":["rou",4,2],"rou_full":["rou",5,2],"rou_cut":["rou",5,3],"rou_peak":["rou",6,1],"rou_armor":["rou",6,4],"ling_step":["ling",0,3],"ling_luck":["ling",0,2],"ling_cd":["ling",1,3],"ling_qg":["ling",1,2],"ling_crit":["ling",2,3],"ling_palm":["ling",2,2],"ling_exp":["ling",3,3],"ling_dodge":["ling",3,2],"ling_cd2":["ling",4,3],"ling_waste":["ling",4,2],"ling_luck2":["ling",5,2],"ling_cm":["ling",5,3],"ling_peak":["ling",6,1],"ling_step2":["ling",6,4]};
-var GEAR = {"slots":["weapon","coat","pants","boots","charm"],"weights":[60,30,9,1],"invMax":40,"mini":1,"bossMin":1,"bossExtra":0.5,"miniTimes":[180,390,600],"enh":{"max":10,"bonus":0.08,"costBase":[12,30,70,160],"costExp":1.6},"silver":{"perScore":120,"cap":300,"winBonus":60,"comp":0.5,"discard":[3,10,40,120],"max":999999}};
+var GEAR = {"slots":["weapon","coat","pants","boots","charm"],"weights":[60,30,9,1],"invMax":40,"mini":1,"bossMin":1,"bossExtra":0.5,"enh":{"max":10,"bonus":0.08,"costBase":[12,30,70,160],"costExp":1.6},"silver":{"perScore":120,"cap":300,"winBonus":60,"comp":0.5,"discard":[3,10,40,120],"max":999999}};
+var MAPS = {"black_wind":{"minTimes":[180,330,480],"finalT":600,"minWin":620,"requires":""},"guangming":{"minTimes":[180,360,540],"finalT":780,"minWin":800,"requires":"black_wind"}};
 var DIFF = {"expMeta":0.5,"dropBonus":0.0,"raritySkew":0.5};
 // END GENERATED
 
@@ -474,7 +475,10 @@ function validateRun(req) {
   if (!(s.bosses >= 0 && s.bosses <= 4 && Math.floor(s.bosses) === s.bosses)) return fail('bad_run', '成绩无效（Boss）');
   if (s.kills > s.seconds * 40) return fail('bad_run', '成绩无效（击杀速度）');
   if (s.level > 5 + s.seconds / 5) return fail('bad_run', '成绩无效（等级速度）');
-  if (s.won && (s.seconds < 700 || s.bosses < 1)) return fail('bad_run', '成绩无效（通关）');
+  var mp = MAPS[String(req.map || 'black_wind')];
+  if (!mp) return fail('bad_run', '成绩无效（地图）');
+  if (s.won && (s.seconds < mp.minWin || s.bosses < 1)) return fail('bad_run', '成绩无效（通关）');
+  s.map = String(req.map || 'black_wind');
   return { run: s };
 }
 
@@ -484,6 +488,8 @@ function submitScore(req) {
   var v = validateRun(req);
   if (v.ok === false) { writeLog('warn', req.nick, '拒绝成绩', 'submit', JSON.stringify(req).slice(0, 300), str(req.device, 120)); return v; }
   var run = v.run, f = a.found, row = f.row;
+  var req0 = MAPS[run.map].requires;
+  if (req0) { var cl = readState(row).cleared; if (!cl || !cl[req0]) return fail('locked', '这张地图还没解锁（需要先通关前一关）'); }
   // 提交间隔只看上一次「提交成绩」的时间（不能用 Updated：创建角色的云存档也会更新它）
   if (now() - toMs(row[P.lastSubmit]) < CFG.SUBMIT_GAP_SEC * 1000) return fail('too_fast', '提交太频繁，请稍后再试');
 
@@ -514,8 +520,9 @@ function submitScore(req) {
   addSilver(stt, silverGained);
   // 掉落：每个被击败的小 Boss 1 件，通关（大 Boss）1~2 件；小 Boss 的数量不能超过该用时内已刷出的个数
   var minis = Math.max(0, Math.min(3, run.bosses - (run.won ? 1 : 0)));
-  var spawned = 0;
-  for (var mi = 0; mi < GEAR.miniTimes.length; mi++) if (run.seconds >= GEAR.miniTimes[mi]) spawned++;
+  var spawned = 0, mts = MAPS[run.map].minTimes;
+  for (var mi = 0; mi < mts.length; mi++) if (run.seconds >= mts[mi]) spawned++;
+  if (run.won) { stt.cleared = stt.cleared && typeof stt.cleared === 'object' ? stt.cleared : {}; stt.cleared[run.map] = true; }
   drops = gearDrops(stt, comp, Math.min(minis, spawned), run.won);
   row[P.state] = JSON.stringify(stt);
   row[P.updated] = iso();
@@ -528,7 +535,7 @@ function submitScore(req) {
     level: rankOf(row[P.nick], 'level')
   };
   var pr = profile(row);
-  return ok({ score: score, best: best, ranks: ranks, bests: pr.bests, gained: gained, exp: pr.exp, level: pr.level, levelUp: pr.level > oldLevel, drops: drops, comp: comp, silverGained: silverGained, silver: pr.silver });
+  return ok({ score: score, best: best, ranks: ranks, bests: pr.bests, gained: gained, exp: pr.exp, level: pr.level, levelUp: pr.level > oldLevel, drops: drops, comp: comp, silverGained: silverGained, silver: pr.silver, cleared: pr.cleared });
 }
 
 // ---------------------------------------------------------------- 排行榜
