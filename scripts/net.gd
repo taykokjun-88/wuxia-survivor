@@ -274,12 +274,15 @@ func logout() -> void:
 # 成绩 / 排行榜 / 存档 / 反馈 / 日志
 # ---------------------------------------------------------------------
 
-func submit_run(summary: Dictionary) -> Dictionary:
+func submit_run(summary: Dictionary, for_char: String = "") -> Dictionary:
 	var body := summary.duplicate()
+	var other := for_char != "" and for_char != char_id       # 补传别的角色的成绩：只上传，不动当前角色的缓存
+	if for_char != "":
+		body["char"] = for_char
 	body["build"] = JSON.stringify(summary.get("build", []))
 	body["device"] = device()
 	var res := await call_api("submit", body)
-	if bool(res.get("ok", false)):
+	if bool(res.get("ok", false)) and not other:
 		bests = res.get("bests", bests)
 		exp = int(res.get("exp", exp))
 		silver = int(res.get("silver", silver))

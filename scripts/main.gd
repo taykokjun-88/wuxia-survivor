@@ -260,6 +260,7 @@ func _on_account_requested() -> void:
 	hud.hide_loadout()
 	hud.hide_chars()
 	if Net.logged_in():
+		await _flush_pending()
 		await Net.logout()
 	_enter_auth("")
 
@@ -305,6 +306,7 @@ func _enter_character() -> void:
 	state = State.CHARS
 	_show_game(false)
 	hud.show_chars(_char_list(), _last_char(), Net.logged_in())
+	_flush_pending()
 
 
 func _enter_create() -> void:
@@ -428,6 +430,7 @@ func _on_switch_char() -> void:
 func _on_loadout(starter_id: String, qinggong_id: String) -> void:
 	if state != State.LOADOUT:
 		return
+	_flush_pending()
 	Build.apply_to(world, Save.meta_alloc(), Save.meta_talents(), Save.equip(), Save.school())
 	world.meta_level = int(Meta.progress(Save.meta_exp())["level"])
 	world.start_run(starter_id, qinggong_id, current_map, hud.difficulty_factors())
@@ -530,19 +533,17 @@ func _on_end(won: bool) -> void:
 	hud.set_end_locked(true)
 	hud.set_end_extra("成绩上传中…")
 	var sent_char := Net.char_id
-	var res: Dictionary = await Net.submit_run(world.run_summary())
+	var summary := world.run_summary()
+	var res: Dictionary = await Net.submit_run(summary, sent_char)
 	_uploading = false
 	hud.set_end_locked(false)
+	var retry := not bool(res.get("ok", false)) and RETRY_ERRS.has(str(res.get("err", "")))
+	if retry:                    # 没传上去：存起来，下次进关卡 / 进角色画面 / 退出登录前自动重传
+		Save.add_pending(Net.nick, sent_char, summary)
 	if Net.char_id != sent_char or not Net.logged_in():        # 等上传期间已经换了角色 / 退出登录：不要把结果写进别的角色
 		return
 	if bool(res.get("ok", false)):
-		Save.store_meta(Net.exp, Save.meta_alloc())
-		if res.get("drops", []) is Array:
-			Save.add_items(res["drops"])
-		Save.store_silver_enh(int(res.get("silver", Net.silver)), Save.enh())
-		Save.set_cleared(Net.cleared)
-		if state == State.TOWN or state == State.DIALOG:        # 上传还没回来就已经回到小镇：刷新小镇上的等级 / 银两
-			hud.show_town_hud(true)
+		_apply_submit(res)
 		if state != State.END:
 			return
 		var ranks: Dictionary = res.get("ranks", {})
@@ -551,7 +552,48 @@ func _on_end(won: bool) -> void:
 			line += "　（个人最高分！）"
 		hud.set_end_extra(line + "\n" + _exp_line(res))
 	elif state == State.END:
-		hud.set_end_extra("成绩没能上传：%s" % str(res.get("msg", "未知错误")))
+		if retry:
+			hud.set_end_extra("成绩没能上传（%s）。已保存在本机，下次进入关卡、回到角色选择或退出登录时会自动重试。" % str(res.get("msg", "未知错误")))
+		else:
+			hud.set_end_extra("成绩没能上传：%s" % str(res.get("msg", "未知错误")))
+
+
+const RETRY_ERRS := ["net", "offline", "too_fast", "server", "bad_token"]
+var _flushing := false
+
+
+## 把上传成功的结果写进当前角色的本地缓存，并刷新小镇上的等级 / 银两
+func _apply_submit(res: Dictionary) -> void:
+	Save.store_meta(Net.exp, Save.meta_alloc())
+	if res.get("drops", []) is Array:
+		Save.add_items(res["drops"])
+	Save.store_silver_enh(int(res.get("silver", Net.silver)), Save.enh())
+	Save.set_cleared(Net.cleared)
+	if state == State.TOWN or state == State.DIALOG:
+		hud.show_town_hud(true)
+
+
+## 补传之前没传上去的成绩（只补当前登录账号的）；一条失败就停，等下一次机会
+func _flush_pending() -> void:
+	if _flushing or not Net.configured() or not Net.logged_in():
+		return
+	_flushing = true
+	for e in Save.pending_runs().duplicate():
+		if not e is Dictionary or str(e.get("nick", "")) != Net.nick:
+			continue
+		var cid := str(e.get("char", ""))
+		var res: Dictionary = await Net.submit_run(e.get("summary", {}), cid)
+		if not Net.logged_in():
+			break
+		if bool(res.get("ok", false)):
+			Save.remove_pending(e)
+			if cid == Net.char_id:
+				_apply_submit(res)
+		elif RETRY_ERRS.has(str(res.get("err", ""))):
+			break
+		else:
+			Save.remove_pending(e)        # 服务器明确拒绝（成绩无效等）：重传也没用，丢掉
+	_flushing = false
 
 
 func _exp_line(r: Dictionary) -> String:

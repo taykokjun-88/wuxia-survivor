@@ -88,6 +88,26 @@ func save_data() -> void:
 # 角色（单机存档里的多角色；在线时角色在服务器上，这里只缓存当前这个）
 # ---------------------------------------------------------------------
 
+## 没能上传的成绩（断网 / 服务器忙）：[{nick, char, summary}]，之后自动补传
+func pending_runs() -> Array:
+	var p: Variant = data.get("pending", [])
+	return p if p is Array else []
+
+
+func add_pending(nick: String, char_id_v: String, summary: Dictionary) -> void:
+	var p := pending_runs()
+	p.append({"nick": nick, "char": char_id_v, "summary": summary})
+	data["pending"] = p
+	save_data()
+
+
+func remove_pending(entry: Dictionary) -> void:
+	var p := pending_runs()
+	p.erase(entry)
+	data["pending"] = p
+	save_data()
+
+
 func has_character() -> bool:
 	return str(_cur.get("school", "")) != ""
 
