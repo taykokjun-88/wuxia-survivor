@@ -1,0 +1,90 @@
+{
+ "wall_seg": {
+  "file": "wall_seg.png",
+  "w": 124,
+  "h": 77,
+  "block": true
+ },
+ "wall_corner": {
+  "file": "wall_corner.png",
+  "w": 117,
+  "h": 116,
+  "block": true
+ },
+ "column_fallen": {
+  "file": "column_fallen.png",
+  "w": 122,
+  "h": 94,
+  "block": true
+ },
+ "pillar_broken": {
+  "file": "pillar_broken.png",
+  "w": 87,
+  "h": 104,
+  "block": true
+ },
+ "rock_pile": {
+  "file": "rock_pile.png",
+  "w": 125,
+  "h": 96,
+  "block": true
+ },
+ "chevaux": {
+  "file": "chevaux.png",
+  "w": 124,
+  "h": 116,
+  "block": true
+ },
+ "cauldron": {
+  "file": "cauldron.png",
+  "w": 109,
+  "h": 99,
+  "block": true
+ },
+ "lion_gate": {
+  "file": "lion_gate.png",
+  "w": 116,
+  "h": 116,
+  "block": true
+ },
+ "brazier": {
+  "file": "brazier.png",
+  "w": 57,
+  "h": 86
+ },
+ "weapon_rack": {
+  "file": "weapon_rack.png",
+  "w": 89,
+  "h": 94
+ },
+ "crate": {
+  "file": "crate.png",
+  "w": 73,
+  "h": 76
+ },
+ "war_banner": {
+  "file": "war_banner.png",
+  "w": 52,
+  "h": 97
+ },
+ "pine": {
+  "file": "pine.png",
+  "w": 86,
+  "h": 89
+ },
+ "stele": {
+  "file": "stele.png",
+  "w": 50,
+  "h": 86
+ },
+ "censer": {
+  "file": "censer.png",
+  "w": 75,
+  "h": 70
+ },
+ "lantern": {
+  "file": "lantern.png",
+  "w": 53,
+  "h": 86
+ }
+}

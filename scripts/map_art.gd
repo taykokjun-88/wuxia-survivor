@@ -13,6 +13,9 @@ var ground: Array[Texture2D] = []
 var ground_var: Array = []           # ground_var[i][o]：第 i 种地面的 8 种朝向（翻转 / 转 90°）
 var props: Dictionary = {}          # id -> {tex, w, h}
 var prop_weights: Dictionary = {}   # id -> 权重（0 表示不自动撒）
+var block_ids: Dictionary = {}      # 会挡人 / 挡怪 / 挡弹体的物件 id
+var has_blockers := false
+var _bcache: Dictionary = {}        # 格子 -> Array[Rect2]（该格内所有挡路物件的脚下碰撞块）
 var seed_v := 1
 var clear_radius := 230.0           # 出生点周围不放物件
 
@@ -22,6 +25,8 @@ func load_dir(dir: String, weights: Dictionary = {}) -> bool:
 	ground.clear()
 	ground_var.clear()
 	props.clear()
+	block_ids.clear()
+	_bcache.clear()
 	for i in 8:
 		var p := "%s/ground_%d.png" % [dir, i]
 		if not ResourceLoader.exists(p):
@@ -47,10 +52,13 @@ func load_dir(dir: String, weights: Dictionary = {}) -> bool:
 				var f := "%s/props/%s" % [dir, str(js[id]["file"])]
 				if ResourceLoader.exists(f):
 					props[str(id)] = {"tex": load(f), "w": int(js[id]["w"]), "h": int(js[id]["h"])}
+					if bool(js[id].get("block", false)):
+						block_ids[str(id)] = true
 	prop_weights = weights.duplicate()
 	for id in props:
 		if not prop_weights.has(id):
 			prop_weights[id] = 1.0
+	has_blockers = not block_ids.is_empty()
 	loaded = ground.size() >= 1
 	return loaded
 
@@ -108,41 +116,114 @@ func draw_ground(ci: CanvasItem, center: Vector2, half: Vector2) -> void:
 			ci.draw_texture_rect(ground_var[tile_index(cx, cy)][o], Rect2(cx * TILE, cy * TILE, TILE, TILE), false)
 
 
-## 视野内的物件：[{id, pos}]，确定性（同一格子永远是同样的物件）
-func visible_props(center: Vector2, half: Vector2) -> Array:
+## 某个格子里的物件：[{id, pos}]，确定性（同一格子永远是同样的物件）
+func _cell_props(cx: int, cy: int) -> Array:
 	var out: Array = []
-	if props.is_empty():
-		return out
 	var ids: Array = []
 	var total := 0.0
 	for id in props:
 		if float(prop_weights[id]) > 0.0:
 			ids.append(id)
 			total += float(prop_weights[id])
+	if ids.is_empty():
+		return out
+	for k in 2:
+		var h := _h(cx, cy, 100 + k)
+		if k == 0 and h % 100 >= 62:
+			continue
+		if k == 1 and h % 100 >= 22:
+			continue
+		var pos := Vector2(cx * PROP_CELL + float(_h(cx, cy, 200 + k) % int(PROP_CELL)), cy * PROP_CELL + float(_h(cx, cy, 300 + k) % int(PROP_CELL)))
+		if pos.length() < clear_radius:
+			continue
+		var r := float(_h(cx, cy, 400 + k) % 1000) / 1000.0 * total
+		var pick: String = ids[0]
+		for id in ids:
+			r -= float(prop_weights[id])
+			if r < 0.0:
+				pick = id
+				break
+		out.append({"id": pick, "pos": pos})
+	return out
+
+
+## 视野内的物件：[{id, pos}]
+func visible_props(center: Vector2, half: Vector2) -> Array:
+	var out: Array = []
+	if props.is_empty():
+		return out
 	var x0 := int(floorf((center.x - half.x - 120.0) / PROP_CELL))
 	var x1 := int(floorf((center.x + half.x + 120.0) / PROP_CELL))
 	var y0 := int(floorf((center.y - half.y - 160.0) / PROP_CELL))
 	var y1 := int(floorf((center.y + half.y + 160.0) / PROP_CELL))
 	for cy in range(y0, y1 + 1):
 		for cx in range(x0, x1 + 1):
-			for k in 2:
-				var h := _h(cx, cy, 100 + k)
-				if k == 0 and h % 100 >= 62:
-					continue
-				if k == 1 and h % 100 >= 22:
-					continue
-				var pos := Vector2(cx * PROP_CELL + float(_h(cx, cy, 200 + k) % int(PROP_CELL)), cy * PROP_CELL + float(_h(cx, cy, 300 + k) % int(PROP_CELL)))
-				if pos.length() < clear_radius:
-					continue
-				var r := float(_h(cx, cy, 400 + k) % 1000) / 1000.0 * total
-				var pick: String = ids[0]
-				for id in ids:
-					r -= float(prop_weights[id])
-					if r < 0.0:
-						pick = id
-						break
-				out.append({"id": pick, "pos": pos})
+			out.append_array(_cell_props(cx, cy))
 	return out
+
+
+## ---- 碰撞：只有 block 物件挡路，碰撞块是物件脚下那一条（底部约 1/3），不是整张图 ----
+func _cell_blockers(cx: int, cy: int) -> Array:
+	var key := Vector2i(cx, cy)
+	if _bcache.has(key):
+		return _bcache[key]
+	var rects: Array = []
+	for pr in _cell_props(cx, cy):
+		if not block_ids.has(pr["id"]):
+			continue
+		var d: Dictionary = props[pr["id"]]
+		var at: Vector2 = pr["pos"]
+		var hw: float = float(d["w"]) * 0.40
+		var fh: float = clampf(float(d["h"]) * 0.30, 10.0, 28.0)
+		rects.append(Rect2(at.x - hw, at.y - fh, hw * 2.0, fh + 2.0))
+	_bcache[key] = rects
+	return rects
+
+
+## 圆（pos, r）被挡路物件顶出去后的位置；没碰到就原样返回
+func push_out(pos: Vector2, r: float) -> Vector2:
+	if not has_blockers:
+		return pos
+	var cx := int(floorf(pos.x / PROP_CELL))
+	var cy := int(floorf(pos.y / PROP_CELL))
+	for dy in range(-1, 2):
+		for dx in range(-1, 2):
+			for rc in _cell_blockers(cx + dx, cy + dy):
+				var q := Vector2(clampf(pos.x, rc.position.x, rc.end.x), clampf(pos.y, rc.position.y, rc.end.y))
+				var diff := pos - q
+				var dd := diff.length()
+				if dd >= r:
+					continue
+				if dd > 0.001:
+					pos = q + diff / dd * r
+				else:    # 圆心落在块里面：沿最近的边顶出去
+					var l := pos.x - rc.position.x
+					var rr := rc.end.x - pos.x
+					var t := pos.y - rc.position.y
+					var b := rc.end.y - pos.y
+					var m := minf(minf(l, rr), minf(t, b))
+					if m == l:
+						pos.x = rc.position.x - r
+					elif m == rr:
+						pos.x = rc.end.x + r
+					elif m == t:
+						pos.y = rc.position.y - r
+					else:
+						pos.y = rc.end.y + r
+	return pos
+
+
+func blocked(pos: Vector2, r: float = 2.0) -> bool:
+	if not has_blockers:
+		return false
+	var cx := int(floorf(pos.x / PROP_CELL))
+	var cy := int(floorf(pos.y / PROP_CELL))
+	for dy in range(-1, 2):
+		for dx in range(-1, 2):
+			for rc in _cell_blockers(cx + dx, cy + dy):
+				if (rc as Rect2).grow(r).has_point(pos):
+					return true
+	return false
 
 
 ## 画一个物件：pos 是物件脚底中心；先画一个柔和的椭圆影子

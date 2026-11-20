@@ -85,6 +85,7 @@ var realm_time := [0.0, 0.0, 0.0] # 虚 / 平 / 盈 各停留了多久（测试�
 var empower_count := 0
 var _emp_ctx := -1                # 延迟命中（弹体 / 区域）的催动状态：-1 未设置，0 否，1 是
 var enemy_art: EnemyArt            # 怪物立绘；没有素材的怪物画占位图形
+var map_art_dir := ""
 var map_art: MapArt                 # 当前地图的像素美术（地面 + 物件）；没有素材时为 null
 var vfx: Vfx                       # 招式特效素材（没有素材的特效继续用程序绘制）
 var vfx_layer: VfxLayer
@@ -148,9 +149,6 @@ var max_enemies := 800
 func _ready() -> void:
 	enemy_art = EnemyArt.new()
 	enemy_art.load_dir("res://assets/enemies")
-	map_art = MapArt.new()
-	if not map_art.load_dir("res://assets/maps/black_wind", {"tree": 2.0, "rock": 2.0, "banner": 0.8, "barrel": 1.0, "campfire": 0.4, "bones": 1.2, "spikes": 1.0, "tent": 0.6}):
-		map_art = null
 	vfx = Vfx.new()
 	vfx.load_dir("res://assets/vfx")
 	_load_pickups()
@@ -167,8 +165,20 @@ func _ready() -> void:
 	start_run()
 
 
+func _load_map_art() -> void:
+	var cfg: Dictionary = Data.maps[map_id].get("art", {})
+	var dir := str(cfg.get("dir", "res://assets/maps/black_wind"))
+	if map_art != null and map_art_dir == dir:
+		return
+	map_art_dir = dir
+	map_art = MapArt.new()
+	if not map_art.load_dir(dir, cfg.get("weights", {})):
+		map_art = null
+
+
 func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", p_map: String = "black_wind", p_diff: Dictionary = {}) -> void:
 	map_id = p_map
+	_load_map_art()
 	set_difficulty(p_diff)
 	starter_id = p_starter
 	shi.clear()
@@ -494,6 +504,8 @@ func _update_player(dt: float) -> void:
 	else:
 		var spd_pct := st("speed_pct") + (float(qg.get("buff_speed", 0.0)) if buff_t > 0.0 else 0.0)
 		player_pos += move * st("move_speed") * (1.0 + spd_pct) * (0.55 if player_slow_t > 0.0 else 1.0) * dt
+	if map_art != null and map_art.has_blockers:        # 残墙 / 石柱挡人（含冲刺、击退）
+		player_pos = map_art.push_out(player_pos, PLAYER_RADIUS)
 
 	# 内力 / 气血 / 护盾
 	var max_n := st("max_neili")
@@ -997,6 +1009,8 @@ func _update_enemies(dt: float) -> void:
 				vel = dir * spd
 			vel += _separation(e) * 90.0
 		e.pos += (vel + e.knock) * dt
+		if map_art != null and map_art.has_blockers and d < 900.0:
+			e.pos = map_art.push_out(e.pos, e.radius * 0.8)
 		e.knock *= maxf(0.0, 1.0 - 7.0 * dt)
 		if e.stun <= 0.0 and d < e.radius + PLAYER_RADIUS and invuln <= 0.0:
 			_hurt(e.damage)
@@ -1416,6 +1430,8 @@ func _update_projectiles(dt: float) -> void:
 				p.angle = p.vel.angle()
 		p.pos += p.vel * dt
 		var keep := p.life > 0.0
+		if keep and map_art != null and map_art.has_blockers and map_art.blocked(p.pos, p.radius * 0.5):
+			keep = false                                # 弹体撞上残墙 / 石柱消失
 		if keep:
 			if p.hostile:
 				if invuln <= 0.0 and p.pos.distance_to(player_pos) < p.radius + PLAYER_RADIUS:

@@ -387,6 +387,93 @@
       "cell": 128,
       "loop": true,
       "world_size": 90.0
+    },
+    "boss_fan_blade": {
+      "file": "boss_fan_blade.png",
+      "frames": 4,
+      "fps": 12.0,
+      "cell": 128,
+      "loop": true,
+      "world_size": 110.0
+    },
+    "boss_poison_mist": {
+      "file": "boss_poison_mist.png",
+      "frames": 4,
+      "fps": 8.0,
+      "cell": 256,
+      "loop": true
+    },
+    "boss_ice_band": {
+      "file": "boss_ice_band.png",
+      "frames": 4,
+      "fps": 12.0,
+      "cell": 192,
+      "loop": false,
+      "forward": 0.3
+    },
+    "boss_cross_blade": {
+      "file": "boss_cross_blade.png",
+      "frames": 4,
+      "fps": 12.0,
+      "cell": 192,
+      "loop": false
+    },
+    "boss_dragon_claw": {
+      "file": "boss_dragon_claw.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": false,
+      "forward": 0.25
+    },
+    "boss_golden_bell_ring": {
+      "file": "boss_golden_bell_ring.png",
+      "frames": 4,
+      "fps": 12.0,
+      "cell": 192,
+      "loop": false
+    },
+    "boss_palm_seal": {
+      "file": "boss_palm_seal.png",
+      "frames": 4,
+      "fps": 10.0,
+      "cell": 192,
+      "loop": false
+    },
+    "boss_buddha_light": {
+      "file": "boss_buddha_light.png",
+      "frames": 4,
+      "fps": 10.0,
+      "cell": 256,
+      "loop": false
+    },
+    "boss_yitian_cross": {
+      "file": "boss_yitian_cross.png",
+      "frames": 4,
+      "fps": 12.0,
+      "cell": 192,
+      "loop": false
+    },
+    "boss_sword_rain": {
+      "file": "boss_sword_rain.png",
+      "frames": 4,
+      "fps": 8.0,
+      "cell": 192,
+      "loop": false
+    },
+    "boss_shield": {
+      "file": "boss_shield.png",
+      "frames": 4,
+      "fps": 6.0,
+      "cell": 192,
+      "loop": true
+    },
+    "boss_aura_phase2": {
+      "file": "boss_aura_phase2.png",
+      "frames": 4,
+      "fps": 10.0,
+      "cell": 192,
+      "loop": true
     }
   }
 }

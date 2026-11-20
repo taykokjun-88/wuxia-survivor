@@ -41,6 +41,7 @@ func _ready() -> void:
 		_skill_fx_test()
 		_stage_test()
 		_stage2_boss_test()
+		_map_collision_test()
 		await _town_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
@@ -595,6 +596,56 @@ func _stage_test() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_stage.json"))
 	Save.path = old_path
 	Save.load_data()
+
+
+func _map_collision_test() -> void:
+	print("\n=== 光明顶地图：障碍碰撞 / 素材 / 解锁 ===")
+	var w := _s2_world(91)
+	_check(w.map_art != null and w.map_art.has_blockers, "光明顶地图有挡路物件")
+	var wb := _new_world(92)
+	_check(wb.map_art != null and not wb.map_art.has_blockers, "黑风寨没有碰撞物件（装饰）")
+	_free_world(wb)
+	# 找一个碰撞块，把玩家 / 怪 / 弹体放进去
+	var rc := Rect2()
+	var found := false
+	for cy in range(-6, 7):
+		for cx in range(-6, 7):
+			var arr: Array = w.map_art._cell_blockers(cx, cy)
+			if not arr.is_empty() and not found:
+				rc = arr[0]
+				found = true
+	_check(found, "附近能找到碰撞块")
+	var inside := rc.get_center()
+	w.player_pos = inside
+	w._update_player(DT)
+	_check(not rc.grow(w.PLAYER_RADIUS - 1.0).has_point(w.player_pos), "玩家被顶出碰撞块")
+	_check(w.map_art.blocked(inside, 2.0), "块中心判定为被挡")
+	_check(not w.map_art.blocked(inside + Vector2(0, 400), 2.0), "远处不被挡")
+	var p := w.map_art.push_out(inside + Vector2(0, 100), 12.0)
+	_check(p == inside + Vector2(0, 100), "没碰到不会被移动")
+	# 覆盖率：障碍占地面积要小，不会封死地图
+	var area := 0.0
+	var tot := 0.0
+	for cy in range(-12, 13):
+		for cx in range(-12, 13):
+			tot += MapArt.PROP_CELL * MapArt.PROP_CELL
+			for r in w.map_art._cell_blockers(cx, cy):
+				area += (r as Rect2).get_area()
+	_check(area / tot < 0.06, "碰撞块总面积占比 < 6%%（实际 %.1f%%）" % [area / tot * 100.0])
+	# 出生点附近 230 以内无障碍
+	var clear := true
+	for a in 36:
+		var q := Vector2.from_angle(TAU * a / 36.0) * 200.0
+		if w.map_art.blocked(q, 14.0):
+			clear = false
+	_check(clear, "出生点周围留空")
+	# 素材齐全
+	for id in ["huashan", "kunlun", "kongtong", "shaolin", "emei", "s2_mini_1", "s2_mini_2", "s2_mini_3", "s2_boss"]:
+		_check(w.enemy_art.has(id), "怪物素材 %s 存在" % id)
+	for id in ["boss_fan_blade", "boss_poison_mist", "boss_ice_band", "boss_cross_blade", "boss_dragon_claw", "boss_golden_bell_ring", "boss_palm_seal", "boss_buddha_light", "boss_yitian_cross", "boss_sword_rain", "boss_shield", "boss_aura_phase2"]:
+		_check(w.vfx.has(id), "特效 %s 已登记" % id)
+	_check(bool(Data.maps["guangming"]["enabled"]), "光明顶已开放")
+	_free_world(w)
 
 
 func _s2_world(seed_v: int) -> GameWorld:
