@@ -604,18 +604,17 @@ func _sword_talent_test() -> void:
 	_check(base.size() == sw.size(), "覆盖不改变节点数量")
 	for id in base:
 		_check(int(base[id]["max"]) == int(sw[id]["max"]) and base[id]["branch"] == sw[id]["branch"] and int(base[id]["row"]) == int(sw[id]["row"]), "覆盖不改变 id / 层 / 上限：%s" % id)
-	var expect := {"gang_ying": "剑心", "gang_peak": "剑意凌霄", "rou_finger": "破绽洞察", "ling_qg": "御风剑步", "ling_crit": "剑气贯虹", "ling_peak": "独孤剑悟"}
+	var expect := {"gang_ying": "剑心", "gang_peak": "剑意凌霄", "rou_finger": "破绽洞察", "ling_qg": "青松不动", "ling_crit": "洞察", "ling_peak": "独孤传承"}
 	for id in expect:
 		_check(str(sw[id]["name"]) == str(expect[id]), "剑侠节点名 %s" % id)
 	_check(str(base["gang_ying"]["name"]) == "盈劲" and str(Talents.nodes("fist")["gang_ying"]["name"]) == "盈劲", "武者流派的节点不变")
-	var ts := Talents.stats_for({"gang_ying": 2, "ling_qg": 2, "gang_peak": 1, "ling_peak": 1, "ling_crit": 2}, "sword")
+	var ts := Talents.stats_for({"gang_ying": 2, "gang_peak": 1, "ling_peak": 1, "ling_crit": 2}, "sword")
 	_check(absf(float(ts.get("skill_range", 0.0)) - 0.10) < 1e-6, "剑心 +5%%/级")
 	_check(absf(float(ts.get("ying_dmg", 0.0)) - 0.10) < 1e-6, "剑意凌霄 盈境伤害 +10%%")
-	_check(float(ts.get("burst_yang", 0.0)) == 1.0 and float(ts.get("burst_harmony", 0.0)) == 1.0, "剑侠的第 7 层保留阳性 / 调和内力")
+	_check(float(ts.get("burst_yang", 0.0)) == 1.0 and not ts.has("burst_harmony"), "剑侠：刚系第 7 层保留阳性内力；灵系第 7 层变成独孤传承")
 	_check(not ts.has("crit_mult"), "剑侠天赋不再额外给暴击伤害")
-	_check(absf(float(ts.get("crit_chance", 0.0)) - 0.04) < 1e-6, "剑气贯虹 暴击率 +2%%/级")
-	_check(absf(float(ts.get("cd_reduce", 0.0)) - (0.03 + 0.05)) < 1e-6, "御风剑步 + 独孤剑悟 冷却：%s" % str(ts.get("cd_reduce", 0.0)))
-	_check(absf(float(ts.get("exp_pct", 0.0)) - 0.08) < 1e-6 and absf(float(ts.get("qg_cd_reduce", 0.0)) - 0.08) < 1e-6, "经验 +8%%，轻功冷却 −8%%")
+	_check(absf(float(ts.get("skill:dugu:crit", 0.0)) - 0.08) < 1e-6, "洞察：独孤九剑暴击率 +4%%/级")
+	_check(float(ts.get("dugu_start", 0.0)) == 3.0 and absf(float(ts.get("skill:dugu:damage", 0.0)) - 0.10) < 1e-6, "独孤传承：开局总诀式 3 层 + 独孤九剑伤害 +10%%")
 	var tf := Talents.stats_for({"gang_ying": 2}, "fist")
 	_check(float(tf.get("ying_dmg", 0.0)) > 0.0 and not tf.has("skill_range"), "武者的盈劲仍是盈境伤害")
 	# 进入局内：范围 / 减益并入招式
@@ -1661,7 +1660,7 @@ func _enhance_rework_test() -> void:
 			for sid2 in Data.skills:
 				if str(Data.skills[sid2]["school"]) != sc:
 					_check(not str(nn["desc"]).contains(str(Data.skills[sid2]["name"])), "%s 流派天赋 %s 的说明提到了别的流派的招式 %s" % [sc, nid, str(Data.skills[sid2]["name"])])
-	_check(float(Talents.stats_for({"ling_step": 3}, "sword")["speed_pct"]) > float(Talents.stats_for({"ling_step": 3}, "fist")["speed_pct"]), "剑侠的移速天赋更强")
+	_check(Talents.stats_for({"ling_step": 2}, "sword").has("skill:dugu:damage") and Talents.stats_for({"ling_step": 2}, "fist").has("speed_pct"), "剑侠的灵系左边强化独孤九剑；武者的仍是移速")
 	_check(float(Talents.stats_for({"rou_regen": 3}, "blade")["hp_regen"]) > float(Talents.stats_for({"rou_regen": 3}, "fist")["hp_regen"]), "刀客的气血回复天赋更强")
 	_check(float(Talents.stats_for({"rou_neili": 3}, "fist")["neili_regen"]) > 0.0, "武者的养气带回内力")
 	# 吸血要克制（伤害高、血量低）：「增加治疗」最高 0.2% 伤害；每次命中最多回 0.6
@@ -1880,6 +1879,53 @@ func _plan6_test() -> void:
 	wfs.fist_after_cast(wfs.skills["kuang_feng"])
 	_check(wfs.fist_qi == 0.0, "只有武者蓄劲")
 	_free_world(wfs)
+	# ---- 剑侠天赋「灵」：左边全部强化独孤九剑，右边强化别的剑法 ----
+	var swn := Talents.nodes("sword")
+	var left_ok := true
+	var right_ok := true
+	var ling_rows: Array = Data.talents["branches"]["ling"]["rows"]
+	for row in ling_rows:
+		var lid := str(row[0]["id"])
+		var rid := str(row[1]["id"])
+		var lk := str(swn[lid]["stat"].keys()[0])
+		var rk := str(swn[rid]["stat"].keys()[0])
+		var l_is_dugu := true
+		for k in swn[lid]["stat"]:
+			if not (str(k).begins_with("skill:dugu:") or ["shi_gain", "dugu_wb", "dugu_vuln", "dugu_start"].has(str(k))):
+				l_is_dugu = false
+		var r_is_other := true
+		for k in swn[rid]["stat"]:
+			if not str(k).begins_with("skill:") or str(k).begins_with("skill:dugu:"):
+				r_is_other = false
+		left_ok = left_ok and l_is_dugu
+		right_ok = right_ok and r_is_other
+		_check(lk != "" and rk != "", "灵系第 %d 层：左 %s / 右 %s" % [int(ling_rows.find(row)) + 1, swn[lid]["name"], swn[rid]["name"]])
+	_check(left_ok, "剑侠「灵」左边分支 7 个穴位全部强化独孤九剑")
+	_check(right_ok, "剑侠「灵」右边分支 7 个穴位全部强化别的剑法（招式强化）")
+	for row in ling_rows:
+		for n in row:
+			for k in swn[str(n["id"])]["stat"]:
+				if str(k).begins_with("skill:"):
+					_check(Data.skills.has(str(k).split(":")[1]) and str(Data.skills[str(k).split(":")[1]]["school"]) == "sword", "天赋 %s 只强化剑法：%s" % [n["id"], k])
+	# 效果：悟剑 / 破兵 / 万法 / 独孤传承
+	var wdt := _new_world(94, "dugu")
+	wdt.talent_stats = {"dugu_start": 3.0, "shi_gain": 1.0, "dugu_vuln": 0.3, "skill:dugu:damage": 0.1}
+	wdt.start_run("dugu", "tashue")
+	_check(int(wdt.shi.get("zong", 0)) == 3, "独孤传承：开局总诀式 3 层（%d）" % int(wdt.shi.get("zong", 0)))
+	_check(wdt._shi_gain(2) == 3, "悟剑满级：每次领悟 +1 层（2 → 3）")
+	wdt.talent_stats["shi_gain"] = 0.0
+	wdt.talent_stats["dugu_vuln"] = 0.0
+	wdt.recalc()
+	wdt.shi = {"zong": 18}
+	var ev1 := wdt._spawn_enemy("bandit", wdt.player_pos + Vector2(900, 0))
+	wdt.apply_vuln(ev1, 0.3)
+	_check(is_equal_approx(ev1.vuln, 0.3), "没有「万法」天赋：破绽 +30%")
+	wdt.talent_stats["dugu_vuln"] = 0.3
+	wdt.recalc()
+	var ev2 := wdt._spawn_enemy("bandit", wdt.player_pos + Vector2(900, 80))
+	wdt.apply_vuln(ev2, 0.3)
+	_check(is_equal_approx(ev2.vuln, 0.39), "万法 3 级：破绽 +30%% ×1.3 = %.2f" % ev2.vuln)
+	_free_world(wdt)
 	# ---- 武者真气爆发：拳掌无敌 ----
 	var wu := _new_world(77, "chain_fist")
 	wu.god = false
@@ -3458,7 +3504,7 @@ func _build_test() -> void:
 		for k in all[id]["stat"]:
 			if str(k).begins_with("skill:"):
 				var pr := str(k).split(":")
-				_check(pr.size() == 3 and Data.skills.has(pr[1]) and ["targets", "damage", "cooldown", "range", "empower"].has(pr[2]), "天赋 %s 的招式强化键不对：%s" % [id, k])
+				_check(pr.size() == 3 and Data.skills.has(pr[1]) and ["targets", "damage", "cooldown", "range", "empower", "crit"].has(pr[2]), "天赋 %s 的招式强化键不对：%s" % [id, k])
 			else:
 				_check(Data.player_base.has(k), "天赋 %s 用了不存在的属性 %s" % [id, k])
 	# 解锁规则

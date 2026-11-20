@@ -47,7 +47,11 @@
     "ji_blade": 0,
     "qi_gain": 0,
     "soul_gain": 0,
-    "kill_hp": 0
+    "kill_hp": 0,
+    "dugu_wb": 0,
+    "shi_gain": 0,
+    "dugu_vuln": 0,
+    "dugu_start": 0
   },
   "tuning": {
     "spawn_base": 1.0,
@@ -2558,10 +2562,10 @@
               "desc": "移速 +1.5%/级",
               "schools": {
                 "sword": {
-                  "name": "轻灵",
-                  "desc": "移速 +2.5%/级（剑侠身法更强）",
+                  "name": "破势",
+                  "desc": "独孤九剑 伤害 +6%/级",
                   "stat": {
-                    "speed_pct": 0.025
+                    "skill:dugu:damage": 0.06
                   }
                 }
               }
@@ -2573,7 +2577,16 @@
               "stat": {
                 "luck": 0.03
               },
-              "desc": "高档升级率 +3%/级"
+              "desc": "高档升级率 +3%/级",
+              "schools": {
+                "sword": {
+                  "name": "快剑精进",
+                  "desc": "狂风快剑 伤害 +6%/级",
+                  "stat": {
+                    "skill:kuang_feng:damage": 0.06
+                  }
+                }
+              }
             }
           ],
           [
@@ -2587,10 +2600,10 @@
               "desc": "招式冷却 −1.5%/级",
               "schools": {
                 "sword": {
-                  "name": "迅捷",
-                  "desc": "招式冷却 −2.5%/级（攻速）",
+                  "name": "无招",
+                  "desc": "独孤九剑 冷却 −6%/级（真·独孤九剑出手更快）",
                   "stat": {
-                    "cd_reduce": 0.025
+                    "skill:dugu:cooldown": 0.06
                   }
                 }
               }
@@ -2605,11 +2618,10 @@
               "desc": "轻功冷却 −4%/级",
               "schools": {
                 "sword": {
-                  "name": "御风剑步",
-                  "desc": "轻功冷却 −4%/级，招式冷却 −1.5%/级（真·独孤九剑封印轻功时，招式冷却仍有收益）",
+                  "name": "青松不动",
+                  "desc": "青松剑法 冷却 −8%/级",
                   "stat": {
-                    "qg_cd_reduce": 0.04,
-                    "cd_reduce": 0.015
+                    "skill:qingsong:cooldown": 0.08
                   }
                 },
                 "blade": {
@@ -2634,10 +2646,10 @@
               "desc": "暴击率 +2%/级",
               "schools": {
                 "sword": {
-                  "name": "剑气贯虹",
-                  "desc": "暴击率 +2%/级（非独孤路线的剑侠更实用；真·独孤九剑本就必暴击）",
+                  "name": "洞察",
+                  "desc": "独孤九剑 暴击率 +4%/级",
                   "stat": {
-                    "crit_chance": 0.02
+                    "skill:dugu:crit": 0.04
                   }
                 },
                 "blade": {
@@ -2692,6 +2704,13 @@
                   "stat": {
                     "kill_neili": 0.5
                   }
+                },
+                "sword": {
+                  "name": "悟剑",
+                  "desc": "每次领悟「式」多得层数：+0.5 层/级（几率获得，满级每次 +1 层，更快越过 9 / 18 / 27 层门槛）",
+                  "stat": {
+                    "shi_gain": 0.5
+                  }
                 }
               }
             },
@@ -2705,10 +2724,10 @@
               "desc": "闪避几率 +2%/级",
               "schools": {
                 "sword": {
-                  "name": "灵蛇",
-                  "desc": "闪避几率 +3%/级（敏捷）",
+                  "name": "玉女素心",
+                  "desc": "玉女剑法 伤害 +6%/级",
                   "stat": {
-                    "dodge_chance": 0.03
+                    "skill:yunv:damage": 0.06
                   }
                 },
                 "fist": {
@@ -2732,10 +2751,10 @@
               "desc": "招式冷却 −1.5%/级",
               "schools": {
                 "sword": {
-                  "name": "疾风",
-                  "desc": "招式冷却 −2.5%/级（攻速）",
+                  "name": "破兵",
+                  "desc": "破兵微步：额外返还内力 +1/级，并多缩短冷却 5%/级",
                   "stat": {
-                    "cd_reduce": 0.025
+                    "dugu_wb": 1.0
                   }
                 }
               }
@@ -2774,7 +2793,16 @@
               "stat": {
                 "luck": 0.05
               },
-              "desc": "高档升级率 +5%/级"
+              "desc": "高档升级率 +5%/级",
+              "schools": {
+                "sword": {
+                  "name": "万法",
+                  "desc": "万法皆破：破绽承伤加成 +10%/级（Boss 减半）",
+                  "stat": {
+                    "dugu_vuln": 0.1
+                  }
+                }
+              }
             },
             {
               "id": "ling_cm",
@@ -2783,7 +2811,16 @@
               "stat": {
                 "crit_mult": 0.08
               },
-              "desc": "暴击伤害 +8%/级"
+              "desc": "暴击伤害 +8%/级",
+              "schools": {
+                "sword": {
+                  "name": "万剑归宗",
+                  "desc": "万剑诀 伤害 +6%/级",
+                  "stat": {
+                    "skill:wanjian:damage": 0.06
+                  }
+                }
+              }
             }
           ],
           [
@@ -2797,12 +2834,11 @@
               "desc": "调和内力（一阴一阳）：真气爆发次数 ×2（本局可爆发 2 次）",
               "schools": {
                 "sword": {
-                  "name": "独孤剑悟",
-                  "desc": "调和内力（一阴一阳）：真气爆发次数 ×2（本局可爆发 2 次）。另：招式冷却 −5%，经验获取 +8%（更快越过 20 / 30 层门槛）",
+                  "name": "独孤传承",
+                  "desc": "开局获得「总诀式」3 层（更早越过 9 / 18 / 27 层门槛）；独孤九剑 伤害 +10%",
                   "stat": {
-                    "burst_harmony": 1,
-                    "cd_reduce": 0.05,
-                    "exp_pct": 0.08
+                    "dugu_start": 3.0,
+                    "skill:dugu:damage": 0.1
                   }
                 },
                 "blade": {
@@ -2826,16 +2862,20 @@
               "desc": "移速 +1.5%/级",
               "schools": {
                 "sword": {
-                  "name": "凌波",
-                  "desc": "移速 +2.5%/级",
+                  "name": "诸剑精进",
+                  "desc": "辟邪剑法 冷却 −4%/级、倚天剑 伤害 +4%/级",
                   "stat": {
-                    "speed_pct": 0.025
+                    "skill:pixie:cooldown": 0.04,
+                    "skill:yitian:damage": 0.04
                   }
                 }
               }
             }
           ]
-        ]
+        ],
+        "school_desc": {
+          "sword": "左列：强化独孤九剑　右列：强化其他剑法"
+        }
       }
     },
     "per_level": 2,

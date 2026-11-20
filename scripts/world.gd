@@ -222,6 +222,8 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	add_skill(starter_id)
 	stats = {}
 	recalc()
+	if starter_id == "dugu" and float(talent_stats.get("dugu_start", 0.0)) > 0.0:       # 天赋「独孤传承」：开局总诀式 N 层
+		shi["zong"] = int(talent_stats["dugu_start"])
 	hp = float(stats["max_hp"])
 	neili = float(stats["max_neili"])
 	still_t = 0.0
@@ -1959,7 +1961,7 @@ func _enhance_upgraded(at: Vector2) -> void:
 
 func roll_chest_choices() -> Array:
 	if skills.has("dugu"):
-		var sc := shi_cards(3, int(Data.T("shi_chest_gain")), "chest")
+		var sc := shi_cards(3, _shi_gain(int(Data.T("shi_chest_gain"))), "chest")
 		if not sc.is_empty():
 			return sc
 	var ids: Array = skills.keys()
@@ -2006,7 +2008,7 @@ func _choice_key(c: Dictionary) -> String:
 func roll_choices(n: int = 3, avoid: Array = []) -> Array:
 	var pool: Array = []
 	var dugu_route := skills.has("dugu")
-	var shi_pool: Array = shi_cards(2, int(Data.T("shi_card_gain")), "level") if dugu_route else []
+	var shi_pool: Array = shi_cards(2, _shi_gain(int(Data.T("shi_card_gain"))), "level") if dugu_route else []
 	# 已有技能：每个技能给 2 张升级卡（不同方向，档位随机）
 	for id in skills:
 		var s: SkillBase = skills[id]
@@ -2646,6 +2648,8 @@ func _draw_effects() -> void:
 
 ## 破绽：受到的伤害额外 +v，持续 t 秒；spread 时顺带让附近一名敌人也露出破绽（万法皆破）
 func apply_vuln(e: Enemy, v: float, spread: bool = false) -> void:
+	if skills.has("dugu"):                        # 天赋「万法」：独孤九剑的破绽更痛
+		v *= 1.0 + st("dugu_vuln")
 	if e.is_boss:                                 # Boss 只吃破绽效果的一半（承伤加成、攻击削弱都减半）
 		v *= Data.T("boss_vuln_mult")
 	var t := Data.T("dugu_vuln_t")
@@ -2887,6 +2891,15 @@ func add_shi(id: String, n: int) -> int:
 			play_anim("awaken", 0.6)
 			_trigger_sword_break(0.6, 1.0)
 	return int(shi[id]) - old
+
+
+## 领悟「式」时的层数：基础 + 天赋「悟剑」（小数部分按几率多 +1）
+func _shi_gain(base: int) -> int:
+	var g := st("shi_gain")
+	var n := base + int(g)
+	if rng.randf() < g - floorf(g):
+		n += 1
+	return n
 
 
 ## 「式」的说明：普通形态（飞剑）+ 觉醒后（≥27 层，近战）的效果

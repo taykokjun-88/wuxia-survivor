@@ -203,7 +203,7 @@ func _draw() -> void:
 		# 标题：系名 + 说明 + 已投入
 		var spent := Talents.branch_spent(work, b)
 		draw_string(bold, rect.position + Vector2(16, 34), str(Data.talents["branches"][b]["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(col.lightened(0.35), 1.0))
-		draw_string(font, rect.position + Vector2(58, 22), str(Data.talents["branches"][b]["desc"]), HORIZONTAL_ALIGNMENT_LEFT, BOX_W - 160.0, 14, Color("#e8dfc5"))
+		draw_string(font, rect.position + Vector2(58, 22), _branch_desc(b), HORIZONTAL_ALIGNMENT_LEFT, BOX_W - 160.0, 14, Color("#e8dfc5"))
 		draw_string(bold, rect.position + Vector2(BOX_W - 112, 22), "%d / %d 点" % [spent, Talents.branch_cap(b)], HORIZONTAL_ALIGNMENT_RIGHT, 100.0, 18, Color("#fff6dc"))
 		draw_line(rect.position + Vector2(12, HEADER_H - 4), rect.position + Vector2(BOX_W - 12, HEADER_H - 4), Color(col, 0.5), 1.5)
 		# 层与层之间：门槛线（打通时点亮）+ 连线
@@ -222,6 +222,14 @@ func _draw() -> void:
 			for k in 2:
 				_draw_node(_node_id(b, r, k), bi, r, k, col, font)
 	_draw_ji(font, bold)
+
+
+## 框标题旁的说明（有的流派会改，比如剑侠的「灵」：左列独孤九剑 / 右列其他剑法）
+func _branch_desc(b: String) -> String:
+	var sd: Variant = Data.talents["branches"][b].get("school_desc", {})
+	if sd is Dictionary and (sd as Dictionary).has(school):
+		return str((sd as Dictionary)[school])
+	return str(Data.talents["branches"][b]["desc"])
 
 
 func _node_id(branch: String, row: int, idx: int) -> String:

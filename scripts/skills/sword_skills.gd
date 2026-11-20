@@ -258,8 +258,8 @@ class Dugu extends SkillBase:
 			wb_hits.clear()
 			wb_cd = Data.T("dugu_wb_gap")
 			wb_count += 1
-			w.add_neili(Data.T("dugu_wb_neili"))
-			cd = maxf(0.0, cd * (1.0 - Data.T("dugu_wb_cut")))
+			w.add_neili(Data.T("dugu_wb_neili") + w.st("dugu_wb"))
+			cd = maxf(0.0, cd * (1.0 - Data.T("dugu_wb_cut") - 0.05 * w.st("dugu_wb")))
 			w.add_fx("text", w.player_pos + Vector2(0, -44), 0.6, {"text": "破兵微步", "size": 16, "color": Color("#bfe8ff")})
 
 	## 破箭式 / 万法皆破：近战斩击把范围内的敌方普通投射物全部斩落
