@@ -25,6 +25,19 @@ class Base extends SkillBase:
 	func rmul() -> float:
 		return w.blade_range()
 
+	## 耗血刀法：出手时消耗一部分最大气血（不会把自己耗死，免费释放不耗）；自己耗掉的血同样涨刀魂，让霸刀破岳更容易触发
+	func pay_hp() -> void:
+		var frac := float(def.get("hp_cost", 0.0))
+		if frac <= 0.0 or free_cast:
+			return
+		var max_hp := w.st("max_hp")
+		var paid := minf(max_hp * frac, maxf(0.0, w.hp - 1.0))
+		if paid <= 0.0:
+			return
+		w.hp -= paid
+		w.add_soul(minf(Data.T("blade_soul_hp_cap"), Data.T("blade_soul_hp") * paid / maxf(1.0, max_hp) * 100.0))
+		w.add_fx("text", w.player_pos + Vector2(0, -34), 0.6, {"text": "-%d" % int(paid), "size": 16, "color": GameWorld.VERMILION})
+
 	func _foe(e: Enemy, dmg: float, out: Vector2, stacks: int, force: bool) -> void:
 		if bool(def.get("heavy", false)):
 			w.bleed_burst(e)
@@ -155,8 +168,7 @@ class RanMu extends Base:
 			z["burst_r"] = ev(70.0, 95.0, 120.0)
 			z["burst_dmg"] = p("damage") * ev(1.5, 2.0, 2.5)
 		w.add_zone(z)
-		if fxid("zone") != "":
-			pass
+		pay_hp()
 		return true
 
 
@@ -181,7 +193,7 @@ class XueDao extends Base:
 		var frac := clampf(w.hp / maxf(1.0, max_hp), 0.0, 1.0)
 		var dmg := p("damage") * (1.0 + 0.9 * (1.0 - frac))
 		if not _low():                                      # 耗血，但不会把自己耗死
-			w.hp = maxf(1.0, w.hp - max_hp * float(def.get("hp_cost", 0.03)))
+			pay_hp()
 		var dirs := [a, a + PI * 0.5, a + PI, a - PI * 0.5] if empowered else [a]
 		var hits := 0
 		for ang: float in dirs:
@@ -266,6 +278,7 @@ class XuanXu extends Base:
 		for i in n:
 			w.spawn_proj(self, a + (float(i) - (n - 1) * 0.5) * 0.3, {"stun": p("stun")})
 		w.shake = maxf(w.shake, 4.0)
+		pay_hp()
 		return true
 
 
@@ -314,6 +327,7 @@ class TuLong extends Base:
 		if not w.any_enemy_within(w.player_pos, p("radius") * rmul() * 0.9):
 			return false
 		_cast(1.0, empowered)
+		pay_hp()
 		return true
 
 	func _free() -> void:

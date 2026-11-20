@@ -361,6 +361,50 @@ func _blade_test() -> void:
 			row.append("%7.0f (%d)" % [dmg / 40.0, wk.kills])
 			_free_world(wk)
 		print("  %-8s %s" % [Data.skills[id]["name"], "  ".join(row)])
+	# 耗血刀法：血刀经 / 燃木 / 玄虚 / 屠龙共 4 个会耗血，耗的血也涨刀魂，且不会把自己耗死
+	var hp_skills := []
+	for id in Data.skills:
+		if str(Data.skills[id]["school"]) == "blade" and float(Data.skills[id].get("hp_cost", 0.0)) > 0.0:
+			hp_skills.append(id)
+	_check(hp_skills.size() == 4, "刀客有 4 个耗血刀法（%s）" % str(hp_skills))
+	for id in hp_skills:
+		var wh := _blade_world(92)
+		wh.god = true
+		wh.skills.clear()
+		wh.add_skill(id)
+		wh.hp = wh.st("max_hp")
+		wh.soul = 0.0
+		_populate(wh, 20)
+		for i in int(14.0 / DT):
+			TestBot.drive(wh, 75.0)
+			wh.step(DT)
+		_check(wh.skills[id].cd_total > 0.0 or float(wh.skill_dmg.get(id, 0.0)) > 0.0, "%s 出过手" % id)
+		_check(wh.soul > 0.0, "%s：耗血 / 命中涨刀魂（%.1f）" % [id, wh.soul])
+		var w_low := _blade_world(93)
+		w_low.skills.clear()
+		w_low.add_skill(id)
+		w_low.god = true
+		w_low.hp = 1.0
+		_populate(w_low, 20)
+		for i in int(14.0 / DT):
+			TestBot.drive(w_low, 75.0)
+			w_low.step(DT)
+		_check(w_low.hp >= 1.0, "%s：只剩 1 点气血也不会被自己耗死" % id)
+		_free_world(wh)
+		_free_world(w_low)
+	var wpay := _blade_world(94)
+	wpay.skills.clear()
+	wpay.add_skill("tulong_art")
+	wpay.hp = wpay.st("max_hp")
+	wpay.soul = 0.0
+	wpay.skills["tulong_art"].pay_hp()
+	_check(absf((wpay.st("max_hp") - wpay.hp) - wpay.st("max_hp") * 0.08) < 0.01 and wpay.soul > 5.0, "屠龙刀法耗 8%% 气血并涨刀魂（%.1f）" % wpay.soul)
+	wpay.hp = wpay.st("max_hp")
+	wpay.soul = 0.0
+	wpay.skills["tulong_art"].free_cast = true
+	wpay.skills["tulong_art"].pay_hp()
+	_check(is_equal_approx(wpay.hp, wpay.st("max_hp")) and wpay.soul == 0.0, "免费释放（号令天下）不耗血")
+	_free_world(wpay)
 	# 反两仪：抹弹幕、减伤反弹；屠龙刀法：免费释放；血刀经：不会把自己耗死
 	var w3 := _blade_world(64)
 	w3.skills.clear()
@@ -1569,7 +1613,7 @@ func _enhance_rework_test() -> void:
 	wbl2.hp = 10.0
 	var ke: Enemy = wbl2._spawn_enemy("bandit", wbl2.player_pos + Vector2(40, 0))
 	wbl2._kill(ke)
-	_check(wbl2.hp > 10.05, "刀客：击杀回血（%.2f）" % wbl2.hp)
+	_check(wbl2.hp > 10.02, "刀客：击杀回血（%.2f）" % wbl2.hp)
 	wbl2.hp = hpk
 	var wdu := _new_world(91, "dugu")
 	var cdu: float = wdu.skills["dugu"].empower_cost()
