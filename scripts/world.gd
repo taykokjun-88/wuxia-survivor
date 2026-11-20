@@ -1016,6 +1016,7 @@ func _update_enemies(dt: float) -> void:
 			_hurt(e.damage)
 			if e.touch_slow > 0.0:
 				player_slow_t = maxf(player_slow_t, e.touch_slow)
+				add_fx("ring", player_pos, 0.35, {"r0": 6.0, "r1": 20.0, "color": Color("#9ad8ff"), "vfx": "fx_minion_frost", "size": 64.0})
 
 
 ## 简易分离：只看自己所在格的少量邻居，避免敌人叠成一团。
@@ -1263,7 +1264,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 			amount = (sd - e.shield) / (2.0 if e.weak_t > 0.0 else 1.0)
 			e.shield = 0.0
 			add_fx("text", e.pos + Vector2(0, -e.radius - 30), 1.2, {"text": "护盾破碎！", "size": 28, "color": Color("#9ae8ff")})
-			add_fx("ring", e.pos, 0.5, {"r0": 20.0, "r1": 140.0, "color": Color("#9ae8ff"), "vfx": "burst_break"})
+			add_fx("ring", e.pos, 0.5, {"r0": 20.0, "r1": 140.0, "color": Color("#9ae8ff"), "vfx": "boss_shield_break" if vfx.has("boss_shield_break") else "burst_break", "size": maxf(e.radius * 4.0, 150.0)})
 			shake = maxf(shake, 7.0)
 	damage_enemy(e, amount, knock_vec, crit)
 	Sfx.play("hit_crit" if crit else ("hit_sword" if school_id == "sword" else "hit_fist"))
@@ -2558,6 +2559,7 @@ func hurt_dot(amount: float) -> void:
 		return
 	hp -= maxf(0.5, amount - st("armor") * 0.25)
 	add_fx("text", player_pos + Vector2(rng.randf_range(-10, 10), -24), 0.5, {"text": "-%d" % int(amount), "size": 16, "color": Color("#a0e060")})
+	add_fx("ring", player_pos + Vector2(0, -8), 0.45, {"r0": 6.0, "r1": 20.0, "color": Color("#a0e060"), "vfx": "fx_poison_hit", "size": 60.0})
 	if hp <= 0.0 and not over:
 		hp = 0.0
 		over = true
@@ -2570,10 +2572,18 @@ func _draw_hzones() -> void:
 		var a := clampf(minf(float(z["t"]) * 3.0, (float(z["life"]) - float(z["t"])) * 1.5), 0.0, 1.0)
 		var col: Color = Color("#7ac040") if str(z["kind"]) == "mist" else Color("#8ad0ff")
 		if vfx.has(str(z.get("vfx", ""))) and str(z["shape"]) == "circle":
-			vfx.draw(self, str(z["vfx"]), vfx.frame_loop(str(z["vfx"]), time), z["pos"], float(z["r"]) * 2.2, 0.0, Color(1, 1, 1, a))
+			var zf := vfx.frame_loop(str(z["vfx"]), time)
+			if str(z["kind"]) == "scar":
+				zf = int(absf((z["pos"] as Vector2).x)) % int(vfx.effects[str(z["vfx"])]["frames"])
+			vfx.draw(self, str(z["vfx"]), zf, z["pos"], float(z["r"]) * 2.2, 0.0, Color(1, 1, 1, a))
 		elif str(z["shape"]) == "circle":
 			draw_circle(z["pos"], float(z["r"]), Color(col, 0.22 * a))
 			draw_arc(z["pos"], float(z["r"]), 0.0, TAU, 36, Color(col, 0.7 * a), 3.0)
+		elif str(z["shape"]) == "line" and vfx.has(str(z.get("vfx", ""))):
+			var zp: Vector2 = z["pos"]
+			var ze: Vector2 = z["end"]
+			var zl := zp.distance_to(ze)
+			vfx.draw(self, str(z["vfx"]), vfx.frame_loop(str(z["vfx"]), time), (zp + ze) * 0.5, zl, (ze - zp).angle(), Color(1, 1, 1, a * 0.9))
 		else:
 			draw_line(z["pos"], z["end"], Color(col, 0.28 * a), float(z["r"]))
 			draw_line(z["pos"], z["end"], Color(col, 0.6 * a), 3.0)

@@ -642,7 +642,7 @@ func _map_collision_test() -> void:
 	# 素材齐全
 	for id in ["huashan", "kunlun", "kongtong", "shaolin", "emei", "s2_mini_1", "s2_mini_2", "s2_mini_3", "s2_boss"]:
 		_check(w.enemy_art.has(id), "怪物素材 %s 存在" % id)
-	for id in ["boss_fan_blade", "boss_poison_mist", "boss_ice_band", "boss_cross_blade", "boss_dragon_claw", "boss_golden_bell_ring", "boss_palm_seal", "boss_buddha_light", "boss_yitian_cross", "boss_sword_rain", "boss_shield", "boss_aura_phase2"]:
+	for id in ["boss_fan_blade", "boss_poison_mist", "boss_ice_band", "boss_cross_blade", "boss_dragon_claw", "boss_golden_bell_ring", "boss_palm_seal", "boss_buddha_light", "boss_yitian_cross", "boss_sword_rain", "boss_shield", "boss_aura_phase2", "boss_shield_break", "boss_phase2_burst", "fx_minion_stomp", "fx_minion_thrust", "fx_minion_frost", "fx_poison_hit", "proj_emei_sword", "decal_scorch", "decal_ice_zone"]:
 		_check(w.vfx.has(id), "特效 %s 已登记" % id)
 	_check(bool(Data.maps["guangming"]["enabled"]), "光明顶已开放")
 	_free_world(w)
@@ -743,7 +743,7 @@ func _stage2_boss_test() -> void:
 		if kt.cast_id == "minion_stomp":
 			stomp = true
 		for pr in wm.projs:
-			if pr.hostile and pr.kind == "arrow":
+			if pr.hostile and (pr.kind == "emei" or pr.kind == "arrow"):
 				arrow = true
 	_check(thrust and stomp and arrow, "华山突刺 / 崆峒震击 / 峨眉剑气（%s %s %s）" % [str(thrust), str(stomp), str(arrow)])
 	var bd := wm._spawn_enemy("bandit", wm.player_pos + Vector2(0, -420))

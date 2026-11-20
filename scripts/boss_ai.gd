@@ -144,7 +144,7 @@ static func enter_phase2(w: GameWorld, e: Enemy) -> void:
 	e.invuln_t = 0.0
 	_knock(w, e.pos, float(d.get("knock", 600.0)))
 	w.add_fx("text", e.pos + Vector2(0, -e.radius - 70), 3.0, {"text": str(d.get("text", "")), "size": 44, "color": Color("#bfe8ff")})
-	w.add_fx("ring", e.pos, 0.8, {"r0": 20.0, "r1": 420.0, "color": Color("#bfe8ff"), "vfx": "burst_break"})
+	w.add_fx("ring", e.pos, 0.8, {"r0": 20.0, "r1": 420.0, "color": Color("#bfe8ff"), "vfx": "boss_phase2_burst" if w.vfx.has("boss_phase2_burst") else "burst_break", "size": 560.0})
 	w.shake = maxf(w.shake, 14.0)
 	Sfx.play("boss_warn")
 
@@ -305,7 +305,7 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 				if _near_segment(w.player_pos, e.pos, tip2, float(d["width"]) * 0.5 + GameWorld.PLAYER_RADIUS):
 					_hurt(w, e, float(d["dmg"]))
 				var iz: Dictionary = d["zone"]
-				w.add_hzone({"kind": "ice", "shape": "line", "pos": e.pos, "end": tip2, "r": float(d["width"]), "life": float(iz["life"]), "dps": float(iz["dps"]) * _mult(e), "slow": float(iz["slow"])})
+				w.add_hzone({"kind": "ice", "shape": "line", "pos": e.pos, "end": tip2, "r": float(d["width"]), "life": float(iz["life"]), "dps": float(iz["dps"]) * _mult(e), "slow": float(iz["slow"]), "vfx": "decal_ice_zone"})
 				Sfx.play("boss_cleave")
 		"palm_seal", "sword_rain":
 			var i4 := int(u / float(d["gap"]))
@@ -314,6 +314,8 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 				e.cast_stage += 1
 				var sr := float(d["r"])
 				w.add_fx("ring", sp, 0.4, {"r0": 10.0, "r1": sr, "color": Color("#ffd070") if id == "palm_seal" else Color("#bfe8ff"), "vfx": str(d.get("vfx", "")), "size": sr * 2.4})
+				if id == "sword_rain":
+					w.add_hzone({"kind": "scar", "shape": "circle", "pos": sp, "r": sr, "life": 4.0, "dps": 0.0, "slow": 0.0, "vfx": "decal_scorch"})
 				if _in_circle(w, sp, sr):
 					_hurt(w, e, float(d["dmg"]))
 				w.shake = maxf(w.shake, 4.0)
@@ -352,7 +354,7 @@ static func minion(w: GameWorld, e: Enemy, dt: float, dir: Vector2, d: float) ->
 		if e.cast_id == "minion_stomp":
 			if e.cast_stage == 0:
 				e.cast_stage = 1
-				w.add_fx("ring", e.pos, 0.35, {"r0": 8.0, "r1": float(sd["r"]), "color": Color("#ffb070")})
+				w.add_fx("ring", e.pos, 0.35, {"r0": 8.0, "r1": float(sd["r"]), "color": Color("#ffb070"), "vfx": "fx_minion_stomp", "size": float(sd["r"]) * 2.4})
 				if _in_circle(w, e.pos, float(sd["r"])):
 					w._hurt(float(sd["dmg"]) * maxf(1.0, e.damage / 12.0))
 					_knock(w, e.pos, float(sd["knock"]))
@@ -362,10 +364,13 @@ static func minion(w: GameWorld, e: Enemy, dt: float, dir: Vector2, d: float) ->
 		elif e.cast_id == "arrow":
 			if e.cast_stage == 0:
 				e.cast_stage = 1
-				_shot(w, e.pos, e.cast_dir.angle(), float(sd["speed"]), float(sd["dmg"]) * maxf(1.0, e.damage / 6.0), 7.0, "arrow", 2.5)
+				_shot(w, e.pos, e.cast_dir.angle(), float(sd["speed"]), float(sd["dmg"]) * maxf(1.0, e.damage / 6.0), 7.0, "emei" if e.art_key == "emei" else "arrow", 2.5)
 			if u > 0.25:
 				_end(e, 1.8, 2.8)
 		else:
+			if e.cast_stage == 0 and e.cast_id == "thrust":
+				e.cast_stage = 1
+				w.add_fx("ring", e.pos, 0.3, {"r0": 8.0, "r1": 60.0, "color": Color("#bfe8ff"), "vfx": "fx_minion_thrust", "size": 150.0, "angle": e.cast_dir.angle()})
 			if u < float(sd["dur"]):
 				vel = e.cast_dir * float(sd["speed"])
 			else:

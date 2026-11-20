@@ -575,9 +575,20 @@ func _build_stage_info(left: VBoxContainer) -> void:
 			var ic := _monster_icon(loadout_map, str(ids[i]), Vector2(150, 190))
 			ic.position = Vector2(x + 150.0 * i, 70.0 + (0.0 if i == 1 else 14.0))
 			banner.add_child(ic)
-	var title := _label(str(m["name"]), 46)
-	title.position = Vector2(18, 10)
-	banner.add_child(title)
+	var logo := _load_tex("res://assets/maps/%s/title_logo.png" % loadout_map)
+	if logo != null:
+		var lg := TextureRect.new()
+		lg.texture = logo
+		lg.custom_minimum_size = Vector2(250, 62)
+		lg.size = Vector2(250, 62)
+		lg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		lg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
+		lg.position = Vector2(12, 4)
+		banner.add_child(lg)
+	else:
+		var title := _label(str(m["name"]), 46)
+		title.position = Vector2(18, 10)
+		banner.add_child(title)
 	var stars := _label("★".repeat(int(m["stars"])) + "☆".repeat(maxi(0, 5 - int(m["stars"]))), 22, Color("#c9a227"))
 	stars.position = Vector2(20, 68)
 	banner.add_child(stars)
@@ -1631,14 +1642,18 @@ func show_pause() -> void:
 func show_end(won: bool) -> void:
 	var w := world
 	overlay_title.text = "天下第一！" if won else "江湖路远……"
+	var fin_name := str(Data.enemies[str(w._timeline()["final"]["id"])]["name"]).split("·")[-1]
+	var fin_lim := int(w._timeline()["final"].get("limit", 90))
 	end_base = "%s\n\n存活 %s　等级 %d　击杀 %d\n本局得分 %s" % [
-		"击败胡千刀，名动江湖。" if won else ("胡千刀趁乱逃走了……要在他现身后 1 分钟内击败他。" if w.timeout_fail else "侠士请重新来过。"),
+		"击败%s，名动江湖。" % fin_name if won else ("%s趁乱逃走了……要在他现身后 %s 内击败他。" % [fin_name, _fmt_time(float(fin_lim))] if w.timeout_fail else "侠士请重新来过。"),
 		_fmt_time(w.time), w.level, w.kills, _commas(Score.compute(w.run_summary()))]
 	var dd: Dictionary = w.run_summary()["difficulty"]
 	if int(dd["count"]) != 100 or int(dd["hp"]) != 100 or int(dd["speed"]) != 100:
 		end_base += "\n难度：数量 %d%% · 血量 %d%% · 速度 %d%%" % [dd["count"], dd["hp"], dd["speed"]]
 	set_end_extra("")
-	var art := _load_tex("res://assets/ui/screens/%s_%s.jpg" % ["victory" if won else "defeat", Save.school() if Save.school() != "" else "fist"])
+	var art := _load_tex("res://assets/ui/screens/%s_%s.jpg" % ["victory" if won else "defeat", w.map_id])
+	if art == null:
+		art = _load_tex("res://assets/ui/screens/%s_%s.jpg" % ["victory" if won else "defeat", Save.school() if Save.school() != "" else "fist"])
 	end_bg.texture = art
 	end_bg.visible = art != null
 	overlay_dim.color = Color(0.03, 0.03, 0.05, 0.35 if art != null else 0.62)

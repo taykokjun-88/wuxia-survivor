@@ -474,6 +474,76 @@
       "fps": 10.0,
       "cell": 192,
       "loop": true
+    },
+    "boss_shield_break": {
+      "file": "boss_shield_break.png",
+      "frames": 4,
+      "fps": 12.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 220.0
+    },
+    "boss_phase2_burst": {
+      "file": "boss_phase2_burst.png",
+      "frames": 4,
+      "fps": 12.0,
+      "cell": 256,
+      "loop": false,
+      "world_size": 520.0
+    },
+    "fx_minion_stomp": {
+      "file": "fx_minion_stomp.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": false
+    },
+    "fx_minion_frost": {
+      "file": "fx_minion_frost.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 96,
+      "loop": false,
+      "world_size": 70.0
+    },
+    "fx_poison_hit": {
+      "file": "fx_poison_hit.png",
+      "frames": 4,
+      "fps": 10.0,
+      "cell": 96,
+      "loop": false,
+      "world_size": 60.0
+    },
+    "fx_minion_thrust": {
+      "file": "fx_minion_thrust.png",
+      "frames": 4,
+      "fps": 16.0,
+      "cell": 192,
+      "loop": false,
+      "forward": 0.3
+    },
+    "proj_emei_sword": {
+      "file": "proj_emei_sword.png",
+      "frames": 4,
+      "fps": 12.0,
+      "cell": 128,
+      "loop": true,
+      "world_size": 100.0
+    },
+    "decal_scorch": {
+      "file": "decal_scorch.png",
+      "frames": 3,
+      "fps": 1.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 150.0
+    },
+    "decal_ice_zone": {
+      "file": "decal_ice_zone.png",
+      "frames": 4,
+      "fps": 4.0,
+      "cell": 256,
+      "loop": true
     }
   }
 }
