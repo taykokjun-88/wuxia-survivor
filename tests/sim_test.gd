@@ -104,7 +104,14 @@ func _survive_report() -> void:
 			TestBot.resolve_choices(w, pick_rng, true)
 			if w.over:
 				break
-		print("  种子 %d：%s @ %ds Lv%d 击杀 %d" % [sd, "通关" if w.won else "阵亡", int(w.time), w.level, w.kills])
+		var mech := ""
+		if w.school_id == "blade":
+			mech = "　真·霸刀破岳 %d 次" % w.tb_count
+		elif w.school_id == "fist":
+			mech = "　寸劲震爆 %d 次" % w.cunjin_count
+		elif w.skills.has("dugu"):
+			mech = "　破兵微步 %d 次 / 斩落弹体 %d" % [(w.skills["dugu"] as SwordSkills.Dugu).wb_count, w.cut_count]
+		print("  种子 %d：%s @ %ds Lv%d 击杀 %d%s" % [sd, "通关" if w.won else "阵亡", int(w.time), w.level, w.kills, mech])
 		wins += 1 if w.won else 0
 		tsum += w.time
 		for k in 3:

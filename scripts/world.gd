@@ -71,6 +71,7 @@ var cunjin_count := 0              # 本局寸劲震爆次数
 var meta_level := 1                # 局外等级（由 main 在开局前设置；决定「另觅机缘」次数）
 var rerolls_left := 0              # 另觅机缘：本局剩余次数
 var rerolls_used := 0
+var tb_count := 0                  # 本局真·霸刀破岳触发次数
 var tb_t := 0.0                    # 真·霸刀破岳：剩余持续时间（>0 = 生效中）
 var tb_cd := 0.0                   # 真·霸刀破岳：冷却（状态结束后才开始倒计时）
 var baodao := false                # 本次出手是「霸刀破岳」
@@ -237,6 +238,7 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	cut_count = 0
 	tb_t = 0.0
 	tb_cd = 0.0
+	tb_count = 0
 	rerolls_left = rerolls_for_level(meta_level)
 	rerolls_used = 0
 	dash_end_t = -99.0
@@ -2448,7 +2450,7 @@ func run_summary() -> Dictionary:
 		"won": won, "seconds": int(time), "level": level, "kills": kills, "bosses": bosses_killed,
 		"school": school_id, "map": map_id, "difficulty": {"count": int(round(float(difficulty["count"]) * 100.0)), "hp": int(round(float(difficulty["hp"]) * 100.0)), "speed": int(round(float(difficulty["speed"]) * 100.0))}, "starter": starter_id, "qinggong": qinggong_id,
 		"enhance": "%s:%d" % [enhance_id, enhance_level] if enhance_id != "" else "",
-		"rerolls": rerolls_used, "cunjin": cunjin_count, "build": build, "version": str(ProjectSettings.get_setting("application/config/version", "0")),
+		"rerolls": rerolls_used, "cunjin": cunjin_count, "true_blade": tb_count, "build": build, "version": str(ProjectSettings.get_setting("application/config/version", "0")),
 	}
 
 
@@ -2633,6 +2635,7 @@ func _tick_true_blade(dt: float) -> void:
 		tb_cd = maxf(0.0, tb_cd - dt)
 	elif hp > 0.0 and not over and hp <= st("max_hp") * Data.T("true_blade_hp_pct"):
 		tb_t = Data.T("true_blade_dur")
+		tb_count += 1
 		invuln = maxf(invuln, Data.T("true_blade_invuln"))
 		add_fx("text", player_pos + Vector2(0, -60), 1.6, {"text": "真·霸刀破岳！", "size": 34, "color": Color("#ff6030")})
 		add_fx("ring", player_pos, 0.8, {"r0": 10.0, "r1": 240.0, "color": Color("#ff6030")})
