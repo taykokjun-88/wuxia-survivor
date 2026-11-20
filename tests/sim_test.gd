@@ -1813,6 +1813,74 @@ func _plan6_test() -> void:
 	wfs.fist_after_cast(wfs.skills["kuang_feng"])
 	_check(wfs.fist_qi == 0.0, "只有武者蓄劲")
 	_free_world(wfs)
+	# ---- 武者真气爆发：拳掌无敌 ----
+	var wu := _new_world(77, "chain_fist")
+	wu.god = false
+	_check(wu.burst_max() == 2, "武者初始 2 次真气爆发（%d）" % wu.burst_max())
+	wu.level = 10
+	_check(wu.burst_max() == 3, "10 级 → 3 次")
+	wu.level = 20
+	_check(wu.burst_max() == 4, "20 级 → 4 次")
+	wu.level = 9
+	_check(wu.burst_max() == 2, "9 级仍是 2 次")
+	var wk2 := _new_world(78, "kuang_feng")
+	_check(wk2.burst_max() == 1, "剑侠仍是 1 次")
+	_free_world(wk2)
+	wu.level = 1
+	wu.neili = wu.st("max_neili")
+	var tu := wu._spawn_enemy("bandit", wu.player_pos + Vector2(80, 0))
+	tu.hp = 1e9
+	tu.max_hp = 1e9
+	tu.speed = 0.0
+	tu.defense = 0.5
+	wu._rebuild_grid()
+	_check(wu.can_burst(), "内力足够可以爆发")
+	wu._burst()
+	_check(wu.fist_ult_t > 9.9 and wu.neili == 0.0 and wu.burst_left() == 1, "爆发：消耗全部内力、进入 10 秒拳掌无敌、次数 −1")
+	wu.hp = wu.st("max_hp")
+	wu.input_move = Vector2.ZERO
+	var hp_u := wu.hp
+	for i in 60 * 3:
+		wu.step(DT)
+		tu.hp = 1e9
+	_check(wu.neili == 0.0, "状态期间内力不恢复（%.2f）" % wu.neili)
+	wu.add_neili(50.0)
+	wu.neili = 0.0
+	wu.add_neili(50.0)
+	_check(wu.neili == 0.0, "任何手段都无法加内力")
+	_check(wu.invuln > 0.0 and wu.hp >= hp_u - 0.01, "状态期间无敌")
+	_check(not wu.can_burst(), "状态期间不能再次爆发")
+	var c_before := wu.cunjin_count
+	for i in 40:
+		tu.pos = wu.player_pos + Vector2(60, 0)       # 寸劲会把敌人击退，每帧放回原位
+		tu.knock = Vector2.ZERO
+		wu._rebuild_grid()
+		wu.skills["chain_fist"].cd = 0.0
+		wu.step(DT)
+		tu.hp = 1e9
+	_check(wu.cunjin_count > c_before, "无敌期间每一下出手都触发寸劲（%d → %d）" % [c_before, wu.cunjin_count])
+	# 真伤：额外 30%，无视防御（多次平均，排除暴击随机）
+	var sum_t := 0.0
+	var sum_n := 0.0
+	for i in 300:
+		tu.hp = 1e9
+		wu.fist_ult_t = 5.0
+		wu.hit_enemy(tu, 100.0, ["近战"], Vector2.ZERO, "chain_fist")
+		sum_t += 1e9 - tu.hp
+		tu.hp = 1e9
+		wu.fist_ult_t = 0.0
+		wu.hit_enemy(tu, 100.0, ["近战"], Vector2.ZERO, "chain_fist")
+		sum_n += 1e9 - tu.hp
+	var kdef := 1.0 - tu.defense * (1.0 - wu.st("armor_pierce"))
+	var ratio := sum_t / sum_n
+	_check(absf(ratio - (1.0 + 0.3 / kdef)) < 0.12, "真伤 = 伤害量 30%%，不被防御削减（倍率 %.2f，预期 %.2f）" % [ratio, 1.0 + 0.3 / kdef])
+	# 状态结束后恢复内力
+	wu.fist_ult_t = 0.02
+	wu.neili = 0.0
+	for i in 60 * 2:
+		wu.step(DT)
+	_check(wu.fist_ult_t == 0.0 and wu.neili > 1.0, "状态结束后才恢复内力（%.1f）" % wu.neili)
+	_free_world(wu)
 	# ---- 独孤九剑 9 / 18 / 27 ----
 	var wd := _new_world(76, "dugu")
 	wd.time = 120.0

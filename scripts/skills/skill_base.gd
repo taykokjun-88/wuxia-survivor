@@ -202,7 +202,7 @@ func _after_fire() -> void:
 	if def.has("anim"):
 		w.play_anim(str(def["anim"]), 0.3)
 	if float(mods["buff"]) > 0.0:
-		w.neili = minf(w.st("max_neili"), w.neili + float(mods["buff"]))
+		w.add_neili(float(mods["buff"]))
 	if float(mods["hits"]) > 0.0 and w.rng.randf() < float(mods["hits"]):
 		echo_t = ECHO_DELAY
 

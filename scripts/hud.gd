@@ -1989,7 +1989,7 @@ func _draw_hud() -> void:
 		canvas.draw_rect(Rect2(qx, qy, 380, 18), Color(0.1, 0.1, 0.12, 0.6))
 		canvas.draw_rect(Rect2(qx, qy, 380.0 * w.fist_qi / 100.0, 18), Color("#7ff5e0") if qfull else Color("#3fb8c8"))
 		canvas.draw_rect(Rect2(qx, qy, 380, 18), Color(0, 0, 0, 0.85), false, 2.0)
-		canvas.draw_string(Data.font_bold if Data.font_bold != null else font, Vector2(qx, qy + 14.0), "寸劲已蓄满！下一击震爆" if qfull else "劲力 %d / 100" % int(w.fist_qi), HORIZONTAL_ALIGNMENT_CENTER, 380, 14, Color("#063038") if qfull else Color.WHITE)
+		canvas.draw_string(Data.font_bold if Data.font_bold != null else font, Vector2(qx, qy + 14.0), "拳掌无敌！真伤 +30%%　%.1fs" % w.fist_ult_t if w.fist_ult_t > 0.0 else ("寸劲已蓄满！下一击震爆" if qfull else "劲力 %d / 100" % int(w.fist_qi)), HORIZONTAL_ALIGNMENT_CENTER, 380, 14, Color("#063038") if (qfull and w.fist_ult_t <= 0.0) else Color.WHITE)
 	# 三境分界线：虚 | 平 | 盈
 	for t in [Data.T("xu_below"), w.ying_at()]:
 		canvas.draw_line(Vector2(16 + 236 * float(t), 52), Vector2(16 + 236 * float(t), 72), Color(1, 1, 1, 0.9), 2.0)
@@ -2120,8 +2120,10 @@ func _draw_hud() -> void:
 		var c := Vector2(112 + i * 20, canvas.size.y - 22)
 		canvas.draw_circle(c, 7.0, Color("#3aa6a0") if i < w.dash_charges else Color(0.3, 0.3, 0.3, 0.4))
 	var burst_txt := "真气爆发 [E]　剩余 %d / %d 次" % [w.burst_left(), w.burst_max()]
-	if w.burst_left() > 0:
-		burst_txt += "　（消耗全部内力，当前威力 %d%%）" % int(w.burst_power() * 100.0) if w.can_burst() else "　（内力太少）"
+	if w.school_id == "fist" and w.fist_ult_t > 0.0:
+		burst_txt = "拳掌无敌　%.1f 秒（真伤 +30%%，内力不恢复）　剩余 %d / %d 次" % [w.fist_ult_t, w.burst_left(), w.burst_max()]
+	elif w.burst_left() > 0:
+		burst_txt += ("　（消耗全部内力，进入 10 秒拳掌无敌）" if w.school_id == "fist" else "　（消耗全部内力，当前威力 %d%%）" % int(w.burst_power() * 100.0)) if w.can_burst() else "　（内力太少）"
 	canvas.draw_string(font, Vector2(112 + charges * 20 + 12, canvas.size.y - 16), burst_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 16,
 		Color("#a0521d") if w.can_burst() else Color("#444444"))
 

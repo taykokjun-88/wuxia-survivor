@@ -258,7 +258,7 @@ class Dugu extends SkillBase:
 			wb_hits.clear()
 			wb_cd = Data.T("dugu_wb_gap")
 			wb_count += 1
-			w.neili = minf(w.st("max_neili"), w.neili + Data.T("dugu_wb_neili"))
+			w.add_neili(Data.T("dugu_wb_neili"))
 			cd = maxf(0.0, cd * (1.0 - Data.T("dugu_wb_cut")))
 			w.add_fx("text", w.player_pos + Vector2(0, -44), 0.6, {"text": "破兵微步", "size": 16, "color": Color("#bfe8ff")})
 

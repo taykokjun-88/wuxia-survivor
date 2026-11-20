@@ -123,7 +123,7 @@ class KuangFeng extends Base:
 			w.fx_slash(w.player_pos, ang, reach, p("arc"), false, fxid("slash"))
 			hits += cone(w.player_pos, ang, p("arc") * 0.5, reach, p("damage"), p("knock"))
 		if enhanced() and hits > 0:
-			w.neili = minf(w.st("max_neili"), w.neili + minf(6.0, float(hits)))
+			w.add_neili(minf(6.0, float(hits)))
 		if empowered:                                      # 刀卷残云：把周围的小怪向刀锋拉拢
 			for e in w._query(w.player_pos, reach * 1.8):
 				if e.alive and not e.is_boss and not e.is_prop:
