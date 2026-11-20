@@ -35,6 +35,7 @@ func _ready() -> void:
 		_dugu_test()
 		_sword_art_test()
 		_sword_talent_test()
+		_blade_test()
 		_smith_test()
 		_prop_test()
 		_boss_skill_test()
@@ -53,6 +54,8 @@ func _ready() -> void:
 		_run_full()
 	if only == "levels":
 		_levels_report()
+	if only == "blade":
+		_blade_test()
 	if only == "survive":
 		_survive_report()
 	if only == "boss":
@@ -74,7 +77,10 @@ func _survive_report() -> void:
 		var w := GameWorld.new()
 		w.rng_seed = sd
 		add_child(w)
-		w.start_run(["chain_fist", "point_finger", "cloud_palm"][sd % 3], ["tashue", "feiyan", "yufeng", "lingshe"][sd % 4])
+		var starters: Array = ["chain_fist", "point_finger", "cloud_palm"]
+		if OS.get_environment("SCHOOL") != "":
+			starters = Data.schools[OS.get_environment("SCHOOL")]["starters"]
+		w.start_run(starters[sd % starters.size()], ["tashue", "feiyan", "yufeng", "lingshe"][sd % 4])
 		var pick_rng := RandomNumberGenerator.new()
 		pick_rng.seed = sd
 		for i in int(900.0 / DT):
@@ -83,6 +89,7 @@ func _survive_report() -> void:
 			TestBot.resolve_choices(w, pick_rng, true)
 			if w.over:
 				break
+		print("  种子 %d：%s @ %ds Lv%d 击杀 %d" % [sd, "通关" if w.won else "阵亡", int(w.time), w.level, w.kills])
 		wins += 1 if w.won else 0
 		tsum += w.time
 		for k in 3:
@@ -210,6 +217,225 @@ func _run_full() -> void:
 # ---------------------------------------------------------------------
 # 剑侠
 # ---------------------------------------------------------------------
+
+func _blade_world(seed_v: int, starter: String = "wuhu_blade") -> GameWorld:
+	var w := GameWorld.new()
+	w.rng_seed = seed_v
+	add_child(w)
+	w.start_run(starter, "tashue")
+	w.god = false
+	w.props_enabled = false
+	w.hp = 1e6
+	return w
+
+
+func _blade_test() -> void:
+	print("\n=== 刀客：流派 / 刀魂 / 撕裂 / 霸刀破岳 / 九个刀法 / 武器 / 天赋 ===")
+	_check(bool(Data.schools["blade"]["enabled"]), "刀客流派已开放")
+	_check((Data.schools["blade"]["starters"] as Array).size() == 3, "刀客有 3 个起手招式")
+	var nb := 0
+	for id in Data.skills:
+		if str(Data.skills[id]["school"]) == "blade":
+			nb += 1
+	_check(nb == 9, "刀客共 9 个招式（%d）" % nb)
+	# 刀魂：命中涨、受击涨（有上限）、衰减、满魂破岳
+	var w := _blade_world(61)
+	_check(w.school_id == "blade" and w.skills.has("wuhu_blade"), "起手 → 刀客流派")
+	w.hp = w.st("max_hp")
+	_populate(w, 40)
+	for i in 240:
+		TestBot.drive(w, 60.0)
+		w.step(DT)
+	_check(w.soul > 0.0 or w.skill_dmg.get("wuhu_blade", 0.0) > 0.0, "命中后涨刀魂 / 造成伤害（刀魂 %.1f）" % w.soul)
+	var before := w.soul
+	w.hp = 80.0
+	w.soul = 0.0
+	w._hurt(10.0)
+	_check(w.soul >= 1.0 and w.soul <= Data.T("blade_soul_hp_cap") + 0.01, "受击涨刀魂且不超过上限（%.1f）" % w.soul)
+	w._hurt(9999.0)
+	_check(w.soul <= Data.T("blade_soul_hp_cap") * 2.0 + 0.01, "再受重击，涨幅也有上限")
+	w.skills.clear()
+	w.god = true
+	w.over = false
+	w.hp = w.st("max_hp")
+	for en in w.enemies:
+		en.alive = false
+	w.enemies.clear()
+	w.soul = 50.0
+	w.soul_idle = 0.0
+	for i in int((Data.T("blade_soul_delay") + 1.0) / DT):
+		w.step(DT)
+	_check(w.soul < 50.0, "脱战后刀魂衰减")
+	_check(absf(w.blade_dmg() - (1.0 + Data.T("blade_soul_dmg") * floorf(w.soul / 10.0))) < 1e-6, "刀魂加成公式")
+	_free_world(w)
+	# 撕裂
+	var w2 := _blade_world(62)
+	w2.skills.clear()
+	var e: Enemy = w2._spawn_enemy("bandit", w2.player_pos + Vector2(40, 0))
+	e.hp = 1e6
+	e.max_hp = 1e6
+	w2.apply_bleed(e, 2, 100.0)
+	_check(e.bleed_stacks == 2 and e.bleed_dps > 0.0, "撕裂叠层")
+	w2.apply_bleed(e, 9, 100.0)
+	_check(e.bleed_stacks == int(Data.T("bleed_max")), "撕裂最多 %d 层" % int(Data.T("bleed_max")))
+	var hp0 := e.hp
+	for i in int(1.2 / DT):
+		w2.step(DT)
+	_check(e.hp < hp0, "撕裂持续流血")
+	# 撕裂降低防御：同样的一击，叠层后伤害更高
+	var d1: Enemy = w2._spawn_enemy("bandit", w2.player_pos + Vector2(60, 0))
+	d1.hp = 1e9
+	d1.max_hp = 1e9
+	d1.defense = 0.4
+	var h0 := d1.hp
+	w2.hit_enemy(d1, 100.0, [], Vector2.ZERO, "wuhu_blade")
+	var plain := h0 - d1.hp
+	d1.bleed_stacks = 5
+	d1.bleed_t = 3.0
+	h0 = d1.hp
+	w2.hit_enemy(d1, 100.0, [], Vector2.ZERO, "wuhu_blade")
+	var bled := h0 - d1.hp
+	_check(bled > plain * 1.2, "撕裂破甲：同一击 %.1f → %.1f" % [plain, bled])
+	# 断脉爆血
+	var bb: Enemy = w2._spawn_enemy("bandit", w2.player_pos + Vector2(80, 0))
+	bb.hp = 1e9
+	bb.max_hp = 1e9
+	bb.bleed_stacks = 5
+	bb.bleed_dps = 40.0
+	bb.bleed_t = 3.0
+	w2.bleed_burst(bb)
+	_check(bb.bleed_stacks == 0, "断脉爆血清空撕裂")
+	# 霸刀破岳：刀魂满后下一次出手 ×2.5、必暴击、叠 3 层撕裂，清空刀魂并回血
+	w2.skills.clear()
+	w2.add_skill("wuhu_blade")
+	for en in w2.enemies:
+		en.alive = false
+	w2.enemies.clear()
+	var tg: Enemy = w2._spawn_enemy("bandit", w2.player_pos + Vector2(70, 0))
+	tg.hp = 1e9
+	tg.max_hp = 1e9
+	w2.soul = 100.0
+	w2.hp = w2.st("max_hp") * 0.5
+	var hp_a := w2.hp
+	for i in 90:
+		w2.step(DT)
+		if w2.soul < 100.0:
+			break
+	_check(w2.soul < 30.0, "霸刀破岳后刀魂清空（%.1f）" % w2.soul)
+	_check(tg.bleed_stacks >= int(Data.T("blade_break_stacks")), "霸刀破岳叠 %d 层撕裂（实际 %d）" % [int(Data.T("blade_break_stacks")), tg.bleed_stacks])
+	_check(w2.hp > hp_a, "霸刀破岳回复已损气血")
+	_free_world(w2)
+	# 九个刀法：开强化 / 催动，40 秒冒烟 + 伤害
+	print("  刀法            基础      强化3")
+	for id in Data.skills:
+		if str(Data.skills[id]["school"]) != "blade":
+			continue
+		var row: Array[String] = []
+		for mode in ["lv1", "enh3"]:
+			var wk := _blade_world(63)
+			wk.god = true
+			wk.skills.clear()
+			wk.add_skill(id)
+			if mode == "enh3":
+				wk.enhance_id = id
+				wk.enhance_level = 3
+			_populate(wk, 90)
+			var engage := 75.0 if (Data.skills[id]["tags"] as Array).has("近战") else 240.0
+			for i in int(40.0 / DT):
+				TestBot.drive(wk, engage)
+				wk.step(DT)
+			var dmg := float(wk.skill_dmg.get(id, 0.0))
+			_check(dmg > 0.0, "%s %s：40 秒内没有造成伤害" % [id, mode])
+			row.append("%7.0f (%d)" % [dmg / 40.0, wk.kills])
+			_free_world(wk)
+		print("  %-8s %s" % [Data.skills[id]["name"], "  ".join(row)])
+	# 反两仪：抹弹幕、减伤反弹；屠龙刀法：免费释放；血刀经：不会把自己耗死
+	var w3 := _blade_world(64)
+	w3.skills.clear()
+	w3.add_skill("fanliangyi")
+	w3.enhance_id = "fanliangyi"
+	w3.enhance_level = 2
+	var fl: SkillBase = w3.skills["fanliangyi"]
+	var foe: Enemy = w3._spawn_enemy("bandit", w3.player_pos + Vector2(50, 0))
+	foe.hp = 1e9
+	foe.max_hp = 1e9
+	var shot := Projectile.new()
+	shot.hostile = true
+	shot.pos = w3.player_pos + Vector2(60, 0)
+	shot.life = 3.0
+	w3.projs.append(shot)
+	for i in 30:
+		w3.step(DT)
+	_check(shot.life <= 0.0 or not w3.projs.has(shot), "反两仪抹去敌方弹幕")
+	var reduced: float = fl.on_hurt(100.0)
+	_check(reduced < 100.0, "反两仪刀轮期间减伤（%.0f）" % reduced)
+	_free_world(w3)
+	var w4 := _blade_world(65)
+	w4.skills.clear()
+	w4.add_skill("tulong_art")
+	w4.enhance_id = "tulong_art"
+	w4.enhance_level = 1
+	var zc := w4.zones.size()
+	w4.neili = w4.st("max_neili")
+	w4._burst()
+	_check(w4.zones.size() > zc, "真气爆发触发屠龙刀法「号令天下」")
+	_free_world(w4)
+	var w5 := _blade_world(66)
+	w5.skills.clear()
+	w5.add_skill("xuedao")
+	w5.god = true
+	w5.hp = 2.0
+	_populate(w5, 30)
+	var min_hp := 1e9
+	for i in 600:
+		TestBot.drive(w5, 75.0)
+		w5.step(DT)
+		min_hp = minf(min_hp, w5.hp)
+	_check(min_hp >= 1.0, "血刀经耗血不会自杀（最低气血 %.1f）" % min_hp)
+	_free_world(w5)
+	# 武器：按稀有度选名；传说只出屠龙宝刀
+	var legend := Gear.make("weapon.3.12345", "blade")
+	_check(str(legend["name"]) == "屠龙宝刀", "刀客传说武器 = 屠龙宝刀（%s）" % str(legend["name"]))
+	var okn := true
+	for sd in 40:
+		var n0 := str(Gear.make("weapon.0.%d" % (1000 + sd), "blade")["name"])
+		if not ["百炼柳叶刀", "鬼头大环刀", "黑煞雁翎刀"].has(n0):
+			okn = false
+	_check(okn, "刀客普通武器只出前 3 把刀")
+	_check(Gear.items_for("weapon", "blade").size() == 10, "刀客武器清单 10 把")
+	_check(Gear.items_for("weapon", "sword").size() == 10 and str(Gear.make("weapon.3.12345", "sword")["name"]) != "", "剑侠武器不受影响")
+	# 屠龙宝刀彩蛋：灭绝师泰二阶段时触发 —— 无视 50% 防御、护盾双倍伤害、破盾后易伤
+	var w6 := _s2_world(67)
+	w6.tulong_equipped = true
+	w6._spawn_boss("s2_boss", true)
+	var fb: Enemy = w6.bosses[0]
+	fb.max_hp = 1e9
+	fb.hp = 4e8
+	for i in 8:
+		w6.step(DT)
+	_check(w6.tulong_on and fb.phase2, "装备屠龙宝刀，灭绝师泰二阶段触发彩蛋")
+	fb.guard = 0.0
+	fb.guard_regen = 99.0
+	fb.shield = 100.0
+	fb.shield_max = 100.0
+	w6.hit_enemy(fb, 1000.0, [], Vector2.ZERO, "wuhu_blade")
+	_check(fb.shield <= 0.0 and fb.vuln_t > 0.0 and fb.vuln >= 0.3, "屠龙宝刀破盾后易伤")
+	_free_world(w6)
+	var w7 := _s2_world(68)
+	w7._spawn_boss("s2_boss", true)
+	var fb2: Enemy = w7.bosses[0]
+	fb2.max_hp = 1e9
+	fb2.hp = 4e8
+	for i in 8:
+		w7.step(DT)
+	_check(not w7.tulong_on, "没有装备屠龙宝刀不触发彩蛋")
+	_free_world(w7)
+	# 天赋
+	var tn: Dictionary = Talents.nodes("blade")
+	_check(str(tn["gang_ying"]["name"]) == "霸刀阔刃" and str(tn["ling_peak"]["name"]) == "刀皇霸体", "刀客天赋改名")
+	_check(float(Talents.stats_for({"gang_ying": 2, "rou_finger": 1}, "blade").get("bleed_pow", 0.0)) > 0.1, "泣血撕裂：撕裂强化")
+	_check(int(Talents.nodes()["gang_ying"]["max"]) == int(tn["gang_ying"]["max"]), "天赋节点上限不变（服务器校验不受影响）")
+
 
 func _sword_test() -> void:
 	print("\n=== 剑侠：流派 / 招式池 / 剑侠专属机制 ===")

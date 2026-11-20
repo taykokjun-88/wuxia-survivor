@@ -1891,6 +1891,12 @@ func _draw_hud() -> void:
 	var realm := w.realm()
 	var realm_col: Color = [Color("#6f86a8"), Color("#3aa6a0"), Color("#3fe0cf")][realm]
 	_bar(Vector2(16, 52), Vector2(236, 20), w.neili / max_n, realm_col, "内力 %d/%d" % [int(w.neili), int(max_n)])
+	if w.school_id == "blade":                       # 刀魂条：满了会提示「霸刀破岳」
+		var sfull := w.soul >= 100.0
+		canvas.draw_rect(Rect2(16, 75, 236, 8), Color(0.1, 0.1, 0.12, 0.55))
+		canvas.draw_rect(Rect2(16, 75, 236.0 * w.soul / 100.0, 8), Color("#ffd030") if sfull else Color("#e8923a"))
+		canvas.draw_rect(Rect2(16, 75, 236, 8), Color(0, 0, 0, 0.8), false, 1.5)
+		canvas.draw_string(font, Vector2(258, 83), "霸刀破岳！" if sfull else "刀魂 %d" % int(w.soul), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#a8400a") if sfull else Color("#6a4a1a"))
 	# 三境分界线：虚 | 平 | 盈
 	for t in [Data.T("xu_below"), w.ying_at()]:
 		canvas.draw_line(Vector2(16 + 236 * float(t), 52), Vector2(16 + 236 * float(t), 72), Color(1, 1, 1, 0.9), 2.0)

@@ -39,3 +39,6 @@ var pierce_reset := 1    # 弹射后恢复的穿透数
 var poison := 0.0        # 命中叠加的毒层（每秒伤害）
 var vuln := 0.0          # 命中前先令敌人露出破绽（万法皆破）
 var empowered := false   # 催动版出手的弹体（对 Boss 罡气 ×3）
+var baodao := false       # 霸刀破岳出手的弹体（命中时按破岳结算）
+var bleed := 0.0         # 命中叠加的撕裂层数
+var slowv := 0.0         # 命中减速比例

@@ -23,6 +23,7 @@ var mods: Dictionary = {
 var echoing := false
 var empowered := false           # 本次出手是否催动（盈境 + 内力够）
 var echo_t := -1.0
+var free_cast := false           # 免费释放（号令天下）：不涨刀魂、不进冷却
 
 
 func setup(world: GameWorld, skill_id: String, skill_def: Dictionary) -> void:
@@ -166,6 +167,7 @@ func tick(dt: float) -> void:
 	cd -= dt
 	if cd <= 0.0:
 		empowered = w.can_empower(empower_cost())
+		var bd := w.baodao_try(self)         # 刀魂满：这一次出手是「霸刀破岳」
 		if fire():
 			Sfx.play_skill(id)
 			if empowered:
@@ -173,9 +175,12 @@ func tick(dt: float) -> void:
 			cd = p("cooldown") * w.cd_mult()
 			cd_total = cd
 			_after_fire()
+			if bd:
+				w.baodao_done()
 		else:
 			cd = 0.12
 			cd_total = 0.0        # 只是在等目标出现，不算冷却
+		w.baodao = false
 		empowered = false
 
 
@@ -191,6 +196,28 @@ func _after_fire() -> void:
 ## 返回 true 表示成功出手（进入冷却）；false 表示条件不满足（稍后重试）
 func fire() -> bool:
 	return false
+
+
+## 命中前的额外伤害倍率 / 必暴击 / 对护盾的伤害倍率（刀客的招式按目标状态改写）
+func hit_mult(_e: Enemy) -> float:
+	return 1.0
+
+
+func hit_crit(_e: Enemy) -> bool:
+	return false
+
+
+func shield_mult() -> float:
+	return 1.0
+
+
+## 真气爆发 / 霸刀破岳时调用（屠龙刀法「号令天下」使用）
+func on_burst() -> void:
+	pass
+
+
+func on_baodao() -> void:
+	pass
 
 
 ## 玩家受击时调用，返回减免后的伤害（乾坤大挪移等防御类技能使用）

@@ -146,6 +146,9 @@ static func enter_phase2(w: GameWorld, e: Enemy) -> void:
 	w.add_fx("text", e.pos + Vector2(0, -e.radius - 70), 3.0, {"text": str(d.get("text", "")), "size": 44, "color": Color("#bfe8ff")})
 	w.add_fx("ring", e.pos, 0.8, {"r0": 20.0, "r1": 420.0, "color": Color("#bfe8ff"), "vfx": "boss_phase2_burst" if w.vfx.has("boss_phase2_burst") else "burst_break", "size": 560.0})
 	w.shake = maxf(w.shake, 14.0)
+	if w.tulong_equipped and e.is_final:                    # 彩蛋：屠龙宝刀对倚天剑
+		w.tulong_on = true
+		w.add_fx("text", w.player_pos + Vector2(0, -110), 3.0, {"text": "屠龙宝刀，天下至尊", "size": 40, "color": Color("#ffb030")})
 	Sfx.play("boss_warn")
 
 

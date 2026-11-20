@@ -120,7 +120,25 @@
     "prop_fire_damage": 45,
     "wave_first": 120,
     "wave_interval": 75,
-    "wave_size": 16
+    "wave_size": 16,
+    "blade_soul_hit": 1.0,
+    "blade_soul_crit": 2.0,
+    "blade_soul_hp": 1.5,
+    "blade_soul_hp_cap": 30.0,
+    "blade_soul_delay": 4.0,
+    "blade_soul_decay": 8.0,
+    "blade_soul_dmg": 0.025,
+    "blade_soul_range": 0.02,
+    "blade_break_mult": 2.5,
+    "blade_break_shield": 3.0,
+    "blade_break_stacks": 3,
+    "blade_break_heal": 0.06,
+    "bleed_dur": 4.0,
+    "bleed_max": 5,
+    "bleed_pct": 0.1,
+    "bleed_armor": 0.06,
+    "bleed_burst": 1.5,
+    "bleed_burst_r": 90.0
   },
   "skills": {
     "yue_palm": {
@@ -787,6 +805,330 @@
       "empower": "无",
       "fx": {
         "proj": "sw_dugu"
+      }
+    },
+    "wuhu_blade": {
+      "name": "五虎断门刀",
+      "school": "blade",
+      "tags": [
+        "近战",
+        "范围"
+      ],
+      "desc": "宽扇重劈，伤害高、击退强；命中让敌人开始流血（撕裂）",
+      "damage": 26,
+      "cooldown": 1.0,
+      "reach": 115,
+      "arc": 2.36,
+      "knock": 160,
+      "heavy": true,
+      "crit_base": 0.04,
+      "enhance": {
+        "name": "猛虎下山",
+        "desc": "每第 3 刀变成 360° 横扫千军；对正在流血的敌人必定暴击",
+        "up": "Lv2/3：横扫更重"
+      },
+      "map": {
+        "range": [
+          "reach"
+        ],
+        "duration": [],
+        "targets": ""
+      },
+      "anim": "slash",
+      "empower_cost": 6,
+      "empower": "刀风外放：扇形半径 +40%，并甩出一道月牙刀气",
+      "fx": {
+        "slash": "fx_blade_wuhu"
+      }
+    },
+    "kuangfeng_blade": {
+      "name": "狂风刀法",
+      "school": "blade",
+      "tags": [
+        "近战",
+        "连击"
+      ],
+      "desc": "近身快刀，一刀向前一刀向后，连出两道疾风刀弧；跑得越快，出刀越快",
+      "damage": 12,
+      "cooldown": 0.65,
+      "reach": 85,
+      "arc": 1.7,
+      "knock": 70,
+      "crit_base": 0.05,
+      "enhance": {
+        "name": "风卷残云",
+        "desc": "出刀数变成 4 连斩，每次命中回复 1 点内力",
+        "up": "Lv2/3：范围更大"
+      },
+      "map": {
+        "range": [
+          "reach"
+        ],
+        "duration": [],
+        "targets": ""
+      },
+      "anim": "slash",
+      "empower_cost": 6,
+      "empower": "刀卷残云：每次出刀把周围小怪向刀锋拉拢",
+      "fx": {
+        "ring": "fx_blade_kuangfeng"
+      },
+      "echo_base": 0.15
+    },
+    "hujia_blade": {
+      "name": "胡家刀法",
+      "school": "blade",
+      "tags": [
+        "贯穿",
+        "远程"
+      ],
+      "desc": "劈出一道弯月刀气，穿透多个敌人；对落单或近处的目标伤害更高，并露出破绽",
+      "damage": 20,
+      "cooldown": 1.1,
+      "pierce": 4,
+      "count": 1,
+      "radius": 16,
+      "speed": 520,
+      "life": 0.5,
+      "knock": 60,
+      "proj_kind": "bolt",
+      "enhance": {
+        "name": "八方藏刀式",
+        "desc": "刀气两侧再分出 2 / 3 / 4 道次级刀气",
+        "up": "Lv2/3：分出更多"
+      },
+      "map": {
+        "range": [
+          "radius"
+        ],
+        "duration": [
+          "life"
+        ],
+        "targets": "pierce"
+      },
+      "anim": "slash",
+      "empower_cost": 8,
+      "empower": "穿透 +3，刀气更宽",
+      "fx": {
+        "proj": "fx_blade_hujia"
+      }
+    },
+    "ranmu_blade": {
+      "name": "燃木刀法",
+      "school": "blade",
+      "tags": [
+        "范围",
+        "控制"
+      ],
+      "desc": "劈出炽热的火焰刀浪，地面留下 3 秒火海，持续灼烧并减速",
+      "damage": 16,
+      "cooldown": 1.8,
+      "reach": 130,
+      "arc": 1.9,
+      "knock": 60,
+      "zone_r": 90,
+      "zone_life": 3.0,
+      "enhance": {
+        "name": "乾柴烈火",
+        "desc": "被火海灼烧的敌人死亡时发生火焰爆炸",
+        "up": "Lv2/3：爆炸更大更痛"
+      },
+      "map": {
+        "range": [
+          "reach",
+          "zone_r"
+        ],
+        "duration": [
+          "zone_life"
+        ],
+        "targets": ""
+      },
+      "anim": "slash",
+      "empower_cost": 8,
+      "empower": "业火燎原：火海面积 ×1.6，火海里的敌人流血 / 灼烧伤害 +30%",
+      "fx": {
+        "slash": "fx_blade_ranmu",
+        "zone": "fx_blade_fire"
+      }
+    },
+    "xuedao": {
+      "name": "血刀经",
+      "school": "blade",
+      "tags": [
+        "近战",
+        "连击"
+      ],
+      "desc": "消耗少量气血斩出血刃，自身气血越低伤害越高（最高 +90%）；命中叠加撕裂并吸回少许气血",
+      "damage": 24,
+      "cooldown": 1.4,
+      "reach": 95,
+      "arc": 1.5,
+      "knock": 100,
+      "crit_base": 0.1,
+      "hp_cost": 0.03,
+      "heal_hit": 0.02,
+      "enhance": {
+        "name": "血魔不死",
+        "desc": "气血低于 40% 时冷却减半，且不再消耗气血",
+        "up": "Lv2/3：吸血上限更高"
+      },
+      "map": {
+        "range": [
+          "reach"
+        ],
+        "duration": [],
+        "targets": ""
+      },
+      "anim": "slash",
+      "empower_cost": 8,
+      "empower": "血海无边：斩击变成十字血刃，吸血量翻倍",
+      "fx": {
+        "slash": "fx_blade_xuedao"
+      }
+    },
+    "fanliangyi": {
+      "name": "反两仪刀法",
+      "school": "blade",
+      "tags": [
+        "防御",
+        "范围"
+      ],
+      "desc": "周身生成阴阳刀轮，抹去敌方弹幕、弹开敌人并使其流血",
+      "damage": 18,
+      "cooldown": 2.4,
+      "radius": 105,
+      "knock": 320,
+      "wheel_t": 1.5,
+      "enhance": {
+        "name": "混沌倒悬",
+        "desc": "刀轮存续期间受到的近战伤害降低，并把所受伤害全额反弹给周围敌人",
+        "up": "Lv2/3：减伤 35% / 45%"
+      },
+      "map": {
+        "range": [
+          "radius"
+        ],
+        "duration": [
+          "wheel_t"
+        ],
+        "targets": ""
+      },
+      "anim": "slash",
+      "empower_cost": 8,
+      "empower": "两仪化四象：刀轮结束后向四方射出 4 柄旋转飞刀",
+      "fx": {
+        "ring": "fx_blade_fanliangyi"
+      }
+    },
+    "xuanxu_blade": {
+      "name": "玄虚刀法",
+      "school": "blade",
+      "tags": [
+        "蓄力",
+        "范围"
+      ],
+      "desc": "震地劈出三道向前蔓延的裂地刀痕，短暂震晕路径上的敌人",
+      "damage": 20,
+      "cooldown": 2.3,
+      "pierce": 99,
+      "count": 3,
+      "radius": 24,
+      "speed": 380,
+      "life": 0.75,
+      "knock": 40,
+      "stun": 0.6,
+      "proj_kind": "bolt",
+      "enhance": {
+        "name": "开山裂石",
+        "desc": "对被震晕 / 定身的敌人造成 ×1.8 / ×2.2 / ×2.6 的处决伤害",
+        "up": "Lv2/3：处决更重"
+      },
+      "map": {
+        "range": [
+          "radius"
+        ],
+        "duration": [
+          "life"
+        ],
+        "targets": "count"
+      },
+      "anim": "slash",
+      "empower_cost": 8,
+      "empower": "地动山摇：裂地刀痕变成 5 道扇形扩散",
+      "fx": {
+        "proj": "fx_blade_xuanxu"
+      }
+    },
+    "yuanyang_blade": {
+      "name": "鸳鸯双刀",
+      "school": "blade",
+      "tags": [
+        "远程",
+        "连击"
+      ],
+      "desc": "掷出一长一短两柄飞刀，像回旋镖一样绕回；长刀带减速，短刀带撕裂",
+      "damage": 16,
+      "cooldown": 2.0,
+      "pierce": 4,
+      "count": 1,
+      "radius": 15,
+      "speed": 420,
+      "life": 0.65,
+      "knock": 40,
+      "proj_kind": "bolt",
+      "enhance": {
+        "name": "仁义无双",
+        "desc": "被长刀减速、又被短刀撕裂的敌人，再被命中必定暴击并受到更多伤害",
+        "up": "Lv2/3：加成更高"
+      },
+      "map": {
+        "range": [
+          "radius"
+        ],
+        "duration": [
+          "life"
+        ],
+        "targets": "count"
+      },
+      "anim": "slash",
+      "empower_cost": 8,
+      "empower": "双宿双飞：两刀交汇时爆开一次范围刀花",
+      "fx": {
+        "ring": "fx_blade_yuanyang"
+      }
+    },
+    "tulong_art": {
+      "name": "屠龙刀法",
+      "school": "blade",
+      "tags": [
+        "蓄力",
+        "范围"
+      ],
+      "desc": "黑铁巨刀虚影轰然砸落：大范围巨额伤害，击碎护盾，并使全场敌人减速",
+      "damage": 30,
+      "cooldown": 3.2,
+      "radius": 220,
+      "knock": 220,
+      "slow": 0.7,
+      "slow_t": 2.5,
+      "heavy": true,
+      "enhance": {
+        "name": "号令天下",
+        "desc": "真气爆发或「霸刀破岳」触发时，自动免费再释放一次满威力的屠龙刀法",
+        "up": "Lv2/3：免费一击更重"
+      },
+      "map": {
+        "range": [
+          "radius"
+        ],
+        "duration": [],
+        "targets": ""
+      },
+      "anim": "slash",
+      "empower_cost": 10,
+      "empower": "莫敢不从：巨刀落地后，一条金红刀龙环绕清场 2 秒",
+      "fx": {
+        "impact": "fx_blade_tulong"
       }
     }
   },
@@ -1463,9 +1805,13 @@
     },
     "blade": {
       "name": "刀客",
-      "enabled": false,
-      "desc": "",
-      "starters": [],
+      "enabled": true,
+      "desc": "黑衣刀客，背斗笠、赤金披风。大开大合，越战越勇：挨打涨刀魂，满魂一刀破岳；专克高防御与护盾",
+      "starters": [
+        "wuhu_blade",
+        "kuangfeng_blade",
+        "hujia_blade"
+      ],
       "portrait": "res://assets/portraits/blade_hero.jpg",
       "sprite_dir": "res://assets/sprites/blade",
       "town_hero_dir": "res://assets/town/hero_blade"
@@ -1546,6 +1892,14 @@
                   "desc": "招式范围 +5%/级（青松 / 狂风 / 辟邪 / 倚天等的范围与闪现距离）",
                   "stat": {
                     "skill_range": 0.05
+                  }
+                },
+                "blade": {
+                  "name": "霸刀阔刃",
+                  "desc": "招式范围 +5%/级，暴击伤害 +5%/级",
+                  "stat": {
+                    "skill_range": 0.05,
+                    "crit_mult": 0.05
                   }
                 }
               }
@@ -1636,6 +1990,15 @@
                   "stat": {
                     "burst_yang": 1,
                     "ying_dmg": 0.1
+                  }
+                },
+                "blade": {
+                  "name": "狂刀喋血",
+                  "desc": "阳性内力（双阳）：回内力 +50%；内力满时生成护盾，护盾在时反弹所受伤害的 30%。另：盈境伤害 +10%；气血每降低 10%，全部伤害再 +3%",
+                  "stat": {
+                    "burst_yang": 1,
+                    "ying_dmg": 0.1,
+                    "lowhp_dmg": 0.03
                   }
                 }
               }
@@ -1761,6 +2124,13 @@
                   "stat": {
                     "skill_debuff": 0.1
                   }
+                },
+                "blade": {
+                  "name": "泣血撕裂",
+                  "desc": "撕裂（流血）与灼烧的伤害 +12%/级",
+                  "stat": {
+                    "bleed_pow": 0.12
+                  }
                 }
               }
             }
@@ -1857,6 +2227,14 @@
                     "qg_cd_reduce": 0.04,
                     "cd_reduce": 0.015
                   }
+                },
+                "blade": {
+                  "name": "横刀立马",
+                  "desc": "轻功冷却 −4%/级；冲刺后 2 秒内刀法伤害 +5%/级",
+                  "stat": {
+                    "qg_cd_reduce": 0.04,
+                    "dash_dmg": 0.05
+                  }
                 }
               }
             }
@@ -1876,6 +2254,14 @@
                   "desc": "暴击率 +2%/级（非独孤路线的剑侠更实用；真·独孤九剑本就必暴击）",
                   "stat": {
                     "crit_chance": 0.02
+                  }
+                },
+                "blade": {
+                  "name": "断金切玉",
+                  "desc": "暴击率 +2%/级；对带护盾或高防御的敌人伤害 +4%/级",
+                  "stat": {
+                    "crit_chance": 0.02,
+                    "armor_dmg": 0.04
                   }
                 }
               }
@@ -1967,6 +2353,15 @@
                     "burst_harmony": 1,
                     "cd_reduce": 0.05,
                     "exp_pct": 0.08
+                  }
+                },
+                "blade": {
+                  "name": "刀皇霸体",
+                  "desc": "调和内力（一阴一阳）：真气爆发次数 ×2。另：招式冷却 −5%，气血上限 +10",
+                  "stat": {
+                    "burst_harmony": 1,
+                    "cd_reduce": 0.05,
+                    "max_hp": 10
                   }
                 }
               }
@@ -2458,6 +2853,100 @@
                 "crit_mult": 0.03
               }
             }
+          ],
+          "blade": [
+            {
+              "name": "百炼柳叶刀",
+              "base": {
+                "damage_pct": 0.04
+              }
+            },
+            {
+              "name": "鬼头大环刀",
+              "base": {
+                "damage_pct": 0.03,
+                "max_hp": 8
+              }
+            },
+            {
+              "name": "黑煞雁翎刀",
+              "base": {
+                "damage_pct": 0.03,
+                "crit_chance": 0.015
+              }
+            },
+            {
+              "name": "精钢破甲刀",
+              "base": {
+                "damage_pct": 0.035,
+                "armor_pierce": 0.02
+              }
+            },
+            {
+              "name": "鸳鸯子母刀",
+              "base": {
+                "damage_pct": 0.03,
+                "cd_reduce": 0.01
+              }
+            },
+            {
+              "name": "寒月冷艳锯",
+              "base": {
+                "damage_pct": 0.025,
+                "hit_slow": 0.04
+              }
+            },
+            {
+              "name": "赤焰燃木刀",
+              "base": {
+                "damage_pct": 0.03,
+                "neili_regen": 0.8
+              }
+            },
+            {
+              "name": "血海魔刀",
+              "base": {
+                "damage_pct": 0.03,
+                "hp_regen": 0.2
+              }
+            },
+            {
+              "name": "闯王胡家宝刀",
+              "base": {
+                "damage_pct": 0.03,
+                "crit_mult": 0.06
+              }
+            },
+            {
+              "name": "屠龙宝刀",
+              "base": {
+                "damage_pct": 0.045,
+                "armor_pierce": 0.03,
+                "crit_chance": 0.01
+              }
+            }
+          ]
+        },
+        "rarity_names": {
+          "blade": [
+            [
+              0,
+              1,
+              2
+            ],
+            [
+              3,
+              4,
+              5
+            ],
+            [
+              6,
+              7,
+              8
+            ],
+            [
+              9
+            ]
           ]
         }
       },

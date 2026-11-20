@@ -60,6 +60,13 @@ var boss_deadline := -1.0          # 大 Boss 现身后的限时（秒，游戏�
 var timeout_fail := false
 var sword_break_count := 0           # 统计：「剑破天下」触发次数（测试用）
 var dugu_combo_log: Array = []     # 统计：真·独孤九剑的连击段数（测试用）
+var soul := 0.0                    # 刀魂（刀客，0~100）
+var soul_idle := 0.0
+var tulong_equipped := false         # 装备了传说「屠龙宝刀」（光明顶彩蛋）
+var tulong_on := false               # 彩蛋已触发：无视 50% 防御、护盾双倍伤害、破盾后易伤
+var baodao := false                # 本次出手是「霸刀破岳」
+var baodao_ctx := false            # 弹体 / 区域命中结算时的破岳标记
+var dash_end_t := -99.0
 var school_id := "fist"           # 创建角色时选定，决定可学的招式池
 var qinggong_id := "tashue"
 var qg: Dictionary = {}
@@ -208,6 +215,12 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	break_count = 0
 	_emp_ctx = -1
 	burst_used = 0
+	soul = 0.0
+	soul_idle = 0.0
+	tulong_on = false
+	baodao = false
+	baodao_ctx = false
+	dash_end_t = -99.0
 	atk_buff_t = 0.0
 	pills.clear()
 	absorb_items.clear()
@@ -274,7 +287,8 @@ func _load_school_sprites() -> void:
 
 
 func add_skill(id: String) -> void:
-	var s: SkillBase = SwordSkills.create(id) if str(Data.skills[id]["school"]) == "sword" else FistSkills.create(id)
+	var sch := str(Data.skills[id]["school"])
+	var s: SkillBase = SwordSkills.create(id) if sch == "sword" else (BladeSkills.create(id) if sch == "blade" else FistSkills.create(id))
 	s.setup(self, id, Data.skills[id])
 	s.mods["range"] = float(s.mods["range"]) + float(talent_stats.get("skill_range", 0.0))      # 剑侠天赋：全部招式范围 / 闪现距离
 	s.mods["debuff"] = float(s.mods["debuff"]) + float(talent_stats.get("skill_debuff", 0.0))  # 剑侠天赋：破绽 / 中毒 / 定身效果
@@ -470,6 +484,10 @@ func _update_player(dt: float) -> void:
 	since_hit += dt
 	stealth_t = maxf(0.0, stealth_t - dt)
 	buff_t = maxf(0.0, buff_t - dt)
+	if school_id == "blade":                       # 刀魂：脱战一会儿后衰减
+		soul_idle += dt
+		if soul_idle > Data.T("blade_soul_delay"):
+			soul = maxf(0.0, soul - Data.T("blade_soul_decay") * dt)
 
 	# 轻功次数恢复
 	var max_charges := int(qg.get("charges", 1))
@@ -569,6 +587,7 @@ func _start_dash(move: Vector2, max_charges: int) -> void:
 
 
 func _end_dash() -> void:
+	dash_end_t = time
 	if qg.has("stealth"):
 		stealth_t = float(qg["stealth"])
 		stealth_pos = player_pos
@@ -614,6 +633,8 @@ func _trigger_sword_break(delay: float, mult: float) -> void:
 
 
 func _burst() -> void:
+	for sk_b: SkillBase in skills.values():
+		sk_b.on_burst()
 	var f := burst_power()
 	Sfx.play("burst_ult")
 	burst_used += 1
@@ -975,6 +996,25 @@ func _update_enemies(dt: float) -> void:
 					continue
 			if e.poison_t <= 0.0:
 				e.poison_dps = 0.0
+		if e.bleed_t > 0.0:                            # 撕裂（刀客）：每 0.5 秒结算一次流血
+			e.bleed_t -= dt
+			e.bleed_acc += dt
+			if e.bleed_acc >= 0.5:
+				var bdm := e.bleed_dps * e.bleed_acc
+				e.bleed_acc = 0.0
+				e.hp -= bdm
+				e.flash = 0.05
+				skill_dmg["bleed"] = float(skill_dmg.get("bleed", 0.0)) + bdm
+				if effects.size() < MAX_EFFECTS / 2:
+					add_fx("text", e.pos + Vector2(rng.randf_range(-8, 8), -e.radius), 0.7, {"text": str(int(bdm)), "size": 17, "color": Color("#d84a3a")})
+				if e.hp <= 0.0:
+					_kill(e)
+					continue
+			if e.bleed_t <= 0.0:
+				e.bleed_dps = 0.0
+				e.bleed_stacks = 0
+		if e.burn_t > 0.0:
+			e.burn_t -= dt
 		if e.is_boss and not e.phase2 and not e.phase2_def.is_empty() and e.hp <= e.max_hp * float(e.phase2_def["hp"]):
 			BossAI.enter_phase2(self, e)
 		if e.is_boss:
@@ -1098,6 +1138,8 @@ func _hurt(amount: float) -> void:
 		dmg -= absorbed
 	if dmg <= 0.0:
 		return
+	if school_id == "blade":                       # 刀客：挨打更凶，每损失 1% 气血涨刀魂（单次有上限）
+		add_soul(minf(Data.T("blade_soul_hp_cap"), Data.T("blade_soul_hp") * dmg / maxf(1.0, st("max_hp")) * 100.0))
 	hp -= dmg
 	shake = 8.0
 	Sfx.play("player_hurt")
@@ -1141,6 +1183,9 @@ func _kill(e: Enemy) -> void:
 		add_fx("splat", e.pos, 0.35, {"r": e.radius * 1.4, "color": e.color, "vfx": "death_puff", "size": e.radius * 4.0})
 	else:
 		add_fx("splat", e.pos, 0.6, {"r": e.radius * 1.4, "color": e.color})
+	if e.burn_burst > 0.0 and e.burn_t > 0.0:        # 燃木刀法强化：灼烧中的敌人死亡时火焰爆炸
+		area_hit_raw(e.pos, e.burn_burst, e.burn_dmg, ["范围"], "ranmu_blade", 140.0)
+		add_fx("ring", e.pos, 0.35, {"r0": 10.0, "r1": e.burn_burst, "color": Color("#ff8a30")})
 	if e.poison_burst > 0.0 and e.poison_dps > 0.0:
 		area_hit_raw(e.pos, e.poison_burst, e.poison_dps * 3.0, ["控制", "范围"], "jinshe")
 		add_fx("ring", e.pos, 0.4, {"r0": 8.0, "r1": e.poison_burst, "color": Color("#5a8a2a")})
@@ -1208,6 +1253,20 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 		m += float(tag_bonus.get(tg, 0.0))
 	m *= dmg_mult() * (1.0 + st("damage_pct"))
 	var sk: SkillBase = skills.get(sid)
+	var bd := baodao or baodao_ctx
+	if school_id == "blade":
+		m *= blade_dmg()
+		var lh := st("lowhp_dmg")
+		if lh > 0.0:
+			m *= 1.0 + lh * floorf((1.0 - hp / maxf(1.0, st("max_hp"))) * 10.0)
+		if time - dash_end_t < 2.0 and st("dash_dmg") > 0.0:
+			m *= 1.0 + st("dash_dmg")
+		if (e.shield > 0.0 or e.defense > 0.0) and st("armor_dmg") > 0.0:
+			m *= 1.0 + st("armor_dmg")
+		if bd:
+			m *= Data.T("blade_break_mult")
+	if sk != null:
+		m *= sk.hit_mult(e)
 	if e.vuln_t > 0.0:
 		m *= 1.0 + e.vuln
 	if sid == "dugu":
@@ -1233,7 +1292,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 		e.weak_fx = 0.8
 		Sfx.play("vuln_break")
 		add_fx("text", e.pos + Vector2(0, -e.radius - 14), 0.85, {"text": "破绽", "size": 22, "color": JADE})
-	var crit := force_crit or rng.randf() < crit_p
+	var crit := force_crit or bd or (sk != null and sk.hit_crit(e)) or rng.randf() < crit_p
 	if crit:
 		m *= st("crit_mult")
 	var emp := (_emp_ctx == 1) if _emp_ctx >= 0 else (sk != null and sk.empowered)
@@ -1250,24 +1309,37 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 	if sk != null and float(sk.mods["heal"]) > 0.0:
 		hp = minf(st("max_hp"), hp + minf(3.0, amount * float(sk.mods["heal"])))
 	skill_dmg[sid] = float(skill_dmg.get(sid, 0.0)) + amount
+	if school_id == "blade" and sk != null and not sk.free_cast:
+		add_soul(Data.T("blade_soul_crit") if crit else Data.T("blade_soul_hit"))
+	if bd:
+		apply_bleed(e, int(Data.T("blade_break_stacks")), amount)
 	if e.defense > 0.0:
-		amount *= 1.0 - e.defense * (1.0 - clampf(st("armor_pierce"), 0.0, 1.0))
+		var dfn := e.defense
+		if e.bleed_stacks > 0:                          # 撕裂：每层降低目标防御
+			dfn = maxf(0.0, dfn - Data.T("bleed_armor") * e.bleed_stacks * (1.0 + st("bleed_pow")))
+		amount *= 1.0 - dfn * (1.0 - clampf(st("armor_pierce") + (0.5 if tulong_on else 0.0), 0.0, 1.0))
 	if e.is_boss:
 		amount = _boss_guard(e, amount, emp)
 		if e.shield > 0.0:                               # 护盾：先吃伤害；Boss 破防（虚弱）时以双倍伤害打掉
-			var sd := amount * (2.0 if e.weak_t > 0.0 else 1.0)
+			var shm := (Data.T("blade_break_shield") if bd else 1.0) * (sk.shield_mult() if sk != null else 1.0) * (2.0 if tulong_on else 1.0)
+			var sd := amount * shm * (2.0 if e.weak_t > 0.0 else 1.0)
 			if sd < e.shield:
 				e.shield -= sd
 				e.flash = 0.08
 				add_fx("text", e.pos + Vector2(rng.randf_range(-8, 8), -e.radius), 0.6, {"text": str(int(sd)), "size": 17, "color": Color("#9ae8ff")})
 				return amount
-			amount = (sd - e.shield) / (2.0 if e.weak_t > 0.0 else 1.0)
+			amount = (sd - e.shield) / (shm * (2.0 if e.weak_t > 0.0 else 1.0))
 			e.shield = 0.0
 			add_fx("text", e.pos + Vector2(0, -e.radius - 30), 1.2, {"text": "护盾破碎！", "size": 28, "color": Color("#9ae8ff")})
+			if tulong_on:                                  # 屠龙宝刀破盾：兵刃震脱，3 秒易伤
+				e.vuln = maxf(e.vuln if e.vuln_t > 0.0 else 0.0, 0.35)
+				e.vuln_t = 3.0
+				add_fx("ring", e.pos, 0.5, {"r0": 20.0, "r1": 200.0, "color": Color("#ffb030"), "vfx": "fx_tulong_break", "size": 340.0})
+				add_fx("text", e.pos + Vector2(0, -e.radius - 62), 1.6, {"text": "兵刃震脱！", "size": 26, "color": Color("#ffb030")})
 			add_fx("ring", e.pos, 0.5, {"r0": 20.0, "r1": 140.0, "color": Color("#9ae8ff"), "vfx": "boss_shield_break" if vfx.has("boss_shield_break") else "burst_break", "size": maxf(e.radius * 4.0, 150.0)})
 			shake = maxf(shake, 7.0)
 	damage_enemy(e, amount, knock_vec, crit)
-	Sfx.play("hit_crit" if crit else ("hit_sword" if school_id == "sword" else "hit_fist"))
+	Sfx.play("hit_crit" if crit else ("hit_sword" if (school_id == "sword" or school_id == "blade") else "hit_fist"))
 	return amount
 
 
@@ -1356,6 +1428,9 @@ func spawn_proj(s: SkillBase, angle: float, o: Dictionary = {}) -> Projectile:
 	pr.poison = float(o.get("poison", 0.0))
 	pr.vuln = float(o.get("vuln", 0.0))
 	pr.empowered = s.empowered
+	pr.baodao = baodao
+	pr.bleed = float(o.get("bleed", 0.0))
+	pr.slowv = float(o.get("slowv", 0.0))
 	projs.append(pr)
 	return pr
 
@@ -1365,6 +1440,9 @@ func add_zone(z: Dictionary) -> void:
 		z["pos"] = player_pos
 	if z.has("skill") and not z.has("emp"):
 		z["emp"] = (z["skill"] as SkillBase).empowered
+	z["bd"] = baodao
+	if not z.has("t"):
+		z["t"] = 0.0
 	zones.append(z)
 
 
@@ -1447,8 +1525,14 @@ func _update_projectiles(dt: float) -> void:
 						if p.vuln > 0.0:
 							apply_vuln(e, p.vuln, true)
 						_emp_ctx = 1 if p.empowered else 0
+						baodao_ctx = p.baodao
 						hit_enemy(e, p.damage, p.tags, p.vel.normalized() * p.knock, p.skill_id)
+						baodao_ctx = false
 						_emp_ctx = -1
+						if p.bleed > 0.0:
+							apply_bleed(e, int(p.bleed), p.damage)
+						if p.slowv > 0.0:
+							slow_enemy(e, 1.0 - p.slowv, 1.5)
 						if p.stun > 0.0 and (p.stun_chance >= 1.0 or rng.randf() < p.stun_chance):
 							stun_enemy(e, p.stun, p.chain)
 						if p.poison > 0.0:
@@ -1513,6 +1597,7 @@ func _update_zones(dt: float) -> void:
 		var zpos: Vector2 = z["pos"]
 		var zr: float = z["r"]
 		_emp_ctx = 1 if bool(z.get("emp", false)) else 0
+		baodao_ctx = bool(z.get("bd", false))
 		match str(z["kind"]):
 			"impact":
 				if z["t"] >= z["delay"]:
@@ -1537,6 +1622,22 @@ func _update_zones(dt: float) -> void:
 						for e in _query(zpos, zr):
 							if e.alive and e.pos.distance_to(zpos) < zr + e.radius:
 								slow_enemy(e, 0.6, 0.7)
+			"fire":                                        # 燃木刀法的火海：持续灼烧 + 减速
+				if z["t"] >= z["life"]:
+					keep = false
+				else:
+					z["tick"] = float(z["tick"]) - dt
+					if z["tick"] <= 0.0:
+						z["tick"] = 0.5
+						var s3: SkillBase = z["skill"]
+						area_hit(s3, zpos, zr, z["dmg"])
+						for e in _query(zpos, zr):
+							if e.alive and e.pos.distance_to(zpos) < zr + e.radius:
+								slow_enemy(e, 0.8, 0.7)
+								e.burn_t = 0.8
+								if bool(z.get("burst", false)):
+									e.burn_burst = float(z["burst_r"])
+									e.burn_dmg = float(z["burst_dmg"])
 			"vortex":
 				z["pos"] = player_pos
 				zpos = player_pos
@@ -1997,6 +2098,12 @@ func _draw_zones() -> void:
 					var mid := zpos + Vector2.from_angle(ang) * zr * 0.5 + Vector2.from_angle(ang + 1.2) * 8.0
 					draw_line(zpos, mid, Color(0.1, 0.06, 0.04, 0.7 * a), 2.0)
 					draw_line(mid, zpos + Vector2.from_angle(ang) * zr * 0.95, Color(0.1, 0.06, 0.04, 0.7 * a), 2.0)
+			"fire":
+				if vfx.has("fx_blade_fire"):
+					continue
+				var a3 := 1.0 - float(z["t"]) / float(z["life"])
+				draw_circle(zpos, zr, Color(1.0, 0.45, 0.1, 0.12 * a3 + 0.04))
+				draw_arc(zpos, zr, 0.0, TAU, 32, Color(1.0, 0.6, 0.2, 0.6 * a3), 2.0)
 			"vortex":
 				if vfx.has("zone_vortex"):
 					continue
@@ -2244,6 +2351,8 @@ func _draw_player() -> void:
 		Depth.shadow(self, player_pos + Vector2(0, 14), 30.0, _player_bob())
 	else:
 		draw_circle(player_pos + Vector2(0, 9), 10.0, Color(0, 0, 0, 0.12))
+	if school_id == "blade" and soul >= 100.0 and vfx.has("fx_blade_soul_aura"):      # 刀魂满：脚下一圈火环
+		vfx.draw(self, "fx_blade_soul_aura", vfx.frame_loop("fx_blade_soul_aura", time), player_pos + Vector2(0, 10), 130.0, 0.0, Color(1, 1, 1, 0.75))
 	if dugu_true() and vfx.has("awaken_aura"):
 		vfx.draw(self, "awaken_aura", vfx.frame_loop("awaken_aura", time), player_pos + Vector2(0, 8), 120.0, 0.0, Color(1, 1, 1, 0.6))
 	if realm() == Realm.YING:
@@ -2342,6 +2451,71 @@ func apply_vuln(e: Enemy, v: float, spread: bool = false) -> void:
 
 
 ## 中毒：每次命中叠加 dps（最多 6 层，每层 = dps），重置持续时间
+## 刀魂：+n（上限 100）；刀魂越多，刀法的伤害和范围越大
+func add_soul(n: float) -> void:
+	if school_id != "blade" or n <= 0.0:
+		return
+	soul = minf(100.0, soul + n)
+	soul_idle = 0.0
+
+
+func blade_dmg() -> float:
+	return 1.0 + Data.T("blade_soul_dmg") * floorf(soul / 10.0)
+
+
+func blade_range() -> float:
+	return 1.0 + Data.T("blade_soul_range") * floorf(soul / 10.0) if school_id == "blade" else 1.0
+
+
+## 刀魂满时，这一次出手是「霸刀破岳」：返回 true 表示已「上膛」
+func baodao_try(s: SkillBase) -> bool:
+	if school_id == "blade" and soul >= 100.0 and not s.free_cast and str(s.def.get("school", "")) == "blade":
+		baodao = true
+		return true
+	return false
+
+
+func baodao_done() -> void:
+	for sk_f: SkillBase in skills.values():
+		sk_f.on_baodao()
+	soul = 0.0
+	soul_idle = 0.0
+	var heal := (st("max_hp") - hp) * Data.T("blade_break_heal")
+	hp = minf(st("max_hp"), hp + heal)
+	add_fx("text", player_pos + Vector2(0, -52), 1.0, {"text": "霸刀破岳！", "size": 30, "color": Color("#ffb030")})
+	shake = maxf(shake, 7.0)
+	Sfx.play("burst_break")
+
+
+## 撕裂：每层每秒造成「触发这一击」伤害的一定比例，持续数秒；层数上限 5
+func apply_bleed(e: Enemy, stacks: int, hit_dmg: float) -> void:
+	if e.is_prop or not e.alive or stacks <= 0:
+		return
+	var per := hit_dmg * Data.T("bleed_pct") * (1.0 + st("bleed_pow"))
+	var cap := int(Data.T("bleed_max"))
+	var add := mini(stacks, cap - e.bleed_stacks)
+	if add > 0:
+		e.bleed_stacks += add
+		e.bleed_dps += per * add
+	e.bleed_t = Data.T("bleed_dur") + 0.0
+	if e.bleed_stacks >= cap and e.bleed_dps > 0.0:
+		e.bleed_dps = maxf(e.bleed_dps, per * cap)
+
+
+## 断脉爆血：撕裂叠满时被重劈命中，立即结算剩余流血的 150% 并溅射周围
+func bleed_burst(e: Enemy) -> void:
+	if e.bleed_stacks < int(Data.T("bleed_max")) or e.bleed_dps <= 0.0:
+		return
+	var dmg := e.bleed_dps * maxf(0.5, e.bleed_t) * Data.T("bleed_burst")
+	e.bleed_stacks = 0
+	e.bleed_dps = 0.0
+	e.bleed_t = 0.0
+	area_hit_raw(e.pos, Data.T("bleed_burst_r"), dmg, [], "bleed", 60.0)
+	add_fx("ring", e.pos, 0.4, {"r0": 10.0, "r1": Data.T("bleed_burst_r"), "color": Color("#d84a3a")})
+	add_fx("text", e.pos + Vector2(0, -e.radius - 22), 0.9, {"text": "断脉爆血", "size": 24, "color": Color("#ff5a40")})
+	Sfx.play("hit_crit")
+
+
 func poison_enemy(e: Enemy, dps: float, sid: String) -> void:
 	var sk: SkillBase = skills.get(sid)
 	var mult := 2.0 if (sk != null and sk.empowered) else 1.0

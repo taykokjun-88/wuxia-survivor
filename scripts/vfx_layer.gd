@@ -28,7 +28,7 @@ func _draw() -> void:
 	var t := world.time
 	# 区域（裂地 / 旋涡）：循环
 	for z in world.zones:
-		var id := "zone_crack" if z["kind"] == "crack" else ("zone_vortex" if z["kind"] == "vortex" else "")
+		var id := "zone_crack" if z["kind"] == "crack" else ("zone_vortex" if z["kind"] == "vortex" else ("fx_blade_fire" if z["kind"] == "fire" else ""))
 		if id != "" and v.has(id):
 			var a := 1.0 - float(z["t"]) / float(z["life"])
 			v.draw(self, id, v.frame_loop(id, t), z["pos"], float(z["r"]) * 2.2, 0.0, Color(1, 1, 1, clampf(a * 2.0, 0.0, 1.0)))

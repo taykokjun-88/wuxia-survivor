@@ -544,6 +544,104 @@
       "fps": 4.0,
       "cell": 256,
       "loop": true
+    },
+    "fx_blade_wuhu": {
+      "file": "fx_blade_wuhu.png",
+      "frames": 4,
+      "fps": 18.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 280.0,
+      "forward": 0.22
+    },
+    "fx_blade_kuangfeng": {
+      "file": "fx_blade_kuangfeng.png",
+      "frames": 4,
+      "fps": 20.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 200.0
+    },
+    "fx_blade_hujia": {
+      "file": "fx_blade_hujia.png",
+      "frames": 4,
+      "fps": 12.0,
+      "cell": 128,
+      "loop": true,
+      "world_size": 120.0
+    },
+    "fx_blade_ranmu": {
+      "file": "fx_blade_ranmu.png",
+      "frames": 2,
+      "fps": 10.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 260.0,
+      "forward": 0.22
+    },
+    "fx_blade_fire": {
+      "file": "fx_blade_fire.png",
+      "frames": 2,
+      "fps": 5.0,
+      "cell": 192,
+      "loop": true,
+      "world_size": 180.0
+    },
+    "fx_blade_xuedao": {
+      "file": "fx_blade_xuedao.png",
+      "frames": 4,
+      "fps": 18.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 240.0
+    },
+    "fx_blade_fanliangyi": {
+      "file": "fx_blade_fanliangyi.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": true,
+      "world_size": 230.0
+    },
+    "fx_blade_xuanxu": {
+      "file": "fx_blade_xuanxu.png",
+      "frames": 4,
+      "fps": 10.0,
+      "cell": 192,
+      "loop": true,
+      "world_size": 170.0
+    },
+    "fx_blade_yuanyang": {
+      "file": "fx_blade_yuanyang.png",
+      "frames": 4,
+      "fps": 12.0,
+      "cell": 256,
+      "loop": false,
+      "world_size": 340.0
+    },
+    "fx_blade_tulong": {
+      "file": "fx_blade_tulong.png",
+      "frames": 4,
+      "fps": 7.0,
+      "cell": 256,
+      "loop": false,
+      "world_size": 460.0
+    },
+    "fx_blade_soul_aura": {
+      "file": "fx_blade_soul_aura.png",
+      "frames": 4,
+      "fps": 10.0,
+      "cell": 192,
+      "loop": true,
+      "world_size": 140.0
+    },
+    "fx_tulong_break": {
+      "file": "fx_tulong_break.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 260.0
     }
   }
 }

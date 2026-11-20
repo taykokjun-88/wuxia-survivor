@@ -25,6 +25,10 @@ static func apply_to(world: GameWorld, alloc: Dictionary, talents: Dictionary, e
 	var gb := Gear.bonuses(equipped_items(equip, school_id))
 	merge(stats, gb["stats"])
 	world.talent_stats = stats
+	world.tulong_equipped = false
+	for it in equipped_items(equip, school_id):
+		if str(it["slot"]) == "weapon" and str(it["name"]).begins_with("屠龙宝刀"):
+			world.tulong_equipped = true
 	world.talent_skill_mods = tsplit[1]
 	world.gear_skill_mods = gb["skill_mods"]
 	world.gear_xinfa = gb["xinfa"]

@@ -96,7 +96,11 @@ static func make(code: String, school_id: String = "fist", enh_level: int = 0) -
 	var mult := float(rd["mult"])
 	var stats := {}
 	var defs := items_for(str(pc["slot"]), school_id)
-	var idef: Dictionary = defs[int(pc["seed"]) % defs.size()]
+	var idx := int(pc["seed"]) % defs.size()
+	if sd.has("rarity_names") and (sd["rarity_names"] as Dictionary).has(school_id):     # 刀客的武器按稀有度选名（传说只出屠龙宝刀）
+		var grp: Array = (sd["rarity_names"] as Dictionary)[school_id][clampi(int(pc["rarity"]), 0, 3)]
+		idx = int(grp[int(pc["seed"]) % grp.size()])
+	var idef: Dictionary = defs[idx]
 	var base: Dictionary = idef["base"]
 	for k in base:
 		stats[k] = float(base[k]) * mult

@@ -44,6 +44,15 @@ const RULES := {
 }
 
 const SKILL_MAP := {
+	"wuhu_blade": "sw_heavy",
+	"kuangfeng_blade": "sw_slash",
+	"hujia_blade": "sw_proj",
+	"ranmu_blade": "sw_heavy",
+	"xuedao": "sw_slash",
+	"fanliangyi": "sw_slash",
+	"xuanxu_blade": "sw_heavy",
+	"yuanyang_blade": "sw_proj",
+	"tulong_art": "sw_heavy",
 	"kuang_feng": "sw_slash",
 	"qingsong": "sw_thrust",
 	"zhongjian": "sw_heavy",
