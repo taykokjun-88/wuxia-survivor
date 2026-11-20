@@ -211,7 +211,9 @@ class YiTian extends SkillBase:
 class Dugu extends SkillBase:
 	const ORDER := ["zong", "po_jian", "po_dao", "po_qiang", "po_bian", "po_suo", "po_zhang", "po_arrow", "po_qi"]
 	const TRUE_NAMES := ["破剑式", "破刀式", "破枪式", "破鞭式", "破索式", "破掌式", "破箭式", "破气式", "总诀式"]
-	var arrow_t := 2.0
+	var wb_hits: Dictionary = {}     # 破兵微步：本次出手已命中的敌人
+	var wb_cd := 0.0
+	var wb_count := 0                # 统计：破兵微步触发次数（测试用）
 	var combo_left := 0
 	var combo_t := 0.0
 	var combo_idx := 0
@@ -247,15 +249,27 @@ class Dugu extends SkillBase:
 	func empower_cost() -> float:
 		return super.empower_cost() * maxf(0.4, 1.0 - 0.05 * L("po_qi"))
 
+	## 破兵微步（总层 ≥ 9）：一次出手命中 ≥ 2 名敌人，返还 1 点内力并缩短本招当前剩余冷却 10%（每秒最多一次）
+	func note_hit(e: Enemy) -> void:
+		if not w.dugu_micro() or wb_cd > 0.0:
+			return
+		wb_hits[e.uid] = true
+		if wb_hits.size() >= 2:
+			wb_hits.clear()
+			wb_cd = Data.T("dugu_wb_gap")
+			wb_count += 1
+			w.neili = minf(w.st("max_neili"), w.neili + Data.T("dugu_wb_neili"))
+			cd = maxf(0.0, cd * (1.0 - Data.T("dugu_wb_cut")))
+			w.add_fx("text", w.player_pos + Vector2(0, -44), 0.6, {"text": "破兵微步", "size": 16, "color": Color("#bfe8ff")})
+
+	## 破箭式 / 万法皆破：近战斩击把范围内的敌方普通投射物全部斩落
+	func _cut_in(center: Vector2, radius: float) -> void:
+		if w.dugu_can_cut():
+			w.cut_hostile_projs(center, radius)
+
 	func tick(dt: float) -> void:
 		refresh()
-		if L("po_arrow") > 0:
-			arrow_t -= dt
-			if arrow_t <= 0.0:
-				arrow_t = maxf(0.8, 3.0 - 0.15 * L("po_arrow"))
-				var t := w.nearest_enemy(520.0)
-				if t != null:
-					w.spawn_proj(self, (t.pos - w.player_pos).angle(), _opts(0.6, true))
+		wb_cd = maxf(0.0, wb_cd - dt)
 		if w.dugu_true():
 			if sb_left > 0:                     # 剑破天下：九连闪现，每一次是一个「式」
 				w.invuln = maxf(w.invuln, 0.25)
@@ -314,6 +328,7 @@ class Dugu extends SkillBase:
 		var t := w.nearest_enemy(reach)
 		if t == null:
 			return false
+		wb_hits.clear()
 		var n := 1 + L("po_jian") / 3
 		var base := (t.pos - w.player_pos).angle()
 		var o := _opts(1.0)
@@ -374,6 +389,7 @@ class Dugu extends SkillBase:
 		Sfx.play_skill("dugu", 1 + sb_idx)
 		var a := dir.angle()
 		var reach := 96.0 * (1.0 + 0.04 * L("po_qiang"))
+		_cut_in(w.player_pos, reach + 60.0)
 		w.fx_slash(w.player_pos, a, reach, 1.0, true)
 		var dmg := p("damage") * 2.4 * Data.T("dugu_true_mult") * mult
 		var vuln := Data.T("dugu_vuln3") * vuln_scale()
@@ -431,6 +447,7 @@ class Dugu extends SkillBase:
 		combo_idx = 0
 		combo_left = combo_total - 1
 		combo_t = 0.09
+		wb_hits.clear()
 		w.dugu_combo_log.append(combo_total)
 		_combo_banner()
 		_pulse(_shi_label(), 1.0)
@@ -463,6 +480,7 @@ class Dugu extends SkillBase:
 		var vuln := Data.T("dugu_vuln3") * vuln_scale()
 		w.play_anim("true_thrust", 0.2)
 		Sfx.play_skill("dugu", 1 + combo_idx)
+		_cut_in(w.player_pos, R * 1.25 + Data.T("dugu_cut_lv") * L("po_arrow"))
 		w.add_fx("ring", w.player_pos, 0.3, {"r0": 20.0, "r1": R, "color": SwordSkills.SWORD_BLUE, "vfx": "burst_wind"})
 		w.fx_slash(w.player_pos, w.facing.angle(), R * 0.8, TAU * 0.9, true)
 		var first: Enemy = null

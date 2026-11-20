@@ -34,9 +34,11 @@ class Base extends SkillBase:
 		var paid := minf(max_hp * frac, maxf(0.0, w.hp - 1.0))
 		if paid <= 0.0:
 			return
-		w.hp -= paid
+		if w.tb_t <= 0.0:                    # 真·霸刀破岳期间不真的扣血，刀魂照涨（按本该耗的血算）
+			w.hp -= paid
 		w.add_soul(minf(Data.T("blade_soul_hp_cap"), Data.T("blade_soul_hp") * paid / maxf(1.0, max_hp) * 100.0))
-		w.add_fx("text", w.player_pos + Vector2(0, -34), 0.6, {"text": "-%d" % int(paid), "size": 16, "color": GameWorld.VERMILION})
+		if w.tb_t <= 0.0:
+			w.add_fx("text", w.player_pos + Vector2(0, -34), 0.6, {"text": "-%d" % int(paid), "size": 16, "color": GameWorld.VERMILION})
 
 	func _foe(e: Enemy, dmg: float, out: Vector2, stacks: int, force: bool) -> void:
 		if bool(def.get("heavy", false)):
@@ -200,7 +202,8 @@ class XueDao extends Base:
 			w.fx_slash(w.player_pos, ang, reach, p("arc"), true, fxid("slash"))
 			hits += cone(w.player_pos, ang, p("arc") * 0.5, reach, dmg, p("knock"), 1)
 		var cap := ev(1.0, 1.5, 2.0) if enhanced() else 1.0
-		var heal := minf(cap * (2.0 if empowered else 1.0), float(hits) * float(def.get("heal_hit", 0.002)) * dmg * (2.0 if empowered else 1.0))
+		var hm := w.heal_mult()
+		var heal := minf(cap * (2.0 if empowered else 1.0) * hm, float(hits) * float(def.get("heal_hit", 0.002)) * dmg * (2.0 if empowered else 1.0) * hm)
 		w.hp = minf(max_hp, w.hp + heal)
 		return true
 

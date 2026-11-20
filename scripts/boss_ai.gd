@@ -100,7 +100,7 @@ static func _end(e: Enemy, gap_lo: float = 2.0, gap_hi: float = 3.2) -> void:
 
 
 static func _mult(e: Enemy) -> float:
-	return maxf(0.5, e.damage / 18.0)
+	return maxf(0.5, e.damage / 18.0) * e.atk_mul()
 
 
 static func _in_fan(w: GameWorld, origin: Vector2, dir: Vector2, reach: float, arc: float) -> bool:
@@ -157,9 +157,10 @@ static func _knock(w: GameWorld, from: Vector2, power: float) -> void:
 	w.player_knock = (v.normalized() if v.length() > 0.01 else Vector2.RIGHT) * power
 
 
-static func _shot(w: GameWorld, pos: Vector2, ang: float, spd: float, dmg: float, radius: float, kind: String, life: float = 3.5) -> void:
+static func _shot(w: GameWorld, pos: Vector2, ang: float, spd: float, dmg: float, radius: float, kind: String, life: float = 3.5, cuttable: bool = false) -> void:
 	var p := Projectile.new()
 	p.hostile = true
+	p.cuttable = cuttable
 	p.kind = kind
 	p.pos = pos
 	p.vel = Vector2.from_angle(ang) * spd
@@ -359,7 +360,7 @@ static func minion(w: GameWorld, e: Enemy, dt: float, dir: Vector2, d: float) ->
 				e.cast_stage = 1
 				w.add_fx("ring", e.pos, 0.35, {"r0": 8.0, "r1": float(sd["r"]), "color": Color("#ffb070"), "vfx": "fx_minion_stomp", "size": float(sd["r"]) * 2.4})
 				if _in_circle(w, e.pos, float(sd["r"])):
-					w._hurt(float(sd["dmg"]) * maxf(1.0, e.damage / 12.0))
+					w._hurt(float(sd["dmg"]) * maxf(1.0, e.damage / 12.0) * e.atk_mul())
 					_knock(w, e.pos, float(sd["knock"]))
 				w.shake = maxf(w.shake, 3.0)
 			if u > 0.25:
@@ -367,7 +368,7 @@ static func minion(w: GameWorld, e: Enemy, dt: float, dir: Vector2, d: float) ->
 		elif e.cast_id == "arrow":
 			if e.cast_stage == 0:
 				e.cast_stage = 1
-				_shot(w, e.pos, e.cast_dir.angle(), float(sd["speed"]), float(sd["dmg"]) * maxf(1.0, e.damage / 6.0), 7.0, "emei" if e.art_key == "emei" else "arrow", 2.5)
+				_shot(w, e.pos, e.cast_dir.angle(), float(sd["speed"]), float(sd["dmg"]) * maxf(1.0, e.damage / 6.0) * e.atk_mul(), 7.0, "emei" if e.art_key == "emei" else "arrow", 2.5, true)
 			if u > 0.25:
 				_end(e, 1.8, 2.8)
 		else:

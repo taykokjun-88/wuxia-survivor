@@ -37,6 +37,7 @@ func _ready() -> void:
 		_sword_art_test()
 		_sword_talent_test()
 		_blade_test()
+		_plan6_test()
 		_smith_test()
 		_prop_test()
 		_boss_skill_test()
@@ -57,6 +58,8 @@ func _ready() -> void:
 		_levels_report()
 	if only == "blade":
 		_blade_test()
+	if only == "plan6":
+		_plan6_test()
 	if only == "cards":
 		_upgrade_system_test()
 		_enhance_rework_test()
@@ -1163,15 +1166,18 @@ func _dugu_test() -> void:
 	w.add_shi("po_jian", 99)
 	_check(int(w.shi["po_jian"]) == 10, "单式封顶 10 层")
 	# 阶段
-	w.shi = {"po_jian": 10, "po_dao": 10}
-	_check(w.dugu_stage() == 1 and not w.dugu_true(), "总层 20：仍是起手阶段")
-	w.add_shi("po_dao", 0)
-	w.shi["zong"] = 1
-	_check(w.dugu_stage() == 2, "总层 21 → 万法皆破")
-	w.shi["zong"] = 15
-	_check(w.dugu_stage() == 2, "总层 35：仍是万法皆破")
-	w.shi["zong"] = 16
-	_check(w.dugu_stage() == 3 and w.dugu_true() and w.dash_sealed(), "总层 > 35 → 真·独孤九剑，轻功封印")
+	w.shi = {"po_jian": 8}
+	_check(w.dugu_stage() == 1 and not w.dugu_micro(), "总层 8：仍是起手阶段，没有破兵微步")
+	w.shi = {"po_jian": 9}
+	_check(w.dugu_stage() == 1 and w.dugu_micro(), "总层 9 → 破兵微步")
+	w.shi = {"po_jian": 10, "po_dao": 7}
+	_check(w.dugu_stage() == 1, "总层 17：还不是万法皆破")
+	w.shi = {"po_jian": 10, "po_dao": 8}
+	_check(w.dugu_stage() == 2 and not w.dugu_true(), "总层 18 → 万法皆破")
+	w.shi = {"po_jian": 10, "po_dao": 10, "zong": 6}
+	_check(w.dugu_stage() == 2, "总层 26：仍是万法皆破")
+	w.shi["zong"] = 7
+	_check(w.dugu_stage() == 3 and w.dugu_true() and w.dash_sealed(), "总层 27 → 真·独孤九剑，轻功封印")
 	# 秘籍：+3 层的式
 	w.shi = {"po_jian": 2}
 	var cc := w.roll_chest_choices()
@@ -1269,9 +1275,9 @@ func _dugu_test() -> void:
 		en3.max_hp = 1e5
 	w4._rebuild_grid()
 	var p0 := w4.player_pos
-	w4.shi = {"zong": 10, "po_jian": 10, "po_dao": 6, "po_bian": 9}      # 总层 35：还不是真形态
-	w4.add_shi("po_bian", 2)                                             # 再领悟 → 越过 35 层，觉醒
-	_check(w4.dugu_true() and w4.sword_break_count == 1, "越过 35 层自动触发一次剑破天下")
+	w4.shi = {"zong": 10, "po_jian": 10, "po_dao": 4, "po_bian": 2}      # 总层 26：还不是真形态
+	w4.add_shi("po_bian", 1)                                             # 再领悟 → 达到 27 层，觉醒
+	_check(w4.dugu_true() and w4.sword_break_count == 1, "达到 27 层自动触发一次剑破天下")
 	var names := {}
 	for i in 60 * 4:
 		w4._rebuild_grid()
@@ -1663,8 +1669,205 @@ func _enhance_rework_test() -> void:
 	for xid in Data.xinfa:
 		for sid2 in Data.xinfa[xid]["link"]:
 			_check(float(Data.xinfa[xid]["link"][sid2].get("heal", 0.0)) <= 0.0016, "心法 %s 对 %s 的命中回血要克制" % [xid, sid2])
-	# 独孤九剑：破 X 式总共强化 20 次 / 35 次
-	_check(int(Data.T("shi_stage2")) == 20 and int(Data.T("shi_stage3")) == 35, "独孤九剑门槛 20 / 35")
+	# 独孤九剑：破 X 式总强化次数门槛 9 / 18 / 27
+	_check(int(Data.T("shi_stage1")) == 9 and int(Data.T("shi_stage2")) == 18 and int(Data.T("shi_stage3")) == 27, "独孤九剑门槛 9 / 18 / 27")
+	for sh in Data.shi:
+		_check(str(sh.get("desc", "")) != "" and str(sh.get("awaken", "")) != "", "式「%s」要有普通效果和觉醒效果的说明" % sh["name"])
+	var wsc := _new_world(96, "dugu")
+	wsc.shi = {"po_jian": 1}
+	var sc := wsc.shi_cards(3, 2, "level")
+	_check(not sc.is_empty() and str(sc[0]["desc"]).contains("普通：") and str(sc[0]["desc"]).contains("觉醒："), "式的卡片同时写明普通和觉醒效果")
+	_free_world(wsc)
+
+
+## 计划书 6：另觅机缘 / 真·霸刀破岳 / 蓄劲 / 独孤九剑 9-18-27
+func _plan6_test() -> void:
+	print("\n=== 计划书 6：另觅机缘 / 真·霸刀破岳 / 蓄劲 / 独孤九剑 ===")
+	# ---- 另觅机缘 ----
+	_check(GameWorld.rerolls_for_level(4) == 0 and GameWorld.rerolls_for_level(5) == 3 and GameWorld.rerolls_for_level(10) == 6 and GameWorld.rerolls_for_level(14) == 6, "另觅机缘次数：Lv4=0 / Lv5=3 / Lv10=6 / Lv14=6")
+	var wr := GameWorld.new()
+	wr.rng_seed = 5
+	wr.god = true
+	wr.meta_level = 10
+	add_child(wr)
+	wr.start_run("chain_fist", "tashue")
+	_check(wr.rerolls_left == 6 and wr.can_reroll(), "开局 Lv10 → 6 次")
+	var c0 := wr.roll_choices()
+	var keys0 := []
+	for c in c0:
+		keys0.append(wr._choice_key(c))
+	var c1 := wr.use_reroll(c0)
+	_check(wr.rerolls_left == 5 and wr.rerolls_used == 1 and c1.size() == 3, "重抽：扣 1 次，仍是 3 张")
+	var same := 0
+	for c in c1:
+		if keys0.has(wr._choice_key(c)):
+			same += 1
+	_check(same == 0, "重抽尽量避开刚才的卡（重复 %d 张）" % same)
+	for i in 5:
+		wr.use_reroll(c1)
+	_check(not wr.can_reroll() and wr.rerolls_left == 0, "6 次用完后不能再重抽")
+	var c2 := wr.use_reroll(c1)
+	_check(c2 == c1 and wr.rerolls_used == 6, "次数为 0 时重抽无效，不计数")
+	_free_world(wr)
+	# ---- 真·霸刀破岳 ----
+	var wb := _blade_world(71)
+	wb.skills.clear()
+	wb.add_skill("xuedao")
+	wb.hp = wb.st("max_hp")
+	for i in 5:
+		wb.step(DT)
+	_check(wb.tb_t <= 0.0 and wb.tb_cd <= 0.0, "满血不触发真·霸刀破岳")
+	wb.hp = wb.st("max_hp") * 0.19
+	wb.step(DT)
+	_check(wb.tb_t > 9.9 and wb.tb_t <= 10.0, "气血 ≤ 20%% 当帧触发，持续 10 秒（%.2f）" % wb.tb_t)
+	_check(is_equal_approx(wb.heal_mult(), 2.0), "期间回复翻倍")
+	# 不耗血、刀魂照涨
+	var xd: SkillBase = wb.skills["xuedao"]
+	var hp1 := wb.hp
+	var soul1 := wb.soul
+	xd.cd = 0.0
+	var tgt := wb._spawn_enemy("bandit", wb.player_pos + Vector2(60, 0))
+	tgt.hp = 1e9
+	tgt.max_hp = 1e9
+	tgt.speed = 0.0
+	wb._rebuild_grid()
+	wb.neili = 0.0
+	(xd as BladeSkills.Base).pay_hp()
+	_check(absf(wb.hp - hp1) < 0.01, "期间刀招不扣血（%.2f → %.2f）" % [hp1, wb.hp])
+	_check(wb.soul > soul1, "期间刀魂照常增长")
+	# 10 秒后才进入冷却
+	for i in int(9.5 * 60.0):
+		wb.step(DT)
+	_check(wb.tb_t > 0.0 and wb.tb_cd <= 0.0, "第 9.5 秒仍在状态内，冷却没开始")
+	for i in int(0.6 * 60.0):
+		wb.step(DT)
+	_check(wb.tb_t <= 0.0 and wb.tb_cd > 29.0, "状态结束才开始 30 秒冷却（%.1f）" % wb.tb_cd)
+	wb.hp = wb.st("max_hp") * 0.1
+	for i in 60 * 5:
+		wb.step(DT)
+	_check(wb.tb_t <= 0.0, "冷却中即使血量更低也不再触发")
+	wb.tb_cd = 0.01
+	wb.hp = wb.st("max_hp") * 0.1
+	for i in 5:
+		wb.step(DT)
+	_check(wb.tb_t > 0.0, "冷却结束后血量仍低 → 再次触发（tb_t %.2f cd %.2f hp %.1f/%.1f over %s）" % [wb.tb_t, wb.tb_cd, wb.hp, wb.st("max_hp"), str(wb.over)])
+	_free_world(wb)
+	var wnb := _new_world(72, "kuang_feng")
+	wnb.hp = 1.0
+	for i in 5:
+		wnb.step(DT)
+	_check(wnb.tb_t <= 0.0, "只有刀客有真·霸刀破岳")
+	_free_world(wnb)
+	# 回复翻倍：击杀回血
+	var wk := _blade_world(73)
+	wk.hp = wk.st("max_hp") * 0.5
+	var kh := wk.st("kill_hp")
+	var e1 := wk._spawn_enemy("bandit", wk.player_pos + Vector2(500, 0))
+	e1.hp = 1.0
+	var h0 := wk.hp
+	wk.damage_enemy(e1, 999.0, Vector2.ZERO, false)
+	var gain1 := wk.hp - h0
+	wk.tb_t = 5.0
+	var e2 := wk._spawn_enemy("bandit", wk.player_pos + Vector2(500, 50))
+	e2.hp = 1.0
+	h0 = wk.hp
+	wk.damage_enemy(e2, 999.0, Vector2.ZERO, false)
+	var gain2 := wk.hp - h0
+	_check(kh <= 0.0 or absf(gain2 - gain1 * 2.0) < 0.001, "击杀回血翻倍（%.3f → %.3f）" % [gain1, gain2])
+	_free_world(wk)
+	# ---- 蓄劲 ----
+	var wf := _new_world(74, "chain_fist")
+	wf.neili = 0.0
+	_check(wf.fist_qi == 0.0, "开局蓄劲为 0")
+	for i in 10:
+		wf.fist_after_cast(wf.skills["chain_fist"])
+	_check(is_equal_approx(wf.fist_qi, 30.0), "每次出手 +3（10 次 = 30，实际 %.1f）" % wf.fist_qi)
+	wf.fist_qi = 99.0
+	wf.fist_after_cast(wf.skills["chain_fist"])
+	_check(wf.fist_qi <= 100.0, "劲力上限 100")
+	var tq := wf._spawn_enemy("bandit", wf.player_pos + Vector2(80, 0))
+	tq.hp = 1e9
+	tq.max_hp = 1e9
+	tq.speed = 0.0
+	wf._rebuild_grid()
+	wf.fist_qi = 100.0
+	var hp_t := tq.hp
+	wf.fist_after_cast(wf.skills["chain_fist"])
+	_check(wf.fist_qi == 0.0 and wf.cunjin_count == 1, "满劲后下一次出手触发寸劲震爆并清零")
+	_check(tq.hp < hp_t and tq.vuln_t > 0.0, "寸劲：范围伤害 + 破防（破绽）")
+	wf.fist_qi = 0.0
+	wf.neili = wf.st("max_neili")
+	var q0 := wf.fist_qi
+	for i in 60:
+		wf.step(DT)
+	_check(wf.realm() == GameWorld.Realm.YING and wf.fist_qi > q0 + 3.0, "盈境下每秒自然蓄劲（%.1f）" % wf.fist_qi)
+	_free_world(wf)
+	var wfs := _new_world(75, "kuang_feng")
+	wfs.fist_after_cast(wfs.skills["kuang_feng"])
+	_check(wfs.fist_qi == 0.0, "只有武者蓄劲")
+	_free_world(wfs)
+	# ---- 独孤九剑 9 / 18 / 27 ----
+	var wd := _new_world(76, "dugu")
+	wd.time = 120.0
+	wd.shi = {"zong": 9}
+	wd.props_enabled = false
+	var dg: SwordSkills.Dugu = wd.skills["dugu"]
+	var ea := wd._spawn_enemy("bandit", wd.player_pos + Vector2(120, 0))
+	var eb := wd._spawn_enemy("bandit", wd.player_pos + Vector2(130, 40))
+	for en in [ea, eb]:
+		en.hp = 1e9
+		en.max_hp = 1e9
+		en.speed = 0.0
+	wd._rebuild_grid()
+	dg.cd = 2.0
+	wd.neili = 10.0
+	wd.hit_enemy(ea, 10.0, dg.tags(), Vector2.ZERO, "dugu")
+	_check(dg.wb_count == 0, "只命中 1 名：破兵微步不触发")
+	wd.hit_enemy(eb, 10.0, dg.tags(), Vector2.ZERO, "dugu")
+	_check(dg.wb_count == 1 and is_equal_approx(wd.neili, 11.0) and absf(dg.cd - 1.8) < 0.001, "命中 2 名：返还 1 内力、冷却 −10%%（内力 %.1f，cd %.2f）" % [wd.neili, dg.cd])
+	wd.hit_enemy(ea, 10.0, dg.tags(), Vector2.ZERO, "dugu")
+	wd.hit_enemy(eb, 10.0, dg.tags(), Vector2.ZERO, "dugu")
+	_check(dg.wb_count == 1, "破兵微步每秒最多触发一次")
+	wd.shi = {"zong": 8}
+	dg.wb_cd = 0.0
+	dg.wb_hits.clear()
+	wd.hit_enemy(ea, 10.0, dg.tags(), Vector2.ZERO, "dugu")
+	wd.hit_enemy(eb, 10.0, dg.tags(), Vector2.ZERO, "dugu")
+	_check(dg.wb_count == 1, "总层 < 9 没有破兵微步")
+	# 18：破绽攻防 −30%、斩落普通投射物
+	wd.shi = {"zong": 18}
+	wd.apply_vuln(ea, 0.3)
+	_check(ea.atk_down_t > 3.9 and is_equal_approx(ea.atk_mul(), 0.7) and is_equal_approx(ea.vuln, 0.3), "万法皆破：破绽 4 秒，攻击 −30%、承伤 +30%")
+	var ea2 := wd._spawn_enemy("bandit", wd.player_pos + Vector2(900, 0))
+	wd.shi = {"zong": 9}
+	wd.apply_vuln(ea2, 0.3)
+	_check(ea2.atk_down_t <= 0.0, "总层 < 18 的破绽不降低攻击")
+	wd.shi = {"zong": 18}
+	var arrow := Projectile.new()
+	arrow.hostile = true
+	arrow.cuttable = true
+	arrow.pos = wd.player_pos + Vector2(300, 300)
+	arrow.radius = 7.0
+	arrow.life = 3.0
+	var bossball := Projectile.new()
+	bossball.hostile = true
+	bossball.cuttable = false
+	bossball.pos = arrow.pos
+	bossball.radius = 7.0
+	bossball.life = 3.0
+	wd.projs.append(arrow)
+	wd.projs.append(bossball)
+	var cut := wd.cut_hostile_projs(arrow.pos, 20.0)
+	_check(cut == 1 and arrow.life == 0.0 and bossball.life > 0.0, "斩落普通投射物，Boss 大招弹体不受影响")
+	_check(wd.dugu_can_cut(), "总层 18 起能斩落投射物")
+	wd.shi = {"zong": 9}
+	_check(not wd.dugu_can_cut(), "总层 9 还不能斩落")
+	wd.shi = {"zong": 9, "po_arrow": 1}
+	_check(wd.dugu_can_cut(), "学了破箭式也能斩落")
+	_check(not (Data.shi as Array).any(func(d): return str(d["desc"]).contains("追踪剑气")), "破箭式不再是自动射箭")
+	# 连击几率
+	_check(is_equal_approx(Data.T("dugu_combo2"), 0.45) and is_equal_approx(Data.T("dugu_combo4"), 0.20) and is_equal_approx(Data.T("dugu_combo9"), 0.08), "觉醒连击几率 45% / 20% / 8%")
+	_free_world(wd)
 
 
 func _upgrade_system_test() -> void:

@@ -24,6 +24,8 @@ var is_prop := false       # 可破坏的场景物件（木箱 / 酒坛 / 火盆
 var chain := false       # 被"连锁"点穴：死亡时爆炸
 var vuln := 0.0          # 破绽：受到的伤害额外 +vuln
 var vuln_t := 0.0
+var atk_down := 0.0       # 破绽附带：攻击力降低（万法皆破）
+var atk_down_t := 0.0
 var poison_dps := 0.0    # 中毒（金蛇剑法）：每秒伤害，层数叠加
 var poison_t := 0.0
 var bleed_stacks := 0     # 撕裂（刀客）：层数 / 每秒伤害 / 剩余时间；每层降低目标防御
@@ -79,3 +81,8 @@ var boss_state := "chase"   # chase | windup | charge
 var boss_timer := 0.0
 var bolt_timer := 2.0
 var charge_dir := Vector2.ZERO
+
+
+## 攻击力倍率（被破绽削弱时 < 1）
+func atk_mul() -> float:
+	return 1.0 - atk_down if atk_down_t > 0.0 else 1.0

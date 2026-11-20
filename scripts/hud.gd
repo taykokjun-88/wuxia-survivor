@@ -3,6 +3,7 @@ extends CanvasLayer
 ## HUD：状态条、技能槽、计时、Boss 血条；以及开局选择/升级选择/结算浮层。全部由代码构建。
 
 signal choice_selected(index: int)
+signal reroll_requested
 signal loadout_confirmed(starter_id: String, qinggong_id: String)
 signal character_created(school_id: String)
 signal recreate_requested
@@ -38,6 +39,7 @@ var pause_main: HBoxContainer
 var levelup_panel: Control
 var choice_title: Label
 var choice_buttons: Array[Button] = []
+var reroll_btn: Button
 var loadout_panel: Control
 var create_panel: Control
 var create_portrait: TextureRect
@@ -249,6 +251,13 @@ func _build_levelup() -> void:
 		b.pressed.connect(func(): choice_selected.emit(i))
 		box.add_child(b)
 		choice_buttons.append(b)
+	reroll_btn = _button("另觅机缘", Vector2(260, 44), 18)        # 重抽 3 张升级卡（局外每 5 级 +3 次）
+	reroll_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	reroll_btn.add_theme_stylebox_override("normal", _choice_style(Color("#a8895a"), false))
+	reroll_btn.add_theme_stylebox_override("hover", _choice_style(Color("#d9b46a"), true))
+	reroll_btn.add_theme_stylebox_override("disabled", _choice_style(Color("#4a4338"), false))
+	reroll_btn.pressed.connect(func() -> void: reroll_requested.emit())
+	box.add_child(reroll_btn)
 
 
 func _panel_box() -> Array:
@@ -1723,8 +1732,11 @@ func hide_overlay() -> void:
 		pause_box.visible = false
 
 
-func show_choices(choices: Array, title: String) -> void:
+func show_choices(choices: Array, title: String, rerolls: int = -1) -> void:
 	choice_title.text = title
+	reroll_btn.visible = rerolls >= 0
+	reroll_btn.disabled = rerolls == 0
+	reroll_btn.text = "另觅机缘（剩余 %d 次）　[R]" % rerolls if rerolls > 0 else "另觅机缘（已用尽）"
 	for i in choice_buttons.size():
 		var b := choice_buttons[i]
 		if i < choices.size():
@@ -1968,7 +1980,16 @@ func _draw_hud() -> void:
 		canvas.draw_rect(Rect2(bx, by2, 380, 18), Color(0.1, 0.1, 0.12, 0.6))
 		canvas.draw_rect(Rect2(bx, by2, 380.0 * w.soul / 100.0, 18), Color("#ffd030") if sfull else Color("#e8923a"))
 		canvas.draw_rect(Rect2(bx, by2, 380, 18), Color(0, 0, 0, 0.85), false, 2.0)
-		canvas.draw_string(Data.font_bold if Data.font_bold != null else font, Vector2(bx, by2 + 14.0), "霸刀破岳！下一刀必暴击 ×2.5" if sfull else "刀魂 %d / 100" % int(w.soul), HORIZONTAL_ALIGNMENT_CENTER, 380, 14, Color("#3a1d05") if sfull else Color.WHITE)
+		canvas.draw_string(Data.font_bold if Data.font_bold != null else font, Vector2(bx, by2 + 14.0), "真·霸刀破岳！免耗·双倍回复 %.1fs" % w.tb_t if w.tb_t > 0.0 else ("霸刀 / 破岳！下一刀必暴击 ×2.5" if sfull else ("刀魂 %d / 100" % int(w.soul) + ("　破岳冷却 %ds" % int(ceilf(w.tb_cd)) if w.tb_cd > 0.0 else ""))), HORIZONTAL_ALIGNMENT_CENTER, 380, 14, Color("#3a1d05") if (sfull and w.tb_t <= 0.0) else Color.WHITE)
+	if w.school_id == "fist":                        # 劲力条：屏幕下方居中，文字在条内；满 100 提示寸劲
+		var qfull := w.fist_qi >= 100.0
+		var qx := vw * 0.5 - 190.0
+		var qy := canvas.size.y - 72.0
+		_plate(Rect2(qx - 8.0, qy - 6.0, 396.0, 30.0))
+		canvas.draw_rect(Rect2(qx, qy, 380, 18), Color(0.1, 0.1, 0.12, 0.6))
+		canvas.draw_rect(Rect2(qx, qy, 380.0 * w.fist_qi / 100.0, 18), Color("#7ff5e0") if qfull else Color("#3fb8c8"))
+		canvas.draw_rect(Rect2(qx, qy, 380, 18), Color(0, 0, 0, 0.85), false, 2.0)
+		canvas.draw_string(Data.font_bold if Data.font_bold != null else font, Vector2(qx, qy + 14.0), "寸劲已蓄满！下一击震爆" if qfull else "劲力 %d / 100" % int(w.fist_qi), HORIZONTAL_ALIGNMENT_CENTER, 380, 14, Color("#063038") if qfull else Color.WHITE)
 	# 三境分界线：虚 | 平 | 盈
 	for t in [Data.T("xu_below"), w.ying_at()]:
 		canvas.draw_line(Vector2(16 + 236 * float(t), 52), Vector2(16 + 236 * float(t), 72), Color(1, 1, 1, 0.9), 2.0)
@@ -2043,7 +2064,7 @@ func _draw_hud() -> void:
 				Color("#a0521d") if bool(sy2["harmony"]) else Color("#1f6f6a"))
 			cx += 18.0
 		if w.skills.has("dugu"):
-			canvas.draw_string(font, Vector2(16, ry + (30.0 if not w.xinfa.is_empty() else 0.0) + 14.0), "式 %d/%d　%s" % [w.shi_total(), int(Data.T("shi_stage3")) + 1, _stage_name()],
+			canvas.draw_string(font, Vector2(16, ry + (30.0 if not w.xinfa.is_empty() else 0.0) + 14.0), "式 %d/%d　%s" % [w.shi_total(), int(Data.T("shi_stage3")), _stage_name()],
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 13, GameWorld.VERMILION)
 		canvas.draw_string(font, Vector2(16, plate_h + 22.0 - 6.0), "[Tab] 展开详情", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#7a6a3a"))
 	else:
@@ -2063,7 +2084,7 @@ func _draw_hud() -> void:
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 14, GameWorld.VERMILION if star != "" else Color("#6a5a3a"))
 			y += ICON + 14.0
 		if w.skills.has("dugu"):
-			canvas.draw_string(font, Vector2(16, y + 8.0), "式 总层 %d（>%d 万法皆破 · >%d 真·独孤九剑）" % [w.shi_total(), int(Data.T("shi_stage2")), int(Data.T("shi_stage3"))],
+			canvas.draw_string(font, Vector2(16, y + 8.0), "式 总层 %d（≥%d 破兵微步 · ≥%d 万法皆破 · ≥%d 真·独孤九剑）" % [w.shi_total(), int(Data.T("shi_stage1")), int(Data.T("shi_stage2")), int(Data.T("shi_stage3"))],
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 12, GameWorld.VERMILION)
 			y += 28.0
 			for sid in w.shi:
@@ -2115,4 +2136,4 @@ func _stage_name() -> String:
 	match world.dugu_stage():
 		3: return "真·独孤九剑"
 		2: return "万法皆破"
-	return "初窥门径"
+	return "破兵微步" if world.dugu_micro() else "初窥门径"

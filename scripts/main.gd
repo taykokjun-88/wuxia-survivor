@@ -19,6 +19,8 @@ var world: GameWorld
 var cam: Camera2D
 var hud: GameHud
 var choices: Array = []
+var choice_title := ""
+var choice_is_chest := false
 
 
 func _ready() -> void:
@@ -33,6 +35,7 @@ func _ready() -> void:
 	add_child(hud)
 	hud.setup(world)
 	hud.choice_selected.connect(_on_choice)
+	hud.reroll_requested.connect(_on_reroll)
 	hud.loadout_confirmed.connect(_on_loadout)
 	hud.character_created.connect(_on_created)
 	hud.recreate_requested.connect(_on_recreate)
@@ -151,6 +154,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				var idx := int(event.keycode) - int(KEY_1)
 				if idx >= 0 and idx < 3:
 					_on_choice(idx)
+				elif event.keycode == KEY_R:
+					_on_reroll()
 		State.MODAL:
 			if event.is_action_pressed("ui_cancel"):
 				_close_modal()
@@ -324,6 +329,7 @@ func _on_loadout(starter_id: String, qinggong_id: String) -> void:
 	if state != State.LOADOUT:
 		return
 	Build.apply_to(world, Save.meta_alloc(), Save.meta_talents(), Save.equip(), Save.school())
+	world.meta_level = int(Meta.progress(Save.meta_exp())["level"])
 	world.start_run(starter_id, qinggong_id, current_map, hud.difficulty_factors())
 	hud.hide_loadout()
 	_show_game(true)
@@ -338,12 +344,26 @@ func _on_loadout(starter_id: String, qinggong_id: String) -> void:
 func _check_pending() -> void:
 	if world.pending_chests > 0:
 		choices = world.roll_chest_choices()
-		hud.show_choices(choices, "击败小 Boss，获得秘籍！选择本局的专属强化（按 1 / 2 / 3 或点击）")
+		choice_is_chest = true
+		choice_title = "击败小 Boss，获得秘籍！选择本局的专属强化（按 1 / 2 / 3 或点击）"
+		hud.show_choices(choices, choice_title)
 		state = State.CHOOSE
 	elif world.pending_levels > 0:
 		choices = world.roll_choices()
-		hud.show_choices(choices, "突破！选择一项领悟（按 1 / 2 / 3 或点击）")
+		choice_is_chest = false
+		var has_rr := GameWorld.rerolls_for_level(world.meta_level) > 0
+		choice_title = "突破！选择一项领悟（按 1 / 2 / 3 或点击" + ("；R = 另觅机缘）" if has_rr else "）")
+		hud.show_choices(choices, choice_title, world.rerolls_left if has_rr else -1)
 		state = State.CHOOSE
+
+
+## 另觅机缘：重抽这一轮的升级卡（秘籍选卡不可重抽）
+func _on_reroll() -> void:
+	if state != State.CHOOSE or choice_is_chest or not world.can_reroll():
+		return
+	Sfx.play("card_pick", 0.05, -1.0)
+	choices = world.use_reroll(choices)
+	hud.show_choices(choices, choice_title, world.rerolls_left)
 
 
 func _on_choice(i: int) -> void:

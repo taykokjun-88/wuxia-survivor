@@ -64,6 +64,15 @@ var soul := 0.0                    # 刀魂（刀客，0~100）
 var soul_idle := 0.0
 var tulong_equipped := false         # 装备了传说「屠龙宝刀」（光明顶彩蛋）
 var tulong_on := false               # 彩蛋已触发：无视 50% 防御、护盾双倍伤害、破盾后易伤
+var cut_count := 0                 # 本局斩落的敌方投射物数量（独孤九剑）
+var fist_qi := 0.0                 # 武者蓄劲（0~100）
+var fist_qi_crit_t := 0.0
+var cunjin_count := 0              # 本局寸劲震爆次数
+var meta_level := 1                # 局外等级（由 main 在开局前设置；决定「另觅机缘」次数）
+var rerolls_left := 0              # 另觅机缘：本局剩余次数
+var rerolls_used := 0
+var tb_t := 0.0                    # 真·霸刀破岳：剩余持续时间（>0 = 生效中）
+var tb_cd := 0.0                   # 真·霸刀破岳：冷却（状态结束后才开始倒计时）
 var baodao := false                # 本次出手是「霸刀破岳」
 var baodao_ctx := false            # 弹体 / 区域命中结算时的破岳标记
 var dash_end_t := -99.0
@@ -222,6 +231,14 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	tulong_on = false
 	baodao = false
 	baodao_ctx = false
+	fist_qi = 0.0
+	fist_qi_crit_t = 0.0
+	cunjin_count = 0
+	cut_count = 0
+	tb_t = 0.0
+	tb_cd = 0.0
+	rerolls_left = rerolls_for_level(meta_level)
+	rerolls_used = 0
 	dash_end_t = -99.0
 	atk_buff_t = 0.0
 	pills.clear()
@@ -543,7 +560,12 @@ func _update_player(dt: float) -> void:
 	since_hit += dt
 	stealth_t = maxf(0.0, stealth_t - dt)
 	buff_t = maxf(0.0, buff_t - dt)
-	if school_id == "blade":                       # 刀魂：脱战一会儿后衰减
+	if school_id == "fist":                        # 蓄劲：盈境下自然蓄劲
+		fist_qi_crit_t = maxf(0.0, fist_qi_crit_t - dt)
+		if realm() == Realm.YING:
+			fist_qi = minf(100.0, fist_qi + Data.T("fist_qi_ying") * dt)
+	if school_id == "blade":
+		_tick_true_blade(dt)
 		soul_idle += dt
 		if soul_idle > Data.T("blade_soul_delay"):
 			soul = maxf(0.0, soul - Data.T("blade_soul_decay") * dt)
@@ -603,7 +625,7 @@ func _update_player(dt: float) -> void:
 	if rl == Realm.YING:
 		regen -= Data.T("ying_leak") * max_n      # 真气外放：盈境每秒外泄一点，防止囤着不用
 	neili = clampf(neili + regen * dt, 0.0, max_n)
-	var hr := st("hp_regen") + (st("full_hp_regen") if neili >= max_n - 0.01 else 0.0)
+	var hr := (st("hp_regen") + (st("full_hp_regen") if neili >= max_n - 0.01 else 0.0)) * heal_mult()
 	hp = minf(st("max_hp"), hp + hr * dt)
 	if since_hit > 2.0 and shield < st("shield_max"):
 		shield = minf(st("shield_max"), shield + st("shield_regen") * dt)
@@ -1039,6 +1061,7 @@ func _update_enemies(dt: float) -> void:
 		e.slow_t = maxf(0.0, e.slow_t - dt)
 		e.weak_fx = maxf(0.0, e.weak_fx - dt)
 		e.vuln_t = maxf(0.0, e.vuln_t - dt)
+		e.atk_down_t = maxf(0.0, e.atk_down_t - dt)
 		if e.poison_t > 0.0:
 			e.poison_t -= dt
 			e.poison_acc += dt
@@ -1112,7 +1135,7 @@ func _update_enemies(dt: float) -> void:
 			e.pos = map_art.push_out(e.pos, e.radius * 0.8)
 		e.knock *= maxf(0.0, 1.0 - 7.0 * dt)
 		if e.stun <= 0.0 and d < e.radius + PLAYER_RADIUS and invuln <= 0.0:
-			_hurt(e.damage)
+			_hurt(e.damage * e.atk_mul())
 			if e.touch_slow > 0.0:
 				player_slow_t = maxf(player_slow_t, e.touch_slow)
 				add_fx("ring", player_pos, 0.35, {"r0": 6.0, "r1": 20.0, "color": Color("#9ad8ff"), "vfx": "fx_minion_frost", "size": 64.0})
@@ -1159,7 +1182,8 @@ func _boss_radial(e: Enemy, n: int) -> void:
 		p.vel = Vector2.from_angle(a) * 240.0
 		p.angle = a
 		p.radius = 9.0
-		p.damage = 14.0
+		p.damage = 14.0 * e.atk_mul()
+		p.cuttable = true          # 杂兵的弓箭 / 剑气：独孤九剑可以斩落
 		p.pierce = 1
 		p.life = 4.0
 		projs.append(p)
@@ -1236,7 +1260,7 @@ func _kill(e: Enemy) -> void:
 	kills += 1
 	neili = minf(st("max_neili"), neili + st("kill_neili"))
 	if st("kill_hp") > 0.0:
-		hp = minf(st("max_hp"), hp + st("kill_hp"))
+		hp = minf(st("max_hp"), hp + st("kill_hp") * heal_mult())
 	_drop_gem(e.pos, e.exp_value)
 	if not e.is_boss and not e.is_elite:
 		_maybe_drop_absorb(e.pos)
@@ -1370,8 +1394,13 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 	if hs > 0.0:
 		slow_enemy(e, 1.0 - minf(0.6, hs), 1.5)
 	if sk != null and float(sk.mods["heal"]) > 0.0:
-		hp = minf(st("max_hp"), hp + minf(0.6, amount * float(sk.mods["heal"])))       # 吸血要克制：每次命中最多回 0.6
+		hp = minf(st("max_hp"), hp + minf(0.6 * heal_mult(), amount * float(sk.mods["heal"]) * heal_mult()))       # 吸血要克制：每次命中最多回 0.6
 	skill_dmg[sid] = float(skill_dmg.get(sid, 0.0)) + amount
+	if sid == "dugu" and sk is SwordSkills.Dugu:
+		(sk as SwordSkills.Dugu).note_hit(e)
+	if crit and school_id == "fist" and sk != null and not sk.free_cast and fist_qi_crit_t <= 0.0:       # 暴击多攒一点（每 0.3 秒最多一次）
+		fist_qi = minf(100.0, fist_qi + Data.T("fist_qi_crit") - Data.T("fist_qi_cast"))
+		fist_qi_crit_t = 0.3
 	if school_id == "blade" and sk != null and not sk.free_cast:
 		add_soul(Data.T("blade_soul_crit") if crit else Data.T("blade_soul_hit"))
 	if sk != null and not sk.link_flags.is_empty():              # 心法同修的特殊效果
@@ -1582,6 +1611,8 @@ func _update_projectiles(dt: float) -> void:
 				p.vel = p.vel.rotated(rot)
 				p.angle = p.vel.angle()
 		p.pos += p.vel * dt
+		if not p.hostile and p.skill_id == "dugu" and dugu_can_cut():
+			cut_hostile_projs(p.pos, p.radius + Data.T("dugu_cut_base") + Data.T("dugu_cut_lv") * float(shi.get("po_arrow", 0)))
 		var keep := p.life > 0.0
 		if keep and map_art != null and map_art.has_blockers and map_art.blocked(p.pos, p.radius * 0.5):
 			keep = false                                # 弹体撞上残墙 / 石柱消失
@@ -1902,7 +1933,32 @@ func roll_chest_choices() -> Array:
 
 
 ## 升级三选一：已有技能/心法的升级，以及槽位未满时的新技能/新心法。
-func roll_choices(n: int = 3) -> Array:
+## 另觅机缘：局外等级每满 5 级，局内多 3 次重抽升级卡
+static func rerolls_for_level(lv: int) -> int:
+	return int(lv / 5) * 3
+
+
+func can_reroll() -> bool:
+	return rerolls_left > 0
+
+
+## 消耗一次「另觅机缘」，重新抽 3 张升级卡（尽量避开刚才展示的）；不消耗升级机会
+func use_reroll(prev: Array) -> Array:
+	if rerolls_left <= 0:
+		return prev
+	rerolls_left -= 1
+	rerolls_used += 1
+	var avoid: Array = []
+	for c: Dictionary in prev:
+		avoid.append(_choice_key(c))
+	return roll_choices(3, avoid)
+
+
+func _choice_key(c: Dictionary) -> String:
+	return "%s|%s|%s|%s" % [c.get("kind", ""), c.get("id", ""), c.get("dir", ""), c.get("tier", "")]
+
+
+func roll_choices(n: int = 3, avoid: Array = []) -> Array:
 	var pool: Array = []
 	var dugu_route := skills.has("dugu")
 	var shi_pool: Array = shi_cards(2, int(Data.T("shi_card_gain")), "level") if dugu_route else []
@@ -1950,6 +2006,12 @@ func roll_choices(n: int = 3) -> Array:
 				"desc": str(def2["desc"]) + _link_hint(id) + _synergy_hint(id),
 			})
 	_shuffle(pool)
+	if not avoid.is_empty() and pool.size() > n:      # 重抽：刚展示过的卡放到最后面（抽不到别的时才会再出现）
+		var seen: Array = []
+		var fresh: Array = []
+		for c: Dictionary in pool:
+			(seen if avoid.has(_choice_key(c)) else fresh).append(c)
+		pool = seen + fresh
 	var out: Array = shi_pool.duplicate()    # 独孤九剑：每次至少两张「式」
 	while out.size() < n and not pool.is_empty():
 		out.append(pool.pop_back())
@@ -2386,7 +2448,7 @@ func run_summary() -> Dictionary:
 		"won": won, "seconds": int(time), "level": level, "kills": kills, "bosses": bosses_killed,
 		"school": school_id, "map": map_id, "difficulty": {"count": int(round(float(difficulty["count"]) * 100.0)), "hp": int(round(float(difficulty["hp"]) * 100.0)), "speed": int(round(float(difficulty["speed"]) * 100.0))}, "starter": starter_id, "qinggong": qinggong_id,
 		"enhance": "%s:%d" % [enhance_id, enhance_level] if enhance_id != "" else "",
-		"build": build, "version": str(ProjectSettings.get_setting("application/config/version", "0")),
+		"rerolls": rerolls_used, "cunjin": cunjin_count, "build": build, "version": str(ProjectSettings.get_setting("application/config/version", "0")),
 	}
 
 
@@ -2442,6 +2504,14 @@ func _draw_player() -> void:
 		draw_circle(player_pos + Vector2(0, 9), 10.0, Color(0, 0, 0, 0.12))
 	if school_id == "blade" and soul >= 100.0 and vfx.has("fx_blade_soul_aura"):      # 刀魂满：脚下一圈火环
 		vfx.draw(self, "fx_blade_soul_aura", vfx.frame_loop("fx_blade_soul_aura", time), player_pos + Vector2(0, 10), 130.0, 0.0, Color(1, 1, 1, 0.75))
+	if school_id == "blade" and tb_t > 0.0:          # 真·霸刀破岳：赤红 + 耀金脉动光环
+		var pu := 0.5 + 0.5 * sin(time * 9.0)
+		draw_circle(player_pos + Vector2(0, 8), 34.0 + 6.0 * pu, Color(1.0, 0.25, 0.1, 0.16))
+		draw_arc(player_pos + Vector2(0, 8), 28.0 + 8.0 * pu, 0.0, TAU, 32, Color("#ff5a28", 0.75), 3.0)
+		draw_arc(player_pos + Vector2(0, 8), 40.0 + 10.0 * pu, 0.0, TAU, 32, Color("#ffd24a", 0.55), 2.0)
+		for k in 6:
+			var an := time * 2.2 + float(k) * TAU / 6.0
+			draw_circle(player_pos + Vector2(0, 8) + Vector2(cos(an), sin(an)) * (46.0 + 4.0 * pu), 2.4, Color("#ffd24a", 0.8))
 	if dugu_true() and vfx.has("awaken_aura"):
 		vfx.draw(self, "awaken_aura", vfx.frame_loop("awaken_aura", time), player_pos + Vector2(0, 8), 120.0, 0.0, Color(1, 1, 1, 0.6))
 	if realm() == Realm.YING:
@@ -2532,6 +2602,9 @@ func apply_vuln(e: Enemy, v: float, spread: bool = false) -> void:
 		add_fx("text", e.pos + Vector2(0, -e.radius - 14), 0.85, {"text": "破绽", "size": 22, "color": JADE})
 	e.vuln = maxf(e.vuln if e.vuln_t > 0.0 else 0.0, v)
 	e.vuln_t = t
+	if dugu_stage() >= 2:                         # 万法皆破：破绽同时削弱敌人的攻击
+		e.atk_down = Data.T("dugu_atk_down")
+		e.atk_down_t = t
 	if spread:
 		var nb := _nearest_from(e.pos, 170.0, {e.uid: true})
 		if nb != null:
@@ -2546,6 +2619,69 @@ func add_soul(n: float) -> void:
 		return
 	soul = minf(100.0, soul + n)
 	soul_idle = 0.0
+
+
+## 真·霸刀破岳：气血 ≤ 20% 时触发，持续 10 秒（刀招不耗血、回复翻倍）；冷却 30 秒从状态结束后才开始算；每帧检查
+func _tick_true_blade(dt: float) -> void:
+	if tb_t > 0.0:
+		tb_t -= dt
+		if tb_t <= 0.0:
+			tb_t = 0.0
+			tb_cd = Data.T("true_blade_cd")
+			add_fx("text", player_pos + Vector2(0, -52), 0.9, {"text": "破岳之势已尽", "size": 22, "color": Color("#c9a227")})
+	elif tb_cd > 0.0:
+		tb_cd = maxf(0.0, tb_cd - dt)
+	elif hp > 0.0 and not over and hp <= st("max_hp") * Data.T("true_blade_hp_pct"):
+		tb_t = Data.T("true_blade_dur")
+		invuln = maxf(invuln, Data.T("true_blade_invuln"))
+		add_fx("text", player_pos + Vector2(0, -60), 1.6, {"text": "真·霸刀破岳！", "size": 34, "color": Color("#ff6030")})
+		add_fx("ring", player_pos, 0.8, {"r0": 10.0, "r1": 240.0, "color": Color("#ff6030")})
+		shake = maxf(shake, 9.0)
+		Sfx.play("burst_break")
+
+
+## 回复倍率（真·霸刀破岳期间：吸血 / 击杀回血 / 自然回复都翻倍）
+func heal_mult() -> float:
+	return Data.T("true_blade_heal_mult") if tb_t > 0.0 else 1.0
+
+
+## 蓄劲：每次出手（不管打中几只）攒劲；满 100 后下一次出手打出「寸劲震爆」
+func fist_after_cast(s: SkillBase) -> void:
+	if school_id != "fist" or s.free_cast or str(s.def.get("school", "")) != "fist":
+		return
+	if fist_qi >= 100.0:
+		_cunjin(s)
+	else:
+		fist_qi = minf(100.0, fist_qi + Data.T("fist_qi_cast"))
+
+
+func _cunjin(s: SkillBase) -> void:
+	var t := nearest_enemy(420.0)
+	var center := t.pos if t != null else player_pos + facing_dir() * 90.0
+	var r := Data.T("fist_qi_radius")
+	var base := s.p("damage") * Data.T("fist_qi_mult")
+	for e in _query(center, r):
+		if not e.alive:
+			continue
+		var d := e.pos.distance_to(center)
+		if d >= r + e.radius:
+			continue
+		var out := (e.pos - center) / d if d > 0.01 else Vector2.from_angle(rng.randf() * TAU)
+		hit_enemy(e, base, s.tags(), out * Data.T("fist_qi_knock"), s.id)
+		if e.alive and not e.is_prop:
+			apply_vuln(e, Data.T("fist_qi_vuln"))
+	fist_qi = 0.0
+	cunjin_count += 1
+	add_fx("ring", center, 0.5, {"r0": 14.0, "r1": r, "color": Color("#5fe8d0"), "vfx": "burst_gold", "size": r * 2.2})
+	add_fx("ring", center, 0.3, {"r0": 6.0, "r1": r * 0.6, "color": GOLD})
+	add_fx("text", player_pos + Vector2(0, -52), 1.0, {"text": "寸劲震爆！", "size": 30, "color": Color("#5fe8d0")})
+	shake = maxf(shake, 8.0)
+	Sfx.play("fist_quake", 0.04, 0.0)
+	Sfx.play("armor_break", 0.04, -3.0)
+
+
+func facing_dir() -> Vector2:
+	return facing.normalized() if facing.length() > 0.1 else Vector2.RIGHT
 
 
 func blade_dmg() -> float:
@@ -2571,7 +2707,7 @@ func baodao_done() -> void:
 	soul_idle = 0.0
 	var heal := (st("max_hp") - hp) * Data.T("blade_break_heal")
 	hp = minf(st("max_hp"), hp + heal)
-	add_fx("text", player_pos + Vector2(0, -52), 1.0, {"text": "霸刀破岳！", "size": 30, "color": Color("#ffb030")})
+	add_fx("text", player_pos + Vector2(0, -52), 1.0, {"text": "霸刀！" if rng.randf() < 0.5 else "破岳！", "size": 30, "color": Color("#ffb030")})
 	shake = maxf(shake, 7.0)
 	Sfx.play("burst_break")
 
@@ -2621,14 +2757,39 @@ func shi_total() -> int:
 	return t
 
 
-## 独孤九剑形态：0 = 没走独孤路线；1 = 起手；2 = 万法皆破（总层 > 20）；3 = 真·独孤九剑（总层 > 30）
+## 独孤九剑形态：0 = 没走独孤路线；1 = 起手（≥9 另有「破兵微步」）；2 = 万法皆破（总层 ≥ 18）；3 = 真·独孤九剑（总层 ≥ 27）
 func dugu_stage() -> int:
 	if not skills.has("dugu"):
 		return 0
 	var t := shi_total()
-	if t > int(Data.T("shi_stage3")):
+	if t >= int(Data.T("shi_stage3")):
 		return 3
-	return 2 if t > int(Data.T("shi_stage2")) else 1
+	return 2 if t >= int(Data.T("shi_stage2")) else 1
+
+
+## 总层 ≥ 9：「破兵微步」
+func dugu_micro() -> bool:
+	return skills.has("dugu") and shi_total() >= int(Data.T("shi_stage1"))
+
+
+## 能否斩落敌方普通投射物（万法皆破起；或学了破箭式）
+func dugu_can_cut() -> bool:
+	return skills.has("dugu") and (dugu_stage() >= 2 or int(shi.get("po_arrow", 0)) > 0)
+
+
+## 斩落 center 周围 radius 内的敌方普通投射物（Boss 大招除外），返回斩落数量
+func cut_hostile_projs(center: Vector2, radius: float) -> int:
+	var n := 0
+	for h in projs:
+		if h.hostile and h.cuttable and h.life > 0.0 and h.pos.distance_to(center) < radius + h.radius:
+			h.life = 0.0
+			n += 1
+			if effects.size() < MAX_EFFECTS:
+				add_fx("ring", h.pos, 0.2, {"r0": 3.0, "r1": 18.0, "color": Color("#bfe8ff")})
+	if n > 0:
+		cut_count += n
+		Sfx.play("hit_crit", 0.06, -6.0)
+	return n
 
 
 func dugu_true() -> bool:
@@ -2653,9 +2814,12 @@ func add_shi(id: String, n: int) -> int:
 	if not shi.has(id) and shi.size() >= int(Data.T("shi_kinds")):
 		return 0
 	var old_stage := dugu_stage()
+	var old_micro := dugu_micro()
 	var old := int(shi.get(id, 0))
 	shi[id] = mini(cap, old + n)
 	var stage := dugu_stage()
+	if dugu_micro() and not old_micro:
+		add_fx("text", player_pos + Vector2(0, -60), 1.8, {"text": "破兵微步", "size": 26, "color": Color("#bfe8ff")})
 	if stage > old_stage and stage >= 2:
 		var txt := "万法皆破" if stage == 2 else "九剑真传"
 		add_fx("text", player_pos + Vector2(0, -60), 2.4, {"text": txt, "size": 30, "color": VERMILION})
@@ -2668,6 +2832,11 @@ func add_shi(id: String, n: int) -> int:
 	return int(shi[id]) - old
 
 
+## 「式」的说明：普通形态（飞剑）+ 觉醒后（≥27 层，近战）的效果
+func _shi_desc(d: Dictionary) -> String:
+	return "普通：%s\n觉醒：%s" % [d["desc"], d.get("awaken", "同样生效")]
+
+
 ## 独孤九剑的「式」卡牌：已学的提升、新式（总共最多 4 种）。gain：本次领悟的层数
 func shi_cards(n: int, gain: int, src: String) -> Array:
 	var pool: Array = []
@@ -2678,10 +2847,10 @@ func shi_cards(n: int, gain: int, src: String) -> Array:
 		if lv > 0:
 			if lv < cap:
 				pool.append({"kind": "shi_up", "id": id, "gain": gain, "tag": "式", "src": src,
-					"title": "%s Lv%d→%d" % [d["name"], lv, mini(cap, lv + gain)], "desc": str(d["desc"])})
+					"title": "%s Lv%d→%d" % [d["name"], lv, mini(cap, lv + gain)], "desc": _shi_desc(d)})
 		elif shi.size() < int(Data.T("shi_kinds")):
 			pool.append({"kind": "shi_new", "id": id, "gain": gain, "tag": "新式", "src": src,
-				"title": "领悟：%s" % d["name"], "desc": str(d["desc"])})
+				"title": "领悟：%s" % d["name"], "desc": _shi_desc(d)})
 	_shuffle(pool)
 	var out: Array = []
 	while out.size() < n and not pool.is_empty():

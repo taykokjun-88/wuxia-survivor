@@ -188,6 +188,7 @@ func tick(dt: float) -> void:
 			cd = p("cooldown") * w.cd_mult()
 			cd_total = cd
 			_after_fire()
+			w.fist_after_cast(self)
 			if bd:
 				w.baodao_done()
 		else:

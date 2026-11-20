@@ -13,6 +13,7 @@ var life := 1.0
 var kind := "bolt"      # wave | bolt | palm | finger
 var knock := 0.0
 var hostile := false
+var cuttable := false     # 敌方普通投射物（弓箭 / 小剑气）：独孤九剑可以斩落；Boss 大招不行
 var angle := 0.0
 var hit := {}           # 已命中敌人 uid，避免同一弹体重复伤害
 
