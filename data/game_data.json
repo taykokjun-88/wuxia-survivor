@@ -44,7 +44,10 @@
     "armor_pierce": 0,
     "ji_fist": 0,
     "ji_sword": 0,
-    "ji_blade": 0
+    "ji_blade": 0,
+    "qi_gain": 0,
+    "soul_gain": 0,
+    "kill_hp": 0
   },
   "tuning": {
     "spawn_base": 1.0,
@@ -163,7 +166,8 @@
     "dugu_cut_base": 14.0,
     "dugu_cut_lv": 4.0,
     "fist_ult_dur": 10.0,
-    "fist_ult_true": 0.3
+    "fist_ult_true": 0.3,
+    "boss_vuln_mult": 0.5
   },
   "skills": {
     "yue_palm": {
@@ -2900,14 +2904,15 @@
               "name": "断岳手甲",
               "base": {
                 "damage_pct": 0.03,
-                "crit_mult": 0.05
+                "crit_mult": 0.05,
+                "qi_gain": 0.06
               }
             },
             {
               "name": "金刚指环",
               "base": {
                 "damage_pct": 0.025,
-                "armor": 0.5
+                "qi_gain": 0.12
               }
             },
             {
@@ -2998,14 +3003,15 @@
               "name": "君子剑",
               "base": {
                 "damage_pct": 0.03,
-                "neili_regen": 0.8
+                "speed_pct": 0.02
               }
             },
             {
               "name": "淑女剑",
               "base": {
                 "damage_pct": 0.025,
-                "hp_regen": 0.2
+                "dodge_chance": 0.015,
+                "speed_pct": 0.01
               }
             },
             {
@@ -3028,7 +3034,8 @@
               "name": "鬼头大环刀",
               "base": {
                 "damage_pct": 0.03,
-                "max_hp": 8
+                "max_hp": 8,
+                "soul_gain": 0.06
               }
             },
             {
@@ -3063,14 +3070,15 @@
               "name": "赤焰燃木刀",
               "base": {
                 "damage_pct": 0.03,
-                "neili_regen": 0.8
+                "kill_hp": 0.05
               }
             },
             {
               "name": "血海魔刀",
               "base": {
                 "damage_pct": 0.03,
-                "hp_regen": 0.2
+                "hp_regen": 0.2,
+                "soul_gain": 0.1
               }
             },
             {
@@ -3192,7 +3200,7 @@
       },
       {
         "id": "pants",
-        "name": "裤子",
+        "name": "下半身",
         "items": [
           {
             "name": "束脚布裤",
@@ -3341,7 +3349,7 @@
       },
       {
         "id": "charm",
-        "name": "饰品",
+        "name": "配饰",
         "items": [
           {
             "name": "平安玉佩",

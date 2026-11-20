@@ -288,7 +288,7 @@ class Dugu extends SkillBase:
 			cd -= dt
 			if cd <= 0.0:
 				if _begin_true():
-					cd = Data.T("dugu_true_cd") * w.cd_mult()
+					cd = Data.T("dugu_true_cd") * w.cd_mult() * maxf(0.35, 1.0 - float(mods["cooldown"]))
 					cd_total = cd
 				else:
 					cd = 0.1

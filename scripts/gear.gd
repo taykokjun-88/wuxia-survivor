@@ -1,6 +1,6 @@
 class_name Gear
 extends RefCounted
-## 装备：大 Boss 掉落，只会是本流派的。五个部位（武器 / 上衣 / 裤子 / 鞋子 / 饰品），五档稀有度。
+## 装备：大 Boss 掉落，只会是本流派的。五个部位（武器 / 上衣 / 下半身 / 鞋子 / 配饰），五档稀有度。
 ## 一件装备只用一个编码 "部位.稀有度.种子" 表示，属性和词条由种子确定地生成（服务器只发编码、客户端展开），
 ## 所以服务器不需要懂装备属性，客户端也没法凭空造出更好的装备（服务器只认自己发过的编码）。
 ##
@@ -164,7 +164,14 @@ static func discard_silver(rarity: int) -> int:
 
 static func _roll_affix(rng: RandomNumberGenerator, school_id: String, mult: float, rarity: int, used: Dictionary) -> Dictionary:
 	if rng.randf() < float(Data.gear["affix_xinfa_chance"]):
-		var ids: Array = Data.xinfa.keys()
+		var ids: Array = []
+		for xid in Data.xinfa:                       # 只出能强化本流派招式的心法（同修里有本流派的招式）
+			for sid2 in Data.xinfa[xid]["skills"]:
+				if str(Data.skills[sid2]["school"]) == school_id:
+					ids.append(xid)
+					break
+		if ids.is_empty():
+			ids = Data.xinfa.keys()
 		var id: String = ids[rng.randi() % ids.size()]
 		if not used.has("x" + id):
 			used["x" + id] = true
@@ -206,6 +213,7 @@ const STAT_NAMES := {
 	"pickup_heal": ["拾取回血", false], "med_regen": ["入定回气", false], "ying_dmg": ["盈境伤害", true],
 	"speed_pct": ["移速", true], "qg_cd_reduce": ["轻功冷却缩减", true], "crit_chance": ["暴击", true], "max_neili": ["内力上限", false],
 	"cd_reduce": ["冷却缩减", true], "luck": ["福缘", true], "exp_pct": ["经验", true],
+	"armor_pierce": ["破防", true], "kill_hp": ["击杀回血", false], "qi_gain": ["蓄劲速度", true], "soul_gain": ["刀魂增长", true],
 }
 
 

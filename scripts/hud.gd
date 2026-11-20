@@ -82,6 +82,8 @@ var gear_panel: Control
 var gear_equip: Dictionary = {}
 var gear_discard: Array = []
 var gear_drop_mode := false
+var gear_tab := ""                 # 背包分类：""=全部 / weapon / coat / pants / boots / charm
+var smith_tab := ""
 var gear_status: Label
 var smith_panel: Control
 var smith_status: Label
@@ -1271,6 +1273,26 @@ func set_gear_status(msg: String, is_error: bool) -> void:
 		gear_status.add_theme_color_override("font_color", Color("#f08070") if is_error else Color("#9ad0a0"))
 
 
+## 背包分类页签：全部 / 武器 / 上衣 / 下半身 / 鞋子 / 配饰（括号里是该类件数）
+func _slot_tabs(codes: Array, current: String, on_pick: Callable) -> HBoxContainer:
+	var row := _center_row(6)
+	var counts := {}
+	for c in codes:
+		var sl := str(Gear.parse(str(c)).get("slot", ""))
+		counts[sl] = int(counts.get(sl, 0)) + 1
+	var defs: Array = [["", "全部", codes.size()]]
+	for slot in Gear.slot_ids():
+		defs.append([slot, str(Gear.slot_def(slot)["name"]), int(counts.get(slot, 0))])
+	for dd in defs:
+		var b := _button("%s（%d）" % [dd[1], dd[2]], Vector2(132, 36), 16)
+		b.toggle_mode = true
+		b.button_pressed = current == str(dd[0])
+		var key := str(dd[0])
+		b.pressed.connect(func() -> void: on_pick.call(key))
+		row.add_child(b)
+	return row
+
+
 func _gear_refresh() -> void:
 	_build_gear()
 	gear_panel.visible = true
@@ -1358,8 +1380,13 @@ func _build_gear() -> void:
 	inv.sort_custom(func(a, b): return int(Gear.parse(a)["rarity"]) > int(Gear.parse(b)["rarity"]))
 	box.add_child(_label("背包 %d / %d%s" % [inv.size(), int(Data.gear["inventory_max"]), "　【丢弃模式：点击装备即丢弃，保存后生效】" if gear_drop_mode else "　点击装备穿上"], 18,
 		Color("#f08070") if gear_drop_mode else Color("#c9a227")))
+	box.add_child(_slot_tabs(inv, gear_tab, func(k: String) -> void:
+		gear_tab = k
+		_gear_refresh()))
+	if gear_tab != "":
+		inv = inv.filter(func(c) -> bool: return str(Gear.parse(str(c))["slot"]) == gear_tab)
 	var sc := ScrollContainer.new()
-	sc.custom_minimum_size = Vector2(1210, 250)
+	sc.custom_minimum_size = Vector2(1210, 214)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	var grid := GridContainer.new()
 	grid.columns = 2
@@ -1368,7 +1395,7 @@ func _build_gear() -> void:
 	sc.add_child(grid)
 	box.add_child(sc)
 	if inv.is_empty():
-		grid.add_child(_label("还没有装备。通关一次（击败大 Boss）就会掉落。", 16, Color("#8d8670")))
+		grid.add_child(_label("还没有装备。通关一次（击败大 Boss）就会掉落。" if gear_tab == "" else "这一类还没有装备。", 16, Color("#8d8670")))
 	for c in inv:
 		var bt2 := _gear_button(str(c), 596, 52)
 		if gear_equip.values().has(c):
@@ -1415,8 +1442,13 @@ func show_smith(msg: String = "") -> void:
 		if wa != wb:
 			return wa > wb
 		return int(Gear.parse(a)["rarity"]) > int(Gear.parse(b)["rarity"]))
+	box.add_child(_slot_tabs(inv, smith_tab, func(k: String) -> void:
+		smith_tab = k
+		show_smith()))
+	if smith_tab != "":
+		inv = inv.filter(func(c) -> bool: return str(Gear.parse(str(c))["slot"]) == smith_tab)
 	var sc := ScrollContainer.new()
-	sc.custom_minimum_size = Vector2(1210, 380)
+	sc.custom_minimum_size = Vector2(1210, 340)
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	var grid := GridContainer.new()
 	grid.columns = 2
@@ -1425,7 +1457,7 @@ func show_smith(msg: String = "") -> void:
 	sc.add_child(grid)
 	box.add_child(sc)
 	if inv.is_empty():
-		grid.add_child(_label("背包里还没有装备。通关一次（击败大 Boss）就会掉落。", 16, Color("#8d8670")))
+		grid.add_child(_label("背包里还没有装备。通关一次（击败大 Boss）就会掉落。" if smith_tab == "" else "这一类还没有装备。", 16, Color("#8d8670")))
 	for c in inv:
 		var code := str(c)
 		var lv := Save.enh_level(code)

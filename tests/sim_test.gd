@@ -1693,6 +1693,67 @@ func _enhance_rework_test() -> void:
 ## 计划书 6：另觅机缘 / 真·霸刀破岳 / 蓄劲 / 独孤九剑 9-18-27
 func _plan6_test() -> void:
 	print("\n=== 计划书 6：另觅机缘 / 真·霸刀破岳 / 蓄劲 / 独孤九剑 ===")
+	# ---- Boss 只吃破绽效果的一半 ----
+	var wbv := _new_world(98, "dugu")
+	wbv.shi = {"zong": 18}
+	var nb1 := wbv._spawn_enemy("bandit", wbv.player_pos + Vector2(900, 0))
+	var bb1 := wbv._spawn_enemy("bandit", wbv.player_pos + Vector2(900, 100))
+	bb1.is_boss = true
+	wbv.apply_vuln(nb1, 0.4)
+	wbv.apply_vuln(bb1, 0.4)
+	_check(is_equal_approx(nb1.vuln, 0.4) and is_equal_approx(bb1.vuln, 0.2), "Boss 的破绽承伤加成减半（%.2f / %.2f）" % [nb1.vuln, bb1.vuln])
+	_check(is_equal_approx(nb1.atk_mul(), 0.7) and is_equal_approx(bb1.atk_mul(), 0.85), "Boss 的攻击削弱减半（%.2f / %.2f）" % [nb1.atk_mul(), bb1.atk_mul()])
+	_free_world(wbv)
+	# ---- 装备：词条和现在的武功机制对得上 ----
+	var all_keys := {}
+	for sl in Data.gear["slots"]:
+		var its: Array = sl["items"] if sl.has("items") else []
+		if sl.has("items_by_school"):
+			for sch in sl["items_by_school"]:
+				its.append_array(sl["items_by_school"][sch])
+		for it in its:
+			for k in it["base"]:
+				all_keys[k] = true
+	for k in Data.gear["subs"]:
+		all_keys[k] = true
+	for k in all_keys:
+		_check(Gear.STAT_NAMES.has(k) and Data.player_base.has(k), "装备属性 %s 有中文名且是游戏里存在的属性" % k)
+	var slot_names := []
+	for sl in Data.gear["slots"]:
+		slot_names.append(str(sl["name"]))
+	_check(slot_names == ["武器", "上衣", "下半身", "鞋子", "配饰"], "装备部位名：%s" % str(slot_names))
+	for sch in ["fist", "sword", "blade"]:
+		var seen_rel := 0
+		var rr := RandomNumberGenerator.new()
+		rr.seed = 7
+		for i in 400:
+			var itm := Gear.make(Gear.make_code("weapon", 3, 1 + rr.randi() % 99999), sch)
+			for a in itm["affixes"]:
+				if str(a["kind"]) == "xinfa":
+					var linked := false
+					for sid3 in Data.xinfa[a["id"]]["skills"]:
+						if str(Data.skills[sid3]["school"]) == sch:
+							linked = true
+					_check(linked, "心法词条只会是能强化本流派招式的心法（%s / %s）" % [sch, a["id"]])
+					seen_rel += 1
+		_check(seen_rel > 0, "%s 的装备能出心法词条" % sch)
+	var wq := _new_world(97, "chain_fist")
+	wq.stats["qi_gain"] = 0.5
+	var qq := wq.fist_qi
+	wq.fist_after_cast(wq.skills["chain_fist"])
+	_check(is_equal_approx(wq.fist_qi - qq, 4.5), "装备「蓄劲速度 +50%」：每次出手 +4.5")
+	_free_world(wq)
+	var wsg := _blade_world(96)
+	wsg.stats["soul_gain"] = 0.5
+	wsg.soul = 0.0
+	wsg.add_soul(10.0)
+	_check(is_equal_approx(wsg.soul, 15.0), "装备「刀魂增长 +50%」")
+	_free_world(wsg)
+	var wdc := _new_world(95, "dugu")
+	wdc.shi = {"zong": 27}
+	var dgc: SwordSkills.Dugu = wdc.skills["dugu"]
+	_check(wdc.dugu_true() and dgc.mods.has("cooldown"), "独孤九剑真形态：冷却词条 / 天赋会生效")
+	_free_world(wdc)
 	# ---- 另觅机缘 ----
 	_check(GameWorld.rerolls_for_level(4) == 0 and GameWorld.rerolls_for_level(5) == 3 and GameWorld.rerolls_for_level(10) == 6 and GameWorld.rerolls_for_level(14) == 6, "另觅机缘次数：Lv4=0 / Lv5=3 / Lv10=6 / Lv14=6")
 	var wr := GameWorld.new()

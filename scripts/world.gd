@@ -581,7 +581,7 @@ func _update_player(dt: float) -> void:
 				neili = st("max_neili") * 0.4
 		fist_qi_crit_t = maxf(0.0, fist_qi_crit_t - dt)
 		if realm() == Realm.YING:
-			fist_qi = minf(100.0, fist_qi + Data.T("fist_qi_ying") * dt * (2.0 if st("ji_fist") > 0.0 else 1.0))
+			fist_qi = minf(100.0, fist_qi + Data.T("fist_qi_ying") * dt * (1.0 + st("qi_gain") + (1.0 if st("ji_fist") > 0.0 else 0.0)))
 	if school_id == "blade":
 		_tick_true_blade(dt)
 		soul_idle += dt
@@ -2646,6 +2646,8 @@ func _draw_effects() -> void:
 
 ## 破绽：受到的伤害额外 +v，持续 t 秒；spread 时顺带让附近一名敌人也露出破绽（万法皆破）
 func apply_vuln(e: Enemy, v: float, spread: bool = false) -> void:
+	if e.is_boss:                                 # Boss 只吃破绽效果的一半（承伤加成、攻击削弱都减半）
+		v *= Data.T("boss_vuln_mult")
 	var t := Data.T("dugu_vuln_t")
 	if e.vuln_t <= 0.0 and e.weak_fx <= 0.0 and effects.size() < MAX_EFFECTS:
 		e.weak_fx = 0.8
@@ -2653,7 +2655,7 @@ func apply_vuln(e: Enemy, v: float, spread: bool = false) -> void:
 	e.vuln = maxf(e.vuln if e.vuln_t > 0.0 else 0.0, v)
 	e.vuln_t = t
 	if dugu_stage() >= 2:                         # 万法皆破：破绽同时削弱敌人的攻击
-		e.atk_down = Data.T("dugu_atk_down")
+		e.atk_down = Data.T("dugu_atk_down") * (Data.T("boss_vuln_mult") if e.is_boss else 1.0)
 		e.atk_down_t = t
 	if spread:
 		var nb := _nearest_from(e.pos, 170.0, {e.uid: true})
@@ -2667,7 +2669,7 @@ func apply_vuln(e: Enemy, v: float, spread: bool = false) -> void:
 func add_soul(n: float) -> void:
 	if school_id != "blade" or n <= 0.0:
 		return
-	soul = minf(100.0, soul + n * (1.5 if st("ji_blade") > 0.0 else 1.0))
+	soul = minf(100.0, soul + n * (1.0 + st("soul_gain") + (0.5 if st("ji_blade") > 0.0 else 0.0)))
 	soul_idle = 0.0
 
 
@@ -2705,7 +2707,7 @@ func fist_after_cast(s: SkillBase) -> void:
 	elif fist_qi >= 100.0:
 		_cunjin(s)
 	else:
-		fist_qi = minf(100.0, fist_qi + Data.T("fist_qi_cast") * (2.0 if st("ji_fist") > 0.0 else 1.0))
+		fist_qi = minf(100.0, fist_qi + Data.T("fist_qi_cast") * (1.0 + st("qi_gain") + (1.0 if st("ji_fist") > 0.0 else 0.0)))
 
 
 func _cunjin(s: SkillBase, free: bool = false) -> void:
