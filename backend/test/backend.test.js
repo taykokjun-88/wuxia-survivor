@@ -265,27 +265,28 @@ test('天赋：节点表与 game_data.json 一致；校验规则', (e) => {
   for (const [b, bd] of Object.entries(d.talents.branches)) bd.rows.forEach((row, r) => row.forEach((n) => { want[n.id] = [b, r, n.max]; }));
   assert.deepStrictEqual(JSON.parse(JSON.stringify(e.ctx.TALENTS)), want, '节点表不同步：运行 python3 tools/sync_talents.py');
   assert.strictEqual(e.ctx.TALENT_GATE, d.talents.row_gate);
+  assert.strictEqual(e.ctx.TALENT_PER_LEVEL, d.talents.per_level, '每级点数与数据一致');
   assert.deepStrictEqual(JSON.parse(JSON.stringify(e.ctx.GEAR.slots)), d.gear.slots.map((s) => s.id));
   assert.deepStrictEqual(JSON.parse(JSON.stringify(e.ctx.GEAR.weights)), d.gear.rarity.map((r) => r.weight));
   const me = reg(e, '天赋君'); const l0 = levelUp(e, me);
   const lv = l0.level; assert.ok(lv >= 10);
   const ok1 = (t) => saveSt(e, l0, { school: 'fist', talents: t });
-  assert.ok(ok1({ gang_force: 3, gang_body: 2 }).ok, '第 0 层随便加');
+  assert.ok(ok1({ gang_force: 2, gang_body: 2 }).ok, '第 0 层随便加');
   assert.strictEqual(ok1({ gang_crit: 1 }).err, 'bad_state', '第 1 层需要更低层投入 ≥3');
-  assert.ok(ok1({ gang_force: 3, gang_crit: 3 }).ok, '低层 3 点解锁第 1 层');
-  assert.strictEqual(ok1({ gang_force: 4 }).err, 'bad_state', '超过节点上限');
+  assert.ok(ok1({ gang_force: 2, gang_body: 1, gang_crit: 2 }).ok, '低层 3 点解锁第 1 层');
+  assert.strictEqual(ok1({ gang_force: 3 }).err, 'bad_state', '超过节点上限');
   assert.strictEqual(ok1({ nope: 1 }).err, 'bad_state', '未知节点');
   assert.strictEqual(ok1({ gang_force: 1.5 }).err, 'bad_state');
   assert.strictEqual(ok1({ gang_force: -1 }).err, 'bad_state');
   assert.strictEqual(ok1({ gang_peak: 1 }).err, 'bad_state', '第 6 层需要低层 18 点');
-  assert.ok(ok1({ rou_regen: 3, ling_step: 3 }).ok, '三系可以同时加');
+  assert.ok(ok1({ rou_regen: 2, ling_step: 2 }).ok, '三系可以同时加');
   // 总点数不超过等级：把三系前几层都加满试探
-  const big = {}; let n = 0; for (const [id, v] of Object.entries(e.ctx.TALENTS)) { if (v[1] <= 2) { big[id] = v[2]; n += v[2]; } }
-  assert.ok(n > lv, '测试前提：这组点数应超过可用点数 ' + n + ' vs ' + lv);
+  const big = {}; let n = 0; for (const [id, v] of Object.entries(e.ctx.TALENTS)) { if (v[1] <= 4) { big[id] = v[2]; n += v[2]; } }
+  assert.ok(n > lv * e.ctx.TALENT_PER_LEVEL, '测试前提：这组点数应超过可用点数 ' + n + ' vs ' + lv * e.ctx.TALENT_PER_LEVEL);
   assert.strictEqual(ok1(big).err, 'bad_state', '超过局外等级的总点数');
-  assert.strictEqual(e.call({ action: 'login', nick: '天赋君', pin: '4815' }).talents.rou_regen, 3, '随登录返回');
+  assert.strictEqual(e.call({ action: 'login', nick: '天赋君', pin: '4815' }).talents.rou_regen, 2, '随登录返回');
   assert.ok(saveSt(e, e.call({ action: 'login', nick: '天赋君', pin: '4815' }), { school: 'fist' }).ok);
-  assert.strictEqual(e.call({ action: 'login', nick: '天赋君', pin: '4815' }).talents.ling_step, 3, '只带 school 不抹掉天赋');
+  assert.strictEqual(e.call({ action: 'login', nick: '天赋君', pin: '4815' }).talents.ling_step, 2, '只带 school 不抹掉天赋');
 });
 
 test('装备：通关掉落（服务器发放）、穿戴 / 丢弃校验、不能伪造', (e) => {
