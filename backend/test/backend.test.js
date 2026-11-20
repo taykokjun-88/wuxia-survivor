@@ -322,11 +322,11 @@ test('装备：背包上限，超过时先丢最低稀有度的未穿戴装备',
   assert.strictEqual(l.items.length, e.ctx.GEAR.invMax, '60 次通关 ≥ 60 件，应已满');
 });
 
-test('地图：按地图校验通关时长；通关记录；光明顶需先通关黑风寨', (e) => {
+test('地图：按地图校验通关时长；通关记录；光明顶不再要求通关黑风寨', (e) => {
   const me = reg(e, '地图君');
   assert.strictEqual(submit(e, me, RUN({ won: true, seconds: 600, level: 30, kills: 3000, bosses: 4 })).err, 'bad_run', '黑风寨 600 秒通关太快');
   assert.strictEqual(submit(e, me, RUN({ map: 'nowhere' })).err, 'bad_run', '没有这张地图');
-  assert.strictEqual(submit(e, me, RUN({ map: 'guangming' })).err, 'locked', '没通关黑风寨不能打光明顶');
+  assert.notStrictEqual(submit(e, me, RUN({ map: 'guangming' })).err, 'locked', '光明顶不再要求通关黑风寨');
   let l = e.call({ action: 'login', nick: '地图君', pin: '4815' });
   assert.strictEqual(JSON.stringify(l.cleared), '{}');
   const w = submit(e, l, RUN({ won: true, seconds: 640, level: 30, kills: 3000, bosses: 4 }));

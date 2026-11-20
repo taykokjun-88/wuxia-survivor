@@ -199,8 +199,8 @@ class XueDao extends Base:
 		for ang: float in dirs:
 			w.fx_slash(w.player_pos, ang, reach, p("arc"), true, fxid("slash"))
 			hits += cone(w.player_pos, ang, p("arc") * 0.5, reach, dmg, p("knock"), 1)
-		var cap := ev(3.0, 5.0, 8.0) if enhanced() else 3.0
-		var heal := minf(cap * (2.0 if empowered else 1.0), float(hits) * float(def.get("heal_hit", 0.02)) * dmg * (2.0 if empowered else 1.0))
+		var cap := ev(1.0, 1.5, 2.0) if enhanced() else 1.0
+		var heal := minf(cap * (2.0 if empowered else 1.0), float(hits) * float(def.get("heal_hit", 0.002)) * dmg * (2.0 if empowered else 1.0))
 		w.hp = minf(max_hp, w.hp + heal)
 		return true
 

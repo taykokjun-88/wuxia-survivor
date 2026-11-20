@@ -101,7 +101,14 @@ static func xinfa_text(id: String) -> String:
 			var eff: Array = []
 			for k in lk[sid]:
 				var v := float(lk[sid][k])
-				eff.append(("%s +%d%%" % [names.get(k, k), int(round(v * 100.0))]) if not ["targets", "neili_hit"].has(k) else ("%s" % names.get(k, k) if k == "targets" else "%s %.1f" % [names[k], v]))
+				if k == "heal":
+					eff.append("%s（伤害的 %s%%）" % [names[k], String.num(v * 100.0, 2)])
+				elif k == "targets":
+					eff.append(str(names[k]))
+				elif k == "neili_hit":
+					eff.append("%s %.1f" % [names[k], v])
+				else:
+					eff.append("%s +%d%%" % [names.get(k, k), int(round(v * 100.0))])
 			lines.append("  · %s（%s）：%s" % [Data.skills[sid]["name"], Data.skills[sid]["school"] == "fist" and "武者" or (Data.skills[sid]["school"] == "sword" and "剑侠" or "刀客"), "　".join(eff)])
 	var per: Array = []
 	for k in d["per_level"]:

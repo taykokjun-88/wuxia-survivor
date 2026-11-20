@@ -106,7 +106,7 @@ func tags_text(id: String) -> String:
 
 
 func _fmt(x: float) -> String:
-	return str(int(x)) if is_equal_approx(x, roundf(x)) else "%.1f" % x
+	return str(int(x)) if is_equal_approx(x, roundf(x)) else (String.num(x, 2) if absf(x) < 1.0 else "%.1f" % x)
 
 
 func _add_action(action: String, keys: Array) -> void:

@@ -913,18 +913,15 @@ func _stage_test() -> void:
 	var old_path := Save.path
 	Save.path = "user://test_stage.json"
 	Save.load_data()
-	_check(Save.map_unlocked("black_wind") and not Save.map_unlocked("guangming"), "光明顶需要先通关黑风寨")
-	Save.add_run_exp({"won": false, "map": "black_wind", "seconds": 300, "level": 5, "kills": 100, "bosses": 0, "difficulty": {}})
-	_check(not Save.map_unlocked("guangming"), "阵亡不解锁")
-	Save.add_run_exp({"won": true, "map": "black_wind", "seconds": 650, "level": 25, "kills": 2000, "bosses": 4, "difficulty": {}})
-	_check(Save.map_unlocked("guangming"), "通关黑风寨后解锁光明顶")
+	_check(Save.map_unlocked("black_wind") and Save.map_unlocked("guangming"), "光明顶不再需要通关黑风寨（只需局外 Lv5）")
+	_check(int(Data.maps["guangming"]["min_meta_level"]) == 5, "光明顶需局外等级 5")
 	# 装备分数
 	_check(Gear.item_score(0) == 5 and Gear.item_score(1) == 10 and Gear.item_score(2) == 20 and Gear.item_score(3) == 40, "装备基础分 5 / 10 / 20 / 40")
 	_check(Gear.item_score(3, 10) == 72, "传说 +10 = 72 分（实际 %d）" % Gear.item_score(3, 10))
 	Save.set_gear(["weapon.1.1", "coat.1.2", "boots.0.3"], {"weapon": "weapon.1.1", "coat": "coat.1.2", "boots": "boots.0.3"})
 	_check(Save.gear_score() == 25, "已穿戴三件（10+10+5）= 25 分（实际 %d）" % Save.gear_score())
 	var rec: Array = Save.recommend_status("guangming")
-	_check(rec.size() == 2 and bool(rec[1]["ok"]) and not bool(rec[0]["ok"]), "推荐条件：装备分数达标、天赋点未达标")
+	_check(rec.size() == 1 and bool(rec[0]["ok"]), "建议条件：只有装备分数 20（已达标）")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_stage.json"))
 	Save.path = old_path
 	Save.load_data()
@@ -1648,6 +1645,24 @@ func _enhance_rework_test() -> void:
 	_check(float(Talents.stats_for({"ling_step": 3}, "sword")["speed_pct"]) > float(Talents.stats_for({"ling_step": 3}, "fist")["speed_pct"]), "剑侠的移速天赋更强")
 	_check(float(Talents.stats_for({"rou_regen": 3}, "blade")["hp_regen"]) > float(Talents.stats_for({"rou_regen": 3}, "fist")["hp_regen"]), "刀客的气血回复天赋更强")
 	_check(float(Talents.stats_for({"rou_neili": 3}, "fist")["neili_regen"]) > 0.0, "武者的养气带回内力")
+	# 吸血要克制（伤害高、血量低）：「增加治疗」最高 0.2% 伤害；每次命中最多回 0.6
+	var hv: Array = Data.directions["heal"]["values"]
+	_check(is_equal_approx(float(hv[1]), 0.1) and float(hv[3]) <= 0.2 + 1e-9, "增加治疗：特别档 0.1%%（实际 %s）" % str(hv))
+	var wheal := _new_world(95, "wuhu_blade")
+	wheal.skills.clear()
+	wheal.add_skill("wuhu_blade")
+	wheal.skills["wuhu_blade"].add_upgrade("heal", 1)
+	wheal.hp = 50.0
+	var th := Enemy.new()
+	th.hp = 1e12
+	th.max_hp = 1e12
+	for i in 20:
+		wheal.hit_enemy(th, 200.0, ["近战"], Vector2.ZERO, "wuhu_blade")
+	_check(wheal.hp < 50.0 + 20.0 * 0.6 + 0.01 and wheal.hp - 50.0 < 8.0, "吸血 0.1%%：20 次大伤害命中只回一点点（%.2f）" % (wheal.hp - 50.0))
+	_free_world(wheal)
+	for xid in Data.xinfa:
+		for sid2 in Data.xinfa[xid]["link"]:
+			_check(float(Data.xinfa[xid]["link"][sid2].get("heal", 0.0)) <= 0.0016, "心法 %s 对 %s 的命中回血要克制" % [xid, sid2])
 	# 独孤九剑：破 X 式总共强化 20 次 / 35 次
 	_check(int(Data.T("shi_stage2")) == 20 and int(Data.T("shi_stage3")) == 35, "独孤九剑门槛 20 / 35")
 

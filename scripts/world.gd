@@ -1370,7 +1370,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 	if hs > 0.0:
 		slow_enemy(e, 1.0 - minf(0.6, hs), 1.5)
 	if sk != null and float(sk.mods["heal"]) > 0.0:
-		hp = minf(st("max_hp"), hp + minf(3.0, amount * float(sk.mods["heal"])))
+		hp = minf(st("max_hp"), hp + minf(0.6, amount * float(sk.mods["heal"])))       # 吸血要克制：每次命中最多回 0.6
 	skill_dmg[sid] = float(skill_dmg.get(sid, 0.0)) + amount
 	if school_id == "blade" and sk != null and not sk.free_cast:
 		add_soul(Data.T("blade_soul_crit") if crit else Data.T("blade_soul_hit"))
