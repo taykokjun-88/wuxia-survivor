@@ -1,4 +1,4 @@
-# 后端：账号 + 排行榜 + 反馈（Google 表格 + Apps Script）
+# 后端：账号 + 多角色 + 排行榜 + 反馈（Google 表格 + Apps Script）
 
 ```
 朋友的浏览器 ──→ GitHub Pages（游戏，静态页面）
@@ -17,7 +17,7 @@
    把 `appsscript.json` 的内容替换成本目录的 **`appsscript.json`**（时区、以及网页应用的访问设置）。
 5. 在顶部函数下拉框选 **`setup`**，点 **运行**。第一次会要求授权：
    选你的账号 →「高级」→「转至…（不安全）」→ 允许。（脚本只访问这一张表。）
-   运行成功后，表格里会多出 5 个标签页：`邀请 Invites`、`玩家 Players`、`排行 Scores`、`日志 Logs`、`反馈 Feedback`。
+   运行成功后，表格里会多出 6 个标签页：`邀请 Invites`、`玩家 Players`（账号）、`角色 Characters`（每个账号最多 5 个角色，局外等级 / 天赋 / 装备都存这里）、`排行 Scores`、`日志 Logs`、`反馈 Feedback`。
 6. **回到表格，刷新页面**，菜单栏会出现 **「武侠后台」**。点 **武侠后台 → 新建邀请码**，会依次问：名字、人数上限、昵称名单（可留空）、到期日期（可留空），然后弹出一个 6 位邀请码，**记下来发给朋友**。
 7. 回到 Apps Script：右上角 **部署 → 新建部署 → 类型选「网页应用」**：
    - 执行身份：**我**
@@ -84,13 +84,14 @@
 | action | 方式 | 说明 |
 |---|---|---|
 | `ping` | GET | 健康检查 |
-| `board` | GET | `kind` = `score`/`speed`/`level`，可选 `nick`（返回我的名次） |
+| `board` | GET | `kind` = `score`/`speed`/`level`，可选 `map`（地图榜）`group`（本群）`char`（返回我这个角色的名次）；榜单按角色，显示角色名 |
 | `register` | POST | `nick pin code` |
 | `login` | POST | `nick pin`，返回新令牌 |
 | `resume` | POST | `nick token`，用令牌自动登录并续期 |
 | `logout` | POST | 令牌失效 |
-| `submit` | POST | `nick token won seconds level kills bosses school starter qinggong enhance build version` |
-| `saveState` | POST | 云存档（目前只有流派） |
+| `submit` | POST | `nick token char won seconds level kills bosses map school starter qinggong enhance build difficulty version` |
+| `createChar` / `deleteChar` / `getChar` | POST | 角色：创建（`name` `school`）/ 删除 / 读取某个角色的进度（`char` = 角色 id） |
+| `saveState` | POST | 云存档（带 `char`）：流派 / 属性点 / 天赋（校验）/ 穿戴与丢弃装备 |
 | `feedback` | POST | `type`（bug/balance/idea/other）`comment` |
 | `log` | POST | 客户端日志（需登录） |
 
@@ -99,7 +100,7 @@
 ## 六、测试
 
 ```bash
-node backend/test/backend.test.js      # 15 个用例 × 2 种表格模式（见下）
+node backend/test/backend.test.js      # 34 个用例 × 2 种表格模式（见下）
 ```
 
 测试在 Node 里用一个**模拟的 Google 环境**（`test/harness.js`）运行真正的 `Code.gs`。
@@ -114,4 +115,4 @@ node backend/test/backend.test.js      # 15 个用例 × 2 种表格模式（见
 
 - 提交成绩时，服务器按已校验的得分计算修为（`round(得分/80)` 封顶 400；通关 +40；首次通关再 +100）并累加到玩家的「修为 Exp」列，返回 `gained / exp / level / levelUp`。客户端不能直接上报修为。
 - `saveState` 的 `state.alloc` 为五种属性点（pow/agi/vit/int/luk），服务器校验：每项 0–99 的整数、总和不超过 `3 × (等级 − 1)`；与已有存档合并。
-- 升级到新版 Code.gs 后，请在表格里运行一次 `setup`，玩家表会多出「修为 Exp」列。
+- 升级到新版 Code.gs 后，请在表格里运行一次 `setup`（菜单「初始化 / 修复表头」）：会补齐新增的列和「角色 Characters」表。**旧账号的进度（流派 / 修为 / 天赋 / 装备）会在第一次登录时自动迁移成第一个角色**（角色名 = 昵称）。
