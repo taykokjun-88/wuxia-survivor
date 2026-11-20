@@ -256,7 +256,7 @@ func _draw_bg(rect: Rect2, branch: String, col: Color, bi: int) -> void:
 			src.size.y = ts.x / want
 			src.position.y = (ts.y - src.size.y) * 0.5
 		draw_texture_rect_region(tex, rect, src, Color(1, 1, 1, 0.9))
-	draw_rect(rect, Color(0.04, 0.04, 0.05, 0.4 if not placeholder else 0.6))   # 压暗，保证字和穴位看得清
+	draw_rect(rect, Color(0.04, 0.04, 0.05, 0.38 if not placeholder else 0.6))   # 压暗，保证字和穴位看得清
 	draw_rect(rect, Color(col, 0.10))
 
 

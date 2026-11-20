@@ -73,6 +73,8 @@ func _ready() -> void:
 	_snap("01b_meta")
 	main.hud.talents_work = {"gang_force": 2, "gang_body": 1, "gang_crit": 2, "gang_armor": 1, "gang_ying": 2, "rou_regen": 2, "ling_step": 1}
 	Save.set_meta_talents(main.hud.talents_work)
+	if OS.get_environment("SHOT_SCHOOL") != "":
+		Save.data["school"] = OS.get_environment("SHOT_SCHOOL")
 	main._open_talents()
 	await _frames(3)
 	main.hud.talents_tree.hover_id = "gang_peak"
