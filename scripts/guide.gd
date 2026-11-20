@@ -88,13 +88,21 @@ static func skill_text(id: String) -> String:
 static func xinfa_text(id: String) -> String:
 	var d: Dictionary = Data.xinfa[id]
 	var lines: Array = []
+	var sch := str(Data.schools.get(str(d.get("school", "")), {}).get("name", ""))
+	lines.append("【%s】%s心法" % [str(d.get("role", "")), sch])
 	lines.append(str(d["desc"]))
-	lines.append("\n获得方式：局内升级时，从三张卡里选「修习」即可学会（一局最多 2 个心法，最高 %d 级）。" % int(d["max_level"]))
+	lines.append("\n获得方式：局内升级时，从三张卡里选「修习」即可学会（一局最多 2 个心法，只会出现本流派的心法）；之后每次升级选到它的强化卡，可再强化 %d 次。" % (int(d["max_level"]) - 1))
+	lines.append("强化的品质：普通 / 特别 / 优秀 / 传说，每高一档强化量再多 1 份（1 / 2 / 3 / 4 份）；份数越多，同修效果、标签加成和被动属性越强。")
+	var sk: Array = []
+	for sid in d.get("skills", []):
+		sk.append(str(Data.skills[sid]["name"]))
+	if not sk.is_empty():
+		lines.append("\n同修招式（学会后这些招式有额外加成）：" + "　".join(sk))
 	var per: Array = []
 	for k in d["per_level"]:
 		var pv := float(d["per_level"][k])
 		per.append("%s %s%s" % [Guide.stat_name(str(k)), "+" if pv >= 0.0 else "", str(snappedf(pv, 0.01))])
-	lines.append("\n每级：" + "　".join(per))
+	lines.append("\n每份强度的被动：" + "　".join(per))
 	var bonus: Array = []
 	for tg in d["bonus"]:
 		bonus.append("%s招式 +%d%%" % [tg, int(float(d["bonus"][tg]) * 100.0)])

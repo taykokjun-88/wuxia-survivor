@@ -9,8 +9,8 @@ var skills: Dictionary = {}
 var xinfa: Dictionary = {}
 var qinggong: Dictionary = {}
 var directions: Dictionary = {}   # 升级方向
-var tiers: Array = []             # 升级档位：小成 / 中成 / 大成 / 灵机一动
-var max_upgrades := 11             # 技能最多升级次数（起始 1 层 → 最高 12 层）
+var tiers: Array = []             # 强化品质：普通（白）/ 特别（蓝）/ 优秀（紫）/ 传说（金），概率 50 / 25 / 18 / 7；每高一档强化量 +1 倍
+var max_upgrades := 10             # 每个技能最多强化次数（起始 1 层 → 最高 11 层）
 var enemies: Dictionary = {}
 var talents: Dictionary = {}      # 天赋树：{row_gate, branches}
 var yinyang: Dictionary = {}      # 阴阳组合（调和 / 烈火 / 寒潭）
@@ -71,8 +71,8 @@ func lv(def: Dictionary, key: String, level: int) -> float:
 	return float(v)
 
 
-## 按权重抽取升级档位，返回档位下标（0 小成 … 3 灵机一动）
-## luck：福缘带来的高档位（大成 / 灵机一动）权重加成，0.48 即这两档的权重 ×1.48
+## 按权重抽取强化品质，返回下标（0 普通 … 3 传说）
+## luck：福缘带来的高品质（优秀 / 传说）权重加成，0.48 即这两档的权重 ×1.48
 func roll_tier(rng: RandomNumberGenerator, luck: float = 0.0) -> int:
 	var total := 0.0
 	for i in tiers.size():
@@ -87,6 +87,14 @@ func roll_tier(rng: RandomNumberGenerator, luck: float = 0.0) -> int:
 
 func _tier_weight(i: int, luck: float) -> float:
 	return float(tiers[i]["weight"]) * (1.0 + luck if i >= 2 else 1.0)
+
+
+## 是否是某个流派的起手招式（起手招式只能在出发前选，升级时不会出现）
+func is_starter(id: String) -> bool:
+	for sc in schools:
+		if (schools[sc]["starters"] as Array).has(id):
+			return true
+	return false
 
 
 func tags_text(id: String) -> String:

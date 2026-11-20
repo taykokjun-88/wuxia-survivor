@@ -1695,17 +1695,36 @@ func show_choices(choices: Array, title: String) -> void:
 		if i < choices.size():
 			var c: Dictionary = choices[i]
 			b.text = "[%d] 【%s】%s\n      %s" % [i + 1, c["tag"], c["title"], c["desc"]]
-			if c.has("color"):
+			if c.has("color"):                  # 强化卡：框和字都用品质色（白 / 蓝 / 紫 / 金）
 				var col := Color(str(c["color"]))
 				b.add_theme_color_override("font_color", col)
 				b.add_theme_color_override("font_hover_color", col)
+				b.add_theme_stylebox_override("normal", _choice_style(col, false))
+				b.add_theme_stylebox_override("hover", _choice_style(col, true))
+				b.add_theme_stylebox_override("pressed", _choice_style(col, true))
 			else:
 				b.remove_theme_color_override("font_color")
 				b.remove_theme_color_override("font_hover_color")
+				b.remove_theme_stylebox_override("normal")
+				b.remove_theme_stylebox_override("hover")
+				b.remove_theme_stylebox_override("pressed")
 			b.visible = true
 		else:
 			b.visible = false
 	levelup_panel.visible = true
+
+
+func _choice_style(border: Color, hover: bool) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.13, 0.11, 0.09, 0.96) if not hover else Color(border.r * 0.25 + 0.1, border.g * 0.25 + 0.09, border.b * 0.25 + 0.08, 0.98)
+	sb.border_color = border
+	sb.set_border_width_all(4 if hover else 3)
+	sb.set_corner_radius_all(6)
+	sb.content_margin_left = 14
+	sb.content_margin_right = 14
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
+	return sb
 
 
 func hide_choices() -> void:

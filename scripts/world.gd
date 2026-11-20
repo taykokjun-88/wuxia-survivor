@@ -71,7 +71,8 @@ var school_id := "fist"           # 创建角色时选定，决定可学的招�
 var qinggong_id := "tashue"
 var qg: Dictionary = {}
 var skills: Dictionary = {}       # id -> SkillBase（最多 4 个）
-var xinfa: Dictionary = {}        # id -> 等级（最多 2 个）
+var xinfa: Dictionary = {}        # id -> 等级（最多 2 个；修习 = Lv1，之后每次强化 +1，最高 Lv4）
+var xinfa_q: Dictionary = {}      # id -> 每次强化的品质（0 普通 … 3 传说）
 var enhance_id := ""              # 本局唯一的专属强化所属技能
 var enhance_level := 0            # 强化等级 1~3：首个小 Boss 选择强化，之后每个小 Boss 升一级
 var deferred_upgrades := 0
@@ -198,6 +199,7 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	qg = Data.qinggong[qinggong_id]
 	skills.clear()
 	xinfa.clear()
+	xinfa_q.clear()
 	enhance_id = ""
 	enhance_level = 0
 	deferred_upgrades = 0
@@ -309,10 +311,10 @@ func recalc() -> void:
 	stats = Data.player_base.duplicate()
 	for id in xinfa:
 		var def: Dictionary = Data.xinfa[id]
-		var l: int = int(xinfa[id]) + int(gear_xinfa.get(id, 0))
 		var per: Dictionary = def["per_level"]
+		var pw := xinfa_power(id)
 		for k in per:
-			stats[k] = st(k) + float(per[k]) * l
+			stats[k] = st(k) + float(per[k]) * pw
 	# 角色等级成长：每升 1 级，基础伤害 / 气血 / 防御小幅提升（见 data 的 level_growth）
 	for k in Data.level_growth:
 		stats[k] = st(k) + float(Data.level_growth[k]) * (level - 1)
@@ -326,12 +328,54 @@ func recalc() -> void:
 	tag_bonus.clear()
 	for id in xinfa:
 		var def2: Dictionary = Data.xinfa[id]
-		var scale := 1.0 + 0.5 * (int(xinfa[id]) + int(gear_xinfa.get(id, 0)) - 1)
+		var scale := xinfa_scale(id)
 		var b: Dictionary = def2["bonus"]
 		for tg in b:
 			tag_bonus[tg] = float(tag_bonus.get(tg, 0.0)) + float(b[tg]) * scale
+	_apply_xinfa_links()
 	hp = minf(hp, st("max_hp"))
 	neili = minf(neili, st("max_neili"))
+
+
+## 心法强度：修习 = 1 份；每次强化再加（品质 + 1）份（普通 1 / 特别 2 / 优秀 3 / 传说 4）；装备词条每级 +1 份
+func xinfa_power(id: String) -> float:
+	if not xinfa.has(id):
+		return 0.0
+	var pw := 1.0 + float(gear_xinfa.get(id, 0))
+	for q in xinfa_q.get(id, []):
+		pw += float(int(q) + 1)
+	return pw
+
+
+## 标签加成 / 同修联动的强度倍率：1 份 = ×1.0，每多 1 份 +12%
+func xinfa_scale(id: String) -> float:
+	return 1.0 + 0.12 * (xinfa_power(id) - 1.0)
+
+
+## 心法「同修」：学会的心法对它指定的 2~3 个招式（非起手招式）额外加成 / 特殊效果
+func _apply_xinfa_links() -> void:
+	var per_skill: Dictionary = {}       # 技能 id -> {mods: {}, flags: {}}
+	for id in xinfa:
+		var def: Dictionary = Data.xinfa[id]
+		var sc := xinfa_scale(id)
+		for sid in def.get("skills", []):
+			if not skills.has(sid):
+				continue
+			if not per_skill.has(sid):
+				per_skill[sid] = {"mods": {}, "flags": {}}
+			var lk: Dictionary = def.get("link", {})
+			for k in lk:
+				var v := float(lk[k]) * sc
+				if ["ying", "neili_hit", "vuln", "bleed"].has(k):
+					per_skill[sid]["flags"][k] = float(per_skill[sid]["flags"].get(k, 0.0)) + v
+				else:
+					per_skill[sid]["mods"][k] = float(per_skill[sid]["mods"].get(k, 0.0)) + v
+	for sid in skills:
+		var sk: SkillBase = skills[sid]
+		if per_skill.has(sid):
+			sk.apply_link(per_skill[sid]["mods"], per_skill[sid]["flags"])
+		else:
+			sk.apply_link({}, {})
 
 
 ## 阴阳与合璧：只看当前学会的两个心法。先加数值，再做倍率。
@@ -1267,6 +1311,8 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 			m *= Data.T("blade_break_mult")
 	if sk != null:
 		m *= sk.hit_mult(e)
+		if realm() == Realm.YING and float(sk.link_flags.get("ying", 0.0)) > 0.0:     # 九阳神功同修：盈境下额外增伤
+			m *= 1.0 + float(sk.link_flags["ying"])
 	if e.vuln_t > 0.0:
 		m *= 1.0 + e.vuln
 	if sid == "dugu":
@@ -1311,6 +1357,17 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 	skill_dmg[sid] = float(skill_dmg.get(sid, 0.0)) + amount
 	if school_id == "blade" and sk != null and not sk.free_cast:
 		add_soul(Data.T("blade_soul_crit") if crit else Data.T("blade_soul_hit"))
+	if sk != null and not sk.link_flags.is_empty():              # 心法同修的特殊效果
+		var lfl: Dictionary = sk.link_flags
+		if float(lfl.get("neili_hit", 0.0)) > 0.0:
+			neili = minf(st("max_neili"), neili + float(lfl["neili_hit"]))
+		if float(lfl.get("vuln", 0.0)) > 0.0 and not e.is_prop:
+			apply_vuln(e, float(lfl["vuln"]))
+		if float(lfl.get("bleed", 0.0)) > 0.0 and not e.is_prop:
+			var bv := float(lfl["bleed"])
+			var bn := int(bv) + (1 if rng.randf() < bv - floorf(bv) else 0)
+			if bn > 0:
+				apply_bleed(e, bn, amount)
 	if bd:
 		apply_bleed(e, int(Data.T("blade_break_stacks")), amount)
 	if e.defense > 0.0:
@@ -1849,7 +1906,7 @@ func roll_choices(n: int = 3) -> Array:
 			})
 	for id in Data.skills:
 		var def: Dictionary = Data.skills[id]
-		if dugu_route or skills.has(id) or str(def["school"]) != school_id or id == "dugu":      # 独孤九剑只能当起手招式选，升级时不会出现
+		if dugu_route or skills.has(id) or str(def["school"]) != school_id or Data.is_starter(id):      # 起手招式（含独孤九剑）只能在出发前选，升级时不会出现
 			continue
 		if skills.size() < MAX_SKILLS:
 			pool.append({
@@ -1859,12 +1916,17 @@ func roll_choices(n: int = 3) -> Array:
 			})
 	for id in Data.xinfa:
 		var def2: Dictionary = Data.xinfa[id]
+		if str(def2.get("school", school_id)) != school_id:        # 心法按流派提供，只出现本流派的
+			continue
 		if xinfa.has(id):
 			if xinfa[id] < int(def2["max_level"]):
+				var xt := Data.roll_tier(rng, st("luck"))
 				pool.append({
-					"kind": "up_xinfa", "id": id, "tag": "心法", "src": "level",
-					"title": "%s Lv%d→%d" % [def2["name"], xinfa[id], xinfa[id] + 1],
-					"desc": "标签加成与被动效果提升",
+					"kind": "up_xinfa", "id": id, "tier": xt, "src": "level",
+					"tag": str(Data.tiers[xt]["name"]), "color": str(Data.tiers[xt]["color"]),
+					"title": "%s · 强化（Lv%d→%d）" % [def2["name"], xinfa[id], xinfa[id] + 1],
+					"desc": "同修招式与被动属性 +%d 份强度（累计 %.0f → %.0f 份）　（已强化 %d/%d）" % [
+						xt + 1, xinfa_power(id), xinfa_power(id) + xt + 1, int(xinfa[id]) - 1, int(def2["max_level"]) - 1],
 				})
 		elif xinfa.size() < MAX_XINFA:
 			pool.append({
@@ -1903,8 +1965,12 @@ func apply_choice(c: Dictionary) -> void:
 			add_shi(id, int(c["gain"]))
 		"new_xinfa":
 			xinfa[id] = 1
+			xinfa_q[id] = []
 		"up_xinfa":
 			xinfa[id] = int(xinfa[id]) + 1
+			var qa: Array = xinfa_q.get(id, [])
+			qa.append(int(c.get("tier", 0)))
+			xinfa_q[id] = qa
 		"enhance":
 			enhance_id = id
 			enhance_level = mini(3, 1 + deferred_upgrades)

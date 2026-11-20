@@ -164,12 +164,15 @@ static func discard_silver(rarity: int) -> int:
 
 static func _roll_affix(rng: RandomNumberGenerator, school_id: String, mult: float, rarity: int, used: Dictionary) -> Dictionary:
 	if rng.randf() < float(Data.gear["affix_xinfa_chance"]):
-		var ids: Array = Data.xinfa.keys()
+		var ids: Array = []
+		for xid in Data.xinfa:
+			if str(Data.xinfa[xid].get("school", school_id)) == school_id:      # 只出本流派的心法词条
+				ids.append(xid)
 		var id: String = ids[rng.randi() % ids.size()]
 		if not used.has("x" + id):
 			used["x" + id] = true
 			var lv := 2 if rarity >= 4 else 1
-			return {"kind": "xinfa", "id": id, "v": lv, "text": "%s +%d 级" % [Data.xinfa[id]["name"], lv]}
+			return {"kind": "xinfa", "id": id, "v": lv, "text": "%s +%d 份强度" % [Data.xinfa[id]["name"], lv]}
 	var skills: Array = []
 	for sid in Data.skills:
 		if str(Data.skills[sid]["school"]) == school_id:

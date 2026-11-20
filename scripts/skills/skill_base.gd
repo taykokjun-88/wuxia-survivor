@@ -23,6 +23,8 @@ var mods: Dictionary = {
 var echoing := false
 var empowered := false           # 本次出手是否催动（盈境 + 内力够）
 var echo_t := -1.0
+var link_applied: Dictionary = {}   # 心法「同修」联动：已经加进 mods 的数值（重算时只补差值）
+var link_flags: Dictionary = {}     # 联动里的特殊效果：ying / neili_hit / vuln / bleed
 var free_cast := false           # 免费释放（号令天下）：不涨刀魂、不进冷却
 
 
@@ -34,6 +36,17 @@ func setup(world: GameWorld, skill_id: String, skill_def: Dictionary) -> void:
 	mods["crit"] += float(def.get("crit_base", 0.0))
 	mods["debuff"] += float(def.get("slow_base", 0.0))
 	mods["hits"] += float(def.get("echo_base", 0.0))
+
+
+## 心法联动：把本次重算的联动数值同步进 mods（和升级加成叠加，不会重复累加）
+func apply_link(link: Dictionary, flags: Dictionary) -> void:
+	for k in mods:
+		var want := float(link.get(k, 0.0))
+		var had := float(link_applied.get(k, 0.0))
+		if not is_equal_approx(want, had):
+			mods[k] = float(mods[k]) + (want - had)
+			link_applied[k] = want
+	link_flags = flags
 
 
 ## 当前数值 = Lv1 基础值 × 升级方向加成

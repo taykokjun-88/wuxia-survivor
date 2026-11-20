@@ -13,6 +13,7 @@ func _ready() -> void:
 		_chest_flow_test()
 	if only == "" or only == "upgrade":
 		_upgrade_system_test()
+		_enhance_rework_test()
 		_level_growth_test()
 		_save_test()
 		_sprite_anim_test()
@@ -56,6 +57,17 @@ func _ready() -> void:
 		_levels_report()
 	if only == "blade":
 		_blade_test()
+	if only == "cards":
+		_upgrade_system_test()
+		_enhance_rework_test()
+		_synergy_test()
+		_build_test()
+		_neili_test()
+		_meta_test()
+		_xinfa_test()
+		_starter_trait_test()
+		_burst_pill_test()
+		_p2_test()
 	if only == "survive":
 		_survive_report()
 	if only == "boss":
@@ -1409,6 +1421,132 @@ func _apply_up5(s: SkillBase) -> void:
 			s.add_upgrade("damage", 1)
 
 
+func _enhance_rework_test() -> void:
+	print("\n=== 强化改版：品质 / 10 次强化 / 起手招式不再出现 / 心法同修 / 恢复速度 / 独孤门槛 ===")
+	# 品质：普通 / 特别 / 优秀 / 传说，概率 50 / 25 / 18 / 7；强化量 1× / 2× / 3× / 4×
+	var tn: Array = []
+	for t in Data.tiers:
+		tn.append(str(t["name"]))
+	_check(tn == ["普通", "特别", "优秀", "传说"], "品质名称")
+	var cols: Array = []
+	for t in Data.tiers:
+		cols.append(str(t["color"]))
+	_check(cols == ["#e8e8e8", "#5aa0ff", "#b070e8", "#f0c050"], "品质颜色：白 / 蓝 / 紫 / 金")
+	_check([int(Data.tiers[0]["weight"]), int(Data.tiers[1]["weight"]), int(Data.tiers[2]["weight"]), int(Data.tiers[3]["weight"])] == [50, 25, 18, 7], "品质概率 50 / 25 / 18 / 7")
+	for dir in Data.directions:
+		var vs: Array = Data.directions[dir]["values"]
+		_check(is_equal_approx(float(vs[1]), float(vs[0]) * 2.0) and is_equal_approx(float(vs[2]), float(vs[0]) * 3.0) and is_equal_approx(float(vs[3]), float(vs[0]) * 4.0), "方向 %s：每高一档品质强化量 +1 倍（1 / 2 / 3 / 4 ×）" % dir)
+	_check(Data.max_upgrades == 10, "每个招式最多强化 10 次")
+	for id in Data.xinfa:
+		_check(int(Data.xinfa[id]["max_level"]) - 1 == 3, "%s：最多强化 3 次" % id)
+	# 强化卡：框的颜色 = 品质色；已强化满的招式不再出现强化卡
+	var w := _new_world(81)
+	w.skills.clear()
+	w.add_skill("chain_fist")
+	var coloured := true
+	for i in 40:
+		for c in w.roll_choices(30):
+			if str(c["kind"]) == "up_skill":
+				coloured = coloured and str(c["color"]) == str(Data.tiers[int(c["tier"])]["color"]) and str(c["tag"]) == str(Data.tiers[int(c["tier"])]["name"])
+	_check(coloured, "强化卡带品质名和品质色")
+	_free_world(w)
+	# 起手招式（所有流派）升级时不会出现
+	for st in ["chain_fist", "kuang_feng", "wuhu_blade"]:
+		var ws := _new_world(82, st)
+		var bad := false
+		var learn := {}
+		for i in 80:
+			for c in ws.roll_choices(30):
+				if str(c["kind"]) == "new_skill":
+					learn[str(c["id"])] = true
+					bad = bad or Data.is_starter(str(c["id"]))
+		_check(not bad, "%s 流派：升级卡不会出现起手招式" % st)
+		_check(learn.size() >= 5, "%s 流派：非起手招式都能出现（%d 个）" % [st, learn.size()])
+		_free_world(ws)
+	# 心法：强化品质累计强度；同修联动；重算不会重复叠加
+	var wx := _new_world(83)
+	wx.skills.clear()
+	wx.add_skill("yue_palm")
+	wx.add_skill("vajra_fist")
+	wx.apply_choice({"kind": "new_xinfa", "id": "chunyang", "src": "level"})
+	_check(is_equal_approx(wx.xinfa_power("chunyang"), 1.0), "修习 = 1 份强度")
+	wx.apply_choice({"kind": "up_xinfa", "id": "chunyang", "tier": 3, "src": "level"})
+	_check(is_equal_approx(wx.xinfa_power("chunyang"), 5.0) and int(wx.xinfa["chunyang"]) == 2, "传说强化 +4 份（共 5 份）")
+	wx.apply_choice({"kind": "up_xinfa", "id": "chunyang", "tier": 0, "src": "level"})
+	_check(is_equal_approx(wx.xinfa_power("chunyang"), 6.0), "普通强化 +1 份（共 6 份）")
+	var yue: SkillBase = wx.skills["yue_palm"]
+	var want := float(Data.xinfa["chunyang"]["link"]["damage"]) * wx.xinfa_scale("chunyang")
+	_check(absf(float(yue.link_applied.get("damage", 0.0)) - want) < 1e-9, "同修：降龙十八掌伤害 +%.0f%%" % (want * 100.0))
+	var d_before := float(yue.mods["damage"])
+	for i in 5:
+		wx.recalc()
+	_check(is_equal_approx(float(yue.mods["damage"]), d_before), "反复重算不会重复叠加联动")
+	_check(float(yue.link_flags.get("ying", 0.0)) > 0.0, "九阳神功同修：盈境增伤标记")
+	var other := _new_world(84)
+	other.skills.clear()
+	other.add_skill("eight_waste")
+	other.apply_choice({"kind": "new_xinfa", "id": "chunyang", "src": "level"})
+	_check(float(other.skills["eight_waste"].link_applied.get("damage", 0.0)) == 0.0, "没有被心法点名的招式不受联动")
+	_free_world(other)
+	_free_world(wx)
+	# 联动特殊效果：命中回内力 / 破绽 / 撕裂
+	var wn := _new_world(85)
+	wn.skills.clear()
+	wn.add_skill("eight_waste")
+	wn.apply_choice({"kind": "new_xinfa", "id": "tunhai", "src": "level"})
+	var tgt := Enemy.new()
+	tgt.hp = 1e12
+	tgt.max_hp = 1e12
+	wn.neili = 10.0
+	wn.hit_enemy(tgt, 10.0, ["多向"], Vector2.ZERO, "eight_waste")
+	_check(wn.neili > 10.4, "北冥神功同修：命中回内力（%.2f）" % wn.neili)
+	_free_world(wn)
+	var wv := _new_world(86, "kuang_feng")
+	wv.skills.clear()
+	wv.add_skill("yunv")
+	wv.apply_choice({"kind": "new_xinfa", "id": "hanshuang", "src": "level"})
+	var tv := Enemy.new()
+	tv.hp = 1e12
+	tv.max_hp = 1e12
+	wv.hit_enemy(tv, 10.0, ["范围"], Vector2.ZERO, "yunv")
+	_check(tv.vuln_t > 0.0 and tv.vuln > 0.0, "玄冥神功同修：命中露出破绽")
+	_free_world(wv)
+	var wbl := _new_world(87, "wuhu_blade")
+	wbl.skills.clear()
+	wbl.add_skill("xuedao")
+	wbl.apply_choice({"kind": "new_xinfa", "id": "changsheng", "src": "level"})
+	for k in 3:
+		wbl.apply_choice({"kind": "up_xinfa", "id": "changsheng", "tier": 3, "src": "level"})
+	var tb := Enemy.new()
+	tb.hp = 1e12
+	tb.max_hp = 1e12
+	var bled := 0
+	for i in 60:
+		tb.bleed_stacks = 0
+		tb.bleed_t = 0.0
+		tb.bleed_dps = 0.0
+		wbl.hit_enemy(tb, 20.0, ["近战"], Vector2.ZERO, "xuedao")
+		bled += 1 if tb.bleed_stacks > 0 else 0
+	_check(bled > 10, "先天功同修：命中有几率撕裂（%d/60）" % bled)
+	_free_world(wbl)
+	# 每个心法对应 2~3 个本流派的非起手招式；每个非起手招式至少被一个心法点名
+	var covered := {}
+	for id in Data.xinfa:
+		var xs: Array = Data.xinfa[id]["skills"]
+		_check(xs.size() >= 2 and xs.size() <= 3, "%s 对应 %d 个招式（要求 2~3）" % [id, xs.size()])
+		for sid in xs:
+			covered[sid] = true
+			_check(not Data.is_starter(str(sid)) and str(Data.skills[sid]["school"]) == str(Data.xinfa[id]["school"]), "%s → %s：非起手招式且同流派" % [id, sid])
+	for sid in Data.skills:
+		if not Data.is_starter(sid):
+			_check(covered.has(sid), "非起手招式 %s 至少被一个心法点名" % sid)
+	# 初始恢复：内力回复 −30%，气血每 5 秒 1 点
+	_check(absf(float(Data.player_base["neili_regen"]) - 8.4) < 1e-6, "初始内力回复 8.4（原 12 的 70%）")
+	_check(absf(float(Data.player_base["hp_regen"]) - 0.2) < 1e-6, "初始气血回复 0.2 / 秒（每 5 秒 1 点）")
+	# 独孤九剑：破 X 式总共强化 20 次 / 35 次
+	_check(int(Data.T("shi_stage2")) == 20 and int(Data.T("shi_stage3")) == 35, "独孤九剑门槛 20 / 35")
+
+
 func _upgrade_system_test() -> void:
 	print("\n=== 升级系统：方向 × 档位 ===")
 	var checked := 0
@@ -2278,7 +2416,7 @@ func _synergy_test() -> void:
 	# 合璧效果
 	var wd := _new_world(74)
 	wd.skills.clear()
-	wd.xinfa = {"chunyang": 1, "hanshuang": 1}
+	wd.xinfa = {"lingxi": 1, "hanshuang": 1}
 	wd.recalc()
 	_check(wd.st("burn") == 40.0, "冰火同炉：灼烧")
 	var burn_e := Enemy.new()
@@ -2298,13 +2436,13 @@ func _synergy_test() -> void:
 	_free_world(wd)
 	var we := _new_world(75)
 	we.skills.clear()
-	we.xinfa = {"tiegu": 1, "jieli": 1}
+	we.xinfa = {"tiegu": 1, "tunhai": 1}
 	we.recalc()
-	_check(absf(we.st("thorns") - float(Data.xinfa["jieli"]["per_level"]["thorns"]) * 2.0) < 1e-6, "金钟罩：反震翻倍")
+	_check(absf(we.st("thorns") - float(Data.xinfa["tiegu"]["per_level"]["thorns"]) * 2.0) < 1e-6, "金钟罩：反震翻倍")
 	_free_world(we)
 	var wf := _new_world(76)
 	wf.skills.clear()
-	wf.xinfa = {"tunhai": 1, "lingxi": 1}
+	wf.xinfa = {"tunhai": 1, "chunyang": 1}
 	wf.recalc()
 	wf.neili = 10.0
 	wf.stats["crit_chance"] = 1.0
@@ -2314,26 +2452,36 @@ func _synergy_test() -> void:
 	wf.hit_enemy(pe, 10.0, ["远程"], Vector2.ZERO, "probe")
 	_check(absf(wf.neili - 11.5) < 1e-6, "吞吐万象：暴击回内力 +1.5（实际 %.2f）" % wf.neili)
 	_free_world(wf)
-	# 选卡提示：已学一个心法时，候选心法的卡片会提示阴阳组合 / 合璧
+	# 选卡提示：已学一个心法时，候选心法的卡片会提示阴阳组合 / 合璧（心法按流派出现：武者 3 个、剑侠 4 个、刀客 3 个）
 	var wg := _new_world(77)
 	wg.skills.clear()
 	wg.xinfa = {"chunyang": 1}
 	var hinted := false
-	var spoil := false
+	var seen_x := {}
 	for i in 60:
 		for c in wg.roll_choices(30):
 			if str(c["kind"]) == "new_xinfa":
+				seen_x[str(c["id"])] = true
 				_check(str(c["title"]).contains("【阳】") or str(c["title"]).contains("【阴】"), "心法卡片带阴阳标记")
-				if c["id"] == "hanshuang":
-					hinted = hinted or str(c["desc"]).contains("合璧「冰火同炉」")
-				if c["id"] == "puti":
-					spoil = spoil or str(c["desc"]).contains("合璧")
-	_check(hinted and not spoil, "能合璧的卡片提示合璧，不能的不提示")
+				if c["id"] == "tunhai":
+					hinted = hinted or str(c["desc"]).contains("合璧「吞吐万象」")
+	_check(hinted, "能合璧的卡片提示合璧")
+	_check(seen_x.has("tunhai") and seen_x.has("tiegu") and not seen_x.has("lingxi") and not seen_x.has("gangqi"), "武者只会看到武者心法（%s）" % str(seen_x.keys()))
 	wg.xinfa.clear()
 	for c in wg.roll_choices(30):
 		if str(c["kind"]) == "new_xinfa":
 			_check(not str(c["desc"]).contains("▶"), "一个心法都没学时没有搭配提示")
 	_free_world(wg)
+	var wh := _new_world(78, "kuang_feng")
+	wh.skills.clear()
+	wh.xinfa = {"lingxi": 1}
+	var spoil := false
+	for i in 60:
+		for c in wh.roll_choices(30):
+			if str(c["kind"]) == "new_xinfa" and c["id"] == "jieli":
+				spoil = spoil or str(c["desc"]).contains("合璧")
+	_check(not spoil, "不能合璧的卡片不提示合璧")
+	_free_world(wh)
 	print("  阴阳属性 / 45 种搭配 / 调和·烈火·寒潭 / 合璧效果 / 选卡提示  OK")
 
 
@@ -2754,9 +2902,10 @@ func _neili_test() -> void:
 	w.neili = mx * 0.2
 	_check(w.realm() == GameWorld.Realm.XU, "低于 25% 为虚")
 	# 九阳神功降低盈境门槛
-	w.xinfa["chunyang"] = 2
+	w.xinfa["chunyang"] = 3
+	w.xinfa_q["chunyang"] = [1, 1]           # 修习 1 份 + 两次「特别」强化各 2 份 = 5 份强度
 	w.recalc()
-	_check(absf(w.ying_at() - (Data.T("ying_at") - 0.1)) < 1e-6, "九阳神功 Lv2：盈境门槛降低 10%%（实际 %.2f）" % w.ying_at())
+	_check(absf(w.ying_at() - (Data.T("ying_at") - 0.1)) < 1e-6, "九阳神功 5 份强度：盈境门槛降低 10%%（实际 %.2f）" % w.ying_at())
 	w.xinfa.clear()
 	w.recalc()
 	# 虚境回气更快（对比同样时间内的回复量）
@@ -2834,7 +2983,7 @@ func _neili_test() -> void:
 	sb.setup(_new_world(1), "yue_palm", Data.skills["yue_palm"])
 	var c0 := sb.empower_cost()
 	sb.add_upgrade("empower", 3)
-	_check(absf(sb.empower_cost() - c0 * 0.5) < 1e-6, "运功·灵机一动：催动消耗 −50%")
+	_check(absf(sb.empower_cost() - c0 * 0.6) < 1e-6, "运功·传说：催动消耗 −40%")
 	print("  三境 / 门槛心法 / 回气 / 外泄 / 入定 / 9 招催动 / 运功  OK")
 
 
