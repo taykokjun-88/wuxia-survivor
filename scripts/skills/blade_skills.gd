@@ -31,7 +31,7 @@ class Base extends SkillBase:
 		if frac <= 0.0 or free_cast:
 			return
 		var max_hp := w.st("max_hp")
-		var paid := minf(max_hp * frac, maxf(0.0, w.hp - 1.0))
+		var paid := minf(max_hp * frac * (0.5 if w.st("ji_blade") > 0.0 else 1.0), maxf(0.0, w.hp - 1.0))
 		if paid <= 0.0:
 			return
 		if w.tb_t <= 0.0:                    # 真·霸刀破岳期间不真的扣血，刀魂照涨（按本该耗的血算）

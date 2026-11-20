@@ -1,7 +1,7 @@
 class_name Talents
 extends RefCounted
 ## 天赋树（刚 / 柔 / 灵）。三系同时存在、自由加点；总点数 = 局外等级 × 每级点数（2）。
-## 每一层需要「本系已投入点数 ≥ 层号 × row_gate」才能解锁；三系各 7 层、14 个穴位、共 30 点，三系全满 90 点（局外 45 级）。
+## 每一层需要「本系已投入点数 ≥ 层号 × row_gate」才能解锁；三系各 7 层、14 个穴位、共 33 点，三系全满 99 点后出现第 100 点「极」（局外满级 50 = 100 点）。
 ## 校验逻辑在后端 Code.gs 里有同一份（节点表由 tools/sync_talents.py 生成）。
 
 
@@ -31,7 +31,33 @@ static func nodes(school_id: String = "") -> Dictionary:
 					for k in o:
 						d[k] = o[k]
 				out[d["id"]] = d
+	var ji: Dictionary = (Data.talents["ji"] as Dictionary).duplicate()          # 「极」：三系点满后出现的第 100 点
+	ji["branch"] = "ji"
+	ji["row"] = 7
+	if school_id != "" and (ji["schools"] as Dictionary).has(school_id):
+		var jo: Dictionary = ji["schools"][school_id]
+		for k in jo:
+			ji[k] = jo[k]
+	out[ji["id"]] = ji
 	return out
+
+
+static func ji_id() -> String:
+	return str(Data.talents["ji"]["id"])
+
+
+## 三系点满所需的点数（极 穴位出现的条件）
+static func ji_need() -> int:
+	return int(Data.talents["ji"]["need"])
+
+
+## 某一系的点数上限
+static func branch_cap(branch: String) -> int:
+	var s := 0
+	for row in Data.talents["branches"][branch]["rows"]:
+		for n in row:
+			s += int(n["max"])
+	return s
 
 
 static func total_points(meta_level: int) -> int:
@@ -100,6 +126,14 @@ static func valid(t: Dictionary, meta_level: int) -> bool:
 	for id in t:
 		if int(t[id]) > 0:
 			var n: Dictionary = all[id]
+			if n["branch"] == "ji":                       # 极：三系共 99 点全部点满才出现
+				var others := 0
+				for id3 in t:
+					if all.has(id3) and all[id3]["branch"] != "ji":
+						others += int(t[id3])
+				if others < ji_need():
+					return false
+				continue
 			# 解锁条件：本系「更低层」的投入合计 ≥ 层号 × row_gate
 			var lower := 0
 			for id2 in t:

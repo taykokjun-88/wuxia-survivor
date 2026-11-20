@@ -436,11 +436,12 @@ class Dugu extends SkillBase:
 		if not w.any_enemy_within(w.player_pos, pulse_radius() + 20.0):
 			return false
 		# 连击几率各自独立判定，从高到低：先 9 连（9%），没中再判 4 连（20%），再判 2 连（50%）；中了高的，低的就不会触发
-		if w.rng.randf() < Data.T("dugu_combo9"):
+		var cm := 1.25 if w.st("ji_sword") > 0.0 else 1.0           # 极·万剑归宗：连击几率 ×1.25
+		if w.rng.randf() < Data.T("dugu_combo9") * cm:
 			combo_total = 9
-		elif w.rng.randf() < Data.T("dugu_combo4"):
+		elif w.rng.randf() < Data.T("dugu_combo4") * cm:
 			combo_total = 4
-		elif w.rng.randf() < Data.T("dugu_combo2"):
+		elif w.rng.randf() < Data.T("dugu_combo2") * cm:
 			combo_total = 2
 		else:
 			combo_total = 1

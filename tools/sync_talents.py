@@ -15,6 +15,7 @@ def block() -> str:
         for r, row in enumerate(bd["rows"]):
             for n in row:
                 nodes[n["id"]] = [b, r, n["max"]]
+    nodes[d["talents"]["ji"]["id"]] = ["ji", 7, d["talents"]["ji"]["max"]]
     g = d["gear"]
     gear = {"slots": [s["id"] for s in g["slots"]], "weights": [r["weight"] for r in g["rarity"]],
             "invMax": g["inventory_max"], "mini": g["drops"]["mini"], "bossMin": g["drops"]["boss_min"], "bossExtra": g["drops"]["boss_extra_chance"],
@@ -25,6 +26,7 @@ def block() -> str:
     diff = {"expMeta": df["exp_meta"], "dropBonus": df["drop_bonus"], "raritySkew": df["rarity_skew"]}
     return (f"{BEGIN}\nvar TALENT_GATE = {d['talents']['row_gate']};\n"
             f"var TALENT_PER_LEVEL = {d['talents']['per_level']};\n"
+            f"var TALENT_JI_NEED = {d['talents']['ji']['need']};\n"
             f"var TALENTS = {json.dumps(nodes, ensure_ascii=False, separators=(',', ':'))};\n"
             f"var GEAR = {json.dumps(gear, ensure_ascii=False, separators=(',', ':'))};\n"
             f"var MAPS = {json.dumps(maps, ensure_ascii=False, separators=(',', ':'))};\n"

@@ -1884,6 +1884,44 @@ func _plan6_test() -> void:
 		wu.step(DT)
 	_check(wu.fist_ult_t == 0.0 and wu.neili > 1.0, "状态结束后才恢复内力（%.1f）" % wu.neili)
 	_free_world(wu)
+	# ---- 「极」：每个职业的专属强机制 ----
+	var wjf := _new_world(79, "chain_fist")
+	wjf.stats["ji_fist"] = 1.0
+	wjf.level = 1
+	_check(wjf.burst_max() == 3, "极·天人合一：多 1 次真气爆发（%d）" % wjf.burst_max())
+	wjf.neili = wjf.st("max_neili")
+	wjf._burst()
+	_check(is_equal_approx(wjf.fist_ult_t, 15.0), "极·天人合一：拳掌无敌 15 秒（%.1f）" % wjf.fist_ult_t)
+	wjf.fist_ult_t = 0.01
+	for i in 3:
+		wjf.step(DT)
+	_check(wjf.neili >= wjf.st("max_neili") * 0.39, "拳掌无敌结束回复 40%% 内力（%.1f / %.1f）" % [wjf.neili, wjf.st("max_neili")])
+	var q1 := wjf.fist_qi
+	wjf.fist_after_cast(wjf.skills["chain_fist"])
+	_check(is_equal_approx(wjf.fist_qi - q1, 6.0), "蓄劲速度翻倍（+6）")
+	_free_world(wjf)
+	var wjs := _new_world(80, "kuang_feng")
+	var cd0j := wjs.cd_mult()
+	wjs.stats["ji_sword"] = 1.0
+	_check(absf((cd0j - wjs.cd_mult()) - 0.2) < 1e-6, "极·万剑归宗：冷却 −20%")
+	wjs.ji_haste_until = wjs.time + 3.0
+	var cd_j20 := cd0j - 0.2
+	_check(wjs.cd_mult() < cd_j20 - 0.1 and wjs.cd_mult() >= 0.3, "冲刺后 3 秒冷却再降（%.2f → %.2f，下限 0.3）" % [cd_j20, wjs.cd_mult()])
+	wjs.ji_haste_until = -1.0
+	_free_world(wjs)
+	var wjb := _blade_world(81)
+	wjb.stats["ji_blade"] = 1.0
+	wjb.hp = wjb.st("max_hp") * 0.1
+	wjb.step(DT)
+	_check(wjb.tb_t > 14.9, "极·霸刀：真·霸刀破岳 15 秒（%.1f）" % wjb.tb_t)
+	wjb.tb_t = 0.01
+	wjb.step(DT)
+	wjb.step(DT)
+	_check(absf(wjb.tb_cd - 15.0) < 0.1, "极·霸刀：冷却减半（%.1f）" % wjb.tb_cd)
+	wjb.soul = 0.0
+	wjb.add_soul(10.0)
+	_check(is_equal_approx(wjb.soul, 15.0), "刀魂增长 +50%")
+	_free_world(wjb)
 	# ---- 独孤九剑 9 / 18 / 27 ----
 	var wd := _new_world(76, "dugu")
 	wd.time = 120.0
@@ -3107,11 +3145,14 @@ func _talent_map_test() -> void:
 		per[all[id]["branch"]] = int(per.get(all[id]["branch"], 0)) + 1
 	for b in Talents.branches():
 		_check(int(per[b]) >= 10 and int(per[b]) <= 15, "%s 系有 %d 个穴位（要求 10~15）" % [b, int(per[b])])
+	_check(all.has(Talents.ji_id()) and str(all[Talents.ji_id()]["name"]) == "极·霸刀", "刀客的「极」穴位叫 极·霸刀")
 	# 位置：每个节点唯一、落在自己的框里、互不重叠
 	var pos := {}
 	var min_d := 1.0e9
 	for id in all:
 		var n: Dictionary = all[id]
+		if n["branch"] == "ji":
+			continue
 		var bi := Talents.branches().find(n["branch"])
 		var p := tt.node_pos(bi, int(n["row"]), tt._idx_in_row(id))
 		pos[id] = p
@@ -3122,6 +3163,29 @@ func _talent_map_test() -> void:
 			min_d = minf(min_d, (pos[ids[i]] as Vector2).distance_to(pos[ids[j]]))
 	_check(min_d >= TalentTree.ICON, "穴位之间不重叠（最近 %.1f）" % min_d)
 	_check(tt.box_rect(2).end.x <= tt.size.x + 0.5, "三个框并排放得下")
+	_check(tt.ji_pos().y > tt.box_rect(0).end.y and tt.node_at(tt.ji_pos()) == Talents.ji_id(), "「极」穴位在三个框下方，可点中")
+	# 极：三系点满 99 点后才出现
+	var full := {}
+	for id in all:
+		if all[id]["branch"] != "ji":
+			full[id] = int(all[id]["max"])
+	_check(Talents.spent(full) == 99 and Talents.total_points(50) == 100, "三系点满 = 99 点，满级 50 = 100 点")
+	tt.level = 50
+	tt.work = full.duplicate()
+	_check(tt.ji_unlocked() and tt.state_of(Talents.ji_id()) == "open", "点满 99 点后「极」可以点")
+	var jclick := InputEventMouseButton.new()
+	jclick.position = tt.ji_pos()
+	jclick.pressed = true
+	jclick.button_index = MOUSE_BUTTON_LEFT
+	tt._gui_input(jclick)
+	_check(int(tt.work.get(Talents.ji_id(), 0)) == 1 and Talents.spent(tt.work) == 100, "点亮「极」：第 100 点")
+	var cut: Dictionary = full.duplicate()
+	cut["gang_force"] = int(cut["gang_force"]) - 1
+	cut[Talents.ji_id()] = 1
+	_check(not Talents.valid(cut, 50), "没点满 99 点不能点「极」")
+	_check(not Talents.can_remove(tt.work, "gang_force", 50) and Talents.can_remove(tt.work, Talents.ji_id(), 50), "有「极」时不能减别的点，要先减「极」")
+	tt.work = {}
+	tt.level = 10
 	# 命中测试 + 点击加点 / 减点（走真实的输入事件）
 	var gid := "gang_force"
 	var sp: Vector2 = pos[gid]
@@ -3166,14 +3230,14 @@ func _talent_map_test() -> void:
 func _build_test() -> void:
 	print("\n=== 天赋树 / 装备 ===")
 	# 天赋树结构：三系各 7 层、14 个穴位、共 30 点（三系 90 点）；每级 2 点；节点属性都是已有的属性
-	_check(int(Data.talents["per_level"]) == 2 and Talents.total_points(45) == 90, "每级 2 点，45 级刚好点满三系 90 点")
+	_check(int(Data.talents["per_level"]) == 2 and Talents.total_points(50) == 100 and Talents.ji_need() == 99, "每级 2 点，满级 50 = 100 点 = 三系 99 点 + 极 1 点")
 	var all := Talents.nodes()
 	for b in Talents.branches():
 		var sum := 0
 		for id in all:
 			if all[id]["branch"] == b:
 				sum += int(all[id]["max"])
-		_check(sum == 30, "%s 系应共 30 点（实际 %d）" % [b, sum])
+		_check(sum == 33, "%s 系应共 33 点（实际 %d）" % [b, sum])
 	for id in all:
 		for k in all[id]["stat"]:
 			if str(k).begins_with("skill:"):

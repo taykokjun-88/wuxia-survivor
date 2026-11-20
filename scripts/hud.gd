@@ -1243,7 +1243,7 @@ func _talents_refresh() -> void:
 	var work := talents_tree.work
 	var level := talents_tree.level
 	var free_pts := Talents.total_points(level) - Talents.spent(work)
-	talents_info_points.text = "可用天赋点 %d　（局外等级 %d × 每级 %d 点 = %d 点；三系各 30 点，全满 90 点）" % [free_pts, level, int(Data.talents["per_level"]), Talents.total_points(level)]
+	talents_info_points.text = "可用天赋点 %d　（局外等级 %d × 每级 %d 点 = %d 点；三系各 33 点，点满 99 点后出现第 100 点「极」）" % [free_pts, level, int(Data.talents["per_level"]), Talents.total_points(level)]
 	talents_info_points.add_theme_color_override("font_color", Color("#9ad0a0") if free_pts > 0 else Color("#cfc6ae"))
 	talents_info_node.text = talents_tree.info_text(talents_tree.hover_id)
 

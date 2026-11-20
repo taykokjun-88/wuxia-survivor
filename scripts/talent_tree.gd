@@ -13,7 +13,8 @@ const ICON_DIR := "res://assets/ui/talent/"
 const BOX_W := 404.0
 const GAP := 12.0
 const HEADER_H := 58.0
-const ROW_H := 60.0
+const ROW_H := 56.0
+const STRIP_H := 70.0           # 框下方的「极」穴位条
 const ICON := 40.0
 const COLORS := {"gang": "#d9573a", "rou": "#3fc2b6", "ling": "#a97be0"}
 
@@ -46,8 +47,17 @@ func setup(school_id: String) -> void:
 		bgs[b] = _load_bg(b)
 
 
+static func box_h() -> float:
+	return HEADER_H + ROW_H * 7.0 + 10.0
+
+
 static func tree_size() -> Vector2:
-	return Vector2(BOX_W * 3.0 + GAP * 2.0, HEADER_H + ROW_H * 7.0 + 10.0)
+	return Vector2(BOX_W * 3.0 + GAP * 2.0, box_h() + STRIP_H)
+
+
+## 「极」穴位：三系点满（99 点）后出现的第 100 点，放在三个框下方正中
+func ji_pos() -> Vector2:
+	return Vector2(tree_size().x * 0.5, box_h() + STRIP_H * 0.5 + 2.0)
 
 
 func _load_bg(branch: String) -> Texture2D:
@@ -59,7 +69,7 @@ func _load_bg(branch: String) -> Texture2D:
 
 
 func box_rect(bi: int) -> Rect2:
-	return Rect2(Vector2(bi * (BOX_W + GAP), 0.0), Vector2(BOX_W, size.y if size.y > 0.0 else tree_size().y))
+	return Rect2(Vector2(bi * (BOX_W + GAP), 0.0), Vector2(BOX_W, box_h()))
 
 
 ## 节点中心（控件内坐标）
@@ -73,8 +83,12 @@ func _branch_index(branch: String) -> int:
 
 
 func node_at(p: Vector2) -> String:
+	if p.distance_to(ji_pos()) < 34.0:
+		return Talents.ji_id()
 	for id in _all:
 		var n: Dictionary = _all[id]
+		if n["branch"] == "ji":
+			continue
 		var c := node_pos(_branch_index(str(n["branch"])), int(n["row"]), _idx_in_row(id))
 		if absf(p.x - c.x) < 62.0 and p.y > c.y - ICON * 0.5 - 6.0 and p.y < c.y + ICON * 0.5 + 22.0:
 			return id
@@ -154,9 +168,22 @@ func row_open(branch: String, row: int) -> bool:
 	return lower >= row * Talents.gate()
 
 
+func ji_unlocked() -> bool:
+	var others := 0
+	for id in work:
+		if _all.has(id) and _all[id]["branch"] != "ji":
+			others += int(work[id])
+	return others >= Talents.ji_need()
+
+
 func info_text(id: String) -> String:
 	if id == "":
-		return "把鼠标移到穴位上查看。左键加点，右键减点；每一层需要本系更低层投入 ≥ 层号 × %d 点才解锁。三个框可以只专注一个，也可以分散投资。" % Talents.gate()
+		return "把鼠标移到穴位上查看。左键加点，右键减点；每一层需要本系更低层投入 ≥ 层号 × %d 点才解锁。三个框可以只专注一个，也可以分散投资；三系各 33 点全部点满（99 点）后，出现第 100 点「极」。" % Talents.gate()
+	if id == Talents.ji_id():
+		var jn: Dictionary = _all[id]
+		if not ji_unlocked() and int(work.get(id, 0)) == 0:
+			return "【极】三系各 33 点全部点满（共 %d 点）后出现，是每个职业专属的极强机制。（现在已投入 %d 点）" % [Talents.ji_need(), Talents.spent(work)]
+		return "【极】%s　%d / 1\n%s" % [jn["name"], int(work.get(id, 0)), jn["desc"]]
 	var n: Dictionary = _all[id]
 	var rank := int(work.get(id, 0))
 	var state := "已满" if rank >= int(n["max"]) else ("可以加点" if Talents.can_add(work, id, level) else
@@ -177,7 +204,7 @@ func _draw() -> void:
 		var spent := Talents.branch_spent(work, b)
 		draw_string(bold, rect.position + Vector2(16, 34), str(Data.talents["branches"][b]["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(col.lightened(0.35), 1.0))
 		draw_string(font, rect.position + Vector2(58, 22), str(Data.talents["branches"][b]["desc"]), HORIZONTAL_ALIGNMENT_LEFT, BOX_W - 160.0, 14, Color("#e8dfc5"))
-		draw_string(bold, rect.position + Vector2(BOX_W - 112, 22), "%d / 30 点" % spent, HORIZONTAL_ALIGNMENT_RIGHT, 100.0, 18, Color("#fff6dc"))
+		draw_string(bold, rect.position + Vector2(BOX_W - 112, 22), "%d / %d 点" % [spent, Talents.branch_cap(b)], HORIZONTAL_ALIGNMENT_RIGHT, 100.0, 18, Color("#fff6dc"))
 		draw_line(rect.position + Vector2(12, HEADER_H - 4), rect.position + Vector2(BOX_W - 12, HEADER_H - 4), Color(col, 0.5), 1.5)
 		# 层与层之间：门槛线（打通时点亮）+ 连线
 		for r in 7:
@@ -194,6 +221,7 @@ func _draw() -> void:
 		for r in 7:
 			for k in 2:
 				_draw_node(_node_id(b, r, k), bi, r, k, col, font)
+	_draw_ji(font, bold)
 
 
 func _node_id(branch: String, row: int, idx: int) -> String:
@@ -267,3 +295,30 @@ func _draw_node(id: String, bi: int, row: int, idx: int, col: Color, font: Font)
 	draw_string(font, c + Vector2(-20, 5), txt, HORIZONTAL_ALIGNMENT_CENTER, 40.0, 12, Color("#fff6dc") if rank > 0 else Color(0.8, 0.77, 0.7, 0.8))
 	if id == hover_id:
 		draw_arc(c, rr + 7.0, 0.0, TAU, 28, Color("#fff6dc", 0.95), 2.0)
+
+
+## 「极」穴位条：三系点满后点亮（金色大穴位）；之前只显示一个暗的占位
+func _draw_ji(font: Font, bold: Font) -> void:
+	var id := Talents.ji_id()
+	var c := ji_pos()
+	var gold := Color("#e8c15a")
+	var rank := int(work.get(id, 0))
+	var open := ji_unlocked() or rank > 0
+	var n: Dictionary = _all[id]
+	draw_rect(Rect2(Vector2(0, box_h() + 6.0), Vector2(size.x, STRIP_H - 8.0)), Color(0.07, 0.06, 0.04, 0.75))
+	draw_rect(Rect2(Vector2(0, box_h() + 6.0), Vector2(size.x, STRIP_H - 8.0)), Color(gold, 0.45 if open else 0.15), false, 2.0)
+	var pulse := 0.5 + 0.5 * sin(time_acc * 3.0)
+	if open:
+		draw_circle(c, 30.0 + 4.0 * pulse, Color(gold, 0.18 + 0.12 * pulse))
+		draw_circle(c, 22.0, Color(gold, 0.95 if rank > 0 else 0.35))
+		draw_arc(c, 22.0, 0.0, TAU, 32, gold, 3.0)
+		draw_string(bold, c + Vector2(-20, 8), "极", HORIZONTAL_ALIGNMENT_CENTER, 40.0, 24, Color("#3a2a05") if rank > 0 else Color("#fff6dc"))
+		draw_string(bold, c + Vector2(34, -4), str(n["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, gold.lightened(0.2))
+		draw_string(font, c + Vector2(34, 16), "已点亮" if rank > 0 else "可以加点：第 100 点", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#e8dfc5"))
+	else:
+		draw_circle(c, 22.0, Color(0.12, 0.11, 0.1, 0.85))
+		draw_arc(c, 22.0, 0.0, TAU, 32, Color(0.45, 0.42, 0.38, 0.7), 2.0)
+		draw_string(bold, c + Vector2(-20, 8), "极", HORIZONTAL_ALIGNMENT_CENTER, 40.0, 24, Color(0.5, 0.47, 0.42, 0.8))
+		draw_string(font, c + Vector2(34, 4), "三系各 33 点全部点满（%d / %d）后出现" % [Talents.spent(work), Talents.ji_need()], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#8d8670"))
+	if id == hover_id:
+		draw_arc(c, 29.0, 0.0, TAU, 32, Color("#fff6dc", 0.95), 2.0)

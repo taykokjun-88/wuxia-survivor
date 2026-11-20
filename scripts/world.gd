@@ -73,6 +73,7 @@ var cunjin_count := 0              # 本局寸劲震爆次数
 var meta_level := 1                # 局外等级（由 main 在开局前设置；决定「另觅机缘」次数）
 var rerolls_left := 0              # 另觅机缘：本局剩余次数
 var rerolls_used := 0
+var ji_haste_until := -1.0          # 极·万剑归宗：冲刺后的加速窗口
 var tb_count := 0                  # 本局真·霸刀破岳触发次数
 var tb_t := 0.0                    # 真·霸刀破岳：剩余持续时间（>0 = 生效中）
 var tb_cd := 0.0                   # 真·霸刀破岳：冷却（状态结束后才开始倒计时）
@@ -243,6 +244,7 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	tb_t = 0.0
 	tb_cd = 0.0
 	tb_count = 0
+	ji_haste_until = -1.0
 	rerolls_left = rerolls_for_level(meta_level)
 	rerolls_used = 0
 	dash_end_t = -99.0
@@ -478,7 +480,10 @@ func _exp_for(l: int) -> int:
 func cd_mult() -> float:
 	# 剑侠：移速越高攻速越快（speed_cd × 移速加成）
 	var sc := st("speed_cd") * maxf(0.0, st("speed_pct"))
-	return maxf(0.4, 1.0 - st("cd_reduce") - sc - (Data.T("burst_yin_cd") if atk_buff_t > 0.0 else 0.0))
+	var jc := 0.0
+	if st("ji_sword") > 0.0:                      # 极·万剑归宗：冷却 −20%，冲刺 / 闪现后 3 秒再 −40%
+		jc = 0.2 + (0.4 if time < ji_haste_until else 0.0)
+	return maxf(0.3 if jc > 0.0 else 0.4, 1.0 - st("cd_reduce") - sc - jc - (Data.T("burst_yin_cd") if atk_buff_t > 0.0 else 0.0))
 
 
 ## 内力充盈（≥50%）时全部伤害 +25%
@@ -569,11 +574,14 @@ func _update_player(dt: float) -> void:
 	if school_id == "fist":                        # 蓄劲：盈境下自然蓄劲
 		if fist_ult_t > 0.0:                      # 拳掌无敌：无敌，内力清零且不恢复
 			fist_ult_t = maxf(0.0, fist_ult_t - dt)
-			invuln = maxf(invuln, 0.1)
-			neili = 0.0
+			if fist_ult_t > 0.0:
+				invuln = maxf(invuln, 0.1)
+				neili = 0.0
+			elif st("ji_fist") > 0.0:                 # 极·天人合一：结束时回复 40% 内力
+				neili = st("max_neili") * 0.4
 		fist_qi_crit_t = maxf(0.0, fist_qi_crit_t - dt)
 		if realm() == Realm.YING:
-			fist_qi = minf(100.0, fist_qi + Data.T("fist_qi_ying") * dt)
+			fist_qi = minf(100.0, fist_qi + Data.T("fist_qi_ying") * dt * (2.0 if st("ji_fist") > 0.0 else 1.0))
 	if school_id == "blade":
 		_tick_true_blade(dt)
 		soul_idle += dt
@@ -611,7 +619,7 @@ func _update_player(dt: float) -> void:
 		if dash_t <= 0.0:
 			_end_dash()
 	else:
-		var spd_pct := st("speed_pct") + (float(qg.get("buff_speed", 0.0)) if buff_t > 0.0 else 0.0)
+		var spd_pct := st("speed_pct") + (float(qg.get("buff_speed", 0.0)) if buff_t > 0.0 else 0.0) + (0.25 if st("ji_sword") > 0.0 and time < ji_haste_until else 0.0)
 		player_pos += move * st("move_speed") * (1.0 + spd_pct) * (0.55 if player_slow_t > 0.0 else 1.0) * dt
 	if map_art != null and map_art.has_blockers:        # 残墙 / 石柱挡人（含冲刺、击退）
 		player_pos = map_art.push_out(player_pos, PLAYER_RADIUS)
@@ -679,6 +687,8 @@ func _start_dash(move: Vector2, max_charges: int) -> void:
 
 func _end_dash() -> void:
 	dash_end_t = time
+	if st("ji_sword") > 0.0:
+		ji_haste_until = time + 3.0
 	if qg.has("stealth"):
 		stealth_t = float(qg["stealth"])
 		stealth_pos = player_pos
@@ -699,7 +709,7 @@ func nature() -> String:
 func burst_max() -> int:
 	var n := 1 + int(st("burst_extra"))
 	if school_id == "fist":                       # 武者：初始 2 次，局内每 10 级 +1 次
-		n += 1 + int(level / 10)
+		n += 1 + int(level / 10) + (1 if st("ji_fist") > 0.0 else 0)
 	if nature() == "harmony" and st("burst_harmony") > 0.0:
 		n += 1
 	return n
@@ -746,7 +756,7 @@ func _burst() -> void:
 	var radius := lerpf(Data.T("burst_radius_min"), Data.T("burst_radius_max"), f)
 	var dmg := Data.T("burst_damage") * (0.4 + 4.6 * f)
 	if school_id == "fist":                       # 武者：真气爆发 = 10 秒「拳掌无敌」
-		fist_ult_t = Data.T("fist_ult_dur")
+		fist_ult_t = Data.T("fist_ult_dur") + (5.0 if st("ji_fist") > 0.0 else 0.0)
 		fist_ult_count += 1
 		invuln = maxf(invuln, 0.3)
 		for p in projs:
@@ -2657,7 +2667,7 @@ func apply_vuln(e: Enemy, v: float, spread: bool = false) -> void:
 func add_soul(n: float) -> void:
 	if school_id != "blade" or n <= 0.0:
 		return
-	soul = minf(100.0, soul + n)
+	soul = minf(100.0, soul + n * (1.5 if st("ji_blade") > 0.0 else 1.0))
 	soul_idle = 0.0
 
 
@@ -2667,12 +2677,12 @@ func _tick_true_blade(dt: float) -> void:
 		tb_t -= dt
 		if tb_t <= 0.0:
 			tb_t = 0.0
-			tb_cd = Data.T("true_blade_cd")
+			tb_cd = Data.T("true_blade_cd") * (0.5 if st("ji_blade") > 0.0 else 1.0)
 			add_fx("text", player_pos + Vector2(0, -52), 0.9, {"text": "破岳之势已尽", "size": 22, "color": Color("#c9a227")})
 	elif tb_cd > 0.0:
 		tb_cd = maxf(0.0, tb_cd - dt)
 	elif hp > 0.0 and not over and hp <= st("max_hp") * Data.T("true_blade_hp_pct"):
-		tb_t = Data.T("true_blade_dur")
+		tb_t = Data.T("true_blade_dur") + (5.0 if st("ji_blade") > 0.0 else 0.0)
 		tb_count += 1
 		invuln = maxf(invuln, Data.T("true_blade_invuln"))
 		add_fx("text", player_pos + Vector2(0, -60), 1.6, {"text": "真·霸刀破岳！", "size": 34, "color": Color("#ff6030")})
@@ -2695,7 +2705,7 @@ func fist_after_cast(s: SkillBase) -> void:
 	elif fist_qi >= 100.0:
 		_cunjin(s)
 	else:
-		fist_qi = minf(100.0, fist_qi + Data.T("fist_qi_cast"))
+		fist_qi = minf(100.0, fist_qi + Data.T("fist_qi_cast") * (2.0 if st("ji_fist") > 0.0 else 1.0))
 
 
 func _cunjin(s: SkillBase, free: bool = false) -> void:
@@ -2750,7 +2760,7 @@ func baodao_done() -> void:
 		sk_f.on_baodao()
 	soul = 0.0
 	soul_idle = 0.0
-	var heal := (st("max_hp") - hp) * Data.T("blade_break_heal")
+	var heal := (st("max_hp") - hp) * Data.T("blade_break_heal") * (2.0 if st("ji_blade") > 0.0 else 1.0)
 	hp = minf(st("max_hp"), hp + heal)
 	add_fx("text", player_pos + Vector2(0, -52), 1.0, {"text": "霸刀！" if rng.randf() < 0.5 else "破岳！", "size": 30, "color": Color("#ffb030")})
 	shake = maxf(shake, 7.0)

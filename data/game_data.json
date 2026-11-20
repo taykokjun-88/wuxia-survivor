@@ -41,7 +41,10 @@
     "burst_harmony": 0,
     "skill_range": 0,
     "skill_debuff": 0,
-    "armor_pierce": 0
+    "armor_pierce": 0,
+    "ji_fist": 0,
+    "ji_sword": 0,
+    "ji_blade": 0
   },
   "tuning": {
     "spawn_base": 1.0,
@@ -2227,7 +2230,7 @@
             {
               "id": "gang_vajra",
               "name": "金刚怒目",
-              "max": 2,
+              "max": 3,
               "stat": {
                 "skill:vajra_fist:damage": 0.15
               },
@@ -2254,7 +2257,7 @@
             {
               "id": "gang_regen",
               "name": "霸体",
-              "max": 2,
+              "max": 3,
               "stat": {
                 "neili_regen": 1.5
               },
@@ -2302,7 +2305,7 @@
             {
               "id": "gang_force3",
               "name": "无坚不摧",
-              "max": 4,
+              "max": 5,
               "stat": {
                 "damage_pct": 0.03
               },
@@ -2462,7 +2465,7 @@
             {
               "id": "rou_finger",
               "name": "一阳连点",
-              "max": 2,
+              "max": 3,
               "stat": {
                 "skill:point_finger:targets": 1.0
               },
@@ -2489,7 +2492,7 @@
             {
               "id": "rou_full",
               "name": "太和",
-              "max": 2,
+              "max": 3,
               "stat": {
                 "full_hp_regen": 0.6
               },
@@ -2527,7 +2530,7 @@
             {
               "id": "rou_armor",
               "name": "绵里藏针",
-              "max": 4,
+              "max": 5,
               "stat": {
                 "armor": 0.4
               },
@@ -2736,7 +2739,7 @@
             {
               "id": "ling_waste",
               "name": "八荒回响",
-              "max": 2,
+              "max": 3,
               "stat": {
                 "skill:eight_waste:cooldown": 0.1
               },
@@ -2763,7 +2766,7 @@
             {
               "id": "ling_luck2",
               "name": "天机",
-              "max": 2,
+              "max": 3,
               "stat": {
                 "luck": 0.05
               },
@@ -2812,7 +2815,7 @@
             {
               "id": "ling_step2",
               "name": "凌波",
-              "max": 4,
+              "max": 5,
               "stat": {
                 "speed_pct": 0.015
               },
@@ -2831,7 +2834,40 @@
         ]
       }
     },
-    "per_level": 2
+    "per_level": 2,
+    "ji": {
+      "id": "ji_peak",
+      "name": "极",
+      "max": 1,
+      "need": 99,
+      "stat": {
+        "ji_fist": 1.0
+      },
+      "desc": "三系点满（99 点）后出现的第 100 点。",
+      "schools": {
+        "fist": {
+          "name": "极·天人合一",
+          "stat": {
+            "ji_fist": 1.0
+          },
+          "desc": "武者之极：拳掌无敌持续 +5 秒；蓄劲速度翻倍；多 1 次真气爆发；拳掌无敌结束时回复 40% 内力"
+        },
+        "sword": {
+          "name": "极·万剑归宗",
+          "stat": {
+            "ji_sword": 1.0
+          },
+          "desc": "剑侠之极：所有招式冷却 −20%；每次冲刺 / 闪现后 3 秒内冷却再 −40%、移速 +25%；独孤九剑的 2 / 4 / 9 连击几率 ×1.25"
+        },
+        "blade": {
+          "name": "极·霸刀",
+          "stat": {
+            "ji_blade": 1.0
+          },
+          "desc": "刀客之极：真·霸刀破岳持续 +5 秒、冷却减半；刀法耗血减半；刀魂增长 +50%；霸刀 / 破岳回复已损气血的比例翻倍"
+        }
+      }
+    }
   },
   "gear": {
     "slots": [
