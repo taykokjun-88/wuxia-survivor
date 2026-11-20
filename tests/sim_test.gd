@@ -208,13 +208,13 @@ func _dugu_report() -> void:
 				TestBot.drive(w, TestBot.engage_for(w))
 				w.step(DT)
 				TestBot.resolve_choices(w, pick_rng, true)
-				if t20 < 0.0 and w.shi_total() > 20:
+				if t20 < 0.0 and w.shi_total() >= 27:
 					t20 = w.time
-				if t30 < 0.0 and w.shi_total() > 30:
+				if t30 < 0.0 and w.shi_total() >= 18:
 					t30 = w.time
 				if w.over:
 					break
-			print("  %s 种子 %d：%s @ %ds  Lv%d  总层 %d（>20 @ %ds, >30 @ %ds）  式=%s  连击=%s" % [
+			print("  %s 种子 %d：%s @ %ds  Lv%d  总层 %d（≥27 @ %ds, ≥18 @ %ds）  式=%s  连击=%s" % [
 				"无敌" if god else "不无敌", sd, "通关" if w.won else ("阵亡" if w.over else "存活"), int(w.time), w.level,
 				w.shi_total(), int(t20), int(t30), str(w.shi), str(w.dugu_combo_log.size())])
 			_free_world(w)
