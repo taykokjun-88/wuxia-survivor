@@ -137,6 +137,8 @@ func _unhandled_input(event: InputEvent) -> void:
 				var npc := town.near_npc()
 				if not npc.is_empty():
 					_talk(npc)
+			elif event.is_action_pressed("ui_cancel"):
+				_open_town_menu()
 		State.DIALOG:
 			if event is InputEventKey and event.pressed and not event.echo:
 				var di := int(event.keycode) - int(KEY_1)
@@ -518,8 +520,9 @@ func _on_end(won: bool) -> void:
 	if not Net.logged_in() or world.time < 30.0:
 		return
 	hud.set_end_extra("成绩上传中…")
+	var sent_char := Net.char_id
 	var res: Dictionary = await Net.submit_run(world.run_summary())
-	if state != State.END:
+	if Net.char_id != sent_char or not Net.logged_in():        # 等上传期间已经换了角色 / 退出登录：不要把结果写进别的角色
 		return
 	if bool(res.get("ok", false)):
 		Save.store_meta(Net.exp, Save.meta_alloc())
@@ -527,12 +530,16 @@ func _on_end(won: bool) -> void:
 			Save.add_items(res["drops"])
 		Save.store_silver_enh(int(res.get("silver", Net.silver)), Save.enh())
 		Save.set_cleared(Net.cleared)
+		if state == State.TOWN or state == State.DIALOG:        # 上传还没回来就已经回到小镇：刷新小镇上的等级 / 银两
+			hud.show_town_hud(true)
+		if state != State.END:
+			return
 		var ranks: Dictionary = res.get("ranks", {})
 		var line := "已上榜：总分榜第 %d 名" % int(ranks.get("score", 0))
 		if bool(res.get("best", false)):
 			line += "　（个人最高分！）"
 		hud.set_end_extra(line + "\n" + _exp_line(res))
-	else:
+	elif state == State.END:
 		hud.set_end_extra("成绩没能上传：%s" % str(res.get("msg", "未知错误")))
 
 
@@ -624,6 +631,15 @@ func _talk(npc: Dictionary) -> void:
 		_:
 			opts = [{"label": "告辞", "action": "close"}]
 	_dlg(npc, greet, opts)
+
+
+## 小镇里按 Esc：菜单（继续 / 返回角色选择 / 退出登录）
+func _open_town_menu() -> void:
+	var online := Net.configured()
+	_dlg({"id": "menu", "name": "菜单", "title": "小镇", "greet": ""}, "要去哪儿？",
+		[{"label": "继续游戏", "action": "close"},
+		{"label": "返回角色选择", "action": "switch_char"},
+		{"label": "退出登录（返回登录画面）" if online else "退出登录（未联网，无登录画面）", "action": "logout", "enabled": online}])
 
 
 func _dialog_close() -> void:
