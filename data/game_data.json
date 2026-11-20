@@ -176,7 +176,7 @@
     "stagger_hit": 0.05,
     "stagger_crit": 0.1,
     "stagger_gap": 0.25,
-    "boss_hp_mult": 1.25
+    "boss_hp_mult": 3.0
   },
   "skills": {
     "yue_palm": {
