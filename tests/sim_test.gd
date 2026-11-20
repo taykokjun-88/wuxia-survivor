@@ -604,17 +604,17 @@ func _sword_talent_test() -> void:
 	_check(base.size() == sw.size(), "覆盖不改变节点数量")
 	for id in base:
 		_check(int(base[id]["max"]) == int(sw[id]["max"]) and base[id]["branch"] == sw[id]["branch"] and int(base[id]["row"]) == int(sw[id]["row"]), "覆盖不改变 id / 层 / 上限：%s" % id)
-	var expect := {"gang_ying": "剑心", "gang_peak": "剑意凌霄", "rou_finger": "破绽洞察", "ling_qg": "青松不动", "ling_crit": "洞察", "ling_peak": "独孤传承"}
+	var expect := {"gang_ying": "剑心", "gang_peak": "剑意凌霄", "rou_finger": "破绽洞察", "ling_qg": "青松不动", "ling_crit": "洞察", "ling_peak": "剑魔"}
 	for id in expect:
 		_check(str(sw[id]["name"]) == str(expect[id]), "剑侠节点名 %s" % id)
 	_check(str(base["gang_ying"]["name"]) == "盈劲" and str(Talents.nodes("fist")["gang_ying"]["name"]) == "盈劲", "武者流派的节点不变")
 	var ts := Talents.stats_for({"gang_ying": 2, "gang_peak": 1, "ling_peak": 1, "ling_crit": 2}, "sword")
 	_check(absf(float(ts.get("skill_range", 0.0)) - 0.10) < 1e-6, "剑心 +5%%/级")
 	_check(absf(float(ts.get("ying_dmg", 0.0)) - 0.10) < 1e-6, "剑意凌霄 盈境伤害 +10%%")
-	_check(float(ts.get("burst_yang", 0.0)) == 1.0 and not ts.has("burst_harmony"), "剑侠：刚系第 7 层保留阳性内力；灵系第 7 层变成独孤传承")
-	_check(not ts.has("crit_mult"), "剑侠天赋不再额外给暴击伤害")
-	_check(absf(float(ts.get("skill:dugu:crit", 0.0)) - 0.08) < 1e-6, "洞察：独孤九剑暴击率 +4%%/级")
-	_check(float(ts.get("dugu_start", 0.0)) == 3.0 and absf(float(ts.get("skill:dugu:damage", 0.0)) - 0.10) < 1e-6, "独孤传承：开局总诀式 3 层 + 独孤九剑伤害 +10%%")
+	_check(float(ts.get("burst_yang", 0.0)) == 1.0 and not ts.has("burst_harmony"), "剑侠：刚系第 7 层保留阳性内力；灵系第 7 层变成剑魔")
+	_check(absf(float(ts.get("crit_mult", 0.0)) - 0.06) < 1e-6, "剑魔带一点点暴击伤害（+6%%）")
+	_check(absf(float(ts.get("skill:dugu:crit", 0.0)) - (0.08 + 0.06)) < 1e-6, "洞察 2 级（+8%%）+ 剑魔（+6%%）：独孤九剑暴击率 +14%%")
+	_check(absf(float(ts.get("skill:dugu:damage", 0.0)) - 0.12) < 1e-6 and absf(float(ts.get("skill:dugu:cooldown", 0.0)) - 0.08) < 1e-6, "剑魔：独孤九剑 伤害 +12%%、冷却 −8%%")
 	var tf := Talents.stats_for({"gang_ying": 2}, "fist")
 	_check(float(tf.get("ying_dmg", 0.0)) > 0.0 and not tf.has("skill_range"), "武者的盈劲仍是盈境伤害")
 	# 进入局内：范围 / 减益并入招式
@@ -1190,13 +1190,51 @@ func _dugu_test() -> void:
 	_check(w.dugu_stage() == 2, "总层 26：仍是万法皆破")
 	w.shi["zong"] = 7
 	_check(w.dugu_stage() == 3 and w.dugu_true() and w.dash_sealed(), "总层 27 → 真·独孤九剑，轻功封印")
-	# 秘籍：+3 层的式
+	# 升级一次 = 强化一次 = +1 层；品质只加威力，不加层数（不影响 9 / 18 / 27 门槛）
+	var wl := _new_world(70, "dugu")
+	for lvl in 28:
+		wl.pending_levels = 1
+		var chs: Array = wl.roll_choices(3)
+		var pick: Dictionary = {}
+		for c in chs:
+			if str(c["kind"]).begins_with("shi_"):
+				pick = c
+				break
+		_check(int(pick["gain"]) == 1 and pick.has("tier") and float(pick["bonus"]) >= 0.0, "升级卡：+1 层，带品质（%s）" % str(pick.get("tag", "")))
+		wl.apply_choice(pick)
+		if wl.shi_total() == 9 or wl.shi_total() == 18 or wl.shi_total() == 27:
+			var want := {9: 1, 18: 2, 27: 3}[wl.shi_total()] as int
+			_check(wl.dugu_stage() >= want and (wl.shi_total() != 9 or wl.dugu_micro()), "第 %d 次升级（局内 %d 级）达到 %d 层" % [lvl + 1, lvl + 2, wl.shi_total()])
+		if lvl == 7:
+			_check(wl.shi_total() == 8 and not wl.dugu_micro(), "8 次升级只有 8 层：还没到 9 层门槛")
+	_check(wl.shi_total() == 28 or wl.shi_total() == 27 or wl.shi_total() <= 28, "总层数只看升级次数")
+	_free_world(wl)
+	var wq := _new_world(71, "dugu")
+	wq.shi = {"po_dao": 5}
+	var gold := {"kind": "shi_up", "id": "po_dao", "gain": 1, "tier": 3, "bonus": 1.5, "tag": "传说", "src": "level"}
+	wq.pending_levels = 1
+	wq.apply_choice(gold)
+	_check(wq.shi_total() == 6 and wq.shi_lv("po_dao") == 7 and float(wq.shi_bonus["po_dao"]) == 1.5, "金色品质：层数 +1（6），生效层数 7（+1 加成，不计入门槛）")
+	wq.pending_levels = 1
+	wq.apply_choice(gold)
+	_check(wq.shi_total() == 7 and wq.shi_lv("po_dao") == 10 and (wq.skills["dugu"] as SwordSkills.Dugu).L("po_dao") == 10, "再来一次：加成累计 3.0，生效层数 10；独孤九剑按生效层数结算")
+	_free_world(wq)
+	# 秘籍：只给紫 / 金品质加成，不加层数
 	w.shi = {"po_jian": 2}
 	var cc := w.roll_chest_choices()
-	_check(not cc.is_empty() and str(cc[0]["kind"]).begins_with("shi_") and int(cc[0]["gain"]) == 3, "独孤路线的秘籍 = +3 层的式")
-	w.pending_chests = 1
-	w.apply_choice(cc[0])
-	_check(w.pending_chests == 0 and w.shi_total() >= 5, "秘籍选完 +3 层")
+	_check(not cc.is_empty() and str(cc[0]["kind"]).begins_with("shi_") and int(cc[0]["tier"]) >= 2, "独孤路线的秘籍：紫 / 金品质的式")
+	var tot0 := w.shi_total()
+	for c in cc:
+		if str(c["kind"]) == "shi_up":
+			_check(int(c["gain"]) == 0, "秘籍的升级卡不加层数")
+	var up_card: Dictionary = {}
+	for c in cc:
+		if str(c["kind"]) == "shi_up":
+			up_card = c
+	if not up_card.is_empty():
+		w.pending_chests = 1
+		w.apply_choice(up_card)
+		_check(w.pending_chests == 0 and w.shi_total() == tot0 and float(w.shi_bonus.get(str(up_card["id"]), 0.0)) >= 1.0, "秘籍选完：层数不变，这一式威力加成 ≥ +1")
 	_free_world(w)
 
 	# ---- 叠加：穿透 + 弹射同时生效 ----
@@ -1879,42 +1917,50 @@ func _plan6_test() -> void:
 	wfs.fist_after_cast(wfs.skills["kuang_feng"])
 	_check(wfs.fist_qi == 0.0, "只有武者蓄劲")
 	_free_world(wfs)
-	# ---- 剑侠天赋「灵」：左边全部强化独孤九剑，右边强化别的剑法 ----
+	# ---- 剑侠天赋「灵」：左边全部强化独孤九剑，右边强化别的剑法；各带一点点通用收益 ----
 	var swn := Talents.nodes("sword")
 	var left_ok := true
 	var right_ok := true
+	var general_ok := true
 	var ling_rows: Array = Data.talents["branches"]["ling"]["rows"]
-	for row in ling_rows:
-		var lid := str(row[0]["id"])
-		var rid := str(row[1]["id"])
-		var lk := str(swn[lid]["stat"].keys()[0])
-		var rk := str(swn[rid]["stat"].keys()[0])
-		var l_is_dugu := true
-		for k in swn[lid]["stat"]:
-			if not (str(k).begins_with("skill:dugu:") or ["shi_gain", "dugu_wb", "dugu_vuln", "dugu_start"].has(str(k))):
-				l_is_dugu = false
-		var r_is_other := true
-		for k in swn[rid]["stat"]:
-			if not str(k).begins_with("skill:") or str(k).begins_with("skill:dugu:"):
-				r_is_other = false
-		left_ok = left_ok and l_is_dugu
-		right_ok = right_ok and r_is_other
-		_check(lk != "" and rk != "", "灵系第 %d 层：左 %s / 右 %s" % [int(ling_rows.find(row)) + 1, swn[lid]["name"], swn[rid]["name"]])
+	for ri in ling_rows.size():
+		var row: Array = ling_rows[ri]
+		var lst: Dictionary = swn[str(row[0]["id"])]["stat"]
+		var rst: Dictionary = swn[str(row[1]["id"])]["stat"]
+		var l_dugu := false
+		var r_other := false
+		var r_dugu := false
+		var l_gen := false
+		var r_gen := false
+		for k in lst:
+			if str(k).begins_with("skill:dugu:") or ["dugu_wb", "dugu_vuln"].has(str(k)):
+				l_dugu = true
+			elif not str(k).begins_with("skill:"):
+				l_gen = true
+			elif not str(k).begins_with("skill:dugu:"):
+				left_ok = false
+		for k in rst:
+			if str(k).begins_with("skill:dugu:") or ["dugu_wb", "dugu_vuln"].has(str(k)):
+				r_dugu = true
+			elif str(k).begins_with("skill:"):
+				r_other = true
+			else:
+				r_gen = true
+		left_ok = left_ok and l_dugu
+		right_ok = right_ok and r_other and not r_dugu
+		general_ok = general_ok and l_gen and r_gen
+		_check(not lst.has("shi_gain") and not lst.has("dugu_start"), "灵系第 %d 层左边没有加「式」层数的效果" % (ri + 1))
 	_check(left_ok, "剑侠「灵」左边分支 7 个穴位全部强化独孤九剑")
-	_check(right_ok, "剑侠「灵」右边分支 7 个穴位全部强化别的剑法（招式强化）")
+	_check(right_ok, "剑侠「灵」右边分支 7 个穴位全部强化别的剑法")
+	_check(general_ok, "左右每个穴位都带一点点通用收益")
 	for row in ling_rows:
 		for n in row:
 			for k in swn[str(n["id"])]["stat"]:
 				if str(k).begins_with("skill:"):
 					_check(Data.skills.has(str(k).split(":")[1]) and str(Data.skills[str(k).split(":")[1]]["school"]) == "sword", "天赋 %s 只强化剑法：%s" % [n["id"], k])
-	# 效果：悟剑 / 破兵 / 万法 / 独孤传承
+	# 效果：万法 / 破阵
 	var wdt := _new_world(94, "dugu")
-	wdt.talent_stats = {"dugu_start": 3.0, "shi_gain": 1.0, "dugu_vuln": 0.3, "skill:dugu:damage": 0.1}
-	wdt.start_run("dugu", "tashue")
-	_check(int(wdt.shi.get("zong", 0)) == 3, "独孤传承：开局总诀式 3 层（%d）" % int(wdt.shi.get("zong", 0)))
-	_check(wdt._shi_gain(2) == 3, "悟剑满级：每次领悟 +1 层（2 → 3）")
-	wdt.talent_stats["shi_gain"] = 0.0
-	wdt.talent_stats["dugu_vuln"] = 0.0
+	wdt.talent_stats = {"dugu_vuln": 0.0}
 	wdt.recalc()
 	wdt.shi = {"zong": 18}
 	var ev1 := wdt._spawn_enemy("bandit", wdt.player_pos + Vector2(900, 0))

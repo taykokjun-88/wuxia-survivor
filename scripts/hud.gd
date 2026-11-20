@@ -2313,7 +2313,7 @@ func _draw_hud() -> void:
 				var sit := Data.icon("shi", str(sid))
 				if sit != null:
 					canvas.draw_texture_rect(sit, Rect2(22, y - 15, 20, 20), false)
-				canvas.draw_string(font, Vector2(48 if sit != null else 24, y), "%s　Lv%d" % [w.shi_name(str(sid)), int(w.shi[sid])], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#2a2a2a"))
+				canvas.draw_string(font, Vector2(48 if sit != null else 24, y), "%s　Lv%d%s" % [w.shi_name(str(sid)), int(w.shi[sid]), (" +%d" % int(float(w.shi_bonus.get(sid, 0.0)))) if float(w.shi_bonus.get(sid, 0.0)) >= 1.0 else ""], HORIZONTAL_ALIGNMENT_LEFT, -1, 15, Color("#2a2a2a"))
 				y += 22.0
 		y += 8.0
 		canvas.draw_string(font, Vector2(16, y), "心法 %d/%d" % [w.xinfa.size(), GameWorld.MAX_XINFA],

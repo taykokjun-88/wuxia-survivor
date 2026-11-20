@@ -47,7 +47,8 @@ var starter_id := "chain_fist"
 var reward_comp := 1.0              # 综合难度（1.0 ~ 3.0），决定经验 / 修为 / 装备奖励
 var difficulty := {"count": 1.0, "hp": 1.0, "speed": 1.0}   # 开局前选择的难度倍率（1.0 ~ 3.0）
 var map_id := "black_wind"       # 当前地图（见 data 的 maps）
-var shi: Dictionary = {}            # 独孤九剑：已领悟的「式」→ 层数（最多 4 种）
+var shi: Dictionary = {}            # 独孤九剑：已领悟的「式」→ 层数（最多 4 种；计入 9 / 18 / 27 层门槛）
+var shi_bonus: Dictionary = {}      # 每一式的品质加成（只加威力，不计入门槛）
 var _sh_tex: Texture2D = Depth.shadow_texture()
 var _lite := false                  # 本帧画面里怪太多：普通怪走快速绘制
 var props_enabled := true          # 场景里随机出现可打碎的木箱 / 酒坛 / 火盆
@@ -203,6 +204,7 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	set_difficulty(p_diff)
 	starter_id = p_starter
 	shi.clear()
+	shi_bonus.clear()
 	dugu_combo_log.clear()
 	boss_deadline = -1.0
 	timeout_fail = false
@@ -222,8 +224,6 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	add_skill(starter_id)
 	stats = {}
 	recalc()
-	if starter_id == "dugu" and float(talent_stats.get("dugu_start", 0.0)) > 0.0:       # 天赋「独孤传承」：开局总诀式 N 层
-		shi["zong"] = int(talent_stats["dugu_start"])
 	hp = float(stats["max_hp"])
 	neili = float(stats["max_neili"])
 	still_t = 0.0
@@ -1397,7 +1397,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 	if e.vuln_t > 0.0:
 		m *= 1.0 + e.vuln
 	if sid == "dugu":
-		var qi := int(shi.get("po_qi", 0))
+		var qi := shi_lv("po_qi")
 		if qi > 0:
 			if e.is_boss:
 				m *= 1.0 + 0.1 * qi
@@ -1961,7 +1961,7 @@ func _enhance_upgraded(at: Vector2) -> void:
 
 func roll_chest_choices() -> Array:
 	if skills.has("dugu"):
-		var sc := shi_cards(3, _shi_gain(int(Data.T("shi_chest_gain"))), "chest")
+		var sc := shi_cards(3, int(Data.T("shi_chest_gain")), "chest")
 		if not sc.is_empty():
 			return sc
 	var ids: Array = skills.keys()
@@ -2008,7 +2008,7 @@ func _choice_key(c: Dictionary) -> String:
 func roll_choices(n: int = 3, avoid: Array = []) -> Array:
 	var pool: Array = []
 	var dugu_route := skills.has("dugu")
-	var shi_pool: Array = shi_cards(2, _shi_gain(int(Data.T("shi_card_gain"))), "level") if dugu_route else []
+	var shi_pool: Array = shi_cards(2, int(Data.T("shi_card_gain")), "level") if dugu_route else []
 	# 已有技能：每个技能给 2 张升级卡（不同方向，档位随机）
 	for id in skills:
 		var s: SkillBase = skills[id]
@@ -2087,6 +2087,7 @@ func apply_choice(c: Dictionary) -> void:
 			s.add_upgrade(str(c["dir"]), int(c["tier"]))
 		"shi_new", "shi_up":
 			add_shi(id, int(c["gain"]))
+			shi_bonus[id] = float(shi_bonus.get(id, 0.0)) + float(c.get("bonus", 0.0))
 		"new_xinfa":
 			xinfa[id] = 1
 			xinfa_q[id] = []
@@ -2811,6 +2812,11 @@ func poison_enemy(e: Enemy, dps: float, sid: String) -> void:
 		e.poison_burst = sk.ev(80.0, 100.0, 120.0)
 
 
+## 某一式实际生效的层数 = 层数 + 品质加成（取整）；门槛只看 shi_total()，不含品质加成
+func shi_lv(id: String) -> int:
+	return int(shi.get(id, 0)) + int(float(shi_bonus.get(id, 0.0)))
+
+
 func shi_total() -> int:
 	var t := 0
 	for k in shi:
@@ -2893,15 +2899,6 @@ func add_shi(id: String, n: int) -> int:
 	return int(shi[id]) - old
 
 
-## 领悟「式」时的层数：基础 + 天赋「悟剑」（小数部分按几率多 +1）
-func _shi_gain(base: int) -> int:
-	var g := st("shi_gain")
-	var n := base + int(g)
-	if rng.randf() < g - floorf(g):
-		n += 1
-	return n
-
-
 ## 「式」的说明：普通形态（飞剑）+ 觉醒后（≥27 层，近战）的效果
 func _shi_desc(d: Dictionary) -> String:
 	return "普通：%s\n觉醒：%s" % [d["desc"], d.get("awaken", "同样生效")]
@@ -2911,21 +2908,42 @@ func _shi_desc(d: Dictionary) -> String:
 func shi_cards(n: int, gain: int, src: String) -> Array:
 	var pool: Array = []
 	var cap := int(Data.T("shi_lv_max"))
+	var chest := src == "chest"
 	for d in Data.shi:
 		var id := str(d["id"])
 		var lv := int(shi.get(id, 0))
+		# 品质：升级卡按概率抽（福缘提高高档）；秘籍至少紫色
+		var tier := Data.roll_tier(rng, st("luck"))
+		if chest:
+			tier = maxi(tier, 2)
+		var bonus := float(tier) * Data.T("shi_q_step")
+		var qn := str(Data.tiers[tier]["name"])
+		var col := str(Data.tiers[tier]["color"])
 		if lv > 0:
-			if lv < cap:
-				pool.append({"kind": "shi_up", "id": id, "gain": gain, "tag": "式", "src": src,
-					"title": "%s Lv%d→%d" % [d["name"], lv, mini(cap, lv + gain)], "desc": _shi_desc(d)})
+			if lv < cap or chest:
+				var g := 0 if chest else gain
+				pool.append({"kind": "shi_up", "id": id, "gain": g, "tier": tier, "bonus": bonus, "tag": qn, "color": col, "src": src,
+					"title": ("%s Lv%d→%d" % [d["name"], lv, mini(cap, lv + g)]) if g > 0 else ("%s 品质加成" % d["name"]),
+					"desc": _shi_card_text(d, g, bonus)})
 		elif shi.size() < int(Data.T("shi_kinds")):
-			pool.append({"kind": "shi_new", "id": id, "gain": gain, "tag": "新式", "src": src,
-				"title": "领悟：%s" % d["name"], "desc": _shi_desc(d)})
+			var g2 := maxi(1, gain)
+			pool.append({"kind": "shi_new", "id": id, "gain": g2, "tier": tier, "bonus": bonus, "tag": qn, "color": col, "src": src,
+				"title": "领悟：%s" % d["name"], "desc": _shi_card_text(d, g2, bonus)})
 	_shuffle(pool)
 	var out: Array = []
 	while out.size() < n and not pool.is_empty():
 		out.append(pool.pop_back())
 	return out
+
+
+## 「式」卡片说明：层数（计入门槛）+ 品质加成（只加威力）+ 普通 / 觉醒效果
+func _shi_card_text(d: Dictionary, gain: int, bonus: float) -> String:
+	var head := ""
+	if gain > 0:
+		head = "层数 +%d（计入 9 / 18 / 27 层门槛）" % gain
+	if bonus > 0.0:
+		head += ("　" if head != "" else "") + "品质加成 +%s 层威力（不计入门槛）" % String.num(bonus, 1)
+	return head + "\n" + _shi_desc(d)
 
 
 # =====================================================================

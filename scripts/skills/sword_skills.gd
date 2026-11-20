@@ -235,7 +235,7 @@ class Dugu extends SkillBase:
 		return 1.0 + (_base_debuff if _base_dmg >= 0.0 else float(mods["debuff"]))    # 只算天赋 / 装备带来的，不含破索式自带的减速
 
 	func L(sid: String) -> int:
-		return int(w.shi.get(sid, 0))
+		return w.shi_lv(sid)
 
 	func refresh() -> void:
 		if _base_dmg < 0.0:
