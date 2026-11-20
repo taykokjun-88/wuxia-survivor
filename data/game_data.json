@@ -170,7 +170,12 @@
     "fist_ult_dur": 10.0,
     "fist_ult_true": 0.3,
     "boss_vuln_mult": 0.5,
-    "shi_q_step": 0.5
+    "shi_q_step": 0.5,
+    "enemy_hp_mult": 2.5,
+    "enemy_speed_mult": 0.7,
+    "stagger_hit": 0.05,
+    "stagger_crit": 0.1,
+    "stagger_gap": 0.25
   },
   "skills": {
     "yue_palm": {

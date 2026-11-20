@@ -916,9 +916,9 @@ func _spawn_enemy(type: String, at: Vector2) -> Enemy:
 	e.born = time
 	e.type_id = type
 	e.pos = at
-	e.max_hp = float(def["hp"]) * (1.0 + time / Data.T("hp_scale_t")) * float(difficulty["hp"])
+	e.max_hp = float(def["hp"]) * (1.0 + time / Data.T("hp_scale_t")) * float(difficulty["hp"]) * Data.T("enemy_hp_mult")
 	e.hp = e.max_hp
-	e.speed = float(def["speed"]) * (1.0 + minf(time / 900.0, 0.3)) * rng.randf_range(0.9, 1.1) * float(difficulty["speed"])
+	e.speed = float(def["speed"]) * (1.0 + minf(time / 900.0, 0.3)) * rng.randf_range(0.9, 1.1) * float(difficulty["speed"]) * Data.T("enemy_speed_mult")
 	e.damage = float(def["damage"]) * (1.0 + time / Data.T("dmg_scale_t"))
 	e.radius = float(def["radius"])
 	e.exp_value = int(def["exp"])
@@ -976,9 +976,9 @@ func _spawn_boss(id: String, final: bool) -> void:
 	e.is_final = final
 	e.boss_name = str(def["name"])
 	var hpm: Dictionary = _timeline().get("hp_mult", {})
-	e.max_hp = float(def["hp"]) * float(hpm.get("final" if final else "mini", 1.0)) * float(difficulty["hp"])   # Boss 不随时间缩放血量，保持固定的战斗时长（难度倍率照样生效）
+	e.max_hp = float(def["hp"]) * float(hpm.get("final" if final else "mini", 1.0)) * float(difficulty["hp"]) * Data.T("enemy_hp_mult")   # Boss 不随时间缩放血量，保持固定的战斗时长（难度倍率照样生效）
 	e.hp = e.max_hp
-	e.speed = float(def["speed"]) * float(difficulty["speed"])
+	e.speed = float(def["speed"]) * float(difficulty["speed"]) * Data.T("enemy_speed_mult")
 	e.damage = float(def["damage"])
 	e.boss_bolts = int(def["bolts"])
 	e.skills = (def.get("skills", []) as Array).duplicate()
@@ -1154,6 +1154,9 @@ func _update_enemies(dt: float) -> void:
 			continue
 		var dir := to / d if d > 0.001 else Vector2.ZERO
 		var vel := Vector2.ZERO
+		var staggered := e.stagger_t > 0.0 and not e.is_boss
+		if e.stagger_t > 0.0:
+			e.stagger_t -= dt
 		if e.stun > 0.0:
 			e.stun -= dt
 		elif e.is_boss:
@@ -1170,6 +1173,8 @@ func _update_enemies(dt: float) -> void:
 			else:
 				vel = dir * spd
 			vel += _separation(e) * 90.0
+		if staggered:                               # 受击硬直：这一瞬间站住不动（击退照常）
+			vel = Vector2.ZERO
 		e.pos += (vel + e.knock) * dt
 		if map_art != null and map_art.has_blockers and d < 900.0:
 			e.pos = map_art.push_out(e.pos, e.radius * 0.8)
@@ -1280,6 +1285,9 @@ func damage_enemy(e: Enemy, amount: float, knock_vec: Vector2, crit: bool = fals
 	e.hp -= amount
 	e.flash = 0.08
 	e.knock += knock_vec * (0.1 if e.is_boss else (0.4 if e.is_elite else 1.0))
+	if e.hp > 0.0 and not e.is_boss and not e.is_elite and not e.is_prop and time - e.stagger_last >= Data.T("stagger_gap"):
+		e.stagger_t = Data.T("stagger_crit") if crit else Data.T("stagger_hit")      # 普通敌人受击硬直：0.05 秒（暴击 0.1 秒），0.25 秒内不重复触发
+		e.stagger_last = time
 	if vfx.has("hit_impact") and effects.size() < MAX_EFFECTS / 2:
 		var hid := "hit_crit" if crit and vfx.has("hit_crit") else "hit_impact"
 		add_fx("hit", e.pos, 0.2, {"vfx": hid, "size": (46.0 if crit else 34.0) + e.radius, "angle": knock_vec.angle() if knock_vec != Vector2.ZERO else rng.randf() * TAU})

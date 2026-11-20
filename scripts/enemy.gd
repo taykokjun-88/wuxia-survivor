@@ -17,6 +17,8 @@ var flash := 0.0
 var alive := true
 
 # 状态
+var stagger_t := 0.0        # 受击硬直：普通敌人被打中时短暂停住（0.05 秒；暴击 0.1 秒）
+var stagger_last := -9.0   # 上一次触发硬直的时间（间隔内不再触发，避免被连续命中锁死）
 var stun := 0.0          # 定身/击晕剩余时间
 var slow_t := 0.0        # 减速剩余时间
 var slow_mult := 1.0
