@@ -2108,7 +2108,7 @@ func _chars_test() -> void:
 	main._on_switch_char()
 	await get_tree().process_frame
 	_check(main.state == main.State.CHARS and main.hud.chars_panel.visible and main.hud.chars_list.size() == 1, "掌柜「切换角色」→ 选人界面，列出 1 个角色")
-	_check(main.hud.avatar_of("fist") != null and main.hud.avatar_of("sword") != null and main.hud.avatar_of("blade") != null, "三个职业都有头像")
+	_check(main.hud.select_sprite_of("fist") != null and main.hud.select_sprite_of("sword") != null and main.hud.select_sprite_of("blade") != null, "三个职业选人界面都有全身像")
 	main._on_char_create_requested()
 	_check(main.state == main.State.CREATE and main.hud.create_can_back, "有角色时创建界面有「返回选人」")
 	main.hud.create_name.text = "老拳头"

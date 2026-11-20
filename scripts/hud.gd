@@ -780,9 +780,9 @@ func hide_create() -> void:
 # 选人界面（登录后 / 单机启动时）：最多 5 个角色，每个有职业头像、名字、局外等级；可以删除
 # ---------------------------------------------------------------------
 
-## 职业头像：assets/avatars/<流派>.png（Gemini 出的头像放这里即可替换）；没有就用立绘占位
-func avatar_of(school_id: String) -> Texture2D:
-	var path := "res://assets/avatars/%s.png" % school_id
+## 选人界面里的角色全身像：assets/char_select/<流派>.png（Gemini 出的高清全身 sprite 放这里即可替换，透明底）；没有就用立绘占位
+func select_sprite_of(school_id: String) -> Texture2D:
+	var path := "res://assets/char_select/%s.png" % school_id
 	if ResourceLoader.exists(path):
 		return load(path)
 	return _school_portrait(school_id)
@@ -854,7 +854,7 @@ func _build_chars(online: bool) -> void:
 	box.add_child(row)
 	for i in Save.MAX_CHARS:
 		var card := PanelContainer.new()
-		card.custom_minimum_size = Vector2(228, 350)
+		card.custom_minimum_size = Vector2(228, 400)
 		var v := VBoxContainer.new()
 		v.add_theme_constant_override("separation", 8)
 		v.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -863,10 +863,10 @@ func _build_chars(online: bool) -> void:
 			var c: Dictionary = chars_list[i]
 			card.add_theme_stylebox_override("panel", _char_card_style(i == chars_sel, false))
 			var av := TextureRect.new()
-			av.texture = avatar_of(str(c["school"]))
-			av.custom_minimum_size = Vector2(160, 160)
+			av.texture = select_sprite_of(str(c["school"]))
+			av.custom_minimum_size = Vector2(190, 200)
 			av.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			av.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			av.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			av.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 			v.add_child(av)
 			var nm := _label(str(c["name"]), 22)
