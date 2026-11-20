@@ -69,7 +69,7 @@ jade-green energy with gold edges, subtle looping flicker between frames so it l
 
 ---
 
-## 二、天赋经脉图
+## 二、天赋经脉图（已被「三个框」天赋树取代，新的背景图需求见 docs/art_spec6_talent_bg.md；穴位图标 assets/ui/talent/ 仍在使用）
 
 > **状态：背景图 `assets/ui/meridian_bg.jpg` 和穴位图标 `assets/ui/talent/` 已完成并接入**（穴位坐标已按这张图重新对齐）。下面的提示词留作记录；`meridian_layout_guide.png` 是旧版式参考，已不再对应当前坐标。
 

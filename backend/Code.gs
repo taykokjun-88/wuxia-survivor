@@ -328,7 +328,8 @@ function logout(req) {
 
 // BEGIN GENERATED (tools/sync_talents.py)
 var TALENT_GATE = 3;
-var TALENTS = {"gang_force":["gang",0,3],"gang_body":["gang",0,2],"gang_crit":["gang",1,3],"gang_armor":["gang",1,2],"gang_ying":["gang",2,3],"gang_dragon":["gang",2,2],"gang_cm":["gang",3,3],"gang_force2":["gang",3,2],"gang_emp":["gang",4,3],"gang_vajra":["gang",4,2],"gang_regen":["gang",5,2],"gang_ying2":["gang",5,3],"gang_peak":["gang",6,1],"gang_force3":["gang",6,4],"rou_regen":["rou",0,3],"rou_body":["rou",0,2],"rou_neili":["rou",1,3],"rou_med":["rou",1,2],"rou_med2":["rou",2,3],"rou_shield":["rou",2,2],"rou_block":["rou",3,3],"rou_petal":["rou",3,2],"rou_heal":["rou",4,3],"rou_finger":["rou",4,2],"rou_full":["rou",5,2],"rou_cut":["rou",5,3],"rou_peak":["rou",6,1],"rou_armor":["rou",6,4],"ling_step":["ling",0,3],"ling_luck":["ling",0,2],"ling_cd":["ling",1,3],"ling_qg":["ling",1,2],"ling_crit":["ling",2,3],"ling_palm":["ling",2,2],"ling_exp":["ling",3,3],"ling_dodge":["ling",3,2],"ling_cd2":["ling",4,3],"ling_waste":["ling",4,2],"ling_luck2":["ling",5,2],"ling_cm":["ling",5,3],"ling_peak":["ling",6,1],"ling_step2":["ling",6,4]};
+var TALENT_PER_LEVEL = 2;
+var TALENTS = {"gang_force":["gang",0,2],"gang_body":["gang",0,2],"gang_crit":["gang",1,2],"gang_armor":["gang",1,2],"gang_ying":["gang",2,2],"gang_dragon":["gang",2,2],"gang_cm":["gang",3,2],"gang_force2":["gang",3,2],"gang_emp":["gang",4,2],"gang_vajra":["gang",4,2],"gang_regen":["gang",5,2],"gang_ying2":["gang",5,3],"gang_peak":["gang",6,1],"gang_force3":["gang",6,4],"rou_regen":["rou",0,2],"rou_body":["rou",0,2],"rou_neili":["rou",1,2],"rou_med":["rou",1,2],"rou_med2":["rou",2,2],"rou_shield":["rou",2,2],"rou_block":["rou",3,2],"rou_petal":["rou",3,2],"rou_heal":["rou",4,2],"rou_finger":["rou",4,2],"rou_full":["rou",5,2],"rou_cut":["rou",5,3],"rou_peak":["rou",6,1],"rou_armor":["rou",6,4],"ling_step":["ling",0,2],"ling_luck":["ling",0,2],"ling_cd":["ling",1,2],"ling_qg":["ling",1,2],"ling_crit":["ling",2,2],"ling_palm":["ling",2,2],"ling_exp":["ling",3,2],"ling_dodge":["ling",3,2],"ling_cd2":["ling",4,2],"ling_waste":["ling",4,2],"ling_luck2":["ling",5,2],"ling_cm":["ling",5,3],"ling_peak":["ling",6,1],"ling_step2":["ling",6,4]};
 var GEAR = {"slots":["weapon","coat","pants","boots","charm"],"weights":[60,30,9,1],"invMax":40,"mini":1,"bossMin":1,"bossExtra":0.5,"enh":{"max":10,"bonus":0.08,"costBase":[12,30,70,160],"costExp":1.6},"silver":{"perScore":120,"cap":300,"winBonus":60,"comp":0.5,"discard":[3,10,40,120],"max":999999}};
 var MAPS = {"black_wind":{"minTimes":[180,330,480],"finalT":600,"minWin":620,"requires":""},"guangming":{"minTimes":[180,360,540],"finalT":780,"minWin":800,"requires":""}};
 var DIFF = {"expMeta":0.5,"dropBonus":0.0,"raritySkew":0.5};
@@ -378,7 +379,7 @@ function cleanAlloc(a, level) {
   return sum <= META.PER_LEVEL * (level - 1) ? out : null;
 }
 
-/** 天赋校验：节点存在、不超过上限；每个有点数的节点，本系「更低层」投入合计 ≥ 层号 × TALENT_GATE；总点数 ≤ 局外等级 */
+/** 天赋校验：节点存在、不超过上限；每个有点数的节点，本系「更低层」投入合计 ≥ 层号 × TALENT_GATE；总点数 ≤ 局外等级 × TALENT_PER_LEVEL（每级 2 点） */
 function cleanTalents(t, level) {
   if (typeof t !== 'object' || t === null || Array.isArray(t)) return null;
   var out = {}, total = 0, ids = Object.keys(t);
@@ -387,7 +388,7 @@ function cleanTalents(t, level) {
     if (!n || !(v >= 0 && v <= n[2]) || Math.floor(v) !== v) return null;
     if (v > 0) { out[id] = v; total += v; }
   }
-  if (total > level) return null;
+  if (total > level * TALENT_PER_LEVEL) return null;
   var all = Object.keys(out);
   for (var a = 0; a < all.length; a++) {
     var na = TALENTS[all[a]], lower = 0;

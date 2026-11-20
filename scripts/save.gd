@@ -136,7 +136,7 @@ func add_run_exp(summary: Dictionary) -> Dictionary:
 # ---------------------------------------------------------------------
 
 func meta_talents() -> Dictionary:
-	return Talents.clean(_meta().get("talents", {}))
+	return Talents.repair(_meta().get("talents", {}), Meta.level_of(meta_exp()))
 
 
 func set_meta_talents(t: Dictionary) -> void:

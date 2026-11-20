@@ -1,7 +1,7 @@
 class_name Talents
 extends RefCounted
-## 天赋树（刚 / 柔 / 灵）。三系同时存在、自由加点；总点数 = 局外等级（含创建角色时的 1 点）。
-## 每一层需要「本系已投入点数 ≥ 层号 × row_gate」才能解锁；三系各 7 层 × 5 点 = 35 点，总共只有 50 点，必须取舍。
+## 天赋树（刚 / 柔 / 灵）。三系同时存在、自由加点；总点数 = 局外等级 × 每级点数（2）。
+## 每一层需要「本系已投入点数 ≥ 层号 × row_gate」才能解锁；三系各 7 层、14 个穴位、共 30 点，三系全满 90 点（局外 45 级）。
 ## 校验逻辑在后端 Code.gs 里有同一份（节点表由 tools/sync_talents.py 生成）。
 
 
@@ -35,7 +35,29 @@ static func nodes(school_id: String = "") -> Dictionary:
 
 
 static func total_points(meta_level: int) -> int:
-	return meta_level
+	return meta_level * int(Data.talents.get("per_level", 1))
+
+
+## 把不合法的加点修成合法：先按上限规范化，再从最高层往下减点，直到满足层数门槛和总点数
+static func repair(t: Dictionary, meta_level: int) -> Dictionary:
+	var out := clean(t)
+	var all := nodes()
+	var guard := 0
+	while not valid(out, meta_level) and guard < 500:
+		guard += 1
+		var worst := ""
+		var worst_row := -1
+		for id in out:
+			var r := int(all[id]["row"])
+			if r > worst_row:
+				worst_row = r
+				worst = str(id)
+		if worst == "":
+			break
+		out[worst] = int(out[worst]) - 1
+		if int(out[worst]) <= 0:
+			out.erase(worst)
+	return out
 
 
 static func clean(t: Variant) -> Dictionary:

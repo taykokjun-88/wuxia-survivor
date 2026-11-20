@@ -24,6 +24,7 @@ def block() -> str:
     df = d["difficulty"]
     diff = {"expMeta": df["exp_meta"], "dropBonus": df["drop_bonus"], "raritySkew": df["rarity_skew"]}
     return (f"{BEGIN}\nvar TALENT_GATE = {d['talents']['row_gate']};\n"
+            f"var TALENT_PER_LEVEL = {d['talents']['per_level']};\n"
             f"var TALENTS = {json.dumps(nodes, ensure_ascii=False, separators=(',', ':'))};\n"
             f"var GEAR = {json.dumps(gear, ensure_ascii=False, separators=(',', ':'))};\n"
             f"var MAPS = {json.dumps(maps, ensure_ascii=False, separators=(',', ':'))};\n"

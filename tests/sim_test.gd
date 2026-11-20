@@ -3095,79 +3095,85 @@ func _talent_skill_test() -> void:
 
 
 func _talent_map_test() -> void:
-	print("\n=== 经脉图（天赋树）布局 / 交互 ===")
-	var tm := TalentMap.new()
-	tm.size = Vector2(405, 644)
-	add_child(tm)
-	var all := Talents.nodes()
-	_check(tm.pos_of.size() == all.size() and all.size() == 42, "42 个穴位都有坐标（实际 %d）" % tm.pos_of.size())
-	_check(tm.meridians.size() == 6, "六条经脉")
-	var ids: Array = tm.pos_of.keys()
+	print("\n=== 天赋树（三个框）布局 / 交互 ===")
+	var tt := TalentTree.new()
+	tt.size = TalentTree.tree_size()
+	tt.school = "blade"
+	tt.level = 10
+	add_child(tt)
+	var all := Talents.nodes("blade")
+	var per := {}
+	for id in all:
+		per[all[id]["branch"]] = int(per.get(all[id]["branch"], 0)) + 1
+	for b in Talents.branches():
+		_check(int(per[b]) >= 10 and int(per[b]) <= 15, "%s 系有 %d 个穴位（要求 10~15）" % [b, int(per[b])])
+	# 位置：每个节点唯一、落在自己的框里、互不重叠
+	var pos := {}
 	var min_d := 1.0e9
+	for id in all:
+		var n: Dictionary = all[id]
+		var bi := Talents.branches().find(n["branch"])
+		var p := tt.node_pos(bi, int(n["row"]), tt._idx_in_row(id))
+		pos[id] = p
+		_check(tt.box_rect(bi).has_point(p), "穴位在自己的框内：" + str(id))
+	var ids: Array = pos.keys()
 	for i in ids.size():
 		for j in range(i + 1, ids.size()):
-			min_d = minf(min_d, (tm.pos_of[ids[i]] as Vector2).distance_to(tm.pos_of[ids[j]]))
-	_check(min_d >= 2.0 * TalentMap.NODE_R, "穴位之间不重叠（最近 %.1f，需要 ≥ %.1f）" % [min_d, 2.0 * TalentMap.NODE_R])
-	var dt := tm.dantian()
-	var near := 1.0e9
-	for id in ids:
-		near = minf(near, (tm.pos_of[id] as Vector2).distance_to(dt))
-	_check(near > TalentMap.NODE_R * 2.0, "穴位不压在丹田上")
-	var sz := tm.fig_size()
-	for id in ids:
-		var p: Vector2 = tm.pos_of[id]
-		_check(p.x > 10 and p.y > 10 and p.x < sz.x - 10 and p.y < sz.y - 10, "穴位在图内：" + str(id))
-	# 每条脉：7 个穴位按层号 0~6 排列，属于同一个系
-	for mer in tm.meridians:
-		for r in 7:
-			var n: Dictionary = all[mer["ids"][r]]
-			_check(int(n["row"]) == r and n["branch"] == mer["branch"], "脉 %s 第 %d 个穴位的层号与系" % [mer["name"], r])
+			min_d = minf(min_d, (pos[ids[i]] as Vector2).distance_to(pos[ids[j]]))
+	_check(min_d >= TalentTree.ICON, "穴位之间不重叠（最近 %.1f）" % min_d)
+	_check(tt.box_rect(2).end.x <= tt.size.x + 0.5, "三个框并排放得下")
 	# 命中测试 + 点击加点 / 减点（走真实的输入事件）
-	tm.fig_scale = 0.92
-	tm.fig_origin = Vector2.ZERO
-	tm.level = 10
 	var gid := "gang_force"
-	var sp := tm.to_screen(tm.pos_of[gid])
-	_check(tm.node_at(sp) == gid and tm.node_at(sp + Vector2(60, 60)) == "", "鼠标命中测试")
+	var sp: Vector2 = pos[gid]
+	_check(tt.node_at(sp) == gid and tt.node_at(sp + Vector2(300, 0)) != gid, "鼠标命中测试")
 	var mv := InputEventMouseMotion.new()
 	mv.position = sp
-	tm._gui_input(mv)
-	_check(tm.hover_id == gid, "悬停")
+	tt._gui_input(mv)
+	_check(tt.hover_id == gid, "悬停")
 	var click := InputEventMouseButton.new()
 	click.position = sp
 	click.pressed = true
 	click.button_index = MOUSE_BUTTON_LEFT
 	var changes := [0]
-	tm.changed.connect(func(): changes[0] += 1)
-	tm._gui_input(click)
-	tm._gui_input(click)
-	_check(int(tm.work.get(gid, 0)) == 2 and changes[0] == 2, "左键加点")
+	tt.changed.connect(func(): changes[0] += 1)
+	tt._gui_input(click)
+	tt._gui_input(click)
+	_check(int(tt.work.get(gid, 0)) == 2 and changes[0] == 2, "左键加点")
+	tt._gui_input(click)
+	_check(int(tt.work.get(gid, 0)) == 2, "满级后不能再加")
 	click.button_index = MOUSE_BUTTON_RIGHT
-	tm._gui_input(click)
-	_check(int(tm.work.get(gid, 0)) == 1, "右键减点")
-	# 锁定的穴位点了没用
-	var locked := "gang_peak"
-	var mv2 := InputEventMouseMotion.new()
-	mv2.position = tm.to_screen(tm.pos_of[locked])
-	tm._gui_input(mv2)
+	tt._gui_input(click)
+	_check(int(tt.work.get(gid, 0)) == 1, "右键减点")
+	tt.remove_mode = true
 	click.button_index = MOUSE_BUTTON_LEFT
-	tm._gui_input(click)
-	_check(not tm.work.has(locked) and tm.state_of(locked) == "locked" and tm.state_of(gid) == "ranked", "锁定的穴位不能加点；状态判定")
-	remove_child(tm)
-	tm.free()
-	print("  42 穴位坐标 / 不重叠 / 层号对应 / 命中 / 加减点 / 锁定  OK")
+	tt._gui_input(click)
+	_check(not tt.work.has(gid), "减点模式：左键 = 减点")
+	tt.remove_mode = false
+	# 锁定的穴位点了没用；层门槛显示
+	var locked := "gang_peak"
+	click.position = pos[locked]
+	tt._gui_input(click)
+	_check(not tt.work.has(locked) and tt.state_of(locked) == "locked", "锁定的穴位不能加点")
+	_check(not tt.row_open("gang", 3) and tt.state_of("gang_force") == "open", "层门槛 / 状态判定")
+	tt.work = {"gang_force": 2, "gang_body": 2}
+	_check(tt.row_open("gang", 1) and not tt.row_open("rou", 1), "刚系第 1 层已打通，柔系还没有（三系独立）")
+	_check(tt.info_text("gang_crit").contains("劲透") and tt.info_text("").contains("三个框"), "说明文字")
+	remove_child(tt)
+	tt.free()
+	print("  三个框 / 每系 14 穴位 / 不重叠 / 命中 / 加减点 / 减点模式 / 锁定 / 层门槛  OK")
 
 
 func _build_test() -> void:
 	print("\n=== 天赋树 / 装备 ===")
-	# 天赋树结构：三系各 7 层、每层 5 点，共 35 点；节点属性都是已有的属性
+	# 天赋树结构：三系各 7 层、14 个穴位、共 30 点（三系 90 点）；每级 2 点；节点属性都是已有的属性
+	_check(int(Data.talents["per_level"]) == 2 and Talents.total_points(45) == 90, "每级 2 点，45 级刚好点满三系 90 点")
 	var all := Talents.nodes()
 	for b in Talents.branches():
 		var sum := 0
 		for id in all:
 			if all[id]["branch"] == b:
 				sum += int(all[id]["max"])
-		_check(sum == 35, "%s 系应共 35 点（实际 %d）" % [b, sum])
+		_check(sum == 30, "%s 系应共 30 点（实际 %d）" % [b, sum])
 	for id in all:
 		for k in all[id]["stat"]:
 			if str(k).begins_with("skill:"):
@@ -3178,15 +3184,21 @@ func _build_test() -> void:
 	# 解锁规则
 	var t := {}
 	_check(Talents.can_add(t, "gang_force", 10) and not Talents.can_add(t, "gang_crit", 10), "第 1 层要先在更低层投入 3 点")
-	t = {"gang_force": 3}
+	t = {"gang_force": 2, "gang_body": 1}
 	_check(Talents.can_add(t, "gang_crit", 10), "低层 3 点后解锁第 1 层")
-	t = {"gang_force": 3, "gang_crit": 1}
+	t = {"gang_force": 2, "gang_body": 1, "gang_crit": 1}
 	_check(not Talents.can_remove(t, "gang_force", 10), "已有第 1 层点数时，不能把低层减到不足 3")
 	_check(Talents.can_remove(t, "gang_crit", 10), "可以减掉高层的点")
-	_check(not Talents.can_add({"gang_force": 3}, "gang_force", 10), "满级节点不能再加")
-	_check(not Talents.can_add({"gang_force": 3, "gang_body": 1}, "gang_body", 4), "总点数用完不能再加（等级 4）")
-	_check(Talents.valid({"gang_force": 3, "rou_regen": 3, "ling_step": 3}, 9) and not Talents.valid({"gang_force": 3, "rou_regen": 3, "ling_step": 3}, 8), "总点数 ≤ 局外等级；三系可同时加")
-	_check(Talents.clean({"gang_force": 99, "zzz": 5, "rou_regen": -2}) == {"gang_force": 3}, "天赋规范化")
+	_check(not Talents.can_add({"gang_force": 2}, "gang_force", 10), "满级节点不能再加")
+	_check(not Talents.can_add({"gang_force": 2, "gang_body": 2}, "gang_crit", 2), "总点数用完不能再加（等级 2 = 4 点）")
+	_check(Talents.can_add({"gang_force": 2, "gang_body": 2}, "gang_crit", 3), "等级 3 = 6 点，还能再加")
+	_check(Talents.valid({"gang_force": 2, "rou_regen": 2, "ling_step": 2}, 3) and not Talents.valid({"gang_force": 2, "rou_regen": 2, "ling_step": 2}, 2), "总点数 ≤ 局外等级 × 2；三系可同时加")
+	_check(Talents.clean({"gang_force": 99, "zzz": 5, "rou_regen": -2}) == {"gang_force": 2}, "天赋规范化")
+	# 修复：旧存档超出新上限 / 门槛时自动从高层往下减点
+	var rep1 := Talents.repair({"gang_force": 3, "gang_crit": 3, "gang_ying": 3}, 20)
+	_check(Talents.valid(rep1, 20) and Talents.spent(rep1) > 0, "天赋修复：旧加点被修成合法 %s" % str(rep1))
+	var rep2 := Talents.repair({"gang_force": 2, "gang_body": 2, "gang_crit": 2, "gang_armor": 2}, 3)
+	_check(Talents.valid(rep2, 3) and Talents.spent(rep2) <= 6, "天赋修复：点数超过上限时减到合法（%d 点）" % Talents.spent(rep2))
 	var tst := Talents.stats_for({"gang_force": 2, "gang_ying": 0})
 	_check(absf(float(tst["damage_pct"]) - 0.04) < 1e-9, "天赋效果叠加")
 	# 装备：编码、确定性、稀有度、词条
@@ -3509,7 +3521,7 @@ func _net_test() -> void:
 	_check(bool(sv["ok"]) and net_calls[-1]["body"]["state"]["alloc"] == {"pow": 7, "agi": 0, "vit": 0, "int": 0, "luk": 0}
 		and net_calls[-1]["body"]["state"]["school"] == "fist", "保存属性点：只带五种属性、同时带流派")
 	var tv: Dictionary = await Net.save_talents({"gang_force": 3, "bogus": 2})
-	_check(bool(tv["ok"]) and net_calls[-1]["body"]["state"]["talents"] == {"gang_force": 3}, "保存天赋：只带有效节点")
+	_check(bool(tv["ok"]) and net_calls[-1]["body"]["state"]["talents"] == {"gang_force": 2}, "保存天赋：只带有效节点（上限 2）")
 	var gv: Dictionary = await Net.save_gear({"weapon": "weapon.1.5"}, ["coat.0.1"])
 	_check(bool(gv["ok"]) and net_calls[-1]["body"]["state"]["equip"] == {"weapon": "weapon.1.5"}
 		and net_calls[-1]["body"]["state"]["discard"] == ["coat.0.1"], "保存装备：穿戴 + 丢弃列表")

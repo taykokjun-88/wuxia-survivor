@@ -75,9 +75,8 @@ var meta_status: Label
 var talents_panel: Control
 var talents_work: Dictionary = {}
 var talents_status: Label
-var talents_map: TalentMap
+var talents_tree: TalentTree
 var talents_info_points: Label
-var talents_info_branches: VBoxContainer
 var talents_info_node: Label
 var gear_panel: Control
 var gear_equip: Dictionary = {}
@@ -1185,101 +1184,68 @@ func _build_talents() -> void:
 	var pb := _panel_box()
 	talents_panel = pb[0]
 	var box: VBoxContainer = pb[1]
+	box.add_theme_constant_override("separation", 8)
 	var level := Meta.level_of(Save.meta_exp())
-	var hb := HBoxContainer.new()
-	hb.add_theme_constant_override("separation", 30)
-	box.add_child(hb)
-	var tmap := TalentMap.new()
-	tmap.work = talents_work
-	tmap.level = level
-	tmap.custom_minimum_size = Vector2(430, 641)
-	hb.add_child(tmap)
-	talents_map = tmap
-	var right := VBoxContainer.new()
-	right.custom_minimum_size = Vector2(470, 0)
-	right.add_theme_constant_override("separation", 10)
-	hb.add_child(right)
-	var title := _label("经脉图", 40)
-	right.add_child(title)
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 24)
+	top.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_child(top)
+	top.add_child(_label("天赋树", 36))
 	talents_info_points = _label("", 18)
-	right.add_child(talents_info_points)
-	talents_info_branches = VBoxContainer.new()
-	talents_info_branches.add_theme_constant_override("separation", 4)
-	right.add_child(talents_info_branches)
+	top.add_child(talents_info_points)
+	var tree := TalentTree.new()
+	tree.work = talents_work
+	tree.level = level
+	tree.school = Save.school()
+	tree.custom_minimum_size = TalentTree.tree_size()
+	box.add_child(tree)
+	talents_tree = tree
 	talents_info_node = Label.new()
-	talents_info_node.custom_minimum_size = Vector2(470, 150)
-	talents_info_node.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
-	talents_info_node.add_theme_font_size_override("font_size", 17)
+	talents_info_node.custom_minimum_size = Vector2(TalentTree.tree_size().x, 50)
+	talents_info_node.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	talents_info_node.add_theme_font_size_override("font_size", 16)
 	talents_info_node.add_theme_color_override("font_color", Color("#f3ead2"))
-	right.add_child(talents_info_node)
-	var hint := _label("左键加点，右键减点。穴位由丹田向外，一层一层打通：每层需要本系更低层投入 ≥ 层号 × %d 点。三系共 35 点一系，总点数只有等级那么多，要取舍。" % Talents.gate(), 14, Color("#8d8670"))
-	hint.autowrap_mode = TextServer.AUTOWRAP_ARBITRARY
-	hint.custom_minimum_size = Vector2(470, 0)
-	right.add_child(hint)
+	talents_info_node.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	box.add_child(talents_info_node)
+	var bottom := HBoxContainer.new()
+	bottom.add_theme_constant_override("separation", 14)
+	bottom.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_child(bottom)
 	talents_status = _label("", 16, Color("#cfc6ae"))
-	talents_status.custom_minimum_size = Vector2(0, 22)
-	right.add_child(talents_status)
-	var btns := _center_row(12)
-	var reset := _button("全部重置", Vector2(140, 44), 18)
+	talents_status.custom_minimum_size = Vector2(280, 22)
+	bottom.add_child(talents_status)
+	var reset := _button("全部重置", Vector2(130, 42), 18)
 	reset.pressed.connect(func():
-		talents_map.work.clear()
-		talents_map.changed.emit()
-		talents_map.queue_redraw())
-	var save := _button("保存", Vector2(150, 44), 22)
-	save.pressed.connect(func(): talents_saved.emit(talents_map.work.duplicate()))
-	var cancel := _button("返回  [Esc]", Vector2(150, 44), 18)
+		tree.work.clear()
+		tree.changed.emit()
+		tree.queue_redraw())
+	var minus := CheckButton.new()
+	minus.text = "减点模式"
+	minus.focus_mode = Control.FOCUS_NONE
+	minus.add_theme_font_size_override("font_size", 16)
+	minus.toggled.connect(func(on: bool): tree.remove_mode = on)
+	var save := _button("保存", Vector2(150, 42), 22)
+	save.pressed.connect(func(): talents_saved.emit(tree.work.duplicate()))
+	var cancel := _button("返回  [Esc]", Vector2(150, 42), 18)
 	cancel.pressed.connect(func(): modal_closed.emit())
-	btns.add_child(reset)
-	btns.add_child(save)
-	btns.add_child(cancel)
-	right.add_child(btns)
-	tmap.changed.connect(_talents_refresh)
-	tmap.hovered.connect(func(_id: String): _talents_refresh())
+	bottom.add_child(reset)
+	bottom.add_child(minus)
+	bottom.add_child(save)
+	bottom.add_child(cancel)
+	tree.changed.connect(_talents_refresh)
+	tree.hovered.connect(func(_id: String): _talents_refresh())
 	_talents_refresh()
 
 
 func _talents_refresh() -> void:
-	if talents_map == null:
+	if talents_tree == null:
 		return
-	var work := talents_map.work
-	var level := talents_map.level
+	var work := talents_tree.work
+	var level := talents_tree.level
 	var free_pts := Talents.total_points(level) - Talents.spent(work)
-	talents_info_points.text = "可用天赋点 %d　（局外等级 %d，共 %d 点）" % [free_pts, level, Talents.total_points(level)]
+	talents_info_points.text = "可用天赋点 %d　（局外等级 %d × 每级 %d 点 = %d 点；三系各 30 点，全满 90 点）" % [free_pts, level, int(Data.talents["per_level"]), Talents.total_points(level)]
 	talents_info_points.add_theme_color_override("font_color", Color("#9ad0a0") if free_pts > 0 else Color("#cfc6ae"))
-	for c in talents_info_branches.get_children():
-		c.queue_free()
-	for b in Talents.branches():
-		var bd: Dictionary = Data.talents["branches"][b]
-		var names: Array = []
-		for mer in talents_map.meridians:
-			if mer["branch"] == b:
-				var sub := 0
-				for id in mer["ids"]:
-					sub += int(work.get(id, 0))
-				names.append("%s %d" % [mer["name"], sub])
-		var l := _label("%s　%d / 35　　%s　　%s" % [bd["name"], Talents.branch_spent(work, b), "　".join(names), bd["desc"]], 15,
-			Color(str(Data.talents["map"]["colors"][b])))
-		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		talents_info_branches.add_child(l)
-	var id: String = talents_map.hover_id
-	if id == "":
-		talents_info_node.text = "把鼠标移到穴位上查看。\n\n◎ 丹田是起点，六条经脉由此向外。\n暗：还没打通　亮环：可以加点　金：已满。"
-		return
-	var n: Dictionary = Talents.nodes(Save.school())[id]
-	var rank := int(work.get(id, 0))
-	var mer_name := ""
-	for mer in talents_map.meridians:
-		if (mer["ids"] as Array).has(id):
-			mer_name = str(mer["name"])
-	var lower := 0
-	for id2 in work:
-		var n2: Dictionary = Talents.nodes(Save.school())[id2]
-		if n2["branch"] == n["branch"] and int(n2["row"]) < int(n["row"]):
-			lower += int(work[id2])
-	var need := int(n["row"]) * Talents.gate()
-	var state := "已满" if rank >= int(n["max"]) else ("可以加点" if Talents.can_add(work, id, talents_map.level) else
-		("需要本系更低层投入 %d 点（现有 %d）" % [need, lower] if lower < need else "没有可用的天赋点"))
-	talents_info_node.text = "%s　%d / %d\n%s · 第 %d 个穴位\n%s\n（%s）" % [n["name"], rank, n["max"], mer_name, int(n["row"]) + 1, n["desc"], state]
+	talents_info_node.text = talents_tree.info_text(talents_tree.hover_id)
 
 
 # ---------------------------------------------------------------------
