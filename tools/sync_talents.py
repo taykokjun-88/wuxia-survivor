@@ -24,7 +24,8 @@ def block() -> str:
     maps = {k: {"minTimes": [m["t"] for m in v["timeline"]["minis"]], "finalT": v["timeline"]["final"]["t"], "minWin": v["timeline"]["min_win"], "requires": v.get("requires_clear", "")} for k, v in d["maps"].items() if "timeline" in v}
     df = d["difficulty"]
     diff = {"expMeta": df["exp_meta"], "dropBonus": df["drop_bonus"], "raritySkew": df["rarity_skew"]}
-    return (f"{BEGIN}\nvar TALENT_GATE = {d['talents']['row_gate']};\n"
+    schools = [k for k, v in d["schools"].items() if v.get("enabled")]
+    return (f"{BEGIN}\nvar SCHOOLS = {json.dumps(schools)};\nvar TALENT_GATE = {d['talents']['row_gate']};\n"
             f"var TALENT_PER_LEVEL = {d['talents']['per_level']};\n"
             f"var TALENT_JI_NEED = {d['talents']['ji']['need']};\n"
             f"var TALENTS = {json.dumps(nodes, ensure_ascii=False, separators=(',', ':'))};\n"

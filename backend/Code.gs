@@ -19,7 +19,8 @@ var SHEETS = {
   players:  '玩家 Players',
   scores:   '排行 Scores',
   logs:     '日志 Logs',
-  feedback: '反馈 Feedback'
+  feedback: '反馈 Feedback',
+  chars:    '角色 Characters'
 };
 
 var HEADERS = {
@@ -33,6 +34,8 @@ var HEADERS = {
   logs:     ['时间 Time', '类型 Kind', '昵称 Nickname', '信息 Message', '位置 Where', '详情 Detail', '设备 Device'],
   feedback: ['id', '时间 Time', '昵称 Nickname', '类型 Type', '位置 Where', '留言 Comment', '设备 Device', '状态 Status', '处理时间 Done at']
 };
+// 角色表：前 22 列和玩家表同一个布局（昵称 = 所属账号；盐 / 哈希 / 令牌等登录列留空），后面多两列：角色 ID、角色名
+HEADERS.chars = HEADERS.players.concat(['角色ID CharId', '角色名 CharName']);
 
 var CFG = {
   TOKEN_DAYS: 30,
@@ -45,12 +48,14 @@ var CFG = {
   SUBMIT_GAP_SEC: 20,
   FEEDBACK_PER_DAY: 20,
   STATE_MAX: 2000,        // 客户端一次能发来的存档大小
-  STATE_STORE_MAX: 8000   // 服务器保存的存档总大小（含背包）
+  STATE_STORE_MAX: 8000,  // 服务器保存的存档总大小（含背包）
+  MAX_CHARS: 5            // 每个账号最多 5 个角色
 };
 
 // 列下标（0 起）
 var P = { nick: 0, invite: 1, salt: 2, hash: 3, created: 4, last: 5, token: 6, exp: 7, fails: 8, lock: 9, banned: 10,
-          updated: 11, runs: 12, wins: 13, bestScore: 14, bestWin: 15, bestLevel: 16, kills: 17, school: 18, state: 19, lastSubmit: 20, xp: 21 };
+          updated: 11, runs: 12, wins: 13, bestScore: 14, bestWin: 15, bestLevel: 16, kills: 17, school: 18, state: 19, lastSubmit: 20, xp: 21,
+          cid: 22, cname: 23 };      // cid / cname：只在角色表里有
 
 // ---------------------------------------------------------------- 时间 / 工具
 function now() { return new Date().getTime(); }
@@ -122,7 +127,7 @@ function setup() {
     s.setFrozenRows(1);
   });
   // 这些列必须是纯文本：否则昵称 "007" 会变成数字 7，长十六进制串可能被当成科学计数法
-  var TEXT_COLS = { invites: [1, 8], players: [1, 2, 3, 4, 7], scores: [2], logs: [3], feedback: [1, 3] };
+  var TEXT_COLS = { invites: [1, 8], players: [1, 2, 3, 4, 7], scores: [2], logs: [3], feedback: [1, 3], chars: [1, 23, 24] };
   Object.keys(TEXT_COLS).forEach(function (key) {
     var s = ss.getSheetByName(SHEETS[key]);
     TEXT_COLS[key].forEach(function (c) { s.getRange(1, c, s.getMaxRows(), 1).setNumberFormat('@'); });
@@ -171,6 +176,9 @@ function dispatch(req) {
       case 'submit':    return submitScore(req);
       case 'saveState': return saveState(req);
       case 'enhance':   return enhanceGear(req);
+      case 'getChar':   return getChar(req);
+      case 'createChar': return createChar(req);
+      case 'deleteChar': return deleteChar(req);
       case 'feedback':  return addFeedback(req);
       case 'log':       return addLog(req);
     }
@@ -197,7 +205,130 @@ function findPlayer(nick) {
 }
 
 function savePlayer(found) {
-  found.sheet.getRange(found.idx + 2, 1, 1, HEADERS.players.length).setValues([found.row]);
+  found.sheet.getRange(found.idx + 2, 1, 1, found.row.length).setValues([found.row]);
+}
+
+// ---------------------------------------------------------------- 角色（每个账号最多 5 个；局外等级 / 天赋 / 装备 / 银两 / 通关记录都按角色存）
+function blankChar() {
+  var row = [];
+  for (var c = 0; c < HEADERS.chars.length; c++) row.push('');
+  row[P.created] = iso(); row[P.updated] = iso(); row[P.fails] = 0; row[P.lock] = 0; row[P.banned] = false;
+  row[P.runs] = 0; row[P.wins] = 0; row[P.bestScore] = 0; row[P.bestWin] = 0; row[P.bestLevel] = 0; row[P.kills] = 0;
+  row[P.school] = ''; row[P.state] = '{}'; row[P.lastSubmit] = ''; row[P.xp] = 0;
+  return row;
+}
+
+function loadChars() {
+  var s = sheet('chars');
+  var last = s.getLastRow();
+  if (last < 2) return { sheet: s, rows: [] };
+  return { sheet: s, rows: s.getRange(2, 1, last - 1, HEADERS.chars.length).getValues() };
+}
+
+/** 某个账号的全部角色（按创建顺序）：[{idx, row, sheet}] */
+function charsOf(nick) {
+  var cl = loadChars(), out = [], want = String(nick || '').toLowerCase();
+  for (var i = 0; i < cl.rows.length; i++) {
+    if (String(cl.rows[i][P.nick]).toLowerCase() === want && want !== '') out.push({ idx: i, row: cl.rows[i], sheet: cl.sheet });
+  }
+  return out;
+}
+
+function findChar(nick, id) {
+  var list = charsOf(nick);
+  for (var i = 0; i < list.length; i++) if (String(list[i].row[P.cid]) === String(id)) return list[i];
+  return null;
+}
+
+function newCharId() { return Utilities.getUuid().replace(/-/g, '').slice(0, 10); }
+
+function addCharRow(acc, row) {
+  var sh = sheet('chars');
+  sh.appendRow(row);
+  return { idx: sh.getLastRow() - 2, row: row, sheet: sh };
+}
+
+/** 旧账号（角色功能之前）的进度还在玩家表里：第一次用到角色时，把它变成第一个角色（角色名 = 昵称） */
+function legacyChar(acc) {
+  var r = acc.row, row = blankChar();
+  row[P.nick] = r[P.nick]; row[P.invite] = r[P.invite];
+  row[P.created] = r[P.created] || iso();
+  row[P.runs] = r[P.runs] || 0; row[P.wins] = r[P.wins] || 0; row[P.bestScore] = r[P.bestScore] || 0; row[P.bestWin] = r[P.bestWin] || 0;
+  row[P.bestLevel] = r[P.bestLevel] || 0; row[P.kills] = r[P.kills] || 0; row[P.school] = r[P.school] || '';
+  row[P.state] = r[P.state] || '{}'; row[P.lastSubmit] = r[P.lastSubmit] || ''; row[P.xp] = r[P.xp] || 0;
+  row[P.cid] = newCharId(); row[P.cname] = String(r[P.nick]);
+  return addCharRow(acc, row);
+}
+
+function hasLegacyData(r) {
+  var st = String(r[P.state] || '{}');
+  return String(r[P.school] || '') !== '' || (Number(r[P.xp]) || 0) > 0 || (Number(r[P.runs]) || 0) > 0 || (st !== '{}' && st !== '');
+}
+
+/** 账号的角色列表；有旧进度而还没有角色时，自动迁移成第一个角色 */
+function ensureChars(acc) {
+  var list = charsOf(acc.row[P.nick]);
+  if (list.length === 0 && hasLegacyData(acc.row)) list = [legacyChar(acc)];
+  return list;
+}
+
+function charSummary(c) {
+  var xp = Math.max(0, Math.floor(Number(c.row[P.xp]) || 0));
+  return { id: String(c.row[P.cid]), name: String(c.row[P.cname]), school: String(c.row[P.school] || ''), level: metaLevel(xp), exp: xp,
+           runs: Number(c.row[P.runs]) || 0, wins: Number(c.row[P.wins]) || 0 };
+}
+
+/** 校验昵称 + 令牌 + 角色：成功返回 {found: 角色, account: 账号}；没带 char 时用第一个角色（旧客户端 / 旧测试）；一个角色都没有时用旧进度建一个 */
+function authedChar(req) {
+  var a = authed(req);
+  if (a.err) return a;
+  var c = null;
+  if (req.char !== undefined && req.char !== null && String(req.char) !== '') {
+    c = findChar(a.found.row[P.nick], req.char);
+    if (!c) return { err: fail('no_char', '找不到这个角色，请重新选择') };
+  } else {
+    var list = ensureChars(a.found);
+    c = list.length ? list[0] : legacyChar(a.found);
+  }
+  return { found: c, account: a.found };
+}
+
+function getChar(req) {
+  var a = authed(req);
+  if (a.err) return a.err;
+  var c = findChar(a.found.row[P.nick], req.char);
+  if (!c) return fail('no_char', '找不到这个角色');
+  var p = profile(a.found.row, c); p.token = String(a.found.row[P.token]);
+  return ok(p);
+}
+
+function createChar(req) {
+  var a = authed(req);
+  if (a.err) return a.err;
+  var name = String(req.name || '').trim(), school = String(req.school || '');
+  if (!CFG.NICK_RE.test(name)) return fail('bad_name', '角色名要 2–12 个字：中文、字母、数字、下划线');
+  if (SCHOOLS.indexOf(school) < 0) return fail('bad_school', '这个流派还没有开放');
+  var list = ensureChars(a.found);
+  if (list.length >= CFG.MAX_CHARS) return fail('chars_full', '最多只能有 ' + CFG.MAX_CHARS + ' 个角色，请先删除一个');
+  for (var i = 0; i < list.length; i++) if (String(list[i].row[P.cname]).toLowerCase() === name.toLowerCase()) return fail('name_taken', '你已经有一个叫这个名字的角色了');
+  var row = blankChar();
+  row[P.nick] = a.found.row[P.nick]; row[P.invite] = a.found.row[P.invite]; row[P.school] = school;
+  row[P.cid] = newCharId(); row[P.cname] = name;
+  var c = addCharRow(a.found, row);
+  writeLog('info', a.found.row[P.nick], '创建角色 ' + name + '（' + school + '）', 'createChar', '', str(req.device, 120));
+  var p = profile(a.found.row, c); p.token = String(a.found.row[P.token]);
+  return ok(p);
+}
+
+function deleteChar(req) {
+  var a = authed(req);
+  if (a.err) return a.err;
+  var c = findChar(a.found.row[P.nick], req.char);
+  if (!c) return fail('no_char', '找不到这个角色');
+  c.sheet.deleteRows(c.idx + 2, 1);
+  writeLog('info', a.found.row[P.nick], '删除角色 ' + c.row[P.cname], 'deleteChar', '', str(req.device, 120));
+  var list = ensureChars(a.found);
+  return ok({ chars: list.map(charSummary) });
 }
 
 /** 邀请码 → 群名称（邀请表里的「名称」列）；找不到返回空串 */
@@ -210,17 +341,24 @@ function groupName(code) {
   return '';
 }
 
-function profile(row) {
-  var state = readState(row);
-  var xp = Math.max(0, Math.floor(Number(row[P.xp]) || 0));
+/** 账号资料 + 一个角色的进度。c 缺省 = 第一个角色（没有角色就是空进度）。chars = 全部角色的摘要 */
+function profile(row, c) {
+  var acc = { row: row };
+  var list = c ? charsOf(row[P.nick]) : ensureChars(acc);
+  var cur = c || (list.length ? list[0] : null);
+  var src = cur ? cur.row : blankChar();
+  var state = readState(src);
+  var xp = Math.max(0, Math.floor(Number(src[P.xp]) || 0));
   return {
-    nick: row[P.nick], school: String(row[P.school] || ''), state: state,
+    nick: row[P.nick], school: String(src[P.school] || ''), state: state,
+    charId: cur ? String(cur.row[P.cid]) : '', charName: cur ? String(cur.row[P.cname]) : '',
+    chars: list.map(charSummary),
     exp: xp, level: metaLevel(xp), alloc: state.alloc || {},
     talents: state.talents || {}, items: state.items || [], equip: state.equip || {},
     silver: Math.max(0, Math.floor(Number(state.silver) || 0)), enh: state.enh || {}, cleared: state.cleared || {},
     invite: String(row[P.invite] || ''), group: groupName(row[P.invite]),
-    bests: { score: Number(row[P.bestScore]) || 0, winSec: Number(row[P.bestWin]) || 0, level: Number(row[P.bestLevel]) || 0,
-             runs: Number(row[P.runs]) || 0, wins: Number(row[P.wins]) || 0 }
+    bests: { score: Number(src[P.bestScore]) || 0, winSec: Number(src[P.bestWin]) || 0, level: Number(src[P.bestLevel]) || 0,
+             runs: Number(src[P.runs]) || 0, wins: Number(src[P.wins]) || 0 }
   };
 }
 
@@ -327,6 +465,7 @@ function logout(req) {
 }
 
 // BEGIN GENERATED (tools/sync_talents.py)
+var SCHOOLS = ["fist", "sword", "blade"];
 var TALENT_GATE = 3;
 var TALENT_PER_LEVEL = 2;
 var TALENT_JI_NEED = 99;
@@ -491,7 +630,7 @@ function validateRun(req) {
 }
 
 function submitScore(req) {
-  var a = authed(req);
+  var a = authedChar(req);
   if (a.err) return a.err;
   var v = validateRun(req);
   if (v.ok === false) { writeLog('warn', req.nick, '拒绝成绩', 'submit', JSON.stringify(req).slice(0, 300), str(req.device, 120)); return v; }
@@ -505,7 +644,7 @@ function submitScore(req) {
   var preBest = { score: Number(row[P.bestScore]) || 0, win: Number(row[P.bestWin]) || 0, level: Number(row[P.bestLevel]) || 0 };   // 分地图成绩的旧数据迁移用：改版前所有成绩都来自黑风寨
   var school = str(req.school, 16), starter = str(req.starter, 24), qg = str(req.qinggong, 24), enh = str(req.enhance, 40);
   var build = str(typeof req.build === 'string' ? req.build : JSON.stringify(req.build || []), 600);
-  sheet('scores').appendRow([iso(), row[P.nick], run.won ? '通关' : '阵亡', score, Math.round(run.seconds), run.level, run.kills,
+  sheet('scores').appendRow([iso(), row[P.cname], run.won ? '通关' : '阵亡', score, Math.round(run.seconds), run.level, run.kills,
                              run.bosses, school, starter, qg, enh, build, str(req.version, 12), str(req.device, 120)]);
 
   var best = score > (Number(row[P.bestScore]) || 0);
@@ -548,11 +687,11 @@ function submitScore(req) {
   savePlayer(f);
 
   var ranks = {
-    score: rankOf(row[P.nick], 'score'),
-    speed: rankOf(row[P.nick], 'speed'),
-    level: rankOf(row[P.nick], 'level')
+    score: rankOf(row[P.cid], 'score'),
+    speed: rankOf(row[P.cid], 'speed'),
+    level: rankOf(row[P.cid], 'level')
   };
-  var pr = profile(row);
+  var pr = profile(a.account.row, f);
   return ok({ score: score, best: best, ranks: ranks, bests: pr.bests, gained: gained, exp: pr.exp, level: pr.level, levelUp: pr.level > oldLevel, drops: drops, comp: comp, silverGained: silverGained, silver: pr.silver, cleared: pr.cleared });
 }
 
@@ -567,27 +706,29 @@ var BOARD_FIELD = { score: 'score', speed: 'win', level: 'level' };
 
 function boardRows(kind, group, map) {
   var spec = BOARD[kind];
-  var pl = loadPlayers();
+  var cl = loadChars();
+  var banned = {};
+  loadPlayers().rows.forEach(function (r) { if (truthy(r[P.banned])) banned[String(r[P.nick]).toLowerCase()] = true; });
   var list = [];
   var want = String(group || '').toUpperCase();
-  pl.rows.forEach(function (r) {
-    if (truthy(r[P.banned])) return;
+  cl.rows.forEach(function (r) {
+    if (banned[String(r[P.nick]).toLowerCase()]) return;
     if (want && String(r[P.invite]).toUpperCase() !== want) return;
     var v = Number(r[spec.col]) || 0;
-    if (map) {     // 地图榜：取该玩家在这张地图上的最佳；没有记录 = 没打过
+    if (map) {     // 地图榜：取该角色在这张地图上的最佳；没有记录 = 没打过
       var mbs = readState(r).mapBests;
       v = mbs && mbs[map] ? Number(mbs[map][BOARD_FIELD[kind]]) || 0 : 0;
     }
     if (v <= 0) return;
-    list.push({ nick: String(r[P.nick]), value: v, school: String(r[P.school] || ''), wins: Number(r[P.wins]) || 0 });
+    list.push({ nick: String(r[P.cname]), owner: String(r[P.nick]), id: String(r[P.cid]), value: v, school: String(r[P.school] || ''), wins: Number(r[P.wins]) || 0 });
   });
   list.sort(function (x, y) { return spec.asc ? x.value - y.value : y.value - x.value; });
   return list;
 }
 
-function rankOf(nick, kind) {
+function rankOf(id, kind) {
   var list = boardRows(kind);
-  for (var i = 0; i < list.length; i++) if (list[i].nick.toLowerCase() === String(nick).toLowerCase()) return i + 1;
+  for (var i = 0; i < list.length; i++) if (list[i].id === String(id)) return i + 1;
   return 0;
 }
 
@@ -601,13 +742,15 @@ function board(req) {
   var me = null;
   var want = String(req.nick || '').toLowerCase();
   var rows = list.slice(0, CFG.BOARD_SIZE).map(function (e, i) { e.rank = i + 1; return e; });
-  if (want) for (var i = 0; i < list.length; i++) if (list[i].nick.toLowerCase() === want) me = { rank: i + 1, value: list[i].value };
+  var wantId = String(req.char || '');
+  if (wantId) { for (var j = 0; j < list.length; j++) if (list[j].id === wantId) { me = { rank: j + 1, value: list[j].value }; break; } }
+  else if (want) for (var i = 0; i < list.length; i++) if (list[i].owner.toLowerCase() === want) { me = { rank: i + 1, value: list[i].value }; break; }
   return ok({ kind: kind, rows: rows, me: me, total: list.length, group: group ? groupName(group) : '', map: map });
 }
 
 // ---------------------------------------------------------------- 云存档 / 反馈 / 日志
 function saveState(req) {
-  var a = authed(req);
+  var a = authedChar(req);
   if (a.err) return a.err;
   var st = req.state;
   if (typeof st !== 'object' || st === null || Array.isArray(st)) return fail('bad_state', '存档格式不对');
@@ -669,7 +812,7 @@ function saveState(req) {
 
 /** 铁匠强化：消耗银两把背包里一件装备 +1（上限 GEAR.enh.max）；银两和强化等级都以服务器为准 */
 function enhanceGear(req) {
-  var a = authed(req);
+  var a = authedChar(req);
   if (a.err) return a.err;
   var code = String(req.code || ''), row = a.found.row, st = readState(row);
   var items = Array.isArray(st.items) ? st.items : [];
@@ -815,10 +958,11 @@ function adminClearScores() {
   if (r !== ui.Button.YES) return;
   var s = sheet('scores');
   if (s.getLastRow() > 1) s.deleteRows(2, s.getLastRow() - 1);
-  var pl = loadPlayers();
-  pl.rows.forEach(function (row, i) {
-    row[P.runs] = 0; row[P.wins] = 0; row[P.bestScore] = 0; row[P.bestWin] = 0; row[P.bestLevel] = 0; row[P.kills] = 0;
-    pl.sheet.getRange(i + 2, 1, 1, HEADERS.players.length).setValues([row]);
+  [loadPlayers(), loadChars()].forEach(function (tbl) {
+    tbl.rows.forEach(function (row, i) {
+      row[P.runs] = 0; row[P.wins] = 0; row[P.bestScore] = 0; row[P.bestWin] = 0; row[P.bestLevel] = 0; row[P.kills] = 0;
+      tbl.sheet.getRange(i + 2, 1, 1, row.length).setValues([row]);
+    });
   });
   tell('已清空，新赛季开始。');
 }

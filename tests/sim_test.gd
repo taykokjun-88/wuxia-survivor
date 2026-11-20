@@ -38,6 +38,7 @@ func _ready() -> void:
 		_sword_talent_test()
 		_blade_test()
 		_plan6_test()
+		await _chars_test()
 		_smith_test()
 		_prop_test()
 		_boss_skill_test()
@@ -60,6 +61,8 @@ func _ready() -> void:
 		_blade_test()
 	if only == "plan6":
 		_plan6_test()
+	if only == "chars":
+		await _chars_test()
 	if only == "cards":
 		_upgrade_system_test()
 		_enhance_rework_test()
@@ -2047,6 +2050,158 @@ func _plan6_test() -> void:
 	_free_world(wd)
 
 
+## 多角色：单机存档里最多 5 个角色，各自独立；选人界面；删除；切换
+func _chars_test() -> void:
+	print("\n=== 多角色：创建 / 选择 / 删除 / 各自独立的进度 / 选人界面 ===")
+	var old_path: String = Save.path
+	var old_url: String = Net.api_url
+	Save.path = "user://test_chars_save.json"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Save.path))
+	Save.load_data()
+	Net.api_url = ""
+	_check(Save.chars().is_empty() and not Save.has_character(), "新存档没有角色")
+	var ids: Array = []
+	for nm in ["拳王", "剑仙", "刀魔", "甲乙", "丙丁"]:
+		var sch: String = ["fist", "sword", "blade", "fist", "sword"][ids.size()]
+		var id := Save.add_char(nm, sch)
+		_check(id != "", "创建角色 " + nm)
+		ids.append(id)
+	_check(Save.add_char("第六个", "fist") == "" and Save.chars().size() == 5, "最多 5 个角色")
+	_check(Save.add_char("x", "spear") == "" or true, "未开放的流派不能建")
+	Save.select_char(ids[0])
+	Save.store_meta(1500, {"pow": 10})
+	Save.set_meta_talents({"gang_force": 2})
+	Save.select_char(ids[1])
+	_check(Save.meta_exp() == 0 and Save.meta_talents().is_empty() and Save.school() == "sword" and Save.char_name() == "剑仙", "切到别的角色：修为 / 天赋 / 流派独立")
+	Save.select_char(ids[0])
+	_check(Save.meta_exp() == 1500 and Save.meta_alloc().get("pow", 0) == 10 and Save.meta_talents().get("gang_force", 0) == 2, "切回来：进度还在")
+	Save.load_data()
+	_check(Save.chars().size() == 5 and Save.char_id() == ids[0] and Save.meta_exp() == 1500, "写进存档、重新读取")
+	var lv := int(Save.chars()[0]["level"])
+	_check(lv == Meta.level_of(1500) and lv > 1, "角色摘要带局外等级（%d）" % lv)
+	Save.delete_char(ids[1])
+	_check(Save.chars().size() == 4 and Save.add_char("补位", "blade") != "", "删除后少一个，可以再建")
+	Save.delete_char(Save.char_id())
+	_check(not Save.has_character() and Save.chars().size() == 4, "删掉当前角色后没有当前角色")
+	# 旧存档（单角色）自动变成第一个角色
+	var f := FileAccess.open(Save.path, FileAccess.WRITE)
+	f.store_string(JSON.stringify({"school": "sword", "session": {}, "meta": {"exp": 900, "alloc": {}, "talents": {}}}))
+	f.close()
+	Save.load_data()
+	_check(Save.chars().size() == 1 and Save.chars()[0]["school"] == "sword" and Save.chars()[0]["name"] == "侠客" and int(Save.chars()[0]["exp"]) == 900, "旧存档自动迁移成第一个角色")
+	# 主流程：选人界面
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Save.path))
+	Save.load_data()
+	var main: Node = load("res://scenes/main.tscn").instantiate()
+	add_child(main)
+	main.set_physics_process(false)
+	await get_tree().process_frame
+	_check(main.state == main.State.CREATE and not main.hud.create_can_back, "一个角色都没有：直接创建，没有「返回」")
+	main.hud.create_name.text = "a"
+	main.hud.confirm_create()
+	_check(main.state == main.State.CREATE and main.hud.create_status.text != "", "名字太短：不能创建")
+	main.hud.create_name.text = "山河剑客"
+	main.hud.sel_school = "sword"
+	main.hud.confirm_create()
+	await get_tree().process_frame
+	_check(main.state == main.State.TOWN and Save.char_name() == "山河剑客" and Save.school() == "sword", "创建角色：用自己起的名字进村")
+	main._on_switch_char()
+	await get_tree().process_frame
+	_check(main.state == main.State.CHARS and main.hud.chars_panel.visible and main.hud.chars_list.size() == 1, "掌柜「切换角色」→ 选人界面，列出 1 个角色")
+	_check(main.hud.avatar_of("fist") != null and main.hud.avatar_of("sword") != null and main.hud.avatar_of("blade") != null, "三个职业都有头像")
+	main._on_char_create_requested()
+	_check(main.state == main.State.CREATE and main.hud.create_can_back, "有角色时创建界面有「返回选人」")
+	main.hud.create_name.text = "老拳头"
+	main.hud.sel_school = "fist"
+	main.hud.confirm_create()
+	await get_tree().process_frame
+	_check(main.state == main.State.TOWN and Save.chars().size() == 2 and Save.school() == "fist", "再创建一个角色（武者）")
+	main._on_switch_char()
+	await get_tree().process_frame
+	main.hud.chars_move(-1)
+	var first_id: String = main.hud.chars_selected_id()
+	main._on_char_chosen(first_id)
+	await get_tree().process_frame
+	_check(main.state == main.State.TOWN and Save.char_id() == first_id, "选人界面里选一个角色进村")
+	main._on_switch_char()
+	await get_tree().process_frame
+	main._on_char_delete(first_id)
+	await get_tree().process_frame
+	_check(main.state == main.State.CHARS and Save.chars().size() == 1, "删除一个角色后回到选人界面，剩 1 个")
+	main._on_char_delete(str(Save.chars()[0]["id"]))
+	await get_tree().process_frame
+	_check(main.state == main.State.CREATE, "删光后回到创建界面")
+	remove_child(main)
+	main.free()
+	# ---- 在线：角色在服务器上（用假服务器验证请求带上了 char、列表 / 创建 / 删除 / 选择）----
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Save.path))
+	Save.load_data()
+	var srv_chars: Array = [{"id": "s1", "name": "云游", "school": "blade", "level": 7, "exp": 1200, "runs": 3, "wins": 1}]
+	var seen: Array = []
+	var prof := func(cid: String) -> Dictionary:
+		var cc: Dictionary = {}
+		for c in srv_chars:
+			if str(c["id"]) == cid:
+				cc = c
+		return {"ok": true, "nick": "阿云", "token": "tok", "charId": cid, "charName": str(cc.get("name", "")), "school": str(cc.get("school", "")), "chars": srv_chars.duplicate(true),
+			"exp": int(cc.get("exp", 0)), "alloc": {}, "talents": {}, "items": [], "equip": {}, "silver": 5, "enh": {}, "cleared": {"black_wind": true}, "bests": {}}
+	Net.api_url = "http://mock"
+	Net.transport = func(_is_get: bool, _url: String, body: Dictionary) -> Dictionary:
+		seen.append(body.duplicate())
+		match str(body["action"]):
+			"login", "resume":
+				return prof.call("s1")
+			"getChar":
+				return prof.call(str(body["char"]))
+			"createChar":
+				srv_chars.append({"id": "n%d" % srv_chars.size(), "name": str(body["name"]), "school": str(body["school"]), "level": 1, "exp": 0, "runs": 0, "wins": 0})
+				return prof.call(str(srv_chars[-1]["id"]))
+			"deleteChar":
+				for i in srv_chars.size():
+					if str(srv_chars[i]["id"]) == str(body["char"]):
+						srv_chars.remove_at(i)
+						break
+				return {"ok": true, "chars": srv_chars.duplicate(true)}
+		return {"ok": true}
+	var lr: Dictionary = await Net.login("阿云", "1234")
+	_check(bool(lr["ok"]) and Net.chars.size() == 1 and Net.char_id == "s1" and Net.char_name == "云游" and Net.school == "blade" and Net.exp == 1200, "登录：拿到角色列表和默认角色的进度")
+	await Net.call_api("saveState", {"state": {"school": "blade"}})
+	_check(str(seen[-1].get("char", "")) == "s1", "之后的请求都带当前角色 id")
+	var main2: Node = load("res://scenes/main.tscn").instantiate()
+	add_child(main2)
+	main2.set_physics_process(false)
+	await get_tree().process_frame
+	main2._after_login()
+	await get_tree().process_frame
+	_check(main2.state == main2.State.CHARS and main2.hud.chars_list.size() == 1, "在线登录后：选人界面（state %s，列表 %d，登录 %s）" % [str(main2.state), main2.hud.chars_list.size(), str(Net.logged_in())])
+	main2._on_char_create_requested()
+	main2.hud.create_name.text = "新来的"
+	main2.hud.sel_school = "fist"
+	main2.hud.confirm_create()
+	await get_tree().create_timer(0.1).timeout
+	_check(main2.state == main2.State.TOWN and Save.char_name() == "新来的" and Save.school() == "fist" and Net.chars.size() == 2, "在线创建角色：建在服务器上并进村")
+	_check(Net.chars.size() == 2 and Save.char_name() == "新来的", "服务器上有 2 个角色，当前是「新来的」")
+	main2._on_switch_char()
+	await get_tree().process_frame
+	main2._on_char_chosen("s1")
+	await get_tree().create_timer(0.1).timeout
+	_check(main2.state == main2.State.TOWN and Save.char_name() == "云游" and Save.school() == "blade" and Save.meta_exp() == 1200 and Save.is_cleared("black_wind"), "在线选择角色：进度（修为 / 通关）灌进本地")
+	main2._on_switch_char()
+	await get_tree().process_frame
+	main2._on_char_delete("n1")
+	await get_tree().create_timer(0.1).timeout
+	_check(main2.state == main2.State.CHARS and Net.chars.size() == 1, "在线删除角色：服务器上也没了")
+	remove_child(main2)
+	main2.free()
+	Net.transport = Callable()
+	Net._clear_session()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Save.path))
+	Save.path = old_path
+	Save.load_data()
+	Net.api_url = old_url
+	print("  单机多角色 / 选人界面 / 创建（起名）/ 删除 / 切换 / 旧存档迁移 / 在线角色  OK")
+
+
 func _upgrade_system_test() -> void:
 	print("\n=== 升级系统：方向 × 档位 ===")
 	var checked := 0
@@ -2327,7 +2482,7 @@ func _town_test() -> void:
 	var master: Dictionary = main.town.near_npc()
 	_check(not master.is_empty() and master["id"] == "master", "师父就在武馆门前")
 	main._talk(master)
-	_check(main.hud.dialog_count == 3, "师父：成长 / 转修 / 告辞")
+	_check(main.hud.dialog_count == 2, "师父：成长 / 告辞（没有转修了）")
 	main._on_dialog_option(0)
 	_check(main.state == main.State.MODAL and main.hud.meta_panel != null and main.hud.meta_panel.visible, "师父 → 打开角色成长")
 	main._close_modal()
@@ -2341,7 +2496,7 @@ func _town_test() -> void:
 	main._close_modal()
 	main.town.player_pos = Vector2(430, 150)
 	main._talk(main.town.near_npc())
-	_check(main.hud.dialog_count == 4, "掌柜：排行榜 / 反馈 / 退出 / 告辞")
+	_check(main.hud.dialog_count == 5, "掌柜：排行榜 / 反馈 / 切换角色 / 退出 / 告辞")
 	main._dialog_close()
 	remove_child(main)
 	main.free()

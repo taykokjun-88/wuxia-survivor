@@ -351,6 +351,58 @@ test('地图：按地图校验通关时长；通关记录；光明顶不再要�
   assert.strictEqual(submit(e, l, RUN({ map: 'guangming', won: true, seconds: 820, level: 30, kills: 3000, bosses: 4 })).ok, true, '通关后可以打光明顶');
 });
 
+test('角色：创建（最多 5 个、名字 / 流派校验）、各自独立的进度、删除、旧账号自动迁移', (e) => {
+  const me = reg(e, '多角色君');
+  assert.strictEqual(JSON.stringify(me.chars), '[]', '新账号没有角色');
+  let tok = me.token;
+  const mk = (name, school) => e.call({ action: 'createChar', nick: me.nick, token: tok, name, school });
+  assert.strictEqual(mk('甲', 'fist').err, 'bad_name', '名字太短');
+  assert.strictEqual(mk('<b>x</b>', 'fist').err, 'bad_name');
+  assert.strictEqual(mk('甲乙丙', 'spear').err, 'bad_school', '没开放的流派');
+  assert.strictEqual(mk('甲乙丙', 'nope').err, 'bad_school');
+  const c1 = mk('拳王', 'fist'); assert.ok(c1.ok, JSON.stringify(c1));
+  assert.strictEqual(c1.charName, '拳王'); assert.strictEqual(c1.school, 'fist'); assert.strictEqual(c1.chars.length, 1);
+  assert.strictEqual(mk('拳王', 'sword').err, 'name_taken', '同账号不能重名');
+  const c2 = mk('剑仙', 'sword'), c3 = mk('刀魔', 'blade'), c4 = mk('甲乙丙', 'fist'), c5 = mk('丁戊己', 'sword');
+  [c2, c3, c4, c5].forEach((c) => assert.ok(c.ok));
+  assert.strictEqual(mk('庚辛壬', 'fist').err, 'chars_full', '最多 5 个角色');
+  // 每个角色进度独立：给「拳王」打一局，「剑仙」不受影响
+  const win = submit(e, me, Object.assign(RUN({ level: 12, kills: 800, seconds: 300 }), { char: c1.charId }));
+  assert.ok(win.ok, JSON.stringify(win));
+  const g1 = e.call({ action: 'getChar', nick: me.nick, token: me.token, char: c1.charId });
+  const g2 = e.call({ action: 'getChar', nick: me.nick, token: me.token, char: c2.charId });
+  assert.ok(g1.exp > 0 && g2.exp === 0, '修为按角色算（' + g1.exp + ' / ' + g2.exp + '）');
+  assert.strictEqual(g2.school, 'sword');
+  const tl = e.call({ action: 'saveState', nick: me.nick, token: me.token, char: c1.charId, state: { school: 'fist', talents: { gang_force: 2 } } });
+  assert.ok(tl.ok, JSON.stringify(tl));
+  assert.strictEqual(e.call({ action: 'getChar', nick: me.nick, token: me.token, char: c1.charId }).talents.gang_force, 2);
+  assert.ok(!e.call({ action: 'getChar', nick: me.nick, token: me.token, char: c2.charId }).talents.gang_force, '别的角色没有这个天赋');
+  // 榜单按角色：显示角色名
+  const bd = e.get({ action: 'board', kind: 'score', char: c1.charId });
+  assert.strictEqual(bd.rows[0].nick, '拳王'); assert.strictEqual(bd.rows[0].owner, '多角色君'); assert.ok(bd.me && bd.me.rank === 1);
+  // 别人不能动我的角色；不存在的角色
+  const other = reg(e, '路人乙');
+  assert.strictEqual(e.call({ action: 'getChar', nick: other.nick, token: other.token, char: c1.charId }).err, 'no_char');
+  assert.strictEqual(e.call({ action: 'deleteChar', nick: other.nick, token: other.token, char: c1.charId }).err, 'no_char');
+  assert.strictEqual(submit(e, me, Object.assign(RUN(), { char: 'zzzz' })).err, 'no_char');
+  // 登录返回角色列表（含等级）
+  const lg = e.call({ action: 'login', nick: '多角色君', pin: '4815' });
+  assert.strictEqual(lg.chars.length, 5); assert.deepStrictEqual(lg.chars.map((c) => c.name), ['拳王', '剑仙', '刀魔', '甲乙丙', '丁戊己']);
+  assert.ok(lg.chars[0].level >= 1 && lg.chars[0].school === 'fist');
+  // 删除：从列表和榜单里消失，可以再建
+  const del = e.call({ action: 'deleteChar', nick: me.nick, token: lg.token, char: c1.charId });
+  assert.ok(del.ok && del.chars.length === 4);
+  assert.strictEqual(e.get({ action: 'board', kind: 'score' }).total, 0, '删除的角色不再上榜');
+  tok = lg.token;
+  assert.ok(mk('新拳王', 'fist').ok, '删除后能再创建');
+  // 旧账号：玩家表里有旧进度 → 第一次用到角色时迁移成第一个角色（角色名 = 昵称）
+  const old = reg(e, '老账号');
+  const f = e.ctx.findPlayer('老账号'); f.row[e.ctx.P.school] = 'blade'; f.row[e.ctx.P.xp] = 500; e.ctx.savePlayer(f);
+  const ol = e.call({ action: 'login', nick: '老账号', pin: '4815' });
+  assert.strictEqual(ol.chars.length, 1); assert.strictEqual(ol.chars[0].name, '老账号'); assert.strictEqual(ol.chars[0].school, 'blade'); assert.strictEqual(ol.exp, 500);
+  assert.strictEqual(e.call({ action: 'login', nick: '老账号', pin: '4815' }).chars.length, 1, '只迁移一次');
+});
+
 test('分地图榜：每张地图单独排名；旧成绩迁移为黑风寨；全部榜不变', (e) => {
   reg(e, '榜甲'); reg(e, '榜乙'); reg(e, '榜丙');
   const lg = (n) => e.call({ action: 'login', nick: n, pin: '4815' });
@@ -446,7 +498,7 @@ test('装备：旧存档里的 5 档稀有度编码自动降到第 4 档', (e) =
   assert.strictEqual(l.equip.weapon, 'weapon.3.123'); assert.strictEqual(l.enh['weapon.3.123'], 3);
 });
 
-function setState(e, nick, fn) { const f = e.ctx.findPlayer(nick); const st = JSON.parse(f.row[e.ctx.P.state] || '{}'); fn(st); f.row[e.ctx.P.state] = JSON.stringify(st); e.ctx.savePlayer(f); }
+function setState(e, nick, fn) { const acc = e.ctx.findPlayer(nick); const f = e.ctx.charsOf(nick)[0] || e.ctx.legacyChar(acc); const st = JSON.parse(f.row[e.ctx.P.state] || '{}'); fn(st); f.row[e.ctx.P.state] = JSON.stringify(st); e.ctx.savePlayer(f); }
 
 test('银两 / 强化：费用与银两公式和客户端一致（共用向量）', (e) => {
   ev.cost.forEach((row, r) => row.forEach((c, lv) => assert.strictEqual(e.ctx.enhCost(r, lv), c, `强化费用 稀有度${r} +${lv}`)));

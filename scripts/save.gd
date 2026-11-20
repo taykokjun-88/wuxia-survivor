@@ -1,11 +1,22 @@
 extends Node
-## 存档（Autoload: Save）：保存在 user://save.json。
-## 目前只有角色流派；后续的天赋点、装备背包也放这里。
+## 存档（Autoload: Save）：保存在 user://save.json。多个角色（最多 5 个），每个角色有自己的流派、局外成长、天赋、装备。
 
 const DEFAULT_PATH := "user://save.json"
+const MAX_CHARS := 5            # 每个账号 / 每台设备最多 5 个角色
 
 var path := DEFAULT_PATH
-var data: Dictionary = {"school": "", "session": {}, "meta": {"exp": 0, "alloc": {}, "won": false, "talents": {}, "items": [], "equip": {}, "silver": 0, "enh": {}, "cleared": {}}}
+## data：session（登录）、ui（界面偏好）、chars（单机角色列表）、cur（当前单机角色 id）。
+## 每个角色 = {id, name, school, meta{exp, alloc, won, talents, items, equip, silver, enh, cleared}}；局外等级 / 天赋 / 装备都按角色存。
+var data: Dictionary = {"session": {}, "chars": [], "cur": ""}
+var _cur: Dictionary = {}        # 当前角色（单机：指向 chars 里的某一项；在线：服务器角色的本地缓存）
+
+
+static func new_meta() -> Dictionary:
+	return {"exp": 0, "alloc": {}, "won": false, "talents": {}, "items": [], "equip": {}, "silver": 0, "enh": {}, "cleared": {}}
+
+
+static func new_char(p_id: String, p_name: String, p_school: String) -> Dictionary:
+	return {"id": p_id, "name": p_name, "school": p_school, "meta": new_meta()}
 
 
 func _ready() -> void:
@@ -13,22 +24,59 @@ func _ready() -> void:
 
 
 func load_data() -> void:
-	data = {"school": "", "session": {}, "meta": {"exp": 0, "alloc": {}, "won": false, "talents": {}, "items": [], "equip": {}, "silver": 0, "enh": {}, "cleared": {}}}
-	if not FileAccess.file_exists(path):
-		return
-	var f := FileAccess.open(path, FileAccess.READ)
-	if f == null:
-		return
-	var json := JSON.new()
-	if json.parse(f.get_as_text()) == OK and json.data is Dictionary:   # 损坏的存档视为空，不打印错误
-		data.merge(json.data, true)
-	# 流派必须是有效且已开放的，否则视为没有角色
-	var s := str(data["school"])
-	if s != "" and (not Data.schools.has(s) or not bool(Data.schools[s]["enabled"])):
-		data["school"] = ""
+	data = {"session": {}, "chars": [], "cur": ""}
+	_cur = {}
+	if FileAccess.file_exists(path):
+		var f := FileAccess.open(path, FileAccess.READ)
+		if f != null:
+			var json := JSON.new()
+			if json.parse(f.get_as_text()) == OK and json.data is Dictionary:   # 损坏的存档视为空，不打印错误
+				data.merge(json.data, true)
+	# 旧版存档（只有一个角色）：流派 / 局外成长挪进第一个角色
+	if data.has("school") or data.has("meta"):
+		var old_school := str(data.get("school", ""))
+		if old_school != "" and (data["chars"] as Array).is_empty():
+			var oc := new_char("c1", "侠客", old_school)
+			if data.get("meta", {}) is Dictionary:
+				oc["meta"].merge(data.get("meta", {}), true)
+			data["chars"] = [oc]
+			data["cur"] = "c1"
+		elif old_school == "" and data.get("meta", {}) is Dictionary and not (data.get("meta", {}) as Dictionary).is_empty():
+			data["scratch"] = {"id": "", "name": "", "school": "", "meta": data.get("meta", {})}
+		data.erase("school")
+		data.erase("meta")
+	if not data["chars"] is Array:
+		data["chars"] = []
+	# 流派必须是有效且已开放的，否则这个角色丢弃
+	var kept: Array = []
+	for c in data["chars"]:
+		if c is Dictionary and Data.schools.has(str(c.get("school", ""))) and bool(Data.schools[str(c["school"])]["enabled"]):
+			if not c.get("meta", null) is Dictionary:
+				c["meta"] = new_meta()
+			c["meta"] = _merged_meta(c["meta"])
+			kept.append(c)
+	data["chars"] = kept
+	if str(data.get("cur", "")) != "":
+		select_char(str(data["cur"]))
+	if _cur.is_empty() and data.get("scratch", null) is Dictionary:
+		_cur = data["scratch"]
+		_cur["id"] = ""
+		_cur["meta"] = _merged_meta(_cur.get("meta", {}) if _cur.get("meta", {}) is Dictionary else {})
+	if _cur.is_empty():
+		_cur = new_char("", "", "")        # 还没有角色：一个空的草稿角色
+
+
+static func _merged_meta(m: Dictionary) -> Dictionary:
+	var out := new_meta()
+	out.merge(m, true)
+	return out
 
 
 func save_data() -> void:
+	if str(_cur.get("id", "")) == "":
+		data["scratch"] = _cur.duplicate(true)       # 还没有角色时的草稿进度（兼容：先攒修为后建角色）
+	else:
+		data.erase("scratch")
 	var f := FileAccess.open(path, FileAccess.WRITE)
 	if f == null:
 		push_warning("无法写入存档: " + path)
@@ -36,16 +84,101 @@ func save_data() -> void:
 	f.store_string(JSON.stringify(data, "\t"))
 
 
+# ---------------------------------------------------------------------
+# 角色（单机存档里的多角色；在线时角色在服务器上，这里只缓存当前这个）
+# ---------------------------------------------------------------------
+
 func has_character() -> bool:
-	return str(data["school"]) != ""
+	return str(_cur.get("school", "")) != ""
 
 
 func school() -> String:
-	return str(data["school"])
+	return str(_cur.get("school", ""))
 
 
-func create_character(school_id: String) -> void:
-	data["school"] = school_id
+func char_id() -> String:
+	return str(_cur.get("id", ""))
+
+
+func char_name() -> String:
+	return str(_cur.get("name", ""))
+
+
+## 单机角色列表（摘要）：[{id, name, school, level, exp}]
+func chars() -> Array:
+	var out: Array = []
+	for c in data["chars"]:
+		var xp := maxi(0, int((c["meta"] as Dictionary).get("exp", 0)))
+		out.append({"id": str(c["id"]), "name": str(c["name"]), "school": str(c["school"]), "level": Meta.level_of(xp), "exp": xp})
+	return out
+
+
+## 新建一个单机角色（最多 5 个），返回它的 id；失败返回 ""
+func add_char(p_name: String, p_school: String) -> String:
+	if (data["chars"] as Array).size() >= MAX_CHARS or not Data.schools.has(p_school):
+		return ""
+	var id := "c%d" % (Time.get_ticks_usec() % 100000000)
+	while _char_by_id(id) != null:
+		id += "x"
+	(data["chars"] as Array).append(new_char(id, p_name, p_school))
+	save_data()
+	return id
+
+
+func delete_char(id: String) -> void:
+	var list: Array = data["chars"]
+	for i in list.size():
+		if str(list[i]["id"]) == id:
+			if _cur.get("id", "") == id:
+				_cur = new_char("", "", "")
+				data["cur"] = ""
+			list.remove_at(i)
+			break
+	save_data()
+
+
+func _char_by_id(id: String) -> Variant:
+	for c in data["chars"]:
+		if str(c["id"]) == id:
+			return c
+	return null
+
+
+## 选中一个单机角色
+func select_char(id: String) -> bool:
+	var c: Variant = _char_by_id(id)
+	if c == null:
+		return false
+	_cur = c
+	data["cur"] = id
+	save_data()
+	return true
+
+
+## 在线：切换到服务器上的某个角色（进度由调用方随后用 store_meta / set_* 灌进来）
+func use_online_char(id: String, p_name: String, p_school: String) -> void:
+	_cur = new_char("online:" + id, p_name, p_school)
+
+
+## 兼容旧调用：给「当前角色」设流派；还没有角色就新建一个（名字「侠客」）
+func create_character(school_id: String, p_name: String = "侠客") -> void:
+	if str(_cur.get("id", "")) == "" and not _cur.is_empty():
+		var id := add_char(p_name, school_id)
+		if id != "":
+			select_char(id)
+			return
+		_cur["school"] = school_id
+		return
+	_cur["school"] = school_id
+	save_data()
+
+
+## 清掉当前角色（测试清理用）
+func reset_character() -> void:
+	if str(_cur.get("id", "")) != "" and not str(_cur["id"]).begins_with("online:"):
+		delete_char(str(_cur["id"]))
+	_cur = new_char("", "", "")
+	data["cur"] = ""
 	save_data()
 
 
@@ -71,20 +204,15 @@ func clear_session() -> void:
 	save_data()
 
 
-func reset_character() -> void:
-	data["school"] = ""
-	save_data()
-
-
 # ---------------------------------------------------------------------
 # 局外成长（修为 + 属性点分配）。登录时以服务器为准，本地只是缓存 / 单机存档。
 # ---------------------------------------------------------------------
 
 func _meta() -> Dictionary:
-	var m: Variant = data.get("meta", {})
+	var m: Variant = _cur.get("meta", null)
 	if not m is Dictionary:
-		m = {}
-		data["meta"] = m
+		m = new_meta()
+		_cur["meta"] = m
 	return m
 
 

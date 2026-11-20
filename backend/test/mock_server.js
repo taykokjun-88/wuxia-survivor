@@ -64,7 +64,7 @@ http.createServer((req, res) => {
   }
   if (url.pathname === '/admin/state') {     // 仅测试用：查看表格内容
     res.writeHead(200, Object.assign({ 'Content-Type': 'application/json; charset=utf-8' }, CORS));
-    return res.end(JSON.stringify({ players: env.sheetRows('players').length - 1, feedback: env.sheetRows('feedback'), scores: env.sheetRows('scores').length - 1, logs: env.sheetRows('logs').length - 1 }));
+    return res.end(JSON.stringify({ players: env.sheetRows('players').length - 1, feedback: env.sheetRows('feedback'), scores: env.sheetRows('scores').length - 1, chars: env.sheetRows('chars').length - 1, logs: env.sheetRows('logs').length - 1 }));
   }
   res.writeHead(404); res.end();
 }).listen(port, () => console.log(`mock apps script ready on :${port}`));

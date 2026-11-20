@@ -21,6 +21,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ ' : '  ✗ ') + 
   page.on('requestfailed', (r) => logs.push('REQFAILED: ' + r.url()));
   const shot = (n) => page.screenshot({ path: `${OUT}/${n}.png` });
   const boot = async (url) => { await page.goto(url); await page.waitForSelector('canvas'); await page.waitForTimeout(7500); };
+  const pickChar = async () => { await shot('char_select'); await page.keyboard.press('Enter'); await page.waitForTimeout(2500); };   // 登录后先是选人界面：Enter = 进入上次的角色
 
   await boot(GAME);
   await shot('01_auth');
@@ -40,10 +41,11 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ ' : '  ✗ ') + 
   await page.keyboard.press('Enter');
   await page.waitForTimeout(3500);
   st = await state(); ok(st.players === 4, '正确的邀请码可以注册（服务器玩家数 ' + st.players + '）');
-  await page.keyboard.press('Enter'); await page.waitForTimeout(2000);              // 创建角色（武者）→ 进入阿罗拉村
+  await page.keyboard.press('Enter'); await page.waitForTimeout(2500);              // 创建角色（默认名「无名武者」）→ 进入阿罗拉村
+  st = await state(); ok(st.chars === 1, '创建角色在服务器上（角色数 ' + st.chars + '）');
   await shot('02_town');
   // 本机后端才允许 ?npc=<id>：开局直接站到某个 NPC 面前（测试用，免得在软件渲染里计时走路）
-  await boot(GAME + '&npc=innkeeper'); await shot('02b_innkeeper');
+  await boot(GAME + '&npc=innkeeper'); await pickChar(); await shot('02b_innkeeper');
   // 掌柜 → 排行榜
   await page.keyboard.press('e'); await page.waitForTimeout(800);
   await page.keyboard.press('1'); await page.waitForTimeout(3000); await shot('03_board');
@@ -56,17 +58,17 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ ' : '  ✗ ') + 
   st = await state(); ok(st.feedback.length === 2 && String(st.feedback[1][5]).includes('e2e feedback'), '反馈已写入表格');
   await page.waitForTimeout(1500);
   // 刷新 → 自动登录，回到村子
-  await boot(GAME + '&npc=innkeeper'); await shot('04_after_reload');
+  await boot(GAME + '&npc=innkeeper'); await pickChar(); await shot('04_after_reload');
   // 掌柜 → 退出登录 → 错误 PIN → 正确 PIN
   await page.keyboard.press('e'); await page.waitForTimeout(800);
-  await page.keyboard.press('3'); await page.waitForTimeout(2500);
+  await page.keyboard.press('4'); await page.waitForTimeout(2500);                  // 退出登录（3 是切换角色）
   await page.keyboard.type('Tester1'); await page.keyboard.press('Tab'); await page.keyboard.type('0000'); await page.keyboard.press('Enter');
   await page.waitForTimeout(2500); await shot('05_wrong_pin');
   await page.mouse.click(320, 425); await page.keyboard.press('Control+A'); await page.keyboard.type('2468'); await page.keyboard.press('Enter');
   await page.waitForTimeout(3000); await shot('06_relogin');
   await page.waitForTimeout(9000);                                                  // 村子在软件渲染下很慢，等浏览器把登录状态写进本地存储再刷新
   // 打完一局（加速 4 倍；本机后端才允许 speed 参数）
-  await boot(GAME + '&speed=4&npc=clerk');
+  await boot(GAME + '&speed=4&npc=clerk'); await pickChar();
   await page.keyboard.press('e'); await page.waitForTimeout(800);                  // 驿卒
   await page.keyboard.press('1'); await page.waitForTimeout(600);                  // 出发历练
   await page.keyboard.press('1'); await page.waitForTimeout(1500);                 // 黑风寨 → 开局界面

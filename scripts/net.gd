@@ -13,7 +13,10 @@ const GET_ACTIONS := ["ping", "board"]
 var api_url := ""
 var nick := ""
 var token := ""
-var school := ""
+var school := ""        # 当前角色的流派
+var chars: Array = []   # 账号下的角色摘要：[{id, name, school, level, exp, runs, wins}]
+var char_id := ""       # 当前选中的角色
+var char_name := ""
 var invite := ""        # 注册时用的邀请码（决定所属群）
 var group_name := ""    # 所属群的名称（邀请表里的「名称」）
 var bests: Dictionary = {}
@@ -87,6 +90,8 @@ func call_api(action: String, payload: Dictionary = {}) -> Dictionary:
 	if logged_in() and not body.has("nick") and not GET_ACTIONS.has(action) and action != "login" and action != "register":
 		body["nick"] = nick
 		body["token"] = token
+		if char_id != "" and not body.has("char") and action != "createChar":
+			body["char"] = char_id
 	var is_get := GET_ACTIONS.has(action)
 	if transport.is_valid():
 		return await transport.call(is_get, api_url, body)
@@ -128,9 +133,32 @@ func _http(is_get: bool, body: Dictionary) -> Dictionary:
 # 账号
 # ---------------------------------------------------------------------
 
+## 账号资料（登录 / 注册 / 续期）：账号 + 角色列表 + 默认角色的进度
 func _apply_profile(res: Dictionary) -> void:
 	nick = str(res.get("nick", ""))
 	token = str(res.get("token", ""))
+	invite = str(res.get("invite", ""))
+	group_name = str(res.get("group", ""))
+	chars = _chars_of(res)
+	_apply_char(res)
+	Save.set_session(nick, token)
+	session_changed.emit()
+
+
+func _chars_of(res: Dictionary) -> Array:
+	var out: Array = []
+	var v: Variant = res.get("chars", [])
+	if v is Array:
+		for c in v:
+			if c is Dictionary:
+				out.append(c)
+	return out
+
+
+## 一个角色的进度（getChar / createChar / 登录里的默认角色）
+func _apply_char(res: Dictionary) -> void:
+	char_id = str(res.get("charId", ""))
+	char_name = str(res.get("charName", ""))
 	school = str(res.get("school", ""))
 	invite = str(res.get("invite", ""))
 	group_name = str(res.get("group", ""))
@@ -143,8 +171,6 @@ func _apply_profile(res: Dictionary) -> void:
 	silver = int(res.get("silver", 0))
 	enh = res.get("enh", {}) if res.get("enh", {}) is Dictionary else {}
 	cleared = res.get("cleared", {}) if res.get("cleared", {}) is Dictionary else {}
-	Save.set_session(nick, token)
-	session_changed.emit()
 
 
 func _codes(v: Variant) -> Array:
@@ -159,6 +185,9 @@ func _clear_session() -> void:
 	nick = ""
 	token = ""
 	school = ""
+	chars = []
+	char_id = ""
+	char_name = ""
 	invite = ""
 	group_name = ""
 	bests = {}
@@ -206,6 +235,35 @@ func resume() -> Dictionary:
 	return res
 
 
+## 选中账号下的一个角色：向服务器取这个角色的完整进度
+func select_char(id: String) -> Dictionary:
+	var res := await call_api("getChar", {"char": id})
+	if bool(res.get("ok", false)):
+		_apply_char(res)
+		chars = _chars_of(res)
+	return res
+
+
+## 创建角色（名字 2~12 字；流派必须已开放）；成功后新角色就是当前角色
+func create_char(p_name: String, p_school: String) -> Dictionary:
+	var res := await call_api("createChar", {"name": p_name, "school": p_school, "device": device()})
+	if bool(res.get("ok", false)):
+		_apply_char(res)
+		chars = _chars_of(res)
+	return res
+
+
+func delete_char(id: String) -> Dictionary:
+	var res := await call_api("deleteChar", {"char": id, "device": device()})
+	if bool(res.get("ok", false)):
+		chars = _chars_of(res)
+		if char_id == id:
+			char_id = ""
+			char_name = ""
+			school = ""
+	return res
+
+
 func logout() -> void:
 	if logged_in():
 		await call_api("logout")
@@ -233,6 +291,8 @@ func submit_run(summary: Dictionary) -> Dictionary:
 ## group_only：只看自己所属群（邀请码相同的玩家）
 func board(kind: String, group_only: bool = false, map_id: String = "") -> Dictionary:
 	var body := {"kind": kind, "nick": nick}
+	if char_id != "":
+		body["char"] = char_id
 	if map_id != "":
 		body["map"] = map_id
 	if group_only and invite != "":

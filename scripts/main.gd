@@ -6,7 +6,7 @@ extends Node
 ##   已配置：有保存的登录 → 自动登录；否则登录 / 注册界面（注册必须有邀请码）
 ##           登录后以云端流派为准（云端没有而本机有，则上传）
 
-enum State { BOOT, AUTH, CREATE, TOWN, DIALOG, LOADOUT, PLAY, CHOOSE, PAUSED, END, MODAL }
+enum State { BOOT, AUTH, CHARS, CREATE, TOWN, DIALOG, LOADOUT, PLAY, CHOOSE, PAUSED, END, MODAL }
 
 var state: State = State.BOOT
 var modal_return: State = State.TOWN
@@ -38,7 +38,11 @@ func _ready() -> void:
 	hud.reroll_requested.connect(_on_reroll)
 	hud.loadout_confirmed.connect(_on_loadout)
 	hud.character_created.connect(_on_created)
-	hud.recreate_requested.connect(_on_recreate)
+	hud.char_chosen.connect(_on_char_chosen)
+	hud.char_create_requested.connect(_on_char_create_requested)
+	hud.char_delete_requested.connect(_on_char_delete)
+	hud.chars_back_requested.connect(_on_account_requested)
+	hud.create_back_requested.connect(_enter_character)
 	hud.auth_submitted.connect(_on_auth_submitted)
 	hud.board_open_requested.connect(_open_board)
 	hud.board_kind_requested.connect(_load_board)
@@ -83,7 +87,7 @@ func _physics_process(dt: float) -> void:
 ## 当前场景该放哪首曲子：登录 / 小镇 / 关卡（有 Boss 在场时换 Boss 曲）；结算时淡出
 func _desired_bgm() -> String:
 	match state:
-		State.BOOT, State.AUTH, State.CREATE:
+		State.BOOT, State.AUTH, State.CHARS, State.CREATE:
 			return "login"
 		State.TOWN, State.DIALOG, State.LOADOUT:
 			return "town"
@@ -117,6 +121,13 @@ func _process(_dt: float) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	match state:
+		State.CHARS:
+			if event.is_action_pressed("ui_left"):
+				hud.chars_move(-1)
+			elif event.is_action_pressed("ui_right"):
+				hud.chars_move(1)
+			elif event.is_action_pressed("ui_accept"):
+				_on_char_chosen(hud.chars_selected_id())
 		State.CREATE:
 			if event.is_action_pressed("ui_accept"):
 				hud.confirm_create()
@@ -222,24 +233,28 @@ func _on_auth_submitted(mode: String, nick: String, pin: String, code: String) -
 		hud.set_auth_status(str(res.get("msg", "出错了，请再试一次")), true)
 
 
-## 登录成功：以云端流派为准；云端没有而本机有，则上传
+## 登录成功：账号下的角色列表以服务器为准；选一个角色进村（没有角色就先创建）
 func _after_login() -> void:
-	Save.store_meta(Net.exp, Net.alloc)        # 修为 / 属性点 / 天赋 / 装备以服务器为准
+	_enter_character()
+
+
+## 把服务器上当前角色的进度灌进本地缓存（修为 / 属性点 / 天赋 / 装备 / 银两 / 通关记录）
+func _activate_online_char() -> void:
+	Save.use_online_char(Net.char_id, Net.char_name, Net.school)
+	Save.store_meta(Net.exp, Net.alloc)
 	Save.set_meta_talents(Net.talents)
 	Save.set_gear(Net.items, Net.equip)
 	Save.store_silver_enh(Net.silver, Net.enh)
 	Save.set_cleared(Net.cleared)
-	if Net.school != "":
-		Save.create_character(Net.school)
-	elif Save.has_character():
-		Net.save_state(Save.school())
-	_enter_character()
+	_remember_last_char(Net.char_id)
+	_enter_town()
 
 
 func _on_account_requested() -> void:
-	if state != State.TOWN:
+	if state != State.TOWN and state != State.CHARS:
 		return
 	hud.hide_loadout()
+	hud.hide_chars()
 	if Net.logged_in():
 		await Net.logout()
 	_enter_auth("")
@@ -249,17 +264,87 @@ func _on_account_requested() -> void:
 # 角色与开局
 # ---------------------------------------------------------------------
 
+## 上次进入的角色（按账号记，选人界面默认选中它）
+func _remember_last_char(id: String) -> void:
+	var ui: Variant = Save.data.get("ui", {})
+	if not ui is Dictionary:
+		ui = {}
+	var lc: Variant = (ui as Dictionary).get("last_char", {})
+	if not lc is Dictionary:
+		lc = {}
+	(lc as Dictionary)[Net.nick if Net.logged_in() else "_local"] = id
+	(ui as Dictionary)["last_char"] = lc
+	Save.data["ui"] = ui
+	Save.save_data()
+
+
+func _last_char() -> String:
+	var ui: Variant = Save.data.get("ui", {})
+	if not ui is Dictionary:
+		return ""
+	var lc: Variant = (ui as Dictionary).get("last_char", {})
+	if not lc is Dictionary:
+		return ""
+	return str((lc as Dictionary).get(Net.nick if Net.logged_in() else "_local", ""))
+
+
+func _char_list() -> Array:
+	return Net.chars if Net.logged_in() else Save.chars()
+
+
+## 选人界面；一个角色都没有就直接去创建
 func _enter_character() -> void:
-	if Save.has_character():
-		_enter_town()
-	else:
+	hud.hide_create()
+	if _char_list().is_empty():
 		_enter_create()
+		return
+	state = State.CHARS
+	_show_game(false)
+	hud.show_chars(_char_list(), _last_char(), Net.logged_in())
 
 
 func _enter_create() -> void:
 	state = State.CREATE
 	_show_game(false)
-	hud.show_create()
+	hud.hide_chars()
+	hud.show_create(not _char_list().is_empty())
+
+
+func _on_char_chosen(id: String) -> void:
+	if state != State.CHARS or id == "":
+		return
+	if Net.logged_in():
+		hud.set_chars_status("读取角色…")
+		var res: Dictionary = await Net.select_char(id)
+		if not bool(res.get("ok", false)):
+			hud.set_chars_status(str(res.get("msg", "读取角色失败，请再试一次")), true)
+			return
+		hud.hide_chars()
+		_activate_online_char()
+	else:
+		if Save.select_char(id):
+			_remember_last_char(id)
+			hud.hide_chars()
+			_enter_town()
+
+
+func _on_char_create_requested() -> void:
+	if state == State.CHARS:
+		_enter_create()
+
+
+func _on_char_delete(id: String) -> void:
+	if state != State.CHARS:
+		return
+	if Net.logged_in():
+		hud.set_chars_status("删除中…")
+		var res: Dictionary = await Net.delete_char(id)
+		if not bool(res.get("ok", false)):
+			hud.set_chars_status(str(res.get("msg", "删除失败，请再试一次")), true)
+			return
+	else:
+		Save.delete_char(id)
+	_enter_character()
 
 
 var _debug_npc_done := false
@@ -304,25 +389,36 @@ func _on_loadout_cancel() -> void:
 	_enter_town()
 
 
-## 创建角色：只在第一次（或重新创建时）出现，选定的流派写入存档（登录状态下同时存到云端）
-func _on_created(school_id: String) -> void:
+## 创建角色：选流派 + 起名字；在线时角色建在服务器上，单机时存在本机
+func _on_created(school_id: String, char_name: String) -> void:
 	if state != State.CREATE:
 		return
-	Save.create_character(school_id)
 	if Net.logged_in():
-		Net.save_state(school_id)
+		hud.set_create_status("创建中…")
+		var res: Dictionary = await Net.create_char(char_name, school_id)
+		if not bool(res.get("ok", false)):
+			hud.set_create_status(str(res.get("msg", "创建失败，请再试一次")))
+			return
+		hud.hide_create()
+		_activate_online_char()
+		return
+	var id := Save.add_char(char_name, school_id)
+	if id == "":
+		hud.set_create_status("最多只能有 %d 个角色" % Save.MAX_CHARS)
+		return
+	Save.select_char(id)
+	_remember_last_char(id)
 	hud.hide_create()
 	_enter_town()
 
 
-func _on_recreate() -> void:
-	if state != State.TOWN:
+## 回到选人界面（小镇掌柜处）
+func _on_switch_char() -> void:
+	if state != State.DIALOG and state != State.TOWN:
 		return
-	Save.reset_character()
-	if Net.logged_in():
-		Net.save_state("")
+	hud.hide_dialog()
 	hud.hide_loadout()
-	_enter_create()
+	_enter_character()
 
 
 func _on_loadout(starter_id: String, qinggong_id: String) -> void:
@@ -515,11 +611,12 @@ func _talk(npc: Dictionary) -> void:
 			var free_pts: int = Meta.points_total(int(mp["level"])) - Meta.points_used(Save.meta_alloc())
 			var free_t: int = Talents.total_points(int(mp["level"])) - Talents.spent(Save.meta_talents())
 			greet += "\n\n你现在是局外 Lv%d，未分配属性点 %d、天赋点 %d。" % [mp["level"], free_pts, free_t]
-			opts = [{"label": "属性与天赋（角色成长）", "action": "meta"}, {"label": "转修流派（重新创建角色）", "action": "recreate"}, {"label": "告辞", "action": "close"}]
+			opts = [{"label": "属性与天赋（角色成长）", "action": "meta"}, {"label": "告辞", "action": "close"}]
 		"innkeeper":
 			var online := Net.configured() and Net.logged_in()
 			opts = [{"label": "江湖排行榜" + ("" if online else "（需要登录）"), "action": "board", "enabled": online},
 				{"label": "给我们提意见（反馈）" + ("" if online else "（需要登录）"), "action": "feedback", "enabled": online},
+				{"label": "切换角色", "action": "switch_char"},
 				{"label": "退出登录" if Net.configured() else "退出登录（未联网）", "action": "logout", "enabled": Net.configured()},
 				{"label": "告辞", "action": "close"}]
 		"sage":
@@ -566,13 +663,10 @@ func _on_dialog_option(i: int) -> void:
 					opts.append({"label": "%s　%s　%s%s" % [m["name"], stars, m["desc"], ("\n推荐：" + rec) if rec != "" else ""], "action": "map:" + str(id)})
 			opts.append({"label": "返回", "action": "talk"})
 			_dlg(dialog_npc, "想去哪儿历练？", opts)
-		"recreate":
-			_dlg(dialog_npc, "转修流派会重新创建角色。局外等级、属性点、天赋和装备都保留，只是重新选择流派。确定吗？",
-				[{"label": "确定转修", "action": "recreate_yes"}, {"label": "再想想", "action": "talk"}])
-		"recreate_yes":
+		"switch_char":
 			hud.hide_dialog()
 			state = State.TOWN
-			_on_recreate()
+			_on_switch_char()
 		"gear", "enhance", "meta", "board", "feedback", "guide", "logout":
 			hud.hide_dialog()
 			state = State.TOWN

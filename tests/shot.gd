@@ -16,6 +16,9 @@ func _ready() -> void:
 		dir = "user://"
 	pick.seed = 3
 	Net.api_url = ""      # 截图走单机流程，不去登录真实后端
+	Save.path = "user://shot_save.json"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Save.path))
+	Save.load_data()
 	main = load("res://scenes/main.tscn").instantiate()
 	add_child(main)
 	main.set_physics_process(false)
@@ -25,6 +28,13 @@ func _ready() -> void:
 	main.hud.confirm_create()
 	await _frames(3)
 	_snap("00b_town_spawn")
+	Save.add_char("山河剑客", "sword")
+	Save.add_char("铁手刀魔", "blade")
+	main._on_switch_char()
+	await _frames(3)
+	_snap("00a_chars")
+	main._on_char_chosen(str(Save.chars()[0]["id"]))
+	await _frames(3)
 	main.town.player_pos = Vector2(60, 100)
 	for fdir in [["down", Vector2.DOWN], ["up", Vector2.UP], ["right", Vector2.RIGHT], ["left", Vector2.LEFT]]:
 		main.town.facing = fdir[1]
@@ -74,7 +84,7 @@ func _ready() -> void:
 	main.hud.talents_work = {"gang_force": 2, "gang_body": 1, "gang_crit": 2, "gang_armor": 1, "gang_ying": 2, "rou_regen": 2, "ling_step": 1}
 	Save.set_meta_talents(main.hud.talents_work)
 	if OS.get_environment("SHOT_SCHOOL") != "":
-		Save.data["school"] = OS.get_environment("SHOT_SCHOOL")
+		Save._cur["school"] = OS.get_environment("SHOT_SCHOOL")
 	main._open_talents()
 	await _frames(3)
 	main.hud.talents_tree.hover_id = "gang_peak"

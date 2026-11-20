@@ -5,8 +5,12 @@ extends CanvasLayer
 signal choice_selected(index: int)
 signal reroll_requested
 signal loadout_confirmed(starter_id: String, qinggong_id: String)
-signal character_created(school_id: String)
-signal recreate_requested
+signal character_created(school_id: String, char_name: String)
+signal char_chosen(id: String)
+signal char_create_requested
+signal char_delete_requested(id: String)
+signal chars_back_requested
+signal create_back_requested
 signal auth_submitted(mode: String, nick: String, pin: String, code: String)
 signal board_open_requested
 signal board_kind_requested(kind: String)
@@ -46,6 +50,14 @@ var create_portrait: TextureRect
 var create_preview: SpritePreview
 var create_desc: Label
 var sel_school := "fist"
+var create_name: LineEdit
+var create_status: Label
+var create_can_back := false
+var chars_panel: Control
+var chars_list: Array = []
+var chars_sel := 0
+var chars_status: Label
+var chars_confirm: Control
 var auth_panel: Control
 var auth_mode := "login"
 var auth_nick: LineEdit
@@ -293,7 +305,13 @@ func _school_portrait(school_id: String) -> Texture2D:
 	return null
 
 
+func _default_char_name(school_id: String) -> String:
+	return "无名" + str(Data.schools[school_id]["name"])
+
+
 func _on_school_selected(id: String) -> void:
+	if create_name != null and (create_name.text == _default_char_name(sel_school) or create_name.text == ""):
+		create_name.text = _default_char_name(id)          # 没自己改过名字就跟着流派换
 	sel_school = id
 	if create_portrait:
 		create_portrait.texture = _school_portrait(id)
@@ -311,8 +329,8 @@ func _build_create() -> void:
 	create_panel = pb[0]
 	_add_cover(create_panel, 0.62)
 	var box: VBoxContainer = pb[1]
-	box.add_theme_constant_override("separation", 10)
-	box.add_child(_label("创建角色", 40))
+	box.add_theme_constant_override("separation", 6)
+	box.add_child(_label("创建角色", 38))
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 30)
@@ -338,12 +356,25 @@ func _build_create() -> void:
 	# 右：流派 + 像素形象 + 创建
 	var right := VBoxContainer.new()
 	right.custom_minimum_size = Vector2(560, 0)
-	right.add_theme_constant_override("separation", 12)
+	right.add_theme_constant_override("separation", 8)
 	row.add_child(right)
-	var hint := _label("选择你的武学流派。流派决定可学的招式，创建后不可在局内更改。", 16, Color("#cfc6ae"))
+	var hint := _label("选择你的武学流派和名字。流派创建后不可更改（想换流派就再建一个角色）。", 16, Color("#cfc6ae"))
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.custom_minimum_size = Vector2(560, 0)
 	right.add_child(hint)
+	var nrow := HBoxContainer.new()
+	nrow.add_theme_constant_override("separation", 10)
+	nrow.alignment = BoxContainer.ALIGNMENT_CENTER
+	right.add_child(nrow)
+	nrow.add_child(_label("角色名", 20))
+	create_name = LineEdit.new()
+	create_name.placeholder_text = "2~12 个字：中文、字母、数字"
+	create_name.max_length = 12
+	create_name.custom_minimum_size = Vector2(300, 42)
+	create_name.add_theme_font_size_override("font_size", 20)
+	create_name.text = _default_char_name(sel_school)
+	create_name.text_submitted.connect(func(_t: String) -> void: confirm_create())
+	nrow.add_child(create_name)
 	var srow := _center_row(10)
 	srow.custom_minimum_size = Vector2(560, 70)
 	right.add_child(srow)
@@ -362,20 +393,27 @@ func _build_create() -> void:
 		b.add_theme_font_size_override("font_size", 18)
 		b.pressed.connect(_on_school_selected.bind(id))
 		srow.add_child(b)
-	create_desc = _label(_school_text(sel_school), 18, Color("#f3ead2"))
+	create_desc = _label(_school_text(sel_school), 15, Color("#f3ead2"))
 	create_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	create_desc.custom_minimum_size = Vector2(560, 130)     # 固定大小：换职业文字长短不同也不会让框移动
+	create_desc.custom_minimum_size = Vector2(560, 124)     # 固定大小：换职业文字长短不同也不会让框移动
 	create_desc.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	create_desc.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 	create_desc.clip_text = true
 	right.add_child(create_desc)
 	create_preview = SpritePreview.new()
-	create_preview.custom_minimum_size = Vector2(560, 330)
+	create_preview.custom_minimum_size = Vector2(560, 250)
 	create_preview.setup(sel_school)
 	right.add_child(create_preview)
+	create_status = _label("", 16, Color("#f08070"))
+	create_status.custom_minimum_size = Vector2(0, 22)
+	right.add_child(create_status)
 	var ok := _button("创建角色  [Enter]", Vector2(260, 48), 22)
 	ok.pressed.connect(confirm_create)
-	var brow := _center_row()
+	var brow := _center_row(14)
+	if create_can_back:
+		var back := _button("返回选人", Vector2(150, 48), 18)
+		back.pressed.connect(func() -> void: create_back_requested.emit())
+		brow.add_child(back)
 	brow.add_child(ok)
 	right.add_child(brow)
 
@@ -684,7 +722,19 @@ func _build_stage_info(left: VBoxContainer) -> void:
 
 
 func confirm_create() -> void:
-	character_created.emit(sel_school)
+	var nm := create_name.text.strip_edges() if create_name != null else _default_char_name(sel_school)
+	var re := RegEx.new()
+	re.compile("^[一-龥A-Za-z0-9_\\-·]{2,12}$")
+	if re.search(nm) == null:
+		set_create_status("角色名要 2~12 个字：中文、字母、数字、下划线")
+		return
+	set_create_status("")
+	character_created.emit(sel_school, nm)
+
+
+func set_create_status(msg: String) -> void:
+	if create_status:
+		create_status.text = msg
 
 
 ## 难度百分比 → 倍率
@@ -714,7 +764,8 @@ func confirm_loadout() -> void:
 	loadout_confirmed.emit(sel_starter, sel_qg)
 
 
-func show_create() -> void:
+func show_create(can_back: bool = false) -> void:
+	create_can_back = can_back
 	_build_create()
 	create_panel.visible = true
 	overlay.visible = false
@@ -723,6 +774,170 @@ func show_create() -> void:
 func hide_create() -> void:
 	if create_panel:
 		create_panel.visible = false
+
+
+# ---------------------------------------------------------------------
+# 选人界面（登录后 / 单机启动时）：最多 5 个角色，每个有职业头像、名字、局外等级；可以删除
+# ---------------------------------------------------------------------
+
+## 职业头像：assets/avatars/<流派>.png（Gemini 出的头像放这里即可替换）；没有就用立绘占位
+func avatar_of(school_id: String) -> Texture2D:
+	var path := "res://assets/avatars/%s.png" % school_id
+	if ResourceLoader.exists(path):
+		return load(path)
+	return _school_portrait(school_id)
+
+
+func show_chars(list: Array, selected_id: String = "", online: bool = false) -> void:
+	chars_list = list
+	chars_sel = 0
+	for i in list.size():
+		if str(list[i]["id"]) == selected_id:
+			chars_sel = i
+	_build_chars(online)
+	chars_panel.visible = true
+	overlay.visible = false
+
+
+func hide_chars() -> void:
+	if chars_panel:
+		chars_panel.visible = false
+
+
+func chars_move(d: int) -> void:
+	if chars_list.is_empty():
+		return
+	chars_sel = posmod(chars_sel + d, chars_list.size())
+	_build_chars(chars_online)
+	chars_panel.visible = true
+
+
+func chars_selected_id() -> String:
+	if chars_list.is_empty():
+		return ""
+	return str(chars_list[clampi(chars_sel, 0, chars_list.size() - 1)]["id"])
+
+
+func set_chars_status(msg: String, is_error: bool = false) -> void:
+	if chars_status:
+		chars_status.text = msg
+		chars_status.add_theme_color_override("font_color", Color("#f08070") if is_error else Color("#9ad0a0"))
+
+
+var chars_online := false
+
+
+func _char_card_style(selected: bool, empty: bool) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.09, 0.09, 0.11, 0.82) if not empty else Color(0.07, 0.07, 0.08, 0.55)
+	sb.border_color = Color("#e8c15a") if selected else (Color("#4a4338") if empty else Color("#8d7a4a"))
+	sb.set_border_width_all(3 if selected else 2)
+	sb.set_corner_radius_all(8)
+	sb.set_content_margin_all(10)
+	return sb
+
+
+func _build_chars(online: bool) -> void:
+	chars_online = online
+	if chars_panel:
+		chars_panel.queue_free()
+	var pb := _panel_box()
+	chars_panel = pb[0]
+	_add_cover(chars_panel, 0.7)
+	var box: VBoxContainer = pb[1]
+	box.add_theme_constant_override("separation", 14)
+	box.add_child(_label("选择角色", 40))
+	box.add_child(_label("每个账号最多 %d 个角色。局外等级、天赋、装备、银两和通关进度都是角色自己的。" % Save.MAX_CHARS, 16, Color("#cfc6ae")))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_child(row)
+	for i in Save.MAX_CHARS:
+		var card := PanelContainer.new()
+		card.custom_minimum_size = Vector2(228, 350)
+		var v := VBoxContainer.new()
+		v.add_theme_constant_override("separation", 8)
+		v.alignment = BoxContainer.ALIGNMENT_CENTER
+		card.add_child(v)
+		if i < chars_list.size():
+			var c: Dictionary = chars_list[i]
+			card.add_theme_stylebox_override("panel", _char_card_style(i == chars_sel, false))
+			var av := TextureRect.new()
+			av.texture = avatar_of(str(c["school"]))
+			av.custom_minimum_size = Vector2(160, 160)
+			av.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			av.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+			av.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			v.add_child(av)
+			var nm := _label(str(c["name"]), 22)
+			nm.custom_minimum_size = Vector2(200, 0)
+			nm.clip_text = true
+			v.add_child(nm)
+			var sd: Dictionary = Data.schools.get(str(c["school"]), {"name": "？"})
+			v.add_child(_label("%s　局外 Lv%d" % [sd["name"], int(c["level"])], 16, Color("#e8c15a")))
+			var enter := _button("进入游戏", Vector2(180, 42), 20)
+			var cid := str(c["id"])
+			enter.pressed.connect(func() -> void: char_chosen.emit(cid))
+			v.add_child(enter)
+			var del := _button("删除角色", Vector2(180, 34), 15)
+			var cname := str(c["name"])
+			del.pressed.connect(func() -> void: _confirm_delete_char(cid, cname))
+			v.add_child(del)
+		else:
+			card.add_theme_stylebox_override("panel", _char_card_style(false, true))
+			v.add_child(_label("空位", 18, Color("#6d6858")))
+			if i == chars_list.size():
+				var add := _button("+ 创建角色", Vector2(180, 56), 20)
+				add.pressed.connect(func() -> void: char_create_requested.emit())
+				v.add_child(add)
+		row.add_child(card)
+	chars_status = _label("", 16, Color("#cfc6ae"))
+	chars_status.custom_minimum_size = Vector2(0, 22)
+	box.add_child(chars_status)
+	var brow := _center_row(16)
+	brow.add_child(_label("← → 选择，Enter 进入", 15, Color("#8d8670")))
+	if online:
+		var out := _button("退出登录", Vector2(160, 42), 18)
+		out.pressed.connect(func() -> void: chars_back_requested.emit())
+		brow.add_child(out)
+	box.add_child(brow)
+
+
+func _confirm_delete_char(id: String, nm: String) -> void:
+	if chars_confirm:
+		chars_confirm.queue_free()
+	chars_confirm = Control.new()
+	chars_confirm.set_anchors_preset(Control.PRESET_FULL_RECT)
+	chars_panel.add_child(chars_confirm)
+	chars_confirm.add_child(_dim())
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	chars_confirm.add_child(center)
+	var pc := PanelContainer.new()
+	pc.add_theme_stylebox_override("panel", _char_card_style(true, false))
+	center.add_child(pc)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 16)
+	pc.add_child(v)
+	var l1 := _label("确定删除「%s」？" % nm, 26, Color("#f08070"))
+	v.add_child(l1)
+	var l2 := _label("这个角色的局外等级、天赋、装备、银两和通关进度都会一起消失，无法恢复。", 17)
+	l2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l2.custom_minimum_size = Vector2(520, 0)
+	v.add_child(l2)
+	var row := _center_row(20)
+	var yes := _button("确定删除", Vector2(170, 46), 20)
+	yes.pressed.connect(func() -> void:
+		chars_confirm.queue_free()
+		chars_confirm = null
+		char_delete_requested.emit(id))
+	var no := _button("取消", Vector2(170, 46), 20)
+	no.pressed.connect(func() -> void:
+		chars_confirm.queue_free()
+		chars_confirm = null)
+	row.add_child(no)
+	row.add_child(yes)
+	v.add_child(row)
 
 
 func show_loadout(school_id: String, map_id: String = "black_wind") -> void:
@@ -976,10 +1191,10 @@ func update_board(kind: String, res: Dictionary) -> void:
 		board_status.text = str(res.get("msg", "加载失败"))
 		return
 	var titles := {"score": "得分", "speed": "用时", "level": "等级"}
-	for h in ["名次", "昵称", titles[kind], "流派"]:
+	for h in ["名次", "角色", titles[kind], "流派"]:
 		board_grid.add_child(_cell(h, Color("#c9a227")))
 	for r in res["rows"]:
-		var mine := Net.nick != "" and str(r["nick"]).to_lower() == Net.nick.to_lower()
+		var mine := Net.nick != "" and str(r.get("owner", r["nick"])).to_lower() == Net.nick.to_lower()
 		var col := Color("#f0c050") if mine else Color("#f3ead2")
 		var sch := str(r.get("school", ""))
 		board_grid.add_child(_cell("%d" % int(r["rank"]), col))
@@ -1679,8 +1894,10 @@ func show_town_hud(on: bool) -> void:
 	var w := town_layer.get_node("Who") as Label
 	var lv := int(Meta.progress(Save.meta_exp())["level"])
 	var line := "银两 %d　局外 Lv%d" % [Save.silver(), lv]
+	if Save.char_name() != "":
+		line = "%s　" % Save.char_name() + line
 	if Net.logged_in():
-		line = "玩家：%s　" % Net.nick + (("群：%s　" % Net.group_name) if Net.group_name != "" else "") + line
+		line = "账号：%s　" % Net.nick + (("群：%s　" % Net.group_name) if Net.group_name != "" else "") + line
 	w.text = line
 	town_layer.visible = on
 
