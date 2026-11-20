@@ -642,6 +642,14 @@
       "cell": 192,
       "loop": false,
       "world_size": 260.0
+    },
+    "proj_arrow": {
+      "file": "proj_arrow.png",
+      "frames": 4,
+      "fps": 12.0,
+      "cell": 128,
+      "loop": true,
+      "world_size": 70.0
     }
   }
 }

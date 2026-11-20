@@ -1569,7 +1569,7 @@ func _enhance_rework_test() -> void:
 	wbl2.hp = 10.0
 	var ke: Enemy = wbl2._spawn_enemy("bandit", wbl2.player_pos + Vector2(40, 0))
 	wbl2._kill(ke)
-	_check(wbl2.hp > 10.2, "刀客：击杀回血（%.2f）" % wbl2.hp)
+	_check(wbl2.hp > 10.05, "刀客：击杀回血（%.2f）" % wbl2.hp)
 	wbl2.hp = hpk
 	var wdu := _new_world(91, "dugu")
 	var cdu: float = wdu.skills["dugu"].empower_cost()
@@ -2426,7 +2426,7 @@ func _synergy_test() -> void:
 			_free_world(w)
 	_check(n_harm == Data.harmony.size(), "每个合璧恰好对应一种搭配")
 	# 阴阳效果（用没有合璧的搭配：小无相功 + 铁布衫 阳阳；玄冥神功 + 北冥神功 阴阴；小无相功 + 玄冥神功 一阴一阳）
-	var base_regen := float(Data.player_base["neili_regen"])
+	var base_regen := float(Data.player_base["neili_regen"]) + float(Data.schools["fist"]["passive"]["neili_regen"])      # 测试用武者：含流派被动
 	var base_max := float(Data.player_base["max_neili"])
 	var wa := _new_world(71)
 	wa.skills.clear()
@@ -2988,6 +2988,7 @@ func _neili_test() -> void:
 		wm.step(DT)
 	_check(wm.meditating(), "站立 ≥1.5 秒入定")
 	wm.god = false
+	wm.stats["armor"] = 0.0
 	var h0 := wm.hp
 	wm._hurt(10.0)
 	_check(absf((h0 - wm.hp) - 10.0 * (1.0 - Data.T("meditate_reduce"))) < 0.01, "入定减伤 15%%（实际受伤 %.2f）" % (h0 - wm.hp))

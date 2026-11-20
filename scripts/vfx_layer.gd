@@ -5,7 +5,7 @@ extends Node2D
 ## 没有素材的特效仍由 GameWorld 自己用线条和圆弧画。
 
 const PROJ_IDS := {"wave": "proj_wave", "bolt": "proj_bolt", "palm": "proj_palm", "finger": "proj_finger"}
-const HOSTILE_IDS := {"claw": "boss_claw_proj", "palm": "boss_dark_palm", "blade": "boss_blade_proj", "fanblade": "boss_fan_blade", "emei": "proj_emei_sword"}      # Boss 弹体的特效素材（有才画）
+const HOSTILE_IDS := {"claw": "boss_claw_proj", "palm": "boss_dark_palm", "blade": "boss_blade_proj", "fanblade": "boss_fan_blade", "emei": "proj_emei_sword", "arrow": "proj_arrow"}      # Boss 弹体的特效素材（有才画）
 const EMP_RING := Color("#4fe0d0")
 
 var world: GameWorld

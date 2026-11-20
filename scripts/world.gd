@@ -2191,6 +2191,17 @@ func _draw_zones() -> void:
 					draw_arc(zpos, zr * (0.35 + 0.2 * k), rot, rot + 2.0, 16, Color(INK, 0.4 * a2), 3.0)
 
 
+## 弓手：行走用第 1~2 帧，预警 / 放箭时用拉弓的第 3~4 帧
+func _fr0(e: Enemy, key: String) -> int:
+	return 2 if (key == "archer" and e.cast_id != "") else 0
+
+
+func _fr1(e: Enemy, key: String) -> int:
+	if key == "archer":
+		return 3 if e.cast_id != "" else 1
+	return -1
+
+
 func _enemy_art_key(e: Enemy) -> String:
 	if e.art_key != "":
 		return e.art_key           # 复用别的怪的素材（弓手 / 蛮兵）
@@ -2262,7 +2273,7 @@ func _draw_enemy_sprite(e: Enemy, key: String) -> void:
 			tf = Color(0.85, 0.85, 0.85)
 		var rw := h * 0.46
 		draw_texture_rect(_sh_tex, Rect2(feet.x - rw, feet.y - 1.0 - rw * 0.3, rw * 2.0, rw * 0.6), false)
-		enemy_art.draw_fast(self, key, time + float(e.uid % 11) * 0.13, feet, flip, tf)
+		enemy_art.draw_fast(self, key, time + float(e.uid % 11) * 0.13, feet, flip, tf, _fr0(e, key), _fr1(e, key))
 		return
 	var walking := e.stun <= 0.0
 	var ph := float(e.uid % 11)
@@ -2284,7 +2295,7 @@ func _draw_enemy_sprite(e: Enemy, key: String) -> void:
 		tint = Color(0.72, 0.88, 1.0)
 	elif e.stun > 0.0:
 		tint = Color(0.85, 0.85, 0.85)
-	enemy_art.draw(self, key, time + ph * 0.13, feet - Vector2(0, bob), flip, tint, lean, sq)
+	enemy_art.draw(self, key, time + ph * 0.13, feet - Vector2(0, bob), flip, tint, lean, sq, _fr0(e, key), _fr1(e, key))
 	var r := e.radius
 	if e.is_elite:
 		draw_arc(e.pos + Vector2(0, h * 0.1), h * 0.5, 0.0, TAU, 26, Color(GOLD, 0.8), 2.0)

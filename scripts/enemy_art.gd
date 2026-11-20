@@ -41,12 +41,13 @@ func height_of(id: String) -> float:
 
 
 ## 快速绘制（同屏怪物很多时用）：不做倾斜 / 挤压，没有变换，一次绘制调用
-func draw_fast(ci: CanvasItem, id: String, t: float, feet: Vector2, flip: bool, tint: Color = Color.WHITE) -> void:
+func draw_fast(ci: CanvasItem, id: String, t: float, feet: Vector2, flip: bool, tint: Color = Color.WHITE, fr0: int = 0, fr1: int = -1) -> void:
 	var d: Dictionary = sprites[id]
 	var w: int = d["w"]
 	var h: int = d["h"]
 	var frames: int = d["frames"]
-	var f := int(maxf(t, 0.0) * float(d["fps"])) % frames
+	var last := frames - 1 if fr1 < 0 else mini(fr1, frames - 1)
+	var f := fr0 + int(maxf(t, 0.0) * float(d["fps"])) % (last - fr0 + 1)       # 只在 fr0~fr1 帧里循环（弓手：行走 0~1 / 拉弓 2~3）
 	var tex: Texture2D = d["tex"]
 	if flip and d["tex_f"] != null:
 		tex = d["tex_f"]
@@ -55,11 +56,12 @@ func draw_fast(ci: CanvasItem, id: String, t: float, feet: Vector2, flip: bool, 
 
 
 ## feet：脚底中心（世界坐标）；flip：朝左
-func draw(ci: CanvasItem, id: String, t: float, feet: Vector2, flip: bool, tint: Color = Color.WHITE, rot: float = 0.0, squash: float = 1.0) -> void:
+func draw(ci: CanvasItem, id: String, t: float, feet: Vector2, flip: bool, tint: Color = Color.WHITE, rot: float = 0.0, squash: float = 1.0, fr0: int = 0, fr1: int = -1) -> void:
 	var d: Dictionary = sprites[id]
 	var w: int = d["w"]
 	var h: int = d["h"]
-	var f := int(maxf(t, 0.0) * float(d["fps"])) % int(d["frames"])
+	var last := int(d["frames"]) - 1 if fr1 < 0 else mini(fr1, int(d["frames"]) - 1)
+	var f := fr0 + int(maxf(t, 0.0) * float(d["fps"])) % (last - fr0 + 1)
 	var tex: Texture2D = d["tex"]
 	ci.draw_set_transform(feet, rot, Depth.scale_of(squash, flip))
 	ci.draw_texture_rect_region(tex, Rect2(-w * 0.5, -h, w, h), Rect2(f * w, 0, w, h), tint)

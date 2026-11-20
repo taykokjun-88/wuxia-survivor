@@ -1691,8 +1691,7 @@
       "exp": 2,
       "color": "#4a6a3a",
       "behavior": "archer",
-      "art": "blade",
-      "tint": "#9ad08a"
+      "art": "archer"
     },
     "charger": {
       "name": "蛮兵",
@@ -1703,8 +1702,7 @@
       "exp": 3,
       "color": "#7a3a2a",
       "behavior": "charger",
-      "art": "soldier",
-      "tint": "#e08a7a"
+      "art": "charger"
     },
     "s2_mini_1": {
       "name": "鲜于桶",
@@ -2005,9 +2003,10 @@
         "max_neili": 40,
         "neili_regen": 1.5,
         "max_hp": 15,
-        "armor": 0.8
+        "armor": 0.8,
+        "damage_pct": 0.08
       },
-      "passive_text": "内力深厚：内力上限 +40，内力回复 +1.5/秒，盈境伤害加成 +20%，内力护体（气血 +15、防御 +0.8）；但催动消耗 +15%，更依赖内力"
+      "passive_text": "内力深厚：内力上限 +40，内力回复 +1.5/秒，盈境伤害加成 +20%，伤害 +8%，内力护体（气血 +15、防御 +0.8）；但催动消耗 +15%，更依赖内力"
     },
     "sword": {
       "name": "剑侠",

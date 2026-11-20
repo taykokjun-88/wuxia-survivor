@@ -117,5 +117,19 @@
   "fps": 6.0,
   "w": 76,
   "h": 142
+ },
+ "archer": {
+  "file": "archer.png",
+  "frames": 4,
+  "fps": 6.0,
+  "w": 36,
+  "h": 50
+ },
+ "charger": {
+  "file": "charger.png",
+  "frames": 4,
+  "fps": 10.0,
+  "w": 51,
+  "h": 58
  }
 }
