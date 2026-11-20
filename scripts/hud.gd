@@ -335,6 +335,7 @@ func _build_create() -> void:
 	hint.custom_minimum_size = Vector2(560, 0)
 	right.add_child(hint)
 	var srow := _center_row(10)
+	srow.custom_minimum_size = Vector2(560, 70)
 	right.add_child(srow)
 	var group := ButtonGroup.new()
 	for id in Data.schools:
@@ -352,6 +353,11 @@ func _build_create() -> void:
 		b.pressed.connect(_on_school_selected.bind(id))
 		srow.add_child(b)
 	create_desc = _label(_school_text(sel_school), 18, Color("#f3ead2"))
+	create_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	create_desc.custom_minimum_size = Vector2(560, 130)     # 固定大小：换职业文字长短不同也不会让框移动
+	create_desc.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	create_desc.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	create_desc.clip_text = true
 	right.add_child(create_desc)
 	create_preview = SpritePreview.new()
 	create_preview.custom_minimum_size = Vector2(560, 330)

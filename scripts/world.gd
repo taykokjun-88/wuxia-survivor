@@ -2462,7 +2462,7 @@ func _draw_player() -> void:
 		elif input_move.length() > 0.1:
 			lean = 0.07 * clampf(input_move.x, -1.0, 1.0)
 			sq = 1.0 + 0.025 * sin(time * 26.0)
-		if sprite_anim.draw(self, str(state[0]), float(state[1]), player_pos + Vector2(0, 14.0 - _player_bob()), facing.x < 0.0, tint, 1.0, lean, sq):
+		if sprite_anim.draw(self, str(state[0]), float(state[1]), player_pos + Vector2(0, 14.0 - _player_bob()), facing.x < 0.0, tint, Data.T("player_zoom"), lean, sq):   # 三个流派的角色高度都是 56px，统一放大
 			return
 	draw_circle(player_pos, PLAYER_RADIUS, Color(JADE, alpha))
 	draw_arc(player_pos, PLAYER_RADIUS, 0.0, TAU, 20, Color(0.03, 0.08, 0.08, alpha), 2.0)
