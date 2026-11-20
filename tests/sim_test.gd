@@ -132,7 +132,10 @@ func _boss_time_report(map_id: String) -> void:
 		w.god = true
 		w.rng_seed = sd
 		add_child(w)
-		w.start_run(["chain_fist", "point_finger", "cloud_palm"][sd % 3], "tashue", map_id)
+		var bst: Array = ["chain_fist", "point_finger", "cloud_palm"]
+		if OS.get_environment("SCHOOL") != "":
+			bst = Data.schools[OS.get_environment("SCHOOL")]["starters"]
+		w.start_run(bst[sd % bst.size()], "tashue", map_id)
 		var pick_rng := RandomNumberGenerator.new()
 		pick_rng.seed = sd
 		var seen := {}
