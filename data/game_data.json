@@ -2000,11 +2000,12 @@
       "sprite_dir": "res://assets/sprites/player",
       "town_hero_dir": "res://assets/town/hero",
       "passive": {
-        "ying_dmg": 0.1,
-        "empower_cut": -0.25,
-        "max_neili": 25
+        "ying_dmg": 0.2,
+        "empower_cut": -0.15,
+        "max_neili": 40,
+        "neili_regen": 1.5
       },
-      "passive_text": "内力深厚：内力上限 +25，盈境伤害加成 +10%；但催动消耗 +25%，更依赖内力回复"
+      "passive_text": "内力深厚：内力上限 +40，内力回复 +1.5/秒，盈境伤害加成 +20%；但催动消耗 +15%，更依赖内力"
     },
     "sword": {
       "name": "剑侠",
@@ -2019,12 +2020,12 @@
       "sprite_dir": "res://assets/sprites/sword",
       "town_hero_dir": "res://assets/town/hero_sword",
       "passive": {
-        "speed_pct": 0.1,
-        "qg_cd_reduce": 0.1,
-        "cd_reduce": 0.05,
+        "speed_pct": 0.15,
+        "qg_cd_reduce": 0.12,
+        "cd_reduce": 0.08,
         "speed_cd": 0.5
       },
-      "passive_text": "身法见长：移速 +10%，轻功冷却 −10%，招式冷却 −5%，另外移速每提高 10%，招式冷却再缩短 5%（攻速随速度提高）"
+      "passive_text": "身法见长：移速 +15%，轻功冷却 −12%，招式冷却 −8%，另外移速每提高 10%，招式冷却再缩短 5%（攻速随速度提高）"
     },
     "blade": {
       "name": "刀客",
@@ -2039,11 +2040,11 @@
       "sprite_dir": "res://assets/sprites/blade",
       "town_hero_dir": "res://assets/town/hero_blade",
       "passive": {
-        "max_hp": 20,
-        "hp_regen": 0.15,
-        "kill_hp": 0.3
+        "max_hp": 10,
+        "hp_regen": 0.1,
+        "kill_hp": 0.1
       },
-      "passive_text": "悍勇不屈：气血上限 +20，气血回复 +0.15/秒，击杀回血 +0.3；耗血的刀法（血刀经）与刀魂机制更吃气血，要靠回复撑住"
+      "passive_text": "悍勇不屈：气血上限 +10，气血回复 +0.1/秒，击杀回血 +0.1；耗血的刀法（血刀经）与刀魂机制更吃气血，要靠回复撑住"
     },
     "spear": {
       "name": "长兵",
@@ -2375,10 +2376,10 @@
               "schools": {
                 "blade": {
                   "name": "回春",
-                  "desc": "拾取回血 +0.3/级，击杀回血 +0.3/级",
+                  "desc": "拾取回血 +0.3/级，击杀回血 +0.1/级",
                   "stat": {
                     "pickup_heal": 0.3,
-                    "kill_hp": 0.3
+                    "kill_hp": 0.1
                   }
                 }
               }
