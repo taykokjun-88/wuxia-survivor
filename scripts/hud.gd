@@ -291,7 +291,10 @@ func _panel_box() -> Array:
 ## 流派介绍 + 流派特色
 func _school_text(id: String) -> String:
 	var sd: Dictionary = Data.schools[id]
-	var t := str(sd["desc"])
+	var t := ""
+	if str(sd.get("story", "")) != "":
+		t = "【身世】\n" + str(sd["story"]) + "\n\n【流派】\n"
+	t += str(sd["desc"])
 	if str(sd.get("passive_text", "")) != "":
 		t += "\n特色："
 		for part in str(sd["passive_text"]).split("；"):      # 每一条特色单独一行，好读
