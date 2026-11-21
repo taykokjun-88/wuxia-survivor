@@ -1,135 +1,140 @@
 {
- "bandit": {
-  "file": "bandit.png",
-  "frames": 4,
-  "fps": 8.0,
-  "w": 50,
-  "h": 46
- },
- "blade": {
-  "file": "blade.png",
-  "frames": 4,
-  "fps": 8.0,
-  "w": 46,
-  "h": 46
- },
- "soldier": {
-  "file": "soldier.png",
-  "frames": 4,
-  "fps": 8.0,
-  "w": 58,
-  "h": 54
- },
- "elite": {
-  "file": "elite.png",
-  "frames": 4,
-  "fps": 7.0,
-  "w": 78,
-  "h": 72
- },
- "boss": {
-  "file": "boss.png",
-  "frames": 4,
-  "fps": 6.0,
-  "w": 148,
-  "h": 128
- },
- "mini_boss_1": {
-  "file": "mini_boss_1.png",
-  "frames": 4,
-  "fps": 6.0,
-  "w": 112,
-  "h": 102
- },
- "mini_boss_2": {
-  "file": "mini_boss_2.png",
-  "frames": 4,
-  "fps": 6.0,
-  "w": 114,
-  "h": 106
- },
- "mini_boss_3": {
-  "file": "mini_boss_3.png",
-  "frames": 4,
-  "fps": 6.0,
-  "w": 88,
-  "h": 98
- },
- "huashan": {
-  "file": "huashan.png",
-  "frames": 4,
-  "fps": 8.0,
-  "w": 28,
-  "h": 48
- },
- "kunlun": {
-  "file": "kunlun.png",
-  "frames": 4,
-  "fps": 8.0,
-  "w": 28,
-  "h": 48
- },
- "kongtong": {
-  "file": "kongtong.png",
-  "frames": 4,
-  "fps": 8.0,
-  "w": 29,
-  "h": 52
- },
- "shaolin": {
-  "file": "shaolin.png",
-  "frames": 4,
-  "fps": 8.0,
-  "w": 35,
-  "h": 56
- },
- "emei": {
-  "file": "emei.png",
-  "frames": 4,
-  "fps": 8.0,
-  "w": 28,
-  "h": 48
- },
- "s2_mini_1": {
-  "file": "s2_mini_1.png",
-  "frames": 4,
-  "fps": 6.0,
-  "w": 46,
-  "h": 100
- },
- "s2_mini_2": {
-  "file": "s2_mini_2.png",
-  "frames": 4,
-  "fps": 6.0,
-  "w": 60,
-  "h": 100
- },
- "s2_mini_3": {
-  "file": "s2_mini_3.png",
-  "frames": 4,
-  "fps": 6.0,
-  "w": 53,
-  "h": 100
- },
- "s2_boss": {
-  "file": "s2_boss.png",
-  "frames": 4,
-  "fps": 6.0,
-  "w": 76,
-  "h": 142
- },
- "archer": {
-  "file": "archer.png",
-  "frames": 4,
-  "fps": 6.0,
-  "w": 36,
-  "h": 50
- },
- "charger": {
-  "file": "charger.png",
-  "frames": 4,
-  "fps": 10.0,
-  "w": 51,
-  "h": 58
- }
+  "bandit": {
+    "file": "bandit.png",
+    "frames": 4,
+    "fps": 8.0,
+    "w": 50,
+    "h": 46
+  },
+  "blade": {
+    "file": "blade.png",
+    "frames": 4,
+    "fps": 8.0,
+    "w": 46,
+    "h": 46
+  },
+  "soldier": {
+    "file": "soldier.png",
+    "frames": 4,
+    "fps": 8.0,
+    "w": 58,
+    "h": 54
+  },
+  "elite": {
+    "file": "elite.png",
+    "frames": 4,
+    "fps": 7.0,
+    "w": 78,
+    "h": 72
+  },
+  "boss": {
+    "file": "boss.png",
+    "frames": 4,
+    "fps": 6.0,
+    "w": 148,
+    "h": 128
+  },
+  "mini_boss_1": {
+    "file": "mini_boss_1.png",
+    "frames": 4,
+    "fps": 6.0,
+    "w": 112,
+    "h": 102
+  },
+  "mini_boss_2": {
+    "file": "mini_boss_2.png",
+    "frames": 4,
+    "fps": 6.0,
+    "w": 114,
+    "h": 106
+  },
+  "mini_boss_3": {
+    "file": "mini_boss_3.png",
+    "frames": 4,
+    "fps": 6.0,
+    "w": 88,
+    "h": 98
+  },
+  "huashan": {
+    "file": "huashan.png",
+    "frames": 4,
+    "fps": 8.0,
+    "w": 28,
+    "h": 48,
+    "scale": 1.5
+  },
+  "kunlun": {
+    "file": "kunlun.png",
+    "frames": 4,
+    "fps": 8.0,
+    "w": 28,
+    "h": 48,
+    "scale": 1.5
+  },
+  "kongtong": {
+    "file": "kongtong.png",
+    "frames": 4,
+    "fps": 8.0,
+    "w": 29,
+    "h": 52,
+    "scale": 1.5
+  },
+  "shaolin": {
+    "file": "shaolin.png",
+    "frames": 4,
+    "fps": 8.0,
+    "w": 35,
+    "h": 56,
+    "scale": 1.5
+  },
+  "emei": {
+    "file": "emei.png",
+    "frames": 4,
+    "fps": 8.0,
+    "w": 28,
+    "h": 48,
+    "scale": 1.5
+  },
+  "s2_mini_1": {
+    "file": "s2_mini_1.png",
+    "frames": 4,
+    "fps": 6.0,
+    "w": 46,
+    "h": 100
+  },
+  "s2_mini_2": {
+    "file": "s2_mini_2.png",
+    "frames": 4,
+    "fps": 6.0,
+    "w": 60,
+    "h": 100
+  },
+  "s2_mini_3": {
+    "file": "s2_mini_3.png",
+    "frames": 4,
+    "fps": 6.0,
+    "w": 53,
+    "h": 100
+  },
+  "s2_boss": {
+    "file": "s2_boss.png",
+    "frames": 4,
+    "fps": 6.0,
+    "w": 76,
+    "h": 142
+  },
+  "archer": {
+    "file": "archer.png",
+    "frames": 4,
+    "fps": 6.0,
+    "w": 36,
+    "h": 50
+  },
+  "charger": {
+    "file": "charger.png",
+    "frames": 4,
+    "fps": 10.0,
+    "w": 51,
+    "h": 58
+  }
 }

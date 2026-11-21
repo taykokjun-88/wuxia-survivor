@@ -908,6 +908,16 @@ func _pick_type() -> String:
 	return "charger"
 
 
+## 杂兵 / 精英的血量随时间的增幅：默认 1 + 时间 / hp_scale_t；地图时间轴里有 hp_ramp 的（光明顶）改为
+## 「从 1 倍线性涨到 1 + hp_ramp 倍，在大 Boss 出现时到顶」（不含大小 Boss，它们不随时间缩放）
+func _hp_time_scale() -> float:
+	var tl := _timeline()
+	if tl.has("hp_ramp"):
+		var end_t := maxf(1.0, float(tl["final"]["t"]))
+		return 1.0 + float(tl["hp_ramp"]) * clampf(time / end_t, 0.0, 1.0)
+	return 1.0 + time / Data.T("hp_scale_t")
+
+
 func _spawn_enemy(type: String, at: Vector2) -> Enemy:
 	var def: Dictionary = Data.enemies[type]
 	var e := Enemy.new()
@@ -916,7 +926,7 @@ func _spawn_enemy(type: String, at: Vector2) -> Enemy:
 	e.born = time
 	e.type_id = type
 	e.pos = at
-	e.max_hp = float(def["hp"]) * (1.0 + time / Data.T("hp_scale_t")) * float(difficulty["hp"]) * Data.T("enemy_hp_mult")
+	e.max_hp = float(def["hp"]) * _hp_time_scale() * float(difficulty["hp"]) * Data.T("enemy_hp_mult")
 	e.hp = e.max_hp
 	e.speed = float(def["speed"]) * (1.0 + minf(time / 900.0, 0.3)) * rng.randf_range(0.9, 1.1) * float(difficulty["speed"]) * Data.T("enemy_speed_mult")
 	e.damage = float(def["damage"]) * (1.0 + time / Data.T("dmg_scale_t"))
@@ -976,7 +986,7 @@ func _spawn_boss(id: String, final: bool) -> void:
 	e.is_final = final
 	e.boss_name = str(def["name"])
 	var hpm: Dictionary = _timeline().get("hp_mult", {})
-	e.max_hp = float(def["hp"]) * float(hpm.get("final" if final else "mini", 1.0)) * float(difficulty["hp"]) * Data.T("boss_hp_mult")   # Boss 不随时间缩放血量，保持固定的战斗时长（难度倍率照样生效）
+	e.max_hp = float(def["hp"]) * float(hpm.get("final" if final else "mini", 1.0)) * float(difficulty["hp"]) * Data.T("final_hp_mult" if final else "mini_hp_mult")   # Boss 不随时间缩放血量，保持固定的战斗时长（难度倍率照样生效）
 	e.hp = e.max_hp
 	e.speed = float(def["speed"]) * float(difficulty["speed"]) * Data.T("enemy_speed_mult")
 	e.damage = float(def["damage"])
@@ -1384,7 +1394,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 	var m := 1.0
 	for tg in tags:
 		m += float(tag_bonus.get(tg, 0.0))
-	m *= dmg_mult() * (1.0 + st("damage_pct"))
+	m *= dmg_mult() * (1.0 + st("damage_pct")) * Data.T("player_dmg_mult")
 	var sk: SkillBase = skills.get(sid)
 	var bd := baodao or baodao_ctx
 	if school_id == "blade":

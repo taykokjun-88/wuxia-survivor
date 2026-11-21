@@ -171,12 +171,14 @@
     "fist_ult_true": 0.3,
     "boss_vuln_mult": 0.5,
     "shi_q_step": 0.5,
-    "enemy_hp_mult": 2.5,
+    "enemy_hp_mult": 3.75,
     "enemy_speed_mult": 0.7,
     "stagger_hit": 0.05,
     "stagger_crit": 0.1,
     "stagger_gap": 0.25,
-    "boss_hp_mult": 3.0
+    "mini_hp_mult": 2.5,
+    "final_hp_mult": 6.25,
+    "player_dmg_mult": 0.7
   },
   "skills": {
     "yue_palm": {
@@ -1836,7 +1838,7 @@
       "hp": 22,
       "speed": 78,
       "damage": 8,
-      "radius": 12,
+      "radius": 17,
       "exp": 2,
       "color": "#4a7a5a",
       "behavior": "thruster",
@@ -1848,7 +1850,7 @@
       "hp": 30,
       "speed": 66,
       "damage": 8,
-      "radius": 12,
+      "radius": 17,
       "exp": 3,
       "color": "#9ab8d8",
       "touch_slow": 0.9,
@@ -1859,7 +1861,7 @@
       "hp": 44,
       "speed": 60,
       "damage": 12,
-      "radius": 14,
+      "radius": 20,
       "exp": 4,
       "color": "#8a6a3a",
       "behavior": "stomper",
@@ -1871,7 +1873,7 @@
       "hp": 90,
       "speed": 52,
       "damage": 13,
-      "radius": 16,
+      "radius": 22,
       "exp": 5,
       "color": "#7a7a6a",
       "defense": 0.4,
@@ -1882,7 +1884,7 @@
       "hp": 26,
       "speed": 58,
       "damage": 7,
-      "radius": 11,
+      "radius": 15,
       "exp": 3,
       "color": "#5a9a9a",
       "behavior": "archer",
@@ -4015,7 +4017,8 @@
           "mini": 3.5,
           "final": 2.4
         },
-        "min_win": 800
+        "min_win": 800,
+        "hp_ramp": 1.0
       },
       "monsters": [
         {
@@ -4392,7 +4395,7 @@
     },
     "arrow": {
       "name": "冷箭",
-      "warn": 0.45,
+      "warn": 0.6,
       "shape": "line",
       "len": 420,
       "width": 10,
@@ -4565,7 +4568,7 @@
     },
     "thrust": {
       "name": "突刺",
-      "warn": 0.45,
+      "warn": 0.6,
       "shape": "line",
       "len": 240,
       "width": 26,

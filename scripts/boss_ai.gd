@@ -82,7 +82,7 @@ static func _start(w: GameWorld, e: Enemy, id: String, dir: Vector2) -> void:
 	e.cast_stage = 0
 	e.cast_dir = dir
 	e.cast_start = e.pos
-	e.cast_pos = w.player_pos
+	e.cast_pos = w.player_pos - w.facing * 72.0 if (id == "blink" or id == "backstab") else w.player_pos     # 瞄准点在开始施放这一刻就锁定
 	e.cast_dur = float(d["warn"]) + _exec_len(id, d)
 	e.cast_list.clear()
 	if str(d["shape"]) == "spots":                 # 多点落点：第一个落在玩家脚下，其余散在周围
@@ -184,12 +184,7 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 	var warn := float(d["warn"])
 	var t := e.cast_t
 	var vel := Vector2.ZERO
-	if t < warn:                                   # 预警：线 / 扇形跟着玩家转，最后 0.25 秒锁定
-		if t < warn - 0.25:
-			e.cast_dir = dir
-			e.cast_pos = w.player_pos
-		if id == "blink" or id == "backstab":
-			e.cast_pos = w.player_pos - w.facing * 72.0
+	if t < warn:                                   # 预警（施法）：方向 / 落点在 _start 时已锁定，之后不再跟随主角，留出走位时间
 		return vel
 	var u := t - warn                               # 施放后经过的时间
 	match id:
@@ -350,9 +345,7 @@ static func minion(w: GameWorld, e: Enemy, dt: float, dir: Vector2, d: float) ->
 		var sd := _d(e.cast_id)
 		var warn := float(sd["warn"])
 		if e.cast_t < warn:
-			if e.cast_t < warn - 0.2:
-				e.cast_dir = dir
-			return Vector2.ZERO
+			return Vector2.ZERO            # 施法中：方向已在开始时锁定，不再跟随
 		var u := e.cast_t - warn
 		var vel := Vector2.ZERO
 		if e.cast_id == "minion_stomp":
