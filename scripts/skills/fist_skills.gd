@@ -85,8 +85,15 @@ class WhirlPalm extends SkillBase:
 		var r := p("radius") * (1.5 if empowered else 1.0)
 		if not w.any_enemy_within(w.player_pos, r + 20.0):
 			return false
-		w.area_hit(self, w.player_pos, r, p("damage"), p("knock") * (2.0 if empowered else 1.0))
-		w.add_fx("ring", w.player_pos, 0.3, {"r0": 15.0, "r1": r, "color": GameWorld.INK, "vfx": fxid("ring") if fxid("ring") != "" else "burst_wind"})
+		# 内力越满，连发的圈数越多（最多 3 圈，由小到大）；多圈时每圈伤害 ×0.6
+		var frac := w.neili / maxf(1.0, w.st("max_neili"))
+		var n := clampi(1 + int(frac * 3.0), 1, 3)
+		var radii: Array = {1: [1.0], 2: [0.7, 1.0], 3: [0.5, 0.75, 1.0]}[n]
+		for i in radii.size():
+			var rr: float = r * float(radii[i])
+			var last: bool = i == radii.size() - 1
+			w.area_hit(self, w.player_pos, rr, p("damage") * (1.0 if n == 1 else 0.6), p("knock") * (2.0 if empowered else 1.0) if last else 0.0)
+			w.add_fx("ring", w.player_pos, 0.3 + 0.08 * i, {"r0": 15.0, "r1": rr, "color": GameWorld.INK, "vfx": fxid("ring") if fxid("ring") != "" else "burst_wind"})
 		if enhanced():
 			w.add_zone({"kind": "vortex", "skill": self, "dmg": p("damage") * ev(1.2, 1.6, 2.0), "r": r * ev(1.8, 2.1, 2.4),
 				"t": 0.0, "life": 0.9})

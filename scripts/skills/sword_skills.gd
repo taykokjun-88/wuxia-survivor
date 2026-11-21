@@ -46,7 +46,7 @@ class KuangFeng extends SkillBase:
 		return true
 
 
-## 青松剑法：稳健的连刺。每第三剑「松涛」更宽更重。强化「松涛阵阵」：松涛同时射出扇形剑气。
+## 青松剑法：稳健的连刺。剑锋前有 2 个以上敌人时化作「松涛」，更宽更重。强化「松涛阵阵」：松涛同时射出扇形剑气。
 class QingSong extends SkillBase:
 	var combo := 0
 
@@ -56,8 +56,11 @@ class QingSong extends SkillBase:
 		if t == null:
 			return false
 		var a := (t.pos - w.player_pos).angle()
-		combo += 1
-		var wave := combo % 3 == 0 or empowered
+		var crowd := 0                          # 剑锋前的敌人 ≥ 2 个：自动化作「松涛」横扫一片（人越多越凶）
+		for e in w._query(w.player_pos, reach):
+			if e.alive and not e.is_prop and e.pos.distance_to(w.player_pos) < reach + e.radius and absf(wrapf((e.pos - w.player_pos).angle() - a, -PI, PI)) <= p("arc") * 0.5 + 0.15:
+				crowd += 1
+		var wave := crowd >= 2 or empowered
 		var arc := p("arc") * (2.2 if wave else 1.0)
 		w.fx_slash(w.player_pos, a, reach, arc * (1.0 if fxid("slash") == "" else 1.0), wave, fxid("slash"))
 		w.cone_hit(self, w.player_pos, a, arc * 0.5, reach, p("damage") * (1.7 if wave else 1.0), p("knock") * (1.6 if wave else 1.0), false)
@@ -87,7 +90,7 @@ class ZhongJian extends SkillBase:
 		return true
 
 
-## 太极剑：周身圆弧，抹去敌方弹幕。强化「四两拨千斤」：每抹去一枚弹幕，这一剑伤害提高。
+## 太极剑：周身圆弧，把敌方弹幕原路打回。强化「四两拨千斤」：每打回一枚弹幕，这一剑伤害提高。
 class TaijiSword extends SkillBase:
 	func _hostile_near(r: float) -> Array[Projectile]:
 		var out: Array[Projectile] = []
@@ -101,8 +104,18 @@ class TaijiSword extends SkillBase:
 		var hostile := _hostile_near(r)
 		if not w.any_enemy_within(w.player_pos, r + 20.0) and hostile.is_empty():
 			return false
-		for pr in hostile:
-			pr.life = 0.0
+		for pr in hostile:                     # 以柔克刚：把敌方弹幕原路打回去（不再只是抹掉）
+			pr.hostile = false
+			pr.cuttable = false
+			pr.hit.clear()
+			pr.vel = -pr.vel
+			pr.speed = pr.vel.length()
+			pr.angle = pr.vel.angle()
+			pr.damage = p("damage") * 0.6
+			pr.pierce = 2
+			pr.life = 1.5
+			pr.skill_id = id
+			pr.tags = tags()
 		var mult := 1.0 + (minf(1.5, hostile.size() * ev(0.1, 0.15, 0.2)) if enhanced() else 0.0)
 		w.area_hit(self, w.player_pos, r, p("damage") * mult, p("knock"))
 		w.add_fx("ring", w.player_pos, 0.35, {"r0": 15.0, "r1": r, "color": GameWorld.JADE, "vfx": fxid("ring") if fxid("ring") != "" else "ring_taiji"})

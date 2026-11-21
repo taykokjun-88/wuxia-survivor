@@ -2808,8 +2808,8 @@ func apply_bleed(e: Enemy, stacks: int, hit_dmg: float) -> void:
 
 
 ## 断脉爆血：撕裂叠满时被重劈命中，立即结算剩余流血的 150% 并溅射周围
-func bleed_burst(e: Enemy) -> void:
-	if e.bleed_stacks < int(Data.T("bleed_max")) or e.bleed_dps <= 0.0:
+func bleed_burst(e: Enemy, partial: bool = false) -> void:
+	if (e.bleed_stacks < int(Data.T("bleed_max")) and not partial) or e.bleed_dps <= 0.0:
 		return
 	var dmg := e.bleed_dps * maxf(0.5, e.bleed_t) * Data.T("bleed_burst")
 	e.bleed_stacks = 0

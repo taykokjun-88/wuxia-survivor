@@ -40,9 +40,13 @@ class Base extends SkillBase:
 		if w.tb_t <= 0.0:
 			w.add_fx("text", w.player_pos + Vector2(0, -34), 0.6, {"text": "-%d" % int(paid), "size": 16, "color": GameWorld.VERMILION})
 
+	var burst_now := false                 # 本次出手引爆敌人身上已有的撕裂（不要求叠满）
+
 	func _foe(e: Enemy, dmg: float, out: Vector2, stacks: int, force: bool) -> void:
 		if bool(def.get("heavy", false)):
 			w.bleed_burst(e)
+		elif burst_now:
+			w.bleed_burst(e, true)
 		var amt := hit(e, dmg, out, force)
 		if stacks > 0:
 			w.apply_bleed(e, stacks, amt)
@@ -103,11 +107,7 @@ class WuHu extends Base:
 
 ## 狂风刀法：近身快刀，一前一后两道刀弧。强化「风卷残云」：4 连斩，命中回内力。
 class KuangFeng extends Base:
-	func p(key: String) -> float:
-		var v := super.p(key)
-		if key == "cooldown":
-			v /= 1.0 + 0.5 * maxf(0.0, w.st("speed_pct"))        # 跑得越快出刀越快
-		return v
+	var volley := 0
 
 	func fire() -> bool:
 		var reach := p("reach") * rmul() * (1.0 + (ev(0.25, 0.5, 0.75) if enhanced() else 0.0)) * (1.4 if empowered else 1.0)
@@ -118,10 +118,13 @@ class KuangFeng extends Base:
 		var angs := [a, a + PI, a + PI * 0.5, a - PI * 0.5]
 		var n := 4 if enhanced() else 2
 		var hits := 0
+		volley += 1
+		burst_now = volley % 4 == 0
 		for i in n:
 			var ang: float = angs[i]
 			w.fx_slash(w.player_pos, ang, reach, p("arc"), false, fxid("slash"))
-			hits += cone(w.player_pos, ang, p("arc") * 0.5, reach, p("damage"), p("knock"))
+			hits += cone(w.player_pos, ang, p("arc") * 0.5, reach, p("damage"), p("knock"), 1)
+		burst_now = false
 		if enhanced() and hits > 0:
 			w.add_neili(minf(6.0, float(hits)))
 		return true                                        # 刀卷残云（催动）：出刀范围 +40%（不再把敌人拉向自己）
