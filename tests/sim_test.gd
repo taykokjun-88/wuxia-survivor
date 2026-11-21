@@ -1644,12 +1644,12 @@ func _enhance_rework_test() -> void:
 		bled += 1 if tb.bleed_stacks > 0 else 0
 	_check(bled > 10, "先天功同修：命中有几率撕裂（%d/60）" % bled)
 	_free_world(wbl)
-	# 每个心法点名 3 个非起手招式（可以跨流派，各自的加成不同）；每个非起手招式至少被一个心法点名
+	# 每个心法点名 4 个非起手招式（原 3 个 + 杨家将 1 个；可以跨流派，各自的加成不同）；每个非起手招式至少被一个心法点名
 	var covered := {}
 	var cross := 0
 	for id in Data.xinfa:
 		var lk: Dictionary = Data.xinfa[id]["link"]
-		_check(lk.size() == 3, "%s 点名 %d 个招式（要求 3 个）" % [id, lk.size()])
+		_check(lk.size() == 4, "%s 点名 %d 个招式（要求 4 个）" % [id, lk.size()])
 		var sch_set := {}
 		for sid in lk:
 			covered[sid] = true
@@ -2341,6 +2341,10 @@ func _upgrade_system_test() -> void:
 					"hits": ok = float(s.mods["hits"]) > 0.0
 					"crit": ok = float(s.mods["crit"]) > 0.0
 					"empower": ok = s.empower_cost() < base.empower_cost()
+					"iron": ok = float(s.mods["block"]) > 0.0
+					"pierce_def": ok = float(s.mods["pierce_def"]) > 0.0
+					"stun": ok = float(s.mods["stun"]) > 0.0
+					"vuln": ok = float(s.mods["vuln"]) > 0.0
 				_check(ok, "%s 的方向 %s 档位 %d 没有生效" % [id, dir, tier])
 				_check(not s.upgrade_text(dir, tier).contains("{"), "%s/%s 的描述有未替换的占位符" % [id, dir])
 				checked += 1
@@ -3763,7 +3767,8 @@ func _neili_test() -> void:
 			if id == "taiji" and i % 90 == 0:
 				sk.on_hurt(20.0)
 		_check(w2.empower_count > before, "%s：盈境下应触发催动" % Data.skills[id]["name"])
-		_check(float(w2.skill_dmg.get(id, 0.0)) > 0.0, "%s：催动版应造成伤害" % Data.skills[id]["name"])
+		if id != "panlong_staff":                                   # 蟠龙棍法是守势（格挡时才反击），出手本身没有伤害
+			_check(float(w2.skill_dmg.get(id, 0.0)) > 0.0, "%s：催动版应造成伤害" % Data.skills[id]["name"])
 		_free_world(w2)
 	# 催动的具体效果
 	var we := _new_world(12)
