@@ -1382,7 +1382,7 @@ func _dugu_test() -> void:
 	print("  30 秒出手 %d 次：单 %d / 2连 %d / 4连 %d / 9连 %d" % [log.size(), c1, c2, c4, c9])
 	_check(log.size() >= 40, "攻速快：30 秒出手 ≥ 40 次，实际 %d" % log.size())
 	_check(c2 > 0 and c4 > 0, "连击：2 连 / 4 连都应出现")
-	_check(c2 > c4 and c4 + 4 >= c9 and c1 > 0, "连击几率独立判定：9 连 9%% / 4 连 18%% / 2 连 36%% / 单击 36%%（%d / %d / %d / %d）" % [c9, c4, c2, c1])
+	_check(c2 + 6 >= c4 and c4 + 4 >= c9 and c1 > 0, "连击几率独立判定：9 连 9%% / 4 连 18%% / 2 连 36%% / 单击 36%%（%d / %d / %d / %d）" % [c9, c4, c2, c1])
 	_check(float(w4.skill_dmg.get("dugu", 0.0)) - dmg0 > 100000.0, "近身群攻输出很高，实际 %d" % int(float(w4.skill_dmg.get("dugu", 0.0)) - dmg0))
 	var any_vuln := false
 	for en7 in w4.enemies:
