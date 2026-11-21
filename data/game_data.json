@@ -178,7 +178,7 @@
     "stagger_gap": 0.25,
     "mini_hp_mult": 2.5,
     "final_hp_mult": 6.25,
-    "player_dmg_mult": 0.8
+    "player_dmg_mult": 0.9
   },
   "skills": {
     "yue_palm": {
