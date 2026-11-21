@@ -2076,7 +2076,7 @@ func _draw_skill_icon(pos: Vector2, s: SkillBase, maxed: bool) -> void:
 		canvas.draw_rect(r, base)
 		canvas.draw_rect(Rect2(pos + Vector2(2, 2), Vector2(ICON - 4, ICON - 4)), Color(1, 1, 1, 0.10))
 		canvas.draw_rect(r, GameWorld.GOLD if maxed else Color(0.05, 0.05, 0.08, 0.9), false, 3.0 if maxed else 2.0)
-		var glyph := str(s.def["name"]).substr(0, 1)
+		var glyph := s.display_name().substr(0, 1)
 		canvas.draw_string_outline(bold, pos + Vector2(0, 31), glyph, HORIZONTAL_ALIGNMENT_CENTER, ICON, 28, 3, Color(0, 0, 0, 0.55))
 		canvas.draw_string(bold, pos + Vector2(0, 31), glyph, HORIZONTAL_ALIGNMENT_CENTER, ICON, 28, Color("#f3ead2"))
 	_draw_cd_sweep(r, s.cd_frac(), s.cd_secs())
@@ -2223,6 +2223,27 @@ func _draw_hud() -> void:
 		canvas.draw_rect(Rect2(bx, by2, 380.0 * w.soul / 100.0, 18), Color("#ffd030") if sfull else Color("#e8923a"))
 		canvas.draw_rect(Rect2(bx, by2, 380, 18), Color(0, 0, 0, 0.85), false, 2.0)
 		canvas.draw_string(Data.font_bold if Data.font_bold != null else font, Vector2(bx, by2 + 14.0), "真·霸刀破岳！免耗·双倍回复 %.1fs" % w.tb_t if w.tb_t > 0.0 else ("霸刀 / 破岳！下一刀必暴击 ×2.5" if sfull else ("刀魂 %d / 100" % int(w.soul) + ("　破岳冷却 %ds" % int(ceilf(w.tb_cd)) if w.tb_cd > 0.0 else ""))), HORIZONTAL_ALIGNMENT_CENTER, 380, 14, Color("#3a1d05") if (sfull and w.tb_t <= 0.0) else Color.WHITE)
+	if w.school_id == "spear":                       # 杨家将：枪势条 / 棍势条（学了哪路画哪条，两路都有就上下各一条）+ 格挡几率
+		var bars: Array = []
+		if w.has_route("spear"):
+			bars.append(["枪势 %d / 100　（移动攒势）" % int(w.spear_qs) if w.spear_qs < 100.0 else "游龙突！下一枪向前冲出贯穿", w.spear_qs, Color("#dfe8f5"), Color("#ffd878")])
+		if w.has_route("staff"):
+			bars.append(["棍势 %d / 100　（近身命中 / 格挡攒势）" % int(w.spear_gs) if w.spear_gs < 100.0 else "横扫千军！下一棍超大范围必暴击", w.spear_gs, Color("#c89a52"), Color("#ffd878")])
+		var by3 := canvas.size.y - 72.0
+		for bi in bars.size():
+			var bar: Array = bars[bi]
+			var yy := by3 - 30.0 * float(bi)
+			var bxx := vw * 0.5 - 190.0
+			var full: bool = float(bar[1]) >= 100.0
+			_plate(Rect2(bxx - 8.0, yy - 6.0, 396.0, 30.0))
+			canvas.draw_rect(Rect2(bxx, yy, 380, 18), Color(0.1, 0.1, 0.12, 0.6))
+			canvas.draw_rect(Rect2(bxx, yy, 380.0 * float(bar[1]) / 100.0, 18), bar[3] if full else bar[2])
+			canvas.draw_rect(Rect2(bxx, yy, 380, 18), Color(0, 0, 0, 0.85), false, 2.0)
+			canvas.draw_string(Data.font_bold if Data.font_bold != null else font, Vector2(bxx, yy + 14.0), str(bar[0]), HORIZONTAL_ALIGNMENT_CENTER, 380, 14, Color("#2a1d05") if full else Color.WHITE)
+		var cmb := ""
+		if w.has_route("spear") and w.spear_combo >= 2:
+			cmb = "　连击 %d" % w.spear_combo
+		canvas.draw_string(font, Vector2(vw * 0.5 - 190.0, by3 - 30.0 * float(bars.size()) - 4.0), "格挡 %d%%%s%s" % [int(w.block_chance() * 100.0), cmb, "　盘龙守势 %.1fs" % w.panlong_t if w.panlong_t > 0.0 else ""], HORIZONTAL_ALIGNMENT_LEFT, 380, 14, Color("#bfe0f0"))
 	if w.school_id == "fist":                        # 劲力条：屏幕下方居中，文字在条内；满 100 提示寸劲
 		var qfull := w.fist_qi >= 100.0
 		var qx := vw * 0.5 - 190.0
@@ -2320,7 +2341,7 @@ func _draw_hud() -> void:
 			var icon_pos := Vector2(16, y + 4.0)
 			_draw_skill_icon(icon_pos, s, maxed)
 			var star := " ★%d" % w.enhance_level if w.enhance_id == s.id else ""
-			canvas.draw_string(font, icon_pos + Vector2(ICON + 8.0, 18.0), str(s.def["name"]),
+			canvas.draw_string(font, icon_pos + Vector2(ICON + 8.0, 18.0), s.display_name(),
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#2a2a2a"))
 			canvas.draw_string(font, icon_pos + Vector2(ICON + 8.0, 36.0), "Lv%s%s" % ["极" if maxed else str(s.level), star],
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 14, GameWorld.VERMILION if star != "" else Color("#6a5a3a"))

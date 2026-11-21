@@ -4249,3 +4249,27 @@ func _spear_test() -> void:
 	_free_world(w2)
 	_free_world(w3)
 	_free_world(w5)
+	# 数据接入：武器清单、天赋覆盖、「极」、心法同修、百晓册
+	var wk := Gear.make("weapon.3.12345", "spear", 0)
+	_check(not wk.is_empty() and str(wk["name"]) in ["龙胆亮银枪"], "传说武器只出龙胆亮银枪（%s）" % str(wk.get("name", "")))
+	var nodes := Talents.nodes("spear")
+	_check(str(nodes["ling_crit"]["name"]) == "破军" and str(nodes["ji_peak"]["name"]) == "极·万军辟易", "天赋覆盖：灵系 / 「极」按杨家将改写")
+	var linked := 0
+	for xid in Data.xinfa:
+		for sid in Data.xinfa[xid]["skills"]:
+			if str(Data.skills[sid]["school"]) == "spear":
+				linked += 1
+	_check(linked >= 8, "心法同修名单里有杨家将招式（%d 处）" % linked)
+	var has_page := false
+	for pg in Data.guide["pages"]:
+		if str(pg["title"]) == "杨家将":
+			has_page = true
+	_check(has_page, "百晓册有「杨家将」页")
+	var was: bool = Data.schools["spear"]["enabled"]
+	Data.schools["spear"]["enabled"] = true
+	Save.path = "user://test_spear.json"
+	Save.load_data()
+	Save.create_character("spear", "杨无名")
+	_check(Save.school() == "spear", "单机：能创建杨家将角色")
+	Data.schools["spear"]["enabled"] = was
+	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_spear.json"))

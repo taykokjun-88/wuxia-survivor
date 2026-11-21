@@ -39,8 +39,8 @@ class Base extends SkillBase:
 		for c in cands:
 			var e: Enemy = c[1]
 			var along: float = c[0]
-			var tip := along >= length * 0.65
-			var amt := dmg * (tip_mult if tip else (0.9 if along < length * 0.35 else 1.0))
+			var tip := along >= length * (0.5 if w.st("ji_spear") > 0.0 else 0.65)
+			var amt := dmg * ((tip_mult + w.st("tip_dmg")) if tip else (0.9 if along < length * 0.35 else 1.0))
 			hit(e, amt, dir * knock, force)
 			if tip:
 				w.spear_tip_hit(e)
@@ -54,7 +54,7 @@ class Base extends SkillBase:
 	func breakthrough(dir: Vector2) -> bool:
 		if free_cast or str(def.get("route", "")) != "spear" or id == "wuming_spear" or w.spear_qs < 100.0:
 			return false
-		w.spear_qs = 0.0
+		w.spear_qs = 50.0 if w.st("ji_spear") > 0.0 else 0.0
 		var dist := 320.0 * (1.0 + float(mods["range"]))
 		w.invuln = maxf(w.invuln, 0.45)
 		var start := w.player_pos
@@ -69,8 +69,8 @@ class Base extends SkillBase:
 	func wide_sweep() -> bool:
 		if free_cast or str(def.get("route", "")) != "staff" or w.spear_gs < 100.0:
 			return false
-		w.spear_gs = 0.0
-		var r := (p("reach") if def.has("reach") else p("radius")) * 2.0
+		w.spear_gs = 40.0 if w.st("ji_spear") > 0.0 else 0.0
+		var r := (p("reach") if def.has("reach") else p("radius")) * 2.0 * (1.0 + w.st("sweep_r"))
 		w.spear_guard_t = 0.5
 		w.cone_hit(self, w.player_pos, 0.0, PI, r, p("damage") * 2.5, p("knock") * 2.0, true)
 		w.add_fx("ring", w.player_pos, 0.45, {"r0": 20.0, "r1": r, "color": Color("#ffd878")})

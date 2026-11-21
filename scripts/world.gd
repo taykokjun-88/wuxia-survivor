@@ -391,7 +391,7 @@ func recalc() -> void:
 		if has_route("staff"):
 			stats["crit_chance"] = st("crit_chance") + 0.10
 			stats["crit_mult"] = st("crit_mult") + 0.25
-			stats["block_chance"] = st("block_chance") + 0.10
+			stats["block_chance"] = st("block_chance") + 0.10 + (0.10 if st("ji_spear") > 0.0 else 0.0)
 		for sid in skills:
 			stats["block_chance"] = st("block_chance") + float((skills[sid] as SkillBase).mods["block"])
 	_apply_synergies()
@@ -1300,7 +1300,7 @@ func _hurt(amount: float) -> void:
 		_on_block()
 		return
 	if school_id == "spear" and has_route("staff"):
-		spear_gs = minf(100.0, spear_gs + 5.0)                         # 被近身攻击命中也攒棍势
+		add_gs(5.0)                                                    # 被近身攻击命中也攒棍势
 	var dmg := amount
 	for s: SkillBase in skills.values():
 		dmg = s.on_hurt(dmg)
@@ -2155,6 +2155,10 @@ func _hidden_card(reroll: bool) -> Dictionary:
 		"title": "领悟：%s（隐藏武功）" % def["name"], "desc": "%s　【%s】" % [def["desc"], Data.tags_text("wuming_spear")]}
 
 
+func add_gs(x: float) -> void:
+	spear_gs = minf(100.0, spear_gs + x * (1.0 + st("gs_gain")))
+
+
 func has_route(route: String) -> bool:
 	for sid in skills:
 		if str((skills[sid] as SkillBase).def.get("route", "")) == route:
@@ -2177,7 +2181,9 @@ func _on_block() -> void:
 	if school_id != "spear":
 		return
 	if has_route("staff"):
-		spear_gs = minf(100.0, spear_gs + 10.0)
+		add_gs(10.0)
+	if st("ji_spear") > 0.0:                               # 极·万军辟易：格挡回复气血
+		hp = minf(st("max_hp"), hp + st("max_hp") * 0.03 * heal_mult())
 	for e in _query(player_pos, 110.0):
 		if e.alive and not e.is_boss and not e.is_prop:
 			e.knock += (e.pos - player_pos).normalized() * 320.0
@@ -2193,7 +2199,7 @@ func _tick_spear(dt: float) -> void:
 	var moved := player_pos.distance_to(spear_last_pos)
 	spear_last_pos = player_pos
 	if moved < 60.0 and has_route("spear"):                # 靠移动攒枪势：每走 100 像素 +10（位移 / 冲刺 / 击退除外的瞬移不算）
-		spear_qs = minf(100.0, spear_qs + moved * 0.1)
+		spear_qs = minf(100.0, spear_qs + moved * 0.1 * (1.0 + st("qs_gain")))
 	spear_combo_t -= dt
 	if spear_combo_t <= 0.0:
 		spear_combo = 0
@@ -2215,7 +2221,7 @@ func _spear_on_hit(sk: SkillBase, e: Enemy) -> void:
 		if spear_combo % 10 == 0:
 			_spear_shadow(sk, e)
 	elif e.pos.distance_to(player_pos) < 120.0:
-		spear_gs = minf(100.0, spear_gs + 2.0)
+		add_gs(2.0)
 
 
 ## 枪影：对周围最多 3 个目标各追加一枪（半伤）

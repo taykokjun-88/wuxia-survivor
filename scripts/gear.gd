@@ -186,6 +186,8 @@ static func _roll_affix(rng: RandomNumberGenerator, school_id: String, mult: flo
 	for tries in 6:
 		var sid: String = skills[rng.randi() % skills.size()]
 		var dirs: Array = ["damage", "cooldown", "empower"]
+		if bool(Data.skills[sid].get("fixed_cd", false)):
+			dirs.erase("cooldown")                          # 无名枪法冷却固定
 		if not (Data.skills[sid]["map"]["range"] as Array).is_empty():
 			dirs.append("range")
 		var dir: String = dirs[rng.randi() % dirs.size()]
