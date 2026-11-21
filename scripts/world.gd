@@ -1815,13 +1815,14 @@ func _update_zones(dt: float) -> void:
 						area_hit(z["skill"], zpos, zr * 0.6, z["dmg"], 200.0)
 						add_fx("ring", zpos, 0.3, {"r0": 10.0, "r1": zr * 0.6, "color": INK})
 				else:
-					for e in _query(zpos, zr):
-						if not e.alive or e.is_boss:
-							continue
-						var to := zpos - e.pos
-						var d := to.length()
-						if d > 24.0 and d < zr:
-							e.pos += to / d * float(z["pull"]) * dt
+					if float(z.get("pull", 0.0)) > 0.0:         # 吸拢只留给「远离自身的地面范围招式」；近身招式不吸
+						for e in _query(zpos, zr):
+							if not e.alive or e.is_boss:
+								continue
+							var to := zpos - e.pos
+							var d := to.length()
+							if d > 24.0 and d < zr:
+								e.pos += to / d * float(z["pull"]) * dt
 		if keep:
 			zones[j] = z
 			j += 1

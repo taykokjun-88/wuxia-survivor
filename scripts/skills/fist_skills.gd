@@ -79,7 +79,7 @@ class QuakeFist extends SkillBase:
 		return true
 
 
-## 落英神剑掌：环身掌风。强化「落英缤纷」：掌风过后把周围敌人吸拢。
+## 落英神剑掌：环身掌风。强化「落英缤纷」：掌风过后身周旋涡收束，再轰一次（不再吸拢敌人）。
 class WhirlPalm extends SkillBase:
 	func fire() -> bool:
 		var r := p("radius") * (1.5 if empowered else 1.0)
@@ -89,7 +89,7 @@ class WhirlPalm extends SkillBase:
 		w.add_fx("ring", w.player_pos, 0.3, {"r0": 15.0, "r1": r, "color": GameWorld.INK, "vfx": fxid("ring") if fxid("ring") != "" else "burst_wind"})
 		if enhanced():
 			w.add_zone({"kind": "vortex", "skill": self, "dmg": p("damage") * ev(1.2, 1.6, 2.0), "r": r * ev(1.8, 2.1, 2.4),
-				"t": 0.0, "life": 0.9, "pull": ev(320.0, 380.0, 440.0)})
+				"t": 0.0, "life": 0.9})
 		return true
 
 
