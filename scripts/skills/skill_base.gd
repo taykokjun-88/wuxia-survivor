@@ -19,6 +19,7 @@ var upgrades: Array[Dictionary] = []   # [{dir, tier}]
 var mods: Dictionary = {
 	"damage": 0.0, "cooldown": 0.0, "range": 0.0, "targets": 0.0, "buff": 0.0,
 	"debuff": 0.0, "duration": 0.0, "heal": 0.0, "hits": 0.0, "crit": 0.0, "empower": 0.0,
+	"block": 0.0, "pierce_def": 0.0, "stun": 0.0, "vuln": 0.0,          # 杨家将的方向：铁壁 / 贯穿 / 定身 / 破绽
 }
 var echoing := false
 var empowered := false           # 本次出手是否催动（盈境 + 内力够）
@@ -57,7 +58,8 @@ func p(key: String) -> float:
 		if echoing:
 			v *= ECHO_MULT
 	elif key == "cooldown":
-		v *= maxf(0.35, 1.0 - float(mods["cooldown"]))
+		if not bool(def.get("fixed_cd", false)):          # 无名枪法：冷却固定，不能缩短
+			v *= maxf(0.35, 1.0 - float(mods["cooldown"]))
 	var m: Dictionary = def["map"]
 	if (m["range"] as Array).has(key):
 		v *= 1.0 + float(mods["range"])
@@ -122,9 +124,14 @@ func available_dirs() -> Array[String]:
 	var out: Array[String] = []
 	var m: Dictionary = def["map"]
 	var banned: Array = def.get("no_dirs", [])
+	var only: Array = def.get("only_dirs", [])
 	for dir in Data.directions:
 		if banned.has(dir):
 			continue
+		if not only.is_empty() and not only.has(dir):         # 只允许特定方向的招式（无名枪法：暴击 / 连击 / 贯穿 / 定身 / 破绽）
+			continue
+		if bool(Data.directions[dir].get("only", false)) and only.is_empty() and not (dir == "iron" and str(def.get("school", "")) == "spear"):
+			continue                                          # 专属方向：铁壁只给杨家将的招式，其余只给指定了 only_dirs 的招式
 		if dir == "range" and (m["range"] as Array).is_empty():
 			continue
 		if dir == "duration" and (m["duration"] as Array).is_empty():
@@ -156,6 +163,10 @@ func add_upgrade(dir: String, tier: int) -> void:
 		"hits": mods["hits"] = minf(0.8, float(mods["hits"]) + v / 100.0)
 		"crit": mods["crit"] += v / 100.0
 		"empower": mods["empower"] = minf(0.7, float(mods["empower"]) + v / 100.0)
+		"iron": mods["block"] += v / 100.0
+		"pierce_def": mods["pierce_def"] += v / 100.0
+		"stun": mods["stun"] += v / 100.0
+		"vuln": mods["vuln"] += v / 100.0
 
 
 ## 升级卡片上的效果文字
@@ -219,6 +230,16 @@ func hit_mult(_e: Enemy) -> float:
 
 func hit_crit(_e: Enemy) -> bool:
 	return false
+
+
+## 无视目标防御的比例（无名枪法）
+func ignore_def() -> float:
+	return 0.0
+
+
+## HUD 上显示的招式名（无名枪法带等级）
+func display_name() -> String:
+	return str(def["name"])
 
 
 func shield_mult() -> float:

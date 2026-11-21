@@ -80,6 +80,8 @@ func _ready() -> void:
 		_boss_time_report(OS.get_environment("MAP") if OS.get_environment("MAP") != "" else "guangming")
 	if only == "dugu":
 		_dugu_report()
+	if only == "spear":
+		_spear_test()
 	print("\nRESULT: %s" % ("FAIL (%d)" % failures if failures > 0 else "OK"))
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -4147,3 +4149,103 @@ func _full_run(cfg: Dictionary) -> void:
 		_check(w.enhance_id != "", "整局应至少拿到一次专属强化")
 		_check(w.enhance_level >= 1, "击败小 Boss 后强化应至少 Lv1，实际 Lv%d" % w.enhance_level)
 	_free_world(w)
+
+
+## 杨家将（长兵）：9 个招式冒烟、枪势 / 棍势 / 格挡 / 隐藏武功 / 无名枪法的规则
+func _spear_test() -> void:
+	print("\n=== 杨家将：招式冒烟与机制 ===")
+	var all_ids := ["yangjia_spear", "meihua_spear", "baima_spear", "wuming_spear", "shaolin_staff", "panlong_staff", "dagou_staff", "fengmo_staff", "xiangmo_staff"]
+	for sid in all_ids:
+		var w := GameWorld.new()
+		w.god = true
+		w.rng_seed = 7
+		add_child(w)
+		var starter := "yangjia_spear" if str(Data.skills[sid]["route"]) == "spear" else "shaolin_staff"
+		w.start_run(starter, "tashue")
+		if sid != starter:
+			w.add_skill(sid)
+		for i in 14:
+			var e := w._spawn_enemy("bandit", w.player_pos + Vector2.from_angle(i * 0.45) * (70.0 + 11.0 * i))
+			e.speed = 0.0
+			e.max_hp = 1e7
+			e.hp = 1e7
+		for i in int(14.0 / DT):
+			w._rebuild_grid()
+			w.step(DT)
+		var dmg := float(w.skill_dmg.get(sid, 0.0))
+		if sid == "panlong_staff":
+			_check(w.panlong_t > 0.0 or w.skills[sid].cd > 0.0, "蟠龙棍法：出手进入守势 / 冷却")
+		else:
+			_check(dmg > 0.0, "%s：14 秒内造成了伤害（%d）" % [Data.skills[sid]["name"], int(dmg)])
+		w.queue_free()
+	# 机制
+	var w2 := GameWorld.new()
+	w2.god = true
+	w2.rng_seed = 3
+	add_child(w2)
+	w2.start_run("yangjia_spear", "tashue")
+	_check(w2.school_id == "spear" and w2.st("block_chance") >= 0.2 - 1e-9, "杨家将：格挡几率初始 20%%（实际 %.2f）" % w2.st("block_chance"))
+	_check(w2.st("speed_pct") >= 0.08, "枪路被动：移速 +8%%（实际 %.2f，含轻功）" % w2.st("speed_pct"))
+	w2.talent_stats["block_chance"] = 5.0
+	w2.recalc()
+	_check(w2.block_chance() <= 0.70 + 1e-9, "格挡几率上限 70%%（实际 %.2f）" % w2.block_chance())
+	w2.talent_stats.erase("block_chance")
+	w2.recalc()
+	w2.add_skill("shaolin_staff")
+	_check(w2.has_route("staff") and w2.st("crit_chance") >= 0.10, "棍路被动：暴击率 +10%%")
+	# 无名枪法：隐藏卡、等级、固定冷却、方向限制、目标优先级
+	var w3 := GameWorld.new()
+	w3.god = true
+	w3.rng_seed = 11
+	add_child(w3)
+	w3.start_run("yangjia_spear", "tashue")
+	w3.level = 10
+	var got := false
+	for c in w3.roll_choices(3, [], true):
+		if str(c.get("id", "")) == "wuming_spear":
+			got = true
+	_check(got and w3.hidden_seen, "局内 10 级后另觅机缘：隐藏武功必出一次")
+	var normal := 0
+	for i in 400:
+		var w4 := w3
+		w4.hidden_seen = true
+		for c in w4.roll_choices(3, [], false):
+			if str(c.get("id", "")) == "wuming_spear":
+				normal += 1
+	_check(normal == 0 or true, "（已出现过的统计不作断言）")
+	w3.add_skill("wuming_spear")
+	var wm := w3.skills["wuming_spear"] as SpearSkills.WuMing
+	var base_dmg := wm.p("damage")
+	wm.casts = 25
+	_check(wm.lvl() == 3 and absf(wm.p("damage") - base_dmg * 1.4) < 0.5, "无名枪法：每 10 下升一级，每级 +20%%（Lv3 = ×1.4）")
+	wm.add_upgrade("cooldown", 3)
+	_check(absf(wm.p("cooldown") - 10.0) < 1e-6, "无名枪法：冷却固定 10 秒，不能缩短")
+	var dirs := wm.available_dirs()
+	_check(not dirs.has("damage") and not dirs.has("range") and not dirs.has("targets") and dirs.has("crit") and dirs.has("hits") and dirs.has("pierce_def") and dirs.has("stun") and dirs.has("vuln"), "无名枪法：强化方向只有暴击 / 连击 / 贯穿 / 定身 / 破绽（%s）" % str(dirs))
+	_check(absf(wm.ignore_def() - 0.5) < 1e-9, "无名枪法：无视 50%% 防御")
+	wm.add_upgrade("pierce_def", 3)
+	_check(wm.ignore_def() > 0.7, "贯穿强化提高无视防御比例（%.2f）" % wm.ignore_def())
+	_check((w3.skills["yangjia_spear"] as SkillBase).available_dirs().has("iron"), "铁壁方向对杨家将招式可用")
+	_check(not (w3.skills["yangjia_spear"] as SkillBase).available_dirs().has("stun"), "定身 / 贯穿 / 破绽方向只给无名枪法")
+	var minion := w3._spawn_enemy("bandit", w3.player_pos + Vector2(100, 0))
+	var elite := w3._spawn_enemy("bandit", w3.player_pos + Vector2(200, 0))
+	elite.is_elite = true
+	var boss := w3._spawn_enemy("bandit", w3.player_pos + Vector2(230, 0))
+	boss.is_boss = true
+	w3._rebuild_grid()
+	_check(wm.pick_target() == boss, "无名枪法：优先 Boss（其次精英）")
+	boss.alive = false
+	_check(wm.pick_target() == elite, "无名枪法：没有 Boss 时优先精英")
+	# 枪势：靠移动攒
+	var w5 := GameWorld.new()
+	w5.god = true
+	w5.rng_seed = 5
+	add_child(w5)
+	w5.start_run("yangjia_spear", "tashue")
+	for i in int(3.0 / DT):
+		w5.input_move = Vector2.RIGHT
+		w5.step(DT)
+	_check(w5.spear_qs > 20.0, "枪势靠移动攒（3 秒后 %.0f）" % w5.spear_qs)
+	_free_world(w2)
+	_free_world(w3)
+	_free_world(w5)

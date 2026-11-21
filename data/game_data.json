@@ -1174,6 +1174,297 @@
         "impact": "fx_blade_tulong"
       },
       "hp_cost": 0.06
+    },
+    "yangjia_spear": {
+      "name": "杨家枪法",
+      "school": "spear",
+      "route": "spear",
+      "tags": [
+        "贯穿",
+        "远程"
+      ],
+      "desc": "向最近的敌人刺出一杆长枪，直线穿透、射程长；枪尖（射程最外 35%）命中伤害 +80%，露出破绽；刺后向后退一小步（0.2 秒无敌）——回马枪",
+      "damage": 38,
+      "cooldown": 1.0,
+      "reach": 320,
+      "width": 44,
+      "tip": 1.8,
+      "knock": 70,
+      "enhance": {
+        "name": "回马连环",
+        "desc": "退步后对身后补一枪",
+        "up": "Lv2/3：补枪更重、更长"
+      },
+      "map": {
+        "range": [
+          "reach",
+          "width"
+        ],
+        "duration": [],
+        "targets": ""
+      },
+      "anim": "thrust",
+      "empower_cost": 8,
+      "empower": "必暴击"
+    },
+    "meihua_spear": {
+      "name": "梅花枪法",
+      "school": "spear",
+      "route": "spear",
+      "tags": [
+        "贯穿",
+        "多向"
+      ],
+      "desc": "前方三枪连刺，三点散开成扇面，各自穿透；每命中一次累计连击",
+      "damage": 22,
+      "cooldown": 1.2,
+      "reach": 260,
+      "width": 30,
+      "count": 3,
+      "spread": 0.3,
+      "knock": 50,
+      "enhance": {
+        "name": "梅花五点",
+        "desc": "三枪变五枪",
+        "up": "Lv2/3：每枪更重"
+      },
+      "map": {
+        "range": [
+          "reach"
+        ],
+        "duration": [],
+        "targets": "count"
+      },
+      "anim": "thrust",
+      "empower_cost": 8,
+      "empower": "每一枪必暴击"
+    },
+    "baima_spear": {
+      "name": "白马银枪",
+      "school": "spear",
+      "route": "spear",
+      "tags": [
+        "近战",
+        "贯穿"
+      ],
+      "desc": "向最近的敌人冲刺突刺（短位移），贯穿路径上的敌人，冷却短；冲刺中攒连击",
+      "damage": 34,
+      "cooldown": 2.2,
+      "reach": 240,
+      "width": 56,
+      "knock": 90,
+      "enhance": {
+        "name": "银龙探海",
+        "desc": "冲刺终点炸开一圈枪气",
+        "up": "Lv2/3：枪气圈更大更重"
+      },
+      "map": {
+        "range": [
+          "reach"
+        ],
+        "duration": [],
+        "targets": ""
+      },
+      "anim": "dash",
+      "empower_cost": 8,
+      "empower": "位移 ×1.5"
+    },
+    "wuming_spear": {
+      "name": "无名枪法",
+      "school": "spear",
+      "route": "spear",
+      "tags": [
+        "远程"
+      ],
+      "desc": "【隐藏武功】单体破防枪法：中距离、全游戏最高的单发伤害，无视 50% 防御并使目标防御 −30%（5 秒）；优先打 Boss > 精英；冷却固定 10 秒，不能缩短；每打出 10 下升一级，每级基础伤害 +20%",
+      "damage": 330,
+      "cooldown": 10.0,
+      "reach": 250,
+      "knock": 80,
+      "fixed_cd": true,
+      "hidden": true,
+      "only_dirs": [
+        "crit",
+        "hits",
+        "pierce_def",
+        "stun",
+        "vuln"
+      ],
+      "enhance": {
+        "name": "无名之名",
+        "desc": "打出无名枪法后的 5 秒内，杨家将全部招式（枪法 / 棍法）伤害 +30%",
+        "up": "Lv2/3：持续时间更长"
+      },
+      "map": {
+        "range": [],
+        "duration": [],
+        "targets": ""
+      },
+      "anim": "thrust",
+      "empower_cost": 12,
+      "empower": "必暴击"
+    },
+    "shaolin_staff": {
+      "name": "少林棍法",
+      "school": "spear",
+      "route": "staff",
+      "tags": [
+        "近战",
+        "范围"
+      ],
+      "desc": "大扇形横扫，击退强，暴击率高；每第 3 下为「力劈华山」更重",
+      "damage": 30,
+      "cooldown": 1.0,
+      "reach": 110,
+      "arc": 2.2,
+      "knock": 220,
+      "crit_base": 0.12,
+      "enhance": {
+        "name": "横扫千军",
+        "desc": "每第 3 下变成 360° 横扫",
+        "up": "Lv2/3：横扫更重"
+      },
+      "map": {
+        "range": [
+          "reach"
+        ],
+        "duration": [],
+        "targets": ""
+      },
+      "anim": "slash",
+      "empower_cost": 8,
+      "empower": "范围 ×1.4"
+    },
+    "panlong_staff": {
+      "name": "蟠龙棍法",
+      "school": "spear",
+      "route": "staff",
+      "tags": [
+        "防御",
+        "范围"
+      ],
+      "desc": "「盘龙守势」：持棍化作龙盘 3 秒，期间格挡几率 +30%（总格挡仍受 70% 上限）；每次成功格挡，龙影自动对周围反击一击（范围伤害、击退、必暴击）",
+      "damage": 55,
+      "cooldown": 10.0,
+      "stance": 3.0,
+      "radius": 130,
+      "knock": 300,
+      "enhance": {
+        "name": "龙腾九天",
+        "desc": "守势结束时龙影腾空砸下，期间格挡次数越多越重",
+        "up": "Lv2/3：每次格挡 +25% / 35% / 45%"
+      },
+      "map": {
+        "range": [
+          "radius"
+        ],
+        "duration": [
+          "stance"
+        ],
+        "targets": ""
+      },
+      "anim": "slash",
+      "empower_cost": 10,
+      "empower": "守势时间 +2 秒"
+    },
+    "dagou_staff": {
+      "name": "打狗棒法",
+      "school": "spear",
+      "route": "staff",
+      "tags": [
+        "控制",
+        "近战"
+      ],
+      "desc": "点地绊腿：前方扇形内的敌人被绊倒（定身 0.6 秒）并露出破绽（受到的暴击伤害提高）",
+      "damage": 26,
+      "cooldown": 3.0,
+      "reach": 140,
+      "arc": 1.6,
+      "stun": 0.6,
+      "knock": 60,
+      "enhance": {
+        "name": "天下无狗",
+        "desc": "绊倒时间 ×1.5",
+        "up": "Lv2/3：绊倒更久"
+      },
+      "map": {
+        "range": [
+          "reach"
+        ],
+        "duration": [
+          "stun"
+        ],
+        "targets": ""
+      },
+      "anim": "slash",
+      "empower_cost": 8,
+      "empower": "定身 ×2"
+    },
+    "fengmo_staff": {
+      "name": "疯魔杖法",
+      "school": "spear",
+      "route": "staff",
+      "tags": [
+        "近战",
+        "范围"
+      ],
+      "desc": "原地旋转 1.5 秒连续横扫并推开敌人；近身敌人越多伤害越高",
+      "damage": 18,
+      "cooldown": 7.0,
+      "radius": 105,
+      "spin": 1.5,
+      "tick": 0.25,
+      "knock": 160,
+      "enhance": {
+        "name": "魔音绕梁",
+        "desc": "旋转结束再震出一圈冲击波",
+        "up": "Lv2/3：冲击波更大更重"
+      },
+      "map": {
+        "range": [
+          "radius"
+        ],
+        "duration": [
+          "spin"
+        ],
+        "targets": ""
+      },
+      "anim": "slash",
+      "empower_cost": 8,
+      "empower": "旋转 +1 秒"
+    },
+    "xiangmo_staff": {
+      "name": "降魔杖",
+      "school": "spear",
+      "route": "staff",
+      "tags": [
+        "蓄力",
+        "范围"
+      ],
+      "desc": "重击落地，落点大范围冲击并击晕；你身边的近身敌人越多伤害越高",
+      "damage": 150,
+      "cooldown": 9.0,
+      "reach": 260,
+      "radius": 150,
+      "stun": 1.2,
+      "knock": 240,
+      "enhance": {
+        "name": "金刚震地",
+        "desc": "冲击波分三圈",
+        "up": "Lv2/3：每圈更重"
+      },
+      "map": {
+        "range": [
+          "radius"
+        ],
+        "duration": [
+          "stun"
+        ],
+        "targets": ""
+      },
+      "anim": "slash",
+      "empower_cost": 14,
+      "empower": "必晕 + 范围 ×1.5"
     }
   },
   "xinfa": {
@@ -2025,6 +2316,50 @@
         30,
         40
       ]
+    },
+    "iron": {
+      "name": "铁壁",
+      "fmt": "格挡几率 +{v}%",
+      "values": [
+        4,
+        8,
+        12,
+        16
+      ],
+      "only": true
+    },
+    "pierce_def": {
+      "name": "贯穿",
+      "fmt": "无视防御 +{v}%",
+      "values": [
+        8,
+        16,
+        24,
+        32
+      ],
+      "only": true
+    },
+    "stun": {
+      "name": "定身",
+      "fmt": "命中有 {v}% 几率定身 1 秒",
+      "values": [
+        10,
+        20,
+        30,
+        40
+      ],
+      "only": true
+    },
+    "vuln": {
+      "name": "破绽",
+      "fmt": "命中使目标承伤 +{v}%（4 秒）",
+      "values": [
+        6,
+        12,
+        18,
+        24
+      ],
+      "only": true
     }
   },
   "schools": {
@@ -2098,10 +2433,17 @@
       "name": "杨家将",
       "enabled": false,
       "desc": "前杨家军唯一的生还者。枪走灵动，棍走刚猛。",
-      "starters": [],
+      "starters": [
+        "yangjia_spear",
+        "shaolin_staff"
+      ],
       "portrait": "",
       "sprite_dir": "",
-      "story": "杨家军镇守北疆三代。一夜之间，朝中奸佞的一道假军令，把七千将士送进了绝境。你是那一仗里唯一爬出尸山的人——长枪早已折断，只剩半截白蜡棍，和满身未愈的旧伤。\n朝廷要追封，你没有领；有人劝你站出来说句话，你也没有说。你把刻着“杨”字的军牌埋在了战场，换上粗布衣，在茶棚、镖局、驿站之间走动：一面暗中追查当年那道军令的真相，一面替路过的百姓挡几刀。\n你早已不是军人，可那份刻进骨子里的正直，仍不许你对不平之事转身走开。一杆枪，一根棍，一个不敢再提的姓氏——侠之大者，为国为民，便从这里起步。"
+      "story": "杨家军镇守北疆三代。一夜之间，朝中奸佞的一道假军令，把七千将士送进了绝境。你是那一仗里唯一爬出尸山的人——长枪早已折断，只剩半截白蜡棍，和满身未愈的旧伤。\n朝廷要追封，你没有领；有人劝你站出来说句话，你也没有说。你把刻着“杨”字的军牌埋在了战场，换上粗布衣，在茶棚、镖局、驿站之间走动：一面暗中追查当年那道军令的真相，一面替路过的百姓挡几刀。\n你早已不是军人，可那份刻进骨子里的正直，仍不许你对不平之事转身走开。一杆枪，一根棍，一个不敢再提的姓氏——侠之大者，为国为民，便从这里起步。",
+      "passive": {
+        "block_chance": 0.2
+      },
+      "passive_text": "格挡：格挡几率初始 20%（成功格挡 = 本次伤害完全免疫，并把近身的敌人稍微震退），上限 70%；射程 +10%；枪路（灵动）：移速 +8%，移动攒「枪势」，势满下一枪变「游龙突」——向前冲出贯穿一线；枪尖（射程最外 35%）命中伤害 +45%；连续命中累计连击，每 5 连击 +6% 伤害（最多 +30%），每 10 连击触发「枪影」追击；棍路（刚猛）：暴击率 +10%、暴击伤害 +25%、格挡 +10%，近身命中与格挡攒「棍势」，势满下一棍变「横扫千军」——超大范围必暴击重击"
     }
   },
   "level_growth": {

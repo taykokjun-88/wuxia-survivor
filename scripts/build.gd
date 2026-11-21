@@ -24,6 +24,7 @@ static func apply_to(world: GameWorld, alloc: Dictionary, talents: Dictionary, e
 	merge(stats, tsplit[0])
 	var gb := Gear.bonuses(equipped_items(equip, school_id))
 	merge(stats, gb["stats"])
+	world.meta_alloc = Meta.clean_alloc(alloc)
 	world.talent_stats = stats
 	world.tulong_equipped = false
 	for it in equipped_items(equip, school_id):

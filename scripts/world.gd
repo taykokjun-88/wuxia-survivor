@@ -101,6 +101,21 @@ var stats: Dictionary = {}
 var tag_bonus: Dictionary = {}    # 标签 -> 心法提供的伤害加成
 var player_pos := Vector2.ZERO
 var facing := Vector2.RIGHT
+
+# 杨家将（长兵）：枪势（靠移动）/ 棍势（近身命中、格挡）/ 连击 / 无名之名增益 / 盘龙守势
+var spear_qs := 0.0
+var spear_gs := 0.0
+var spear_combo := 0
+var spear_combo_t := 0.0
+var spear_buff_t := 0.0
+var spear_guard_t := 0.0           # 横扫千军后短暂的格挡加成
+var panlong_t := 0.0
+var panlong_blocks := 0
+var spear_last_pos := Vector2.ZERO
+var hidden_seen := false           # 隐藏武功卡是否已经出现过
+var block_count := 0
+var meta_alloc: Dictionary = {}    # 局外属性点（福缘 / 身法影响隐藏武功出现几率）
+var _spear_ctx := false            # 枪影追击中：不再累计连击
 var hp := 100.0
 var neili := 100.0
 var still_t := 0.0                # 连续站立不动的时间（入定）
@@ -251,6 +266,17 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	rerolls_left = rerolls_for_level(meta_level)
 	run_id = "%d-%d" % [int(Time.get_unix_time_from_system()), randi() % 1000000]
 	rerolls_used = 0
+	spear_qs = 0.0
+	spear_gs = 0.0
+	spear_combo = 0
+	spear_combo_t = 0.0
+	spear_buff_t = 0.0
+	spear_guard_t = 0.0
+	panlong_t = 0.0
+	panlong_blocks = 0
+	spear_last_pos = player_pos
+	hidden_seen = false
+	block_count = 0
 	dash_end_t = -99.0
 	atk_buff_t = 0.0
 	pills.clear()
@@ -319,7 +345,7 @@ func _load_school_sprites() -> void:
 
 func add_skill(id: String) -> void:
 	var sch := str(Data.skills[id]["school"])
-	var s: SkillBase = SwordSkills.create(id) if sch == "sword" else (BladeSkills.create(id) if sch == "blade" else FistSkills.create(id))
+	var s: SkillBase = SwordSkills.create(id) if sch == "sword" else (BladeSkills.create(id) if sch == "blade" else (SpearSkills.create(id) if sch == "spear" else FistSkills.create(id)))
 	s.setup(self, id, Data.skills[id])
 	s.mods["range"] = float(s.mods["range"]) + float(talent_stats.get("skill_range", 0.0))      # 剑侠天赋：全部招式范围 / 闪现距离
 	s.mods["debuff"] = float(s.mods["debuff"]) + float(talent_stats.get("skill_debuff", 0.0))  # 剑侠天赋：破绽 / 中毒 / 定身效果
@@ -329,7 +355,11 @@ func add_skill(id: String) -> void:
 	var gm: Dictionary = gear_skill_mods.get(id, {})
 	for dir in gm:
 		s.mods[dir] = float(s.mods.get(dir, 0.0)) + float(gm[dir]) / 100.0
+	if sch == "spear":
+		s.mods["range"] = float(s.mods["range"]) + 0.10            # 杨家将通用被动：招式射程 +10%
 	skills[id] = s
+	if sch == "spear":
+		recalc()
 
 
 func st(key: String) -> float:
@@ -355,6 +385,15 @@ func recalc() -> void:
 	var sp: Dictionary = Data.schools.get(school_id, {}).get("passive", {})       # 流派特色（剑侠：身法 / 武者：内力 / 刀客：气血）
 	for k in sp:
 		stats[k] = st(k) + float(sp[k])
+	if school_id == "spear":                      # 杨家将：枪路 / 棍路被动 + 招式「铁壁」方向的格挡
+		if has_route("spear"):
+			stats["speed_pct"] = st("speed_pct") + 0.08
+		if has_route("staff"):
+			stats["crit_chance"] = st("crit_chance") + 0.10
+			stats["crit_mult"] = st("crit_mult") + 0.25
+			stats["block_chance"] = st("block_chance") + 0.10
+		for sid in skills:
+			stats["block_chance"] = st("block_chance") + float((skills[sid] as SkillBase).mods["block"])
 	_apply_synergies()
 	# 标签加成：心法每升 1 级，加成 ×(1 + 0.5 × (等级-1))
 	tag_bonus.clear()
@@ -548,6 +587,7 @@ func step(dt: float) -> void:
 		return
 	shake = maxf(0.0, shake - 30.0 * dt)
 	_update_player(dt)
+	_tick_spear(dt)
 	_spawn(dt)
 	_update_props(dt)
 	_rebuild_grid()
@@ -1110,6 +1150,7 @@ func _update_enemies(dt: float) -> void:
 		e.slow_t = maxf(0.0, e.slow_t - dt)
 		e.weak_fx = maxf(0.0, e.weak_fx - dt)
 		e.vuln_t = maxf(0.0, e.vuln_t - dt)
+		e.def_down_t = maxf(0.0, e.def_down_t - dt)
 		e.atk_down_t = maxf(0.0, e.atk_down_t - dt)
 		if e.poison_t > 0.0:
 			e.poison_t -= dt
@@ -1252,11 +1293,14 @@ func _hurt(amount: float) -> void:
 		invuln = 0.3
 		add_fx("text", player_pos + Vector2(0, -24), 0.6, {"text": "闪", "size": 24, "color": JADE})
 		return
-	if rng.randf() < st("block_chance"):
+	if rng.randf() < block_chance():
 		invuln = 0.3
 		Sfx.play("block_shield")
 		add_fx("text", player_pos + Vector2(0, -24), 0.6, {"text": "挡", "size": 24, "color": JADE})
+		_on_block()
 		return
+	if school_id == "spear" and has_route("staff"):
+		spear_gs = minf(100.0, spear_gs + 5.0)                         # 被近身攻击命中也攒棍势
 	var dmg := amount
 	for s: SkillBase in skills.values():
 		dmg = s.on_hurt(dmg)
@@ -1407,6 +1451,11 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 			m *= 1.0 + st("armor_dmg")
 		if bd:
 			m *= Data.T("blade_break_mult")
+	if school_id == "spear" and sk != null and str(sk.def.get("school", "")) == "spear":
+		if spear_buff_t > 0.0:
+			m *= 1.3                                                   # 无名之名：打出无名枪法后一段时间内全部招式 +30%
+		if str(sk.def.get("route", "")) == "spear":
+			m *= 1.0 + 0.06 * float(mini(5, spear_combo / 5))          # 连击：每 5 连击 +6%（最多 +30%）
 	if sk != null:
 		m *= sk.hit_mult(e)
 		if realm() == Realm.YING and float(sk.link_flags.get("ying", 0.0)) > 0.0:     # 九阳神功同修：盈境下额外增伤
@@ -1467,6 +1516,8 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 		fist_qi_crit_t = 0.3
 	if school_id == "blade" and sk != null and not sk.free_cast:
 		add_soul(Data.T("blade_soul_crit") if crit else Data.T("blade_soul_hit"))
+	if school_id == "spear" and sk != null and not sk.free_cast and not _spear_ctx:
+		_spear_on_hit(sk, e)
 	if sk != null and not sk.link_flags.is_empty():              # 心法同修的特殊效果
 		var lfl: Dictionary = sk.link_flags
 		if float(lfl.get("neili_hit", 0.0)) > 0.0:
@@ -1481,10 +1532,10 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 	if bd:
 		apply_bleed(e, int(Data.T("blade_break_stacks")), amount)
 	if e.defense > 0.0:
-		var dfn := e.defense
+		var dfn := e.defense * (1.0 - e.def_down if e.def_down_t > 0.0 else 1.0)
 		if e.bleed_stacks > 0:                          # 撕裂：每层降低目标防御
 			dfn = maxf(0.0, dfn - Data.T("bleed_armor") * e.bleed_stacks * (1.0 + st("bleed_pow")))
-		amount *= 1.0 - dfn * (1.0 - clampf(st("armor_pierce") + (0.5 if tulong_on else 0.0), 0.0, 1.0))
+		amount *= 1.0 - dfn * (1.0 - clampf(st("armor_pierce") + (0.5 if tulong_on else 0.0) + (sk.ignore_def() if sk != null else 0.0), 0.0, 1.0))
 	if e.is_boss:
 		amount = _boss_guard(e, amount, emp)
 		if e.shield > 0.0:                               # 护盾：先吃伤害；Boss 破防（虚弱）时以双倍伤害打掉
@@ -2016,14 +2067,14 @@ func use_reroll(prev: Array) -> Array:
 	var avoid: Array = []
 	for c: Dictionary in prev:
 		avoid.append(_choice_key(c))
-	return roll_choices(3, avoid)
+	return roll_choices(3, avoid, true)
 
 
 func _choice_key(c: Dictionary) -> String:
 	return "%s|%s|%s|%s" % [c.get("kind", ""), c.get("id", ""), c.get("dir", ""), c.get("tier", "")]
 
 
-func roll_choices(n: int = 3, avoid: Array = []) -> Array:
+func roll_choices(n: int = 3, avoid: Array = [], reroll: bool = false) -> Array:
 	var pool: Array = []
 	var dugu_route := skills.has("dugu")
 	var shi_pool: Array = shi_cards(2, int(Data.T("shi_card_gain")), "level") if dugu_route else []
@@ -2044,7 +2095,7 @@ func roll_choices(n: int = 3, avoid: Array = []) -> Array:
 			})
 	for id in Data.skills:
 		var def: Dictionary = Data.skills[id]
-		if dugu_route or skills.has(id) or str(def["school"]) != school_id or Data.is_starter(id):      # 起手招式（含独孤九剑）只能在出发前选，升级时不会出现
+		if dugu_route or skills.has(id) or str(def["school"]) != school_id or Data.is_starter(id) or bool(def.get("hidden", false)):      # 起手招式（含独孤九剑）只能在出发前选，升级时不会出现
 			continue
 		if skills.size() < MAX_SKILLS:
 			pool.append({
@@ -2080,10 +2131,116 @@ func roll_choices(n: int = 3, avoid: Array = []) -> Array:
 	var out: Array = shi_pool.duplicate()    # 独孤九剑：每次至少两张「式」
 	while out.size() < n and not pool.is_empty():
 		out.append(pool.pop_back())
+	var hc := _hidden_card(reroll)
+	if not hc.is_empty() and not out.is_empty():
+		out[rng.randi() % out.size()] = hc
 	if out.is_empty():
 		out.append({"kind": "heal", "id": "", "tag": "调息", "src": "level", "title": "运功疗伤", "desc": "回复 40% 气血"})
 		out.append({"kind": "elixir", "id": "", "tag": "调息", "src": "level", "title": "凝神静气", "desc": "获得相当于当前升级所需 60% 的修为"})
 	return out
+
+
+## 杨家将的隐藏武功「无名枪法」：每次升级 5% 几率出一张卡（福缘每 +10 点 +2%，身法每 +10 点 +1%，无上限）；
+## 局内 10 级后仍没出现过，下一次「另觅机缘」必出一次。枪路 / 棍路都能得到，占一个招式槽。
+func _hidden_card(reroll: bool) -> Dictionary:
+	if school_id != "spear" or skills.has("wuming_spear") or skills.size() >= MAX_SKILLS or not Data.skills.has("wuming_spear"):
+		return {}
+	var chance := 0.05 + float(int(meta_alloc.get("luk", 0)) / 10) * 0.02 + float(int(meta_alloc.get("agi", 0)) / 10) * 0.01
+	var forced := reroll and level >= 10 and not hidden_seen
+	if not forced and rng.randf() >= chance:
+		return {}
+	hidden_seen = true
+	var def: Dictionary = Data.skills["wuming_spear"]
+	return {"kind": "new_skill", "id": "wuming_spear", "tag": "隐藏武功", "src": "level", "color": "#f0b429",
+		"title": "领悟：%s（隐藏武功）" % def["name"], "desc": "%s　【%s】" % [def["desc"], Data.tags_text("wuming_spear")]}
+
+
+func has_route(route: String) -> bool:
+	for sid in skills:
+		if str((skills[sid] as SkillBase).def.get("route", "")) == route:
+			return true
+	return false
+
+
+func block_chance() -> float:
+	var b := st("block_chance")
+	if panlong_t > 0.0:
+		b += 0.30
+	if spear_guard_t > 0.0:
+		b += 0.50
+	return minf(0.70, b)                                 # 格挡几率上限 70%
+
+
+## 成功格挡：挥棍划半个圈、稍微震退近身的敌人；棍势 +10；盘龙守势中龙影反击
+func _on_block() -> void:
+	block_count += 1
+	if school_id != "spear":
+		return
+	if has_route("staff"):
+		spear_gs = minf(100.0, spear_gs + 10.0)
+	for e in _query(player_pos, 110.0):
+		if e.alive and not e.is_boss and not e.is_prop:
+			e.knock += (e.pos - player_pos).normalized() * 320.0
+	add_fx("slash", player_pos, 0.3, {"angle": facing.angle(), "arc": PI, "r": 80.0, "heavy": true, "color": Color("#e8f2ff"), "vfx": "fx_block_swing" if vfx.has("fx_block_swing") else "", "size": 170.0})
+	add_fx("ring", player_pos, 0.3, {"r0": 20.0, "r1": 110.0, "color": Color(1, 1, 1, 0.5), "vfx": "fx_block_wave" if vfx.has("fx_block_wave") else ""})
+	if panlong_t > 0.0 and skills.has("panlong_staff"):
+		(skills["panlong_staff"] as SpearSkills.PanLong).counter()
+
+
+func _tick_spear(dt: float) -> void:
+	if school_id != "spear":
+		return
+	var moved := player_pos.distance_to(spear_last_pos)
+	spear_last_pos = player_pos
+	if moved < 60.0 and has_route("spear"):                # 靠移动攒枪势：每走 100 像素 +10（位移 / 冲刺 / 击退除外的瞬移不算）
+		spear_qs = minf(100.0, spear_qs + moved * 0.1)
+	spear_combo_t -= dt
+	if spear_combo_t <= 0.0:
+		spear_combo = 0
+	spear_buff_t = maxf(0.0, spear_buff_t - dt)
+	spear_guard_t = maxf(0.0, spear_guard_t - dt)
+	if panlong_t > 0.0:
+		panlong_t -= dt
+		if panlong_t <= 0.0 and skills.has("panlong_staff"):
+			(skills["panlong_staff"] as SpearSkills.PanLong).finale()
+
+
+## 枪法命中：累计连击（2 秒内），每 10 连击触发「枪影」；棍法近身命中攒棍势
+func _spear_on_hit(sk: SkillBase, e: Enemy) -> void:
+	if str(sk.def.get("school", "")) != "spear":
+		return
+	if str(sk.def.get("route", "")) == "spear":
+		spear_combo += 1
+		spear_combo_t = 2.0
+		if spear_combo % 10 == 0:
+			_spear_shadow(sk, e)
+	elif e.pos.distance_to(player_pos) < 120.0:
+		spear_gs = minf(100.0, spear_gs + 2.0)
+
+
+## 枪影：对周围最多 3 个目标各追加一枪（半伤）
+func _spear_shadow(sk: SkillBase, from: Enemy) -> void:
+	_spear_ctx = true
+	var n := 0
+	for e in _query(player_pos, 300.0):
+		if n >= 3:
+			break
+		if e.alive and e != from and not e.is_prop:
+			hit_enemy(e, sk.p("damage") * 0.5, sk.tags(), (e.pos - player_pos).normalized() * 60.0, sk.id)
+			add_fx("ray", player_pos, 0.2, {"to": e.pos, "width": 10.0, "color": Color("#dfe8f5")})
+			n += 1
+	_spear_ctx = false
+	if n > 0:
+		add_fx("text", player_pos + Vector2(0, -60), 0.8, {"text": "枪影", "size": 22, "color": Color("#dfe8f5")})
+
+
+## 枪尖命中：露出破绽 + 飘字
+func spear_tip_hit(e: Enemy) -> void:
+	if e.is_prop or not e.alive:
+		return
+	apply_vuln(e, 0.12)
+	if effects.size() < MAX_EFFECTS and rng.randf() < 0.35:
+		add_fx("text", e.pos + Vector2(0, -e.radius - 26), 0.7, {"text": "枪尖", "size": 20, "color": Color("#ffd878")})
 
 
 func _shuffle(arr: Array) -> void:
