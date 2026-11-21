@@ -172,13 +172,13 @@
     "boss_vuln_mult": 0.5,
     "shi_q_step": 0.5,
     "enemy_hp_mult": 3.75,
-    "enemy_speed_mult": 0.7,
+    "enemy_speed_mult": 0.56,
     "stagger_hit": 0.05,
     "stagger_crit": 0.1,
     "stagger_gap": 0.25,
     "mini_hp_mult": 2.5,
     "final_hp_mult": 6.25,
-    "player_dmg_mult": 0.7
+    "player_dmg_mult": 0.8
   },
   "skills": {
     "yue_palm": {
