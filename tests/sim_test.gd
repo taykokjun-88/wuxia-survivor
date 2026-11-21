@@ -892,7 +892,7 @@ func _skill_fx_test() -> void:
 func _stage_test() -> void:
 	print("\n=== 关卡时间轴 / 大 Boss 清场与倒计时 / 通关解锁 / 装备分数 ===")
 	var tl: Dictionary = Data.maps["black_wind"]["timeline"]
-	_check(float(tl["final"]["t"]) == 600.0 and float(tl["final"]["limit"]) == 90.0, "黑风寨：大 Boss 10:00 现身，限时 1:30")
+	_check(float(tl["final"]["t"]) == 600.0 and float(tl["final"]["limit"]) == 150.0, "黑风寨：大 Boss 10:00 现身，限时 2:30")
 	_check(float(tl["minis"][0]["t"]) == 180.0 and float(tl["minis"][1]["t"]) == 330.0 and float(tl["minis"][2]["t"]) == 480.0, "小 Boss 3:00 / 5:30 / 8:00")
 	var w := _new_world(70, "chain_fist")
 	w.god = true
@@ -915,7 +915,7 @@ func _stage_test() -> void:
 			alive += 1
 			_check(e.is_final, "场上只剩大 Boss")
 	_check(alive == 1 and w.bosses.size() == 1 and w.bosses[0].is_final, "清场后只剩大 Boss（%d）" % alive)
-	_check(absf((w.boss_deadline - w.time) - 90.0) < 8.0, "倒计时约 90 秒（%.0f）" % (w.boss_deadline - w.time))
+	_check(absf((w.boss_deadline - w.time) - 150.0) < 8.0, "倒计时约 150 秒（%.0f）" % (w.boss_deadline - w.time))
 	var n0 := 0
 	for i in 60 * 5:
 		w.step(DT)
@@ -3786,9 +3786,9 @@ func _meta_test() -> void:
 		_check(Meta.run_exp(int(v["score"]), bool(v["won"]), bool(v["first"]), float(v.get("comp", 1.0))) == int(v["exp"]), "修为向量不一致：%s" % str(v))
 	for v in mv["comp"]:
 		_check(absf(Meta.comp_of(v["d"]) - float(v["comp"])) < 1e-9, "综合难度向量不一致：%s" % str(v))
-	_check(Meta.exp_to_reach(50) == 9310 and Meta.points_total(50) == 147, "满级累计修为 9310、属性点 147")
+	_check(Meta.exp_to_reach(50) == 25289 and Meta.points_total(50) == 147, "满级累计修为 25289、属性点 147")
 	var p := Meta.progress(100)
-	_check(int(p["level"]) == 3 and int(p["into"]) == 100 - 46 - 52 and int(p["need"]) == 58, "进度计算")
+	_check(int(p["level"]) == 3 and int(p["into"]) == 100 - 35 - 39 and int(p["need"]) == 44, "进度计算")
 	_check(int(Meta.progress(99999)["need"]) == 0, "满级进度")
 	# 属性效果
 	var none := Meta.stats_for({})
@@ -4128,7 +4128,7 @@ func _full_run(cfg: Dictionary) -> void:
 	print("性能：平均 %.2f ms/step  最差 %.2f ms  敌人峰值 %d  Boss数 %d" % [
 		total_us / 1000.0 / maxi(1, int(w.time / DT)), worst_us / 1000.0, peak, w.bosses.size()])
 	if cfg["god"]:
-		_check(w.bosses.size() == 4, "应刷出 3 个小 Boss + 1 个大 Boss，实际 %d" % w.bosses.size())
+		_check(w.bosses.size() >= 3, "至少应刷出 3 个 Boss（小 Boss ×3；大 Boss 在 10 分钟现身，血量调高后无敌 bot 可能打不完），实际 %d" % w.bosses.size())
 		_check(w.level >= 10, "无敌 bot 15 分钟应至少升到 10 级，实际 %d" % w.level)
 		_check(w.enhance_id != "", "整局应至少拿到一次专属强化")
 		_check(w.enhance_level >= 1, "击败小 Boss 后强化应至少 Lv1，实际 Lv%d" % w.enhance_level)
