@@ -547,6 +547,9 @@ func _on_end(won: bool) -> void:
 		_apply_submit(res)
 		if state != State.END:
 			return
+		if bool(res.get("dup", false)):
+			hud.set_end_extra("这局成绩之前已经上传过了。")
+			return
 		var ranks: Dictionary = res.get("ranks", {})
 		var line := "已上榜：总分榜第 %d 名" % int(ranks.get("score", 0))
 		if bool(res.get("best", false)):

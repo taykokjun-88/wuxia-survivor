@@ -72,6 +72,7 @@ var fist_qi := 0.0                 # 武者蓄劲（0~100）
 var fist_qi_crit_t := 0.0
 var cunjin_count := 0              # 本局寸劲震爆次数
 var meta_level := 1                # 局外等级（由 main 在开局前设置；决定「另觅机缘」次数）
+var run_id := ""                   # 本局编号（成绩上传用，服务器据此去重）
 var rerolls_left := 0              # 另觅机缘：本局剩余次数
 var rerolls_used := 0
 var ji_haste_until := -1.0          # 极·万剑归宗：冲刺后的加速窗口
@@ -248,6 +249,7 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	tb_count = 0
 	ji_haste_until = -1.0
 	rerolls_left = rerolls_for_level(meta_level)
+	run_id = "%d-%d" % [int(Time.get_unix_time_from_system()), randi() % 1000000]
 	rerolls_used = 0
 	dash_end_t = -99.0
 	atk_buff_t = 0.0
@@ -2512,7 +2514,7 @@ func run_summary() -> Dictionary:
 		"won": won, "seconds": int(time), "level": level, "kills": kills, "bosses": bosses_killed,
 		"school": school_id, "map": map_id, "difficulty": {"count": int(round(float(difficulty["count"]) * 100.0)), "hp": int(round(float(difficulty["hp"]) * 100.0)), "speed": int(round(float(difficulty["speed"]) * 100.0))}, "starter": starter_id, "qinggong": qinggong_id,
 		"enhance": "%s:%d" % [enhance_id, enhance_level] if enhance_id != "" else "",
-		"rerolls": rerolls_used, "cunjin": cunjin_count, "true_blade": tb_count, "fist_ult": fist_ult_count, "build": build, "version": str(ProjectSettings.get_setting("application/config/version", "0")),
+		"rerolls": rerolls_used, "cunjin": cunjin_count, "true_blade": tb_count, "fist_ult": fist_ult_count, "rid": run_id, "build": build, "version": str(ProjectSettings.get_setting("application/config/version", "0")),
 	}
 
 

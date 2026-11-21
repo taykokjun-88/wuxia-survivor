@@ -650,6 +650,16 @@ function submitScore(req) {
   var v = validateRun(req);
   if (v.ok === false) { writeLog('warn', req.nick, '拒绝成绩', 'submit', JSON.stringify(req).slice(0, 300), str(req.device, 120)); return v; }
   var run = v.run, f = a.found, row = f.row;
+  // 幂等：同一局（客户端生成的 rid）只记一次。回应丢了、客户端补传时不会重复加修为 / 掉落 / 局数
+  var rid = str(req.rid, 40);
+  if (rid) {
+    var st0 = readState(row);
+    if (Array.isArray(st0.rids) && st0.rids.indexOf(rid) >= 0) {
+      var pr0 = profile(a.account.row, f);
+      return ok({ dup: true, score: 0, best: false, ranks: {}, bests: pr0.bests, gained: 0, capped: false, exp: pr0.exp, level: pr0.level, levelUp: false,
+                  drops: [], comp: 1, silverGained: 0, silver: pr0.silver, cleared: pr0.cleared });
+    }
+  }
   var req0 = MAPS[run.map].requires;
   if (req0) { var cl = readState(row).cleared; if (!cl || !cl[req0]) return fail('locked', '这张地图还没解锁（需要先通关前一关）'); }
   // 提交间隔只看上一次「提交成绩」的时间（不能用 Updated：创建角色的云存档也会更新它）
@@ -698,6 +708,7 @@ function submitScore(req) {
   for (var mi = 0; mi < mts.length; mi++) if (run.seconds >= mts[mi]) spawned++;
   if (run.won) { stt.cleared = stt.cleared && typeof stt.cleared === 'object' ? stt.cleared : {}; stt.cleared[run.map] = true; }
   drops = gearDrops(stt, comp, Math.min(minis, spawned), run.won, run.map);
+  if (rid) stt.rids = (Array.isArray(stt.rids) ? stt.rids : []).concat([rid]).slice(-30);
   row[P.state] = JSON.stringify(stt);
   row[P.updated] = iso();
   row[P.lastSubmit] = iso();

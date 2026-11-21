@@ -177,6 +177,21 @@ test('成绩：入表、最高记录、提交间隔', (e) => {
   assert.deepStrictEqual(w.ranks, { score: 1, speed: 1, level: 1 });
 });
 
+test('成绩：同一局（rid）重复提交只记一次', (e) => {
+  const me = reg(e, '选手');
+  e.call({ action: 'saveState', nick: '选手', token: me.token, state: { school: 'fist' } });
+  e.advance(60 * 1000);
+  const r1 = e.call({ action: 'submit', nick: '选手', token: me.token, ...RUN({ seconds: 200, level: 9, kills: 300 }), rid: 'run-abc' });
+  assert.ok(r1.ok && !r1.dup, JSON.stringify(r1));
+  e.advance(60 * 1000);
+  const r2 = e.call({ action: 'submit', nick: '选手', token: me.token, ...RUN({ seconds: 200, level: 9, kills: 300 }), rid: 'run-abc' });
+  assert.ok(r2.ok && r2.dup && r2.gained === 0 && r2.exp === r1.exp, '重复提交同一局：不再加修为');
+  assert.strictEqual(r2.bests.runs, 1, '局数不重复计');
+  e.advance(60 * 1000);
+  const r3 = e.call({ action: 'submit', nick: '选手', token: me.token, ...RUN({ seconds: 200, level: 9, kills: 300 }), rid: 'run-def' });
+  assert.ok(r3.ok && !r3.dup && r3.bests.runs === 2, '新的 rid 正常记录');
+});
+
 test('排行榜：排序、我的名次、封禁排除、条数上限', (e) => {
   const names = [];
   for (let i = 0; i < 25; i++) {
