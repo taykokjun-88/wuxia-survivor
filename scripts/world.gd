@@ -116,6 +116,32 @@ var hidden_seen := false           # 隐藏武功卡是否已经出现过
 var block_count := 0
 var meta_alloc: Dictionary = {}    # 局外属性点（福缘 / 身法影响隐藏武功出现几率）
 var _spear_ctx := false            # 枪影追击中：不再累计连击
+
+# 奇门遁甲（桃花岛）：八门——地面八卦盘，周期洗牌；吉门有益、凶门有害（玩家和敌人都受影响）
+const BAGUA_GATES := {
+	"sheng": {"name": "生门", "good": true, "col": "#6fdc6f", "tip": "回血"},
+	"kai": {"name": "开门", "good": true, "col": "#9ad8ff", "tip": "移速 / 冷却"},
+	"xiu": {"name": "休门", "good": true, "col": "#6f9ae8", "tip": "减伤"},
+	"jingv": {"name": "景门", "good": true, "col": "#f0b429", "tip": "伤害 +25%"},
+	"shang": {"name": "伤门", "good": false, "col": "#d86a4a", "tip": "掉血"},
+	"si": {"name": "死门", "good": false, "col": "#8a2a4a", "tip": "重伤减速"},
+	"jings": {"name": "惊门", "good": false, "col": "#c06ad8", "tip": "惊慌减速"},
+	"du": {"name": "杜门", "good": false, "col": "#5a5a6a", "tip": "耗内力"},
+}
+var bagua_cfg: Dictionary = {}
+var bagua_on := false
+var bagua_center := Vector2.ZERO
+var bagua_gates: Array = []        # 8 个门，下标 = 方位扇区（从正东偏 −22.5° 起，顺时针）
+var bagua_next: Array = []         # 下一轮的排布（洗牌前 3 秒预警）
+var bagua_t := 0.0
+var bagua_warn := false
+var bagua_here := ""
+var bagua_spd := 0.0
+var bagua_cd := 0.0
+var bagua_dmg := 1.0
+var bagua_def := false
+var bagua_enemy_t := 0.0
+var bagua_shuffles := 0
 var hp := 100.0
 var neili := 100.0
 var still_t := 0.0                # 连续站立不动的时间（入定）
@@ -266,6 +292,18 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	rerolls_left = rerolls_for_level(meta_level)
 	run_id = "%d-%d" % [int(Time.get_unix_time_from_system()), randi() % 1000000]
 	rerolls_used = 0
+	bagua_cfg = Data.maps[map_id].get("bagua", {})
+	bagua_on = not bagua_cfg.is_empty()
+	bagua_gates = []
+	bagua_next = []
+	bagua_t = 0.0
+	bagua_warn = false
+	bagua_here = ""
+	bagua_spd = 0.0
+	bagua_cd = 0.0
+	bagua_dmg = 1.0
+	bagua_def = false
+	bagua_shuffles = 0
 	spear_qs = 0.0
 	spear_gs = 0.0
 	spear_combo = 0
@@ -526,7 +564,7 @@ func cd_mult() -> float:
 	var jc := 0.0
 	if st("ji_sword") > 0.0:                      # 极·万剑归宗：冷却 −20%，冲刺 / 闪现后 3 秒再 −40%
 		jc = 0.2 + (0.4 if time < ji_haste_until else 0.0)
-	return maxf(0.3 if jc > 0.0 else 0.4, 1.0 - st("cd_reduce") - sc - jc - (Data.T("burst_yin_cd") if atk_buff_t > 0.0 else 0.0))
+	return maxf(0.3 if jc > 0.0 else 0.4, 1.0 - st("cd_reduce") - sc - jc - bagua_cd - (Data.T("burst_yin_cd") if atk_buff_t > 0.0 else 0.0))
 
 
 ## 内力充盈（≥50%）时全部伤害 +25%
@@ -588,6 +626,7 @@ func step(dt: float) -> void:
 	shake = maxf(0.0, shake - 30.0 * dt)
 	_update_player(dt)
 	_tick_spear(dt)
+	_tick_bagua(dt)
 	_spawn(dt)
 	_update_props(dt)
 	_rebuild_grid()
@@ -663,7 +702,7 @@ func _update_player(dt: float) -> void:
 		if dash_t <= 0.0:
 			_end_dash()
 	else:
-		var spd_pct := st("speed_pct") + (float(qg.get("buff_speed", 0.0)) if buff_t > 0.0 else 0.0) + (0.25 if st("ji_sword") > 0.0 and time < ji_haste_until else 0.0)
+		var spd_pct := st("speed_pct") + bagua_spd + (float(qg.get("buff_speed", 0.0)) if buff_t > 0.0 else 0.0) + (0.25 if st("ji_sword") > 0.0 and time < ji_haste_until else 0.0)
 		player_pos += move * st("move_speed") * (1.0 + spd_pct) * (0.55 if player_slow_t > 0.0 else 1.0) * dt
 	if map_art != null and map_art.has_blockers:        # 残墙 / 石柱挡人（含冲刺、击退）
 		player_pos = map_art.push_out(player_pos, PLAYER_RADIUS)
@@ -1301,7 +1340,7 @@ func _hurt(amount: float) -> void:
 		return
 	if school_id == "spear" and has_route("staff"):
 		add_gs(5.0)                                                    # 被近身攻击命中也攒棍势
-	var dmg := amount
+	var dmg := amount * (0.6 if bagua_def else 1.0)             # 休门：减伤 40%
 	for s: SkillBase in skills.values():
 		dmg = s.on_hurt(dmg)
 	dmg = maxf(maxf(1.0, dmg * 0.25), dmg - st("armor"))
@@ -1437,7 +1476,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 	var m := 1.0
 	for tg in tags:
 		m += float(tag_bonus.get(tg, 0.0))
-	m *= dmg_mult() * (1.0 + st("damage_pct")) * Data.T("player_dmg_mult")
+	m *= dmg_mult() * (1.0 + st("damage_pct")) * Data.T("player_dmg_mult") * bagua_dmg
 	var sk: SkillBase = skills.get(sid)
 	var bd := baodao or baodao_ctx
 	if school_id == "blade":
@@ -2155,6 +2194,97 @@ func _hidden_card(reroll: bool) -> Dictionary:
 		"title": "领悟：%s（隐藏武功）" % def["name"], "desc": "%s　【%s】" % [def["desc"], Data.tags_text("wuming_spear")]}
 
 
+## 八门：每 period 秒洗牌一次（洗牌前 warn 秒预警新排布），盘面以洗牌时玩家所在处为中心
+func _tick_bagua(dt: float) -> void:
+	if not bagua_on:
+		return
+	bagua_t += dt
+	var period := float(bagua_cfg.get("period", 20.0))
+	var warn := float(bagua_cfg.get("warn", 3.0))
+	if bagua_gates.is_empty():
+		if bagua_t >= float(bagua_cfg.get("first", 8.0)):
+			_bagua_shuffle()
+		return
+	if not bagua_warn and bagua_t >= period - warn:
+		bagua_warn = true
+		bagua_next = _bagua_order()
+	if bagua_t >= period:
+		_bagua_shuffle()
+	bagua_spd = 0.0
+	bagua_cd = 0.0
+	bagua_dmg = 1.0
+	bagua_def = false
+	bagua_here = _bagua_gate_at(player_pos)
+	match bagua_here:
+		"sheng":
+			hp = minf(st("max_hp"), hp + st("max_hp") * 0.03 * dt)
+		"kai":
+			bagua_spd = 0.25
+			bagua_cd = 0.2
+		"xiu":
+			bagua_def = true
+		"jingv":
+			bagua_dmg = 1.25
+		"shang":
+			_bagua_hurt(st("max_hp") * 0.03 * dt)
+		"si":
+			_bagua_hurt(st("max_hp") * 0.05 * dt)
+			player_slow_t = maxf(player_slow_t, 0.25)
+		"jings":
+			player_slow_t = maxf(player_slow_t, 0.25)
+		"du":
+			neili = maxf(0.0, neili - 25.0 * dt)
+	bagua_enemy_t += dt                                          # 凶门里的敌人也掉血（每 0.5 秒结算一次，Boss 不吃）
+	if bagua_enemy_t >= 0.5:
+		var dt2 := bagua_enemy_t
+		bagua_enemy_t = 0.0
+		for e in _query(bagua_center, float(bagua_cfg.get("radius", 430.0))):
+			if not e.alive or e.is_boss or e.is_prop:
+				continue
+			var gid := _bagua_gate_at(e.pos)
+			if gid != "" and not bool(BAGUA_GATES[gid]["good"]):
+				damage_enemy(e, e.max_hp * 0.02 * dt2 / 0.5 * 0.5, Vector2.ZERO)
+
+
+func _bagua_order() -> Array:
+	var ids: Array = BAGUA_GATES.keys()
+	_shuffle(ids)
+	return ids
+
+
+func _bagua_shuffle() -> void:
+	bagua_gates = bagua_next.duplicate() if not bagua_next.is_empty() else _bagua_order()
+	bagua_next = []
+	bagua_warn = false
+	bagua_t = 0.0
+	bagua_center = player_pos
+	bagua_shuffles += 1
+	add_fx("text", player_pos + Vector2(0, -90), 1.6, {"text": "八门重排", "size": 30, "color": Color("#f0b429")})
+	add_fx("ring", player_pos, 0.8, {"r0": 20.0, "r1": float(bagua_cfg.get("radius", 430.0)), "color": Color("#f0b429")})
+
+
+func _bagua_gate_at(pos: Vector2) -> String:
+	if bagua_gates.is_empty():
+		return ""
+	var d := pos - bagua_center
+	if d.length() > float(bagua_cfg.get("radius", 430.0)):
+		return ""
+	var idx := int(floor(wrapf(d.angle() + PI / 8.0, 0.0, TAU) / (PI / 4.0))) % 8
+	return str(bagua_gates[idx])
+
+
+## 门的伤害直接扣血（不触发格挡 / 无敌帧）
+func _bagua_hurt(amount: float) -> void:
+	if god or over:
+		return
+	hp -= amount
+	if hp <= 0.0:
+		hp = 0.0
+		over = true
+		won = false
+		player_died.emit()
+
+
 func add_gs(x: float) -> void:
 	spear_gs = minf(100.0, spear_gs + x * (1.0 + st("gs_gain")))
 
@@ -2325,6 +2455,7 @@ func _vis(p: Vector2, margin: float = 40.0) -> bool:
 
 func _draw() -> void:
 	_draw_background()
+	_draw_bagua()
 	_draw_zones()
 	_draw_hzones()
 	for i in gem_pos.size():
@@ -3266,6 +3397,32 @@ func hurt_dot(amount: float) -> void:
 		over = true
 		won = false
 		player_died.emit()
+
+
+func _draw_bagua() -> void:
+	if not bagua_on or bagua_gates.is_empty():
+		return
+	var R := float(bagua_cfg.get("radius", 430.0))
+	var font := ThemeDB.fallback_font
+	var flash := 0.5 + 0.5 * sin(time * 14.0)
+	for i in 8:
+		var g: Dictionary = BAGUA_GATES[str(bagua_gates[i])]
+		var a0 := -PI / 8.0 + float(i) * PI / 4.0
+		var pts := PackedVector2Array([bagua_center])
+		for k in 13:
+			pts.append(bagua_center + Vector2.from_angle(a0 + PI / 4.0 * float(k) / 12.0) * R)
+		var col := Color(str(g["col"]))
+		var here := str(bagua_gates[i]) == bagua_here
+		draw_colored_polygon(pts, Color(col, 0.10 + (0.12 if here else 0.0) + (0.10 * flash if bagua_warn else 0.0)))
+		draw_polyline(pts, Color(col, 0.55), 2.0)
+		var mid := bagua_center + Vector2.from_angle(a0 + PI / 8.0) * R * 0.68
+		draw_string(font, mid + Vector2(-28, -6), str(g["name"]), HORIZONTAL_ALIGNMENT_CENTER, 56, 22, Color(col, 0.95))
+		draw_string(font, mid + Vector2(-40, 18), str(g["tip"]), HORIZONTAL_ALIGNMENT_CENTER, 80, 14, Color(1, 1, 1, 0.6))
+		if bagua_warn and not bagua_next.is_empty():            # 预警：新排布的门名画在外圈
+			var ng: Dictionary = BAGUA_GATES[str(bagua_next[i])]
+			var out := bagua_center + Vector2.from_angle(a0 + PI / 8.0) * (R + 34.0)
+			draw_string(font, out + Vector2(-22, 6), "→" + str(ng["name"]), HORIZONTAL_ALIGNMENT_CENTER, 52, 16, Color(Color(str(ng["col"])), 0.5 + 0.5 * flash))
+	draw_arc(bagua_center, R, 0.0, TAU, 64, Color("#f0b429", 0.6), 3.0)
 
 
 func _draw_hzones() -> void:

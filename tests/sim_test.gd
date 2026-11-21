@@ -82,6 +82,8 @@ func _ready() -> void:
 		_dugu_report()
 	if only == "spear":
 		_spear_test()
+	if only == "bagua":
+		_bagua_test()
 	print("\nRESULT: %s" % ("FAIL (%d)" % failures if failures > 0 else "OK"))
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -4281,3 +4283,77 @@ func _spear_test() -> void:
 	_check(Save.school() == "spear", "单机：能创建杨家将角色")
 	Data.schools["spear"]["enabled"] = was
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_spear.json"))
+
+
+## 桃花岛·奇门遁甲：八门轮换与吉凶效果
+func _bagua_test() -> void:
+	print("\n=== 桃花岛·八门 ===")
+	var w := GameWorld.new()
+	w.rng_seed = 21
+	add_child(w)
+	w.start_run("chain_fist", "tashue", "taohua")
+	_check(w.bagua_on and w.bagua_gates.is_empty(), "桃花岛开启八门，开局前几秒还没有盘面")
+	for i in int(9.0 / DT):
+		w.step(DT)
+	_check(w.bagua_gates.size() == 8 and w.bagua_shuffles == 1, "8 秒后八门出现（%d 个门）" % w.bagua_gates.size())
+	var uniq := {}
+	for g in w.bagua_gates:
+		uniq[g] = true
+	_check(uniq.size() == 8, "八个门各不相同")
+	# 把玩家挪进指定的门里测试效果
+	var target_gate := {}
+	for i in 8:
+		target_gate[str(w.bagua_gates[i])] = i
+	var R := float(w.bagua_cfg["radius"])
+	for gid in ["sheng", "shang", "si", "du", "kai", "jingv"]:
+		var idx: int = target_gate[gid]
+		var ang := -PI / 8.0 + float(idx) * PI / 4.0 + PI / 8.0
+		w.god = false
+		w.hp = w.st("max_hp") * 0.5
+		w.neili = w.st("max_neili")
+		w.invuln = 0.0
+		w.player_pos = w.bagua_center + Vector2.from_angle(ang) * R * 0.6
+		w.spear_last_pos = w.player_pos
+		var hp0 := w.hp
+		var ne0 := w.neili
+		w.bagua_t = 1.0                          # 不要在测试中途洗牌
+		for i in 60:
+			w.player_pos = w.bagua_center + Vector2.from_angle(ang) * R * 0.6
+			w.bagua_t = 1.0
+			w.step(DT)
+		_check(w.bagua_here == gid, "玩家站进了 %s（实际 %s）" % [gid, w.bagua_here])
+		match gid:
+			"sheng": _check(w.hp > hp0 + 1.0, "生门：回血（%.1f → %.1f）" % [hp0, w.hp])
+			"shang": _check(w.hp < hp0 - 1.0, "伤门：掉血")
+			"si": _check(w.hp < hp0 - 2.0 and w.player_slow_t > 0.0, "死门：重伤 + 减速")
+			"du": _check(w.neili < ne0 - 3.0, "杜门：耗内力（%.1f → %.1f）" % [ne0, w.neili])
+			"kai": _check(absf(w.bagua_spd - 0.25) < 1e-9 and absf(w.bagua_cd - 0.2) < 1e-9, "开门：移速 +25% / 冷却 −20%")
+			"jingv": _check(absf(w.bagua_dmg - 1.25) < 1e-9, "景门：伤害 +25%")
+	# 休门：减伤
+	var xi: int = target_gate["xiu"]
+	var ang2 := -PI / 8.0 + float(xi) * PI / 4.0 + PI / 8.0
+	w.player_pos = w.bagua_center + Vector2.from_angle(ang2) * R * 0.6
+	w.bagua_t = 1.0
+	w.step(DT)
+	_check(w.bagua_def, "休门：减伤标记")
+	# 凶门里的敌人掉血
+	var bad_idx: int = target_gate["shang"]
+	var angb := -PI / 8.0 + float(bad_idx) * PI / 4.0 + PI / 8.0
+	var en := w._spawn_enemy("th_jiguan", w.bagua_center + Vector2.from_angle(angb) * R * 0.6)
+	en.speed = 0.0
+	var hp_e := en.hp
+	w.player_pos = w.bagua_center + Vector2.from_angle(ang2) * R * 0.6
+	for i in 90:
+		w.bagua_t = 1.0
+		en.pos = w.bagua_center + Vector2.from_angle(angb) * R * 0.6
+		w.step(DT)
+	_check(en.hp < hp_e, "凶门里的敌人掉血（%.0f → %.0f）" % [hp_e, en.hp])
+	# 洗牌：20 秒后重排并预警
+	w.bagua_t = 17.5
+	w.step(DT)
+	_check(w.bagua_warn and w.bagua_next.size() == 8, "洗牌前 3 秒预警新排布")
+	var before: Array = w.bagua_gates.duplicate()
+	w.bagua_t = 20.0
+	w.step(DT)
+	_check(w.bagua_shuffles == 2 and w.bagua_center.distance_to(w.player_pos) < 50.0, "20 秒后重排，盘面以玩家所在处为中心")
+	_free_world(w)
