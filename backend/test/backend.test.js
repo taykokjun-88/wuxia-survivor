@@ -373,12 +373,12 @@ test('角色：创建（最多 5 个、名字 / 流派校验）、各自独立�
   const mk = (name, school) => e.call({ action: 'createChar', nick: me.nick, token: tok, name, school });
   assert.strictEqual(mk('甲', 'fist').err, 'bad_name', '名字太短');
   assert.strictEqual(mk('<b>x</b>', 'fist').err, 'bad_name');
-  assert.strictEqual(mk('甲乙丙', 'spear').err, 'bad_school', '没开放的流派');
+  assert.strictEqual(mk('甲乙丙', 'mage').err, 'bad_school', '不存在的流派');
   assert.strictEqual(mk('甲乙丙', 'nope').err, 'bad_school');
   const c1 = mk('拳王', 'fist'); assert.ok(c1.ok, JSON.stringify(c1));
   assert.strictEqual(c1.charName, '拳王'); assert.strictEqual(c1.school, 'fist'); assert.strictEqual(c1.chars.length, 1);
   assert.strictEqual(mk('拳王', 'sword').err, 'name_taken', '同账号不能重名');
-  const c2 = mk('剑仙', 'sword'), c3 = mk('刀魔', 'blade'), c4 = mk('甲乙丙', 'fist'), c5 = mk('丁戊己', 'sword');
+  const c2 = mk('剑仙', 'sword'), c3 = mk('刀魔', 'blade'), c4 = mk('甲乙丙', 'spear'), c5 = mk('丁戊己', 'sword');
   [c2, c3, c4, c5].forEach((c) => assert.ok(c.ok));
   assert.strictEqual(mk('庚辛壬', 'fist').err, 'chars_full', '最多 5 个角色');
   // 每个角色进度独立：给「拳王」打一局，「剑仙」不受影响
