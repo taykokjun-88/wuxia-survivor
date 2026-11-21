@@ -910,7 +910,7 @@
       },
       "anim": "slash",
       "empower_cost": 6,
-      "empower": "刀卷残云：每次出刀把周围小怪向刀锋拉拢",
+      "empower": "刀卷残云：本次出刀范围 +40%",
       "fx": {
         "slash": "fx_blade_kuangfeng"
       },

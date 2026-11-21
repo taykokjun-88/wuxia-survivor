@@ -110,7 +110,7 @@ class KuangFeng extends Base:
 		return v
 
 	func fire() -> bool:
-		var reach := p("reach") * rmul() * (1.0 + (ev(0.25, 0.5, 0.75) if enhanced() else 0.0))
+		var reach := p("reach") * rmul() * (1.0 + (ev(0.25, 0.5, 0.75) if enhanced() else 0.0)) * (1.4 if empowered else 1.0)
 		var t := w.nearest_enemy(reach + 30.0)
 		if t == null:
 			return false
@@ -124,11 +124,7 @@ class KuangFeng extends Base:
 			hits += cone(w.player_pos, ang, p("arc") * 0.5, reach, p("damage"), p("knock"))
 		if enhanced() and hits > 0:
 			w.add_neili(minf(6.0, float(hits)))
-		if empowered:                                      # 刀卷残云：把周围的小怪向刀锋拉拢
-			for e in w._query(w.player_pos, reach * 1.8):
-				if e.alive and not e.is_boss and not e.is_prop:
-					e.knock += (w.player_pos - e.pos).normalized() * 260.0
-		return true
+		return true                                        # 刀卷残云（催动）：出刀范围 +40%（不再把敌人拉向自己）
 
 
 ## 胡家刀法：弯月刀气，穿透多人；近处伤害更高并露出破绽。强化「八方藏刀式」：两侧分出次级刀气。
