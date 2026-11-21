@@ -1548,14 +1548,15 @@ func _gear_button(code: String, w_min: int, h_min: int, compact: bool = false) -
 	bt.custom_minimum_size = Vector2(w_min, h_min)
 	bt.focus_mode = Control.FOCUS_NONE
 	bt.add_theme_font_size_override("font_size", 13)
-	var full := "【%s】%s（%s）\n%s" % [it["rarity_name"], it["name"], it["slot_name"], Gear.describe(it)]
+	var pts := Gear.item_score_of(code, Save.enh_level(code), Save.school(), Save.last_starter())
+	var full := "【%s】%s（%s）　%d 分\n%s" % [it["rarity_name"], it["name"], it["slot_name"], pts, Gear.describe(it)]
 	var second := Gear.describe(it)
 	if compact:
 		var aff: Array = []
 		for a in it["affixes"]:
 			aff.append("★" + str(a["text"]))
 		second = "　".join(aff) if not aff.is_empty() else Gear.describe(it)
-	bt.text = "【%s】%s\n%s" % [it["rarity_name"], it["name"], second] if compact else full
+	bt.text = "【%s】%s　%d 分\n%s" % [it["rarity_name"], it["name"], pts, second] if compact else full
 	bt.tooltip_text = full
 	bt.clip_text = true
 	_slot_icon(bt, str(it["slot"]))
@@ -1572,8 +1573,8 @@ func _build_gear() -> void:
 	gear_panel = pb[0]
 	var box: VBoxContainer = pb[1]
 	box.add_theme_constant_override("separation", 8)
-	box.add_child(_label("装备　　银两 %d　　装备分数 %d" % [Save.silver(), Gear.total_score(gear_equip, Save.enh())], 36))
-	box.add_child(_label("大 Boss（通关）掉落，只会是本流派的装备。★ 是特殊词条，强化某个招式或心法——没有对应招式 / 心法就用不上。", 15, Color("#cfc6ae")))
+	box.add_child(_label("装备　　银两 %d　　装备分数 %d" % [Save.silver(), Gear.total_score(gear_equip, Save.enh(), Save.school() if Save.school() != "" else "fist", Save.last_starter())], 36))
+	box.add_child(_label("大 Boss（通关）掉落，只会是本流派的装备。★ 是特殊词条，强化某个招式或心法——没有对应招式 / 心法就用不上。装备分按数值计算：词条与你上次出发选的起手招式越对口越值钱，同一招式的词条集齐越多还有联动加成。", 15, Color("#cfc6ae")))
 	# 五个部位
 	var srow := _center_row(8)
 	var worn: Array = []

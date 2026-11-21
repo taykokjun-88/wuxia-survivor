@@ -425,7 +425,28 @@ func set_cleared(c: Dictionary) -> void:
 
 
 func gear_score() -> int:
-	return Gear.total_score(equip(), enh())
+	return Gear.total_score(equip(), enh(), school() if school() != "" else "fist", last_starter())
+
+
+## 本角色上次出发选的起手招式（装备分的「适配度」按它算）
+func last_starter() -> String:
+	var ui: Variant = data.get("ui", {})
+	if ui is Dictionary and (ui as Dictionary).get("last_starter", {}) is Dictionary:
+		return str(((ui as Dictionary)["last_starter"] as Dictionary).get(char_id(), ""))
+	return ""
+
+
+func set_last_starter(starter_id: String) -> void:
+	var ui: Variant = data.get("ui", {})
+	if not ui is Dictionary:
+		ui = {}
+	var ls: Variant = (ui as Dictionary).get("last_starter", {})
+	if not ls is Dictionary:
+		ls = {}
+	(ls as Dictionary)[char_id()] = starter_id
+	(ui as Dictionary)["last_starter"] = ls
+	data["ui"] = ui
+	save_data()
 
 
 ## 地图是否已解锁：需要先通关 requires_clear 指定的地图

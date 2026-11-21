@@ -931,12 +931,26 @@ func _stage_test() -> void:
 	_check(Save.map_unlocked("black_wind") and Save.map_unlocked("guangming"), "光明顶不再需要通关黑风寨（只需局外 Lv5）")
 	_check(int(Data.maps["guangming"]["min_meta_level"]) == 5, "光明顶需局外等级 5")
 	# 装备分数
-	_check(Gear.item_score(0) == 5 and Gear.item_score(1) == 10 and Gear.item_score(2) == 20 and Gear.item_score(3) == 40, "装备基础分 5 / 10 / 20 / 40")
-	_check(Gear.item_score(3, 10) == 72, "传说 +10 = 72 分（实际 %d）" % Gear.item_score(3, 10))
-	Save.set_gear(["weapon.1.1", "coat.1.2", "boots.0.3"], {"weapon": "weapon.1.1", "coat": "coat.1.2", "boots": "boots.0.3"})
-	_check(Save.gear_score() == 25, "已穿戴三件（10+10+5）= 25 分（实际 %d）" % Save.gear_score())
+	var eq_n := {"weapon": "weapon.0.5", "coat": "coat.0.6", "pants": "pants.0.7", "boots": "boots.0.8", "charm": "charm.0.9"}
+	var eq_g := {"weapon": "weapon.1.5", "coat": "coat.1.6", "pants": "pants.1.7", "boots": "boots.1.8", "charm": "charm.1.9"}
+	var sn := Gear.total_score(eq_n, {}, "sword", "")
+	var sg := Gear.total_score(eq_g, {}, "sword", "")
+	_check(sn >= 18 and sn <= 28 and sg >= 33 and sg <= 46 and sg > sn, "按数值算分：5 件普通约 22、5 件特别约 39（实际 %d / %d）" % [sn, sg])
+	var eq_p := {"weapon": "weapon.2.99", "coat": "coat.2.291", "pants": "pants.2.205", "boots": "boots.2.154", "charm": "charm.2.251"}
+	var sp_d := Gear.total_score(eq_p, {}, "sword", "dugu")
+	var sp_o := Gear.total_score(eq_p, {}, "sword", "kuang_feng")
+	_check(sp_d > sp_o and sp_o > sg, "适配度：起手独孤时独孤词条套装分更高（%d > %d）" % [sp_d, sp_o])
+	var enh_p := {}
+	for k in eq_p:
+		enh_p[eq_p[k]] = 10
+	_check(Gear.total_score(eq_p, enh_p, "sword", "dugu") > sp_d, "强化提高装备分")
+	var one := Gear.total_score({"weapon": "weapon.2.99"}, {}, "sword", "dugu")
+	_check(sp_d > one * 5, "联动：五件同招式词条的总分高于五件单件分之和（%d vs %d）" % [sp_d, one * 5])
 	var rec: Array = Save.recommend_status("guangming")
-	_check(rec.size() == 1 and bool(rec[0]["ok"]), "建议条件：只有装备分数 20（已达标）")
+	_check(rec.size() == 1 and not bool(rec[0]["ok"]), "建议条件：装备分数 40（三件低品质未达标）")
+	Save.set_gear(eq_p.values(), eq_p)
+	rec = Save.recommend_status("guangming")
+	_check(rec.size() == 1 and bool(rec[0]["ok"]), "建议条件：五件稀有装备达标")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_stage.json"))
 	Save.path = old_path
 	Save.load_data()

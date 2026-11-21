@@ -247,19 +247,81 @@ static func bonuses(items: Array) -> Dictionary:
 
 
 # ---------------------------------------------------------------------
-# 装备分数：每件 = 品级基础分 × (1 + 强化加成)；总分 = 已穿戴各件之和（选关推荐线用）
+# 装备分数（按真实数值算）：
+#   每件 = 属性折成「伤害等价」之和 + 词条价值 × 适配度，再 × SCORE_SCALE；强化已经算进属性里（词条不随强化）。
+#   适配度：词条对应的招式 = 本角色上次出发选的起手招式 → 1.0；本流派其它起手招式 → 0.6；非起手招式（局内才可能拿到）→ 0.3；
+#          心法词条 → 0.5。还没选过起手招式时，三个起手招式都按 0.8。
+#   联动：穿戴的装备里「同一招式」的词条件数越多，这些词条各自 ×（2 件 1.1 / 3 件 1.25 / 4 件 1.4 / 5 件 1.6）。
+#   总分 = 已穿戴各件之和（选关推荐线用）。客户端自己算，后端不校验。
 # ---------------------------------------------------------------------
 
-static func item_score(rarity: int, enh_level: int = 0) -> int:
-	var base: Array = Data.gear["score"]["base"]
-	return int(roundf(float(base[clampi(rarity, 0, base.size() - 1)]) * level_mult(clampi(enh_level, 0, enhance_max()))))
+const SCORE_W := {
+	"damage_pct": 100.0, "ying_dmg": 100.0, "cd_reduce": 110.0, "crit_chance": 50.0, "crit_mult": 50.0, "max_hp": 0.25, "armor": 4.0,
+	"neili_regen": 3.0, "max_neili": 0.15, "luck": 20.0, "exp_pct": 30.0, "speed_pct": 40.0, "qg_cd_reduce": 20.0,
+	"empower_cut": 40.0, "kill_neili": 3.0, "hit_slow": 20.0, "hp_regen": 15.0, "block_chance": 60.0, "dodge_chance": 60.0,
+	"armor_pierce": 60.0, "kill_hp": 2.0, "qi_gain": 40.0, "soul_gain": 40.0, "med_regen": 5.0, "pickup_heal": 2.0, "thorns": 1.0,
+}
+const SCORE_SCALE := 1.1
+const AFFIX_DIR_W := {"damage": 1.0, "cooldown": 1.1, "range": 0.4, "empower": 0.2}
+const AFFIX_W := 0.6              # 词条价值整体系数（一条 12% 伤害词条 ≈ 7 点等价）
+const SYNERGY := [1.0, 1.0, 1.1, 1.25, 1.4, 1.6]
+
+
+static func affix_relevance(a: Dictionary, school_id: String, starter: String) -> float:
+	if str(a["kind"]) != "skill":
+		return 0.5
+	var sid := str(a["id"])
+	var starters: Array = Data.schools[school_id].get("starters", []) if Data.schools.has(school_id) else []
+	if not starters.has(sid):
+		return 0.3
+	if starter == "":
+		return 0.8
+	return 1.0 if sid == starter else 0.6
+
+
+static func stat_points(it: Dictionary) -> float:
+	var t := 0.0
+	for k in it["stats"]:
+		t += float(it["stats"][k]) * float(SCORE_W.get(k, 10.0))
+	return t
+
+
+static func affix_points(a: Dictionary) -> float:
+	if str(a["kind"]) == "skill":
+		return float(a["v"]) * float(AFFIX_DIR_W.get(str(a["dir"]), 0.5)) * AFFIX_W
+	return float(a["v"]) * 4.0 * AFFIX_W
+
+
+## 单件的分数（不含联动）
+static func item_score_of(code: String, enh_level: int, school_id: String, starter: String = "") -> int:
+	var it := make(code, school_id, enh_level)
+	if it.is_empty():
+		return 0
+	var t := stat_points(it)
+	for a in it["affixes"]:
+		t += affix_points(a) * affix_relevance(a, school_id, starter)
+	return int(roundf(t * SCORE_SCALE))
 
 
 ## equip：部位 → 编码；enh：编码 → 强化等级
-static func total_score(equip: Dictionary, enh: Dictionary) -> int:
-	var t := 0
+static func total_score(equip: Dictionary, enh: Dictionary, school_id: String = "fist", starter: String = "") -> int:
+	var items: Array = []
+	var cnt := {}
 	for slot in equip:
-		var pc := parse(str(equip[slot]))
-		if not pc.is_empty():
-			t += item_score(int(pc["rarity"]), int(enh.get(str(equip[slot]), 0)))
-	return t
+		var code := str(equip[slot])
+		var it := make(code, school_id, int(enh.get(code, 0)))
+		if it.is_empty():
+			continue
+		items.append(it)
+		for a in it["affixes"]:
+			if str(a["kind"]) == "skill":
+				cnt[str(a["id"])] = int(cnt.get(str(a["id"]), 0)) + 1
+	var t := 0.0
+	for it in items:
+		t += stat_points(it)
+		for a in it["affixes"]:
+			var syn := 1.0
+			if str(a["kind"]) == "skill":
+				syn = float(SYNERGY[clampi(int(cnt.get(str(a["id"]), 1)), 0, SYNERGY.size() - 1)])
+			t += affix_points(a) * affix_relevance(a, school_id, starter) * syn
+	return int(roundf(t * SCORE_SCALE))

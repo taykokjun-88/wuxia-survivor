@@ -431,6 +431,7 @@ func _on_loadout(starter_id: String, qinggong_id: String) -> void:
 	if state != State.LOADOUT:
 		return
 	_flush_pending()
+	Save.set_last_starter(starter_id)
 	Build.apply_to(world, Save.meta_alloc(), Save.meta_talents(), Save.equip(), Save.school())
 	world.meta_level = int(Meta.progress(Save.meta_exp())["level"])
 	world.start_run(starter_id, qinggong_id, current_map, hud.difficulty_factors())
