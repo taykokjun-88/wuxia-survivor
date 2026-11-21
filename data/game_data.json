@@ -1211,7 +1211,10 @@
       },
       "anim": "thrust",
       "empower_cost": 8,
-      "empower": "必暴击"
+      "empower": "必暴击",
+      "fx": {
+        "slash": "fx_yangjia_thrust"
+      }
     },
     "meihua_spear": {
       "name": "梅花枪法",
@@ -1243,7 +1246,10 @@
       },
       "anim": "thrust",
       "empower_cost": 8,
-      "empower": "每一枪必暴击"
+      "empower": "每一枪必暴击",
+      "fx": {
+        "slash": "fx_meihua_spear"
+      }
     },
     "baima_spear": {
       "name": "白马银枪",
@@ -1273,7 +1279,10 @@
       },
       "anim": "dash",
       "empower_cost": 8,
-      "empower": "位移 ×1.5"
+      "empower": "位移 ×1.5",
+      "fx": {
+        "slash": "fx_baima_dash"
+      }
     },
     "wuming_spear": {
       "name": "无名枪法",
@@ -1308,7 +1317,10 @@
       },
       "anim": "thrust",
       "empower_cost": 12,
-      "empower": "必暴击"
+      "empower": "必暴击",
+      "fx": {
+        "slash": "fx_wuming_thrust"
+      }
     },
     "shaolin_staff": {
       "name": "少林棍法",
@@ -1339,7 +1351,10 @@
       },
       "anim": "slash",
       "empower_cost": 8,
-      "empower": "范围 ×1.4"
+      "empower": "范围 ×1.4",
+      "fx": {
+        "slash": "fx_staff_sweep"
+      }
     },
     "panlong_staff": {
       "name": "蟠龙棍法",
@@ -1371,7 +1386,10 @@
       },
       "anim": "slash",
       "empower_cost": 10,
-      "empower": "守势时间 +2 秒"
+      "empower": "守势时间 +2 秒",
+      "fx": {
+        "ring": "fx_panlong"
+      }
     },
     "dagou_staff": {
       "name": "打狗棒法",
@@ -1404,7 +1422,10 @@
       },
       "anim": "slash",
       "empower_cost": 8,
-      "empower": "定身 ×2"
+      "empower": "定身 ×2",
+      "fx": {
+        "slash": "fx_dagou"
+      }
     },
     "fengmo_staff": {
       "name": "疯魔杖法",
@@ -1437,7 +1458,10 @@
       },
       "anim": "slash",
       "empower_cost": 8,
-      "empower": "旋转 +1 秒"
+      "empower": "旋转 +1 秒",
+      "fx": {
+        "ring": "fx_fengmo"
+      }
     },
     "xiangmo_staff": {
       "name": "降魔杖",
@@ -1470,7 +1494,10 @@
       },
       "anim": "slash",
       "empower_cost": 14,
-      "empower": "必晕 + 范围 ×1.5"
+      "empower": "必晕 + 范围 ×1.5",
+      "fx": {
+        "ring": "fx_xiangmo"
+      }
     }
   },
   "xinfa": {
@@ -2628,19 +2655,20 @@
     },
     "spear": {
       "name": "杨家将",
-      "enabled": false,
+      "enabled": true,
       "desc": "前杨家军唯一的生还者。枪走灵动，棍走刚猛。",
       "starters": [
         "yangjia_spear",
         "shaolin_staff"
       ],
       "portrait": "res://assets/portraits/spear_hero.jpg",
-      "sprite_dir": "",
+      "sprite_dir": "res://assets/sprites/spear",
       "story": "杨家军镇守北疆三代。一夜之间，朝中奸佞的一道假军令，把七千将士送进了绝境。你是那一仗里唯一爬出尸山的人——长枪早已折断，只剩半截白蜡棍，和满身未愈的旧伤。\n朝廷要追封，你没有领；有人劝你站出来说句话，你也没有说。你把刻着“杨”字的军牌埋在了战场，换上粗布衣，在茶棚、镖局、驿站之间走动：一面暗中追查当年那道军令的真相，一面替路过的百姓挡几刀。\n你早已不是军人，可那份刻进骨子里的正直，仍不许你对不平之事转身走开。一杆枪，一根棍，一个不敢再提的姓氏——侠之大者，为国为民，便从这里起步。",
       "passive": {
         "block_chance": 0.2
       },
-      "passive_text": "格挡：格挡几率初始 20%（成功格挡 = 本次伤害完全免疫，并把近身的敌人稍微震退），上限 70%；射程 +10%；枪路（灵动）：移速 +8%，移动攒「枪势」，势满下一枪变「游龙突」——向前冲出贯穿一线；枪尖（射程最外 35%）命中伤害 +45%；连续命中累计连击，每 5 连击 +6% 伤害（最多 +30%），每 10 连击触发「枪影」追击；棍路（刚猛）：暴击率 +10%、暴击伤害 +25%、格挡 +10%，近身命中与格挡攒「棍势」，势满下一棍变「横扫千军」——超大范围必暴击重击"
+      "passive_text": "格挡：格挡几率初始 20%（成功格挡 = 本次伤害完全免疫，并把近身的敌人稍微震退），上限 70%；射程 +10%；枪路（灵动）：移速 +8%，移动攒「枪势」，势满下一枪变「游龙突」——向前冲出贯穿一线；枪尖（射程最外 35%）命中伤害 +45%；连续命中累计连击，每 5 连击 +6% 伤害（最多 +30%），每 10 连击触发「枪影」追击；棍路（刚猛）：暴击率 +10%、暴击伤害 +25%、格挡 +10%，近身命中与格挡攒「棍势」，势满下一棍变「横扫千军」——超大范围必暴击重击",
+      "town_hero_dir": "res://assets/town/hero_spear"
     }
   },
   "level_growth": {

@@ -650,6 +650,176 @@
       "cell": 128,
       "loop": true,
       "world_size": 70.0
+    },
+    "fx_yangjia_thrust": {
+      "file": "fx_yangjia_thrust.png",
+      "frames": 4,
+      "fps": 16.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 400.0
+    },
+    "fx_wuming_thrust": {
+      "file": "fx_wuming_thrust.png",
+      "frames": 4,
+      "fps": 16.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 300.0
+    },
+    "fx_wuming_hit": {
+      "file": "fx_wuming_hit.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 200.0
+    },
+    "fx_meihua_spear": {
+      "file": "fx_meihua_spear.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 220.0
+    },
+    "fx_baima_dash": {
+      "file": "fx_baima_dash.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 300.0
+    },
+    "fx_spear_tip": {
+      "file": "fx_spear_tip.png",
+      "frames": 4,
+      "fps": 20.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 120.0
+    },
+    "fx_youlong_dash": {
+      "file": "fx_youlong_dash.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 420.0
+    },
+    "fx_staff_sweep": {
+      "file": "fx_staff_sweep.png",
+      "frames": 4,
+      "fps": 16.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 260.0,
+      "forward": 0.2
+    },
+    "fx_staff_wide": {
+      "file": "fx_staff_wide.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 560.0
+    },
+    "fx_panlong": {
+      "file": "fx_panlong.png",
+      "frames": 4,
+      "fps": 10.0,
+      "cell": 192,
+      "loop": true,
+      "world_size": 300.0
+    },
+    "fx_dagou": {
+      "file": "fx_dagou.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 200.0
+    },
+    "fx_fengmo": {
+      "file": "fx_fengmo.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": true,
+      "world_size": 260.0
+    },
+    "fx_xiangmo": {
+      "file": "fx_xiangmo.png",
+      "frames": 4,
+      "fps": 12.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 300.0
+    },
+    "fx_block_swing": {
+      "file": "fx_block_swing.png",
+      "frames": 4,
+      "fps": 18.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 170.0
+    },
+    "fx_block_wave": {
+      "file": "fx_block_wave.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 220.0
+    },
+    "aura_staff_charge": {
+      "file": "aura_staff_charge.png",
+      "frames": 4,
+      "fps": 10.0,
+      "cell": 192,
+      "loop": true,
+      "world_size": 180.0
+    },
+    "fx_blade_bleed_pop": {
+      "file": "fx_blade_bleed_pop.png",
+      "frames": 4,
+      "fps": 20.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 200.0
+    },
+    "fist_whirl_ring": {
+      "file": "fist_whirl_ring.png",
+      "frames": 4,
+      "fps": 16.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 260.0
+    },
+    "sw_taiji_reflect": {
+      "file": "sw_taiji_reflect.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 160.0
+    },
+    "proj_taiji_reflect": {
+      "file": "proj_taiji_reflect.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": true,
+      "world_size": 90.0
+    },
+    "sw_qingsong_wave": {
+      "file": "sw_qingsong_wave.png",
+      "frames": 4,
+      "fps": 20.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 260.0,
+      "forward": 0.2
     }
   }
 }

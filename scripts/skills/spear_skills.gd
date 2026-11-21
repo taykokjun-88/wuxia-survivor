@@ -50,6 +50,18 @@ class Base extends SkillBase:
 	func ray_fx(from: Vector2, to: Vector2, width: float, color: Color) -> void:
 		w.add_fx("ray", from, 0.25, {"to": to, "width": width, "color": color})
 
+	## 有素材就播特效条带（size = 世界里的边长，angle = 朝向）；没有素材返回 false，调用方画程序线条
+	func vfx_at(id: String, pos: Vector2, size: float, angle: float = 0.0, life: float = 0.35) -> bool:
+		if id == "" or not w.vfx.has(id):
+			return false
+		w.add_fx("ring", pos, life, {"r0": 10.0, "r1": 10.0, "color": Color.WHITE, "vfx": id, "size": size, "angle": angle})
+		return true
+
+	func beam_fx(id: String, from: Vector2, to: Vector2, width: float, color: Color, length_scale: float = 1.25) -> void:
+		var d := to - from
+		if not vfx_at(id, from + d * 0.5, d.length() * length_scale, d.angle(), 0.3):
+			ray_fx(from, to, width, color)
+
 	## 枪势满：下一枪变「游龙突」——向前冲出约 320 像素，沿途无敌，贯穿路径上所有敌人（×1.8、必暴击）
 	func breakthrough(dir: Vector2) -> bool:
 		if free_cast or str(def.get("route", "")) != "spear" or id == "wuming_spear" or w.spear_qs < 100.0:
@@ -60,7 +72,8 @@ class Base extends SkillBase:
 		var start := w.player_pos
 		line_hit(start, dir, dist, 64.0, p("damage") * 1.8, 120.0, 1.45, true)
 		w.player_pos += dir * dist
-		ray_fx(start, w.player_pos, 46.0, Color("#ffd878"))
+		if not vfx_at("fx_youlong_dash", start + dir * dist * 0.5, dist * 1.35, dir.angle(), 0.45):
+			ray_fx(start, w.player_pos, 46.0, Color("#ffd878"))
 		w.add_fx("text", w.player_pos + Vector2(0, -50), 0.9, {"text": "游龙突！", "size": 28, "color": Color("#ffd878")})
 		w.shake = maxf(w.shake, 5.0)
 		return true
@@ -73,7 +86,8 @@ class Base extends SkillBase:
 		var r := (p("reach") if def.has("reach") else p("radius")) * 2.0 * (1.0 + w.st("sweep_r"))
 		w.spear_guard_t = 0.5
 		w.cone_hit(self, w.player_pos, 0.0, PI, r, p("damage") * 2.5, p("knock") * 2.0, true)
-		w.add_fx("ring", w.player_pos, 0.45, {"r0": 20.0, "r1": r, "color": Color("#ffd878")})
+		if not vfx_at("fx_staff_wide", w.player_pos, r * 2.2, 0.0, 0.5):
+			w.add_fx("ring", w.player_pos, 0.45, {"r0": 20.0, "r1": r, "color": Color("#ffd878")})
 		w.add_fx("text", w.player_pos + Vector2(0, -50), 0.9, {"text": "横扫千军！", "size": 28, "color": Color("#ffd878")})
 		w.shake = maxf(w.shake, 8.0)
 		return true
@@ -110,7 +124,7 @@ class Yangjia extends Base:
 		if breakthrough(dir):
 			return true
 		var origin := w.player_pos
-		ray_fx(origin, origin + dir * reach, 26.0, Color("#dfe8f5"))
+		beam_fx("fx_yangjia_thrust", origin, origin + dir * reach, 26.0, Color("#dfe8f5"))
 		line_hit(origin, dir, reach, p("width"), p("damage"), p("knock"), float(def["tip"]), empowered)
 		w.player_knock = -dir * 520.0                       # 回马枪：退一小步
 		w.invuln = maxf(w.invuln, 0.2)
@@ -132,6 +146,7 @@ class Meihua extends Base:
 			return true
 		var n := int(p("count")) + (2 if enhanced() else 0)
 		var dmg := p("damage") * (1.0 + (ev(0.1, 0.2, 0.3) if enhanced() else 0.0))
+		vfx_at("fx_meihua_spear", t.pos, 190.0, 0.0, 0.35)
 		for i in n:
 			var d2 := dir.rotated((i - (n - 1) * 0.5) * float(def["spread"]))
 			ray_fx(w.player_pos, w.player_pos + d2 * reach, 14.0, Color("#f0c8c8"))
@@ -154,7 +169,7 @@ class Baima extends Base:
 		w.invuln = maxf(w.invuln, 0.25)
 		line_hit(start, dir, dist, p("width"), p("damage"), p("knock"), 1.2, false)
 		w.player_pos += dir * dist
-		ray_fx(start, w.player_pos, 38.0, Color("#eaf2ff"))
+		beam_fx("fx_baima_dash", start, w.player_pos, 38.0, Color("#eaf2ff"), 1.4)
 		if enhanced():                                       # 银龙探海：终点炸开一圈枪气
 			var r := ev(110.0, 135.0, 160.0)
 			w.area_hit(self, w.player_pos, r, p("damage") * ev(0.8, 1.0, 1.2), 200.0)
@@ -203,7 +218,8 @@ class WuMing extends Base:
 		if t == null:
 			return false
 		var dir := (t.pos - w.player_pos).normalized()
-		ray_fx(w.player_pos, t.pos, 30.0, Color("#ffd878"))
+		beam_fx("fx_wuming_thrust", w.player_pos, t.pos, 30.0, Color("#ffd878"), 1.3)
+		vfx_at("fx_wuming_hit", t.pos, 200.0, 0.0, 0.4)
 		casts += 1
 		t.def_down = 0.3
 		t.def_down_t = 5.0
@@ -250,7 +266,8 @@ class PanLong extends Base:
 			return false
 		w.panlong_t = p("stance") + (2.0 if empowered else 0.0)
 		w.panlong_blocks = 0
-		w.add_fx("ring", w.player_pos, 0.5, {"r0": 20.0, "r1": 90.0, "color": Color("#9ab8c8")})
+		if not vfx_at("fx_panlong", w.player_pos, 300.0, 0.0, 0.5):
+			w.add_fx("ring", w.player_pos, 0.5, {"r0": 20.0, "r1": 90.0, "color": Color("#9ab8c8")})
 		w.add_fx("text", w.player_pos + Vector2(0, -50), 0.9, {"text": "盘龙守势", "size": 26, "color": Color("#9ab8c8")})
 		return true
 
@@ -323,7 +340,8 @@ class Fengmo extends Base:
 			if e.alive and e.pos.distance_to(w.player_pos) < r + e.radius:
 				near += 1
 		var mult := 1.0 + 0.05 * float(mini(near, 10))
-		w.fx_slash(w.player_pos, w.time * 14.0, r, 3.0, false, fxid("slash"))
+		if not vfx_at("fx_fengmo", w.player_pos, r * 2.4, 0.0, 0.3):
+			w.fx_slash(w.player_pos, w.time * 14.0, r, 3.0, false, "")
 		w.area_hit_raw(w.player_pos, r, p("damage") * mult, tags(), id, p("knock"), 0.0, false, false)
 
 
@@ -349,7 +367,8 @@ class Xiangmo extends Base:
 			var rr: float = r * float(rings[i])
 			var amt := p("damage") * mult * (ev(0.5, 0.6, 0.7) if enhanced() else 1.0)
 			w.area_hit_raw(center, rr, amt, tags(), id, p("knock"), 0.0, false, empowered)
-			w.add_fx("ring", center, 0.35 + 0.08 * i, {"r0": 12.0, "r1": rr, "color": Color("#ffd878")})
+			if not vfx_at("fx_xiangmo", center, rr * 2.3, 0.0, 0.4 + 0.08 * i):
+				w.add_fx("ring", center, 0.35 + 0.08 * i, {"r0": 12.0, "r1": rr, "color": Color("#ffd878")})
 		for e in w._query(center, r):                           # 击晕
 			if e.alive and not e.is_boss and e.pos.distance_to(center) < r + e.radius:
 				e.stun = maxf(e.stun, p("stun") * (2.0 if empowered else 1.0))

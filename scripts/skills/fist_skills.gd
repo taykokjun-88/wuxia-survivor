@@ -93,7 +93,7 @@ class WhirlPalm extends SkillBase:
 			var rr: float = r * float(radii[i])
 			var last: bool = i == radii.size() - 1
 			w.area_hit(self, w.player_pos, rr, p("damage") * (1.0 if n == 1 else 0.6), p("knock") * (2.0 if empowered else 1.0) if last else 0.0)
-			w.add_fx("ring", w.player_pos, 0.3 + 0.08 * i, {"r0": 15.0, "r1": rr, "color": GameWorld.INK, "vfx": fxid("ring") if fxid("ring") != "" else "burst_wind"})
+			w.add_fx("ring", w.player_pos, 0.3 + 0.08 * i, {"r0": 15.0, "r1": rr, "color": GameWorld.INK, "vfx": "fist_whirl_ring" if w.vfx.has("fist_whirl_ring") else (fxid("ring") if fxid("ring") != "" else "burst_wind"), "size": rr * 2.3})
 		if enhanced():
 			w.add_zone({"kind": "vortex", "skill": self, "dmg": p("damage") * ev(1.2, 1.6, 2.0), "r": r * ev(1.8, 2.1, 2.4),
 				"t": 0.0, "life": 0.9})

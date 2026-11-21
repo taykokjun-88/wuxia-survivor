@@ -62,7 +62,7 @@ class QingSong extends SkillBase:
 				crowd += 1
 		var wave := crowd >= 2 or empowered
 		var arc := p("arc") * (2.2 if wave else 1.0)
-		w.fx_slash(w.player_pos, a, reach, arc * (1.0 if fxid("slash") == "" else 1.0), wave, fxid("slash"))
+		w.fx_slash(w.player_pos, a, reach, arc * (1.0 if fxid("slash") == "" else 1.0), wave, "sw_qingsong_wave" if (wave and w.vfx.has("sw_qingsong_wave")) else fxid("slash"))
 		w.cone_hit(self, w.player_pos, a, arc * 0.5, reach, p("damage") * (1.7 if wave else 1.0), p("knock") * (1.6 if wave else 1.0), false)
 		if wave and enhanced():
 			var n := int(ev(3, 4, 5))
@@ -116,6 +116,10 @@ class TaijiSword extends SkillBase:
 			pr.life = 1.5
 			pr.skill_id = id
 			pr.tags = tags()
+			if w.vfx.has("proj_taiji_reflect"):
+				pr.vfx_id = "proj_taiji_reflect"
+			if w.vfx.has("sw_taiji_reflect") and w.effects.size() < GameWorld.MAX_EFFECTS:
+				w.add_fx("ring", pr.pos, 0.35, {"r0": 10.0, "r1": 10.0, "color": Color.WHITE, "vfx": "sw_taiji_reflect", "size": 160.0})
 		var mult := 1.0 + (minf(1.5, hostile.size() * ev(0.1, 0.15, 0.2)) if enhanced() else 0.0)
 		w.area_hit(self, w.player_pos, r, p("damage") * mult, p("knock"))
 		w.add_fx("ring", w.player_pos, 0.35, {"r0": 15.0, "r1": r, "color": GameWorld.JADE, "vfx": fxid("ring") if fxid("ring") != "" else "ring_taiji"})

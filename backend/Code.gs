@@ -465,7 +465,7 @@ function logout(req) {
 }
 
 // BEGIN GENERATED (tools/sync_talents.py)
-var SCHOOLS = ["fist", "sword", "blade"];
+var SCHOOLS = ["fist", "sword", "blade", "spear"];
 var TALENT_GATE = 3;
 var TALENT_PER_LEVEL = 2;
 var TALENT_JI_NEED = 99;

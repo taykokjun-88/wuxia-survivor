@@ -116,6 +116,7 @@ var hidden_seen := false           # 隐藏武功卡是否已经出现过
 var block_count := 0
 var meta_alloc: Dictionary = {}    # 局外属性点（福缘 / 身法影响隐藏武功出现几率）
 var _spear_ctx := false            # 枪影追击中：不再累计连击
+var _spear_aura_t := 0.0
 
 # 奇门遁甲（桃花岛）：八门——地面八卦盘，周期洗牌；吉门有益、凶门有害（玩家和敌人都受影响）
 const BAGUA_GATES := {
@@ -2335,6 +2336,13 @@ func _tick_spear(dt: float) -> void:
 		spear_combo = 0
 	spear_buff_t = maxf(0.0, spear_buff_t - dt)
 	spear_guard_t = maxf(0.0, spear_guard_t - dt)
+	_spear_aura_t -= dt
+	if _spear_aura_t <= 0.0:
+		_spear_aura_t = 0.5
+		if spear_gs >= 100.0 and vfx.has("aura_staff_charge"):
+			add_fx("ring", player_pos, 0.55, {"r0": 10.0, "r1": 10.0, "color": Color.WHITE, "vfx": "aura_staff_charge", "size": 190.0})
+		if panlong_t > 0.0 and vfx.has("fx_panlong"):
+			add_fx("ring", player_pos, 0.55, {"r0": 10.0, "r1": 10.0, "color": Color.WHITE, "vfx": "fx_panlong", "size": 300.0})
 	if panlong_t > 0.0:
 		panlong_t -= dt
 		if panlong_t <= 0.0 and skills.has("panlong_staff"):
@@ -2375,6 +2383,8 @@ func spear_tip_hit(e: Enemy) -> void:
 	if e.is_prop or not e.alive:
 		return
 	apply_vuln(e, 0.12)
+	if vfx.has("fx_spear_tip") and effects.size() < MAX_EFFECTS:
+		add_fx("ring", e.pos, 0.3, {"r0": 10.0, "r1": 10.0, "color": Color.WHITE, "vfx": "fx_spear_tip", "size": 110.0})
 	if effects.size() < MAX_EFFECTS and rng.randf() < 0.35:
 		add_fx("text", e.pos + Vector2(0, -e.radius - 26), 0.7, {"text": "枪尖", "size": 20, "color": Color("#ffd878")})
 
@@ -3110,7 +3120,7 @@ func bleed_burst(e: Enemy, partial: bool = false) -> void:
 	e.bleed_dps = 0.0
 	e.bleed_t = 0.0
 	area_hit_raw(e.pos, Data.T("bleed_burst_r"), dmg, [], "bleed", 60.0)
-	add_fx("ring", e.pos, 0.4, {"r0": 10.0, "r1": Data.T("bleed_burst_r"), "color": Color("#d84a3a")})
+	add_fx("ring", e.pos, 0.4, {"r0": 10.0, "r1": Data.T("bleed_burst_r"), "color": Color("#d84a3a"), "vfx": "fx_blade_bleed_pop" if (partial and vfx.has("fx_blade_bleed_pop")) else "", "size": 200.0})
 	add_fx("text", e.pos + Vector2(0, -e.radius - 22), 0.9, {"text": "断脉爆血", "size": 24, "color": Color("#ff5a40")})
 	Sfx.play("hit_crit")
 
