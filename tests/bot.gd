@@ -4,6 +4,92 @@ extends RefCounted
 ## 无敌人可打时去捡秘籍/经验；敌人贴身时轻功；内力满且敌多时放大招。
 
 
+## 躲预警圈 / 来袭弹体（模拟「会看红圈的玩家」）。平衡测试里打开；其它测试保持原样
+static var dodge := false
+const DODGE_MARGIN := 34.0
+
+
+## 预警区域里需要离开的方向（零向量 = 安全）。urgent：这一刻施法就要结算（该用轻功了）
+static func danger_escape(w: GameWorld) -> Array:
+	var pp := w.player_pos
+	var esc := Vector2.ZERO
+	var urgent := false
+	for e in w.enemies:
+		if not e.alive or e.cast_id == "":
+			continue
+		var sd: Dictionary = Data.boss_skills.get(e.cast_id, {})
+		if sd.is_empty():
+			continue
+		var warn := float(sd["warn"])
+		var left := warn - e.cast_t
+		var shape := str(sd["shape"])
+		var active := left > -0.05
+		if shape == "line" and (e.cast_id in ["charge", "rush", "eagle_snake", "snow_palm", "thrust"]):
+			active = e.cast_t < float(e.cast_dur)           # 冲锋期间也危险
+		if not active:
+			continue
+		var fire_soon := left < 0.3
+		match shape:
+			"circle":
+				var c := e.pos
+				if e.cast_id in ["leap", "blink", "backstab"] or str(sd.get("at", "")) == "player":
+					c = e.cast_pos
+				var r := float(sd["r"]) + DODGE_MARGIN
+				if pp.distance_to(c) < r:
+					esc += (pp - c).normalized() * (r - pp.distance_to(c) + 40.0)
+					urgent = urgent or fire_soon
+			"fan":
+				var reach := float(sd["reach"]) + DODGE_MARGIN
+				var to := pp - e.pos
+				if to.length() < reach and absf(wrapf(to.angle() - e.cast_dir.angle(), -PI, PI)) <= float(sd["arc"]) * 0.5 + 0.35:
+					var side := signf(e.cast_dir.cross(to))
+					esc += e.cast_dir.orthogonal() * (side if side != 0.0 else 1.0) * 100.0
+					urgent = urgent or fire_soon
+			"line":
+				var ln := float(sd["len"])
+				var wd := float(sd["width"]) * 0.5 + DODGE_MARGIN
+				var rel := pp - e.pos
+				var along := rel.dot(e.cast_dir)
+				var off := rel.dot(e.cast_dir.orthogonal())
+				if along > -20.0 and along < ln + 20.0 and absf(off) < wd:
+					esc += e.cast_dir.orthogonal() * (signf(off) if off != 0.0 else 1.0) * 100.0
+					urgent = urgent or fire_soon
+			"rays":
+				var base := e.cast_dir.angle() + float(sd["offset"])
+				var nr := int(sd["n"])
+				for k in nr:
+					var ang := base + TAU * float(k) / float(nr)
+					var dv := Vector2.from_angle(ang)
+					var rel2 := pp - e.pos
+					var al := rel2.dot(dv)
+					var of := rel2.dot(dv.orthogonal())
+					if al > -20.0 and al < float(sd["len"]) + 20.0 and absf(of) < float(sd["width"]) * 0.5 + DODGE_MARGIN:
+						esc += dv.orthogonal() * (signf(of) if of != 0.0 else 1.0) * 100.0
+						urgent = urgent or fire_soon
+			"spots":
+				for sp in e.cast_list:
+					var rr := float(sd["r"]) + DODGE_MARGIN
+					if pp.distance_to(sp) < rr:
+						esc += (pp - sp).normalized() * 100.0
+						urgent = urgent or fire_soon
+	# 来袭弹体：预测 0.7 秒内会擦到就侧移
+	for pr in w.projs:
+		if not pr.hostile:
+			continue
+		var rel3: Vector2 = pp - pr.pos
+		var vl: float = pr.vel.length()
+		if vl < 1.0:
+			continue
+		var vd: Vector2 = pr.vel / vl
+		var al2: float = rel3.dot(vd)
+		if al2 < 0.0 or al2 > vl * 0.7:
+			continue
+		var of2: float = rel3.dot(vd.orthogonal())
+		if absf(of2) < pr.radius + GameWorld.PLAYER_RADIUS + 22.0:
+			esc += vd.orthogonal() * (signf(of2) if of2 != 0.0 else 1.0) * 60.0
+	return [esc.normalized() if esc.length() > 0.01 else Vector2.ZERO, urgent]
+
+
 ## engage：期望的交战距离。近战技能传 ~70，远程传 ~240。
 static func drive(w: GameWorld, engage: float = 220.0) -> void:
 	var nearest: Enemy = null
@@ -64,6 +150,12 @@ static func drive(w: GameWorld, engage: float = 220.0) -> void:
 			dir = strafe
 	elif goal_dir != Vector2.ZERO:
 		dir = goal_dir
+	if dodge and not w.god:
+		var ds := danger_escape(w)
+		if ds[0] != Vector2.ZERO:
+			dir = ds[0]
+			if bool(ds[1]) and w.invuln <= 0.0:
+				w.input_dash = true
 	w.input_move = dir
 
 	if crowd >= 3 and w.invuln <= 0.0:

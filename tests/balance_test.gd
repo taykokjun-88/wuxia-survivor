@@ -11,6 +11,7 @@ const ALLOCS := {
 
 
 func _ready() -> void:
+	TestBot.dodge = OS.get_environment("DODGE") != "0"
 	var school := OS.get_environment("SCHOOL")
 	var map_id := OS.get_environment("MAP") if OS.get_environment("MAP") != "" else "black_wind"
 	var lv := int(OS.get_environment("LV")) if OS.get_environment("LV") != "" else 1
