@@ -3982,7 +3982,19 @@
           "spikes": 1.0,
           "tent": 0.6
         }
-      }
+      },
+      "suggest": "适合局外 Lv1~15",
+      "exp": {
+        "mult": 1.0,
+        "run_cap": 400,
+        "cap_level": 15
+      },
+      "drop_weights": [
+        70,
+        27,
+        3,
+        0
+      ]
     },
     "guangming": {
       "name": "光明顶",
@@ -4018,7 +4030,7 @@
           "final": 2.4
         },
         "min_win": 800,
-        "hp_ramp": 1.0
+        "hp_scale_t": 111.43
       },
       "monsters": [
         {
@@ -4125,7 +4137,19 @@
           "lantern": 0.7
         }
       },
-      "banner": "res://assets/maps/guangming/stage_banner.jpg"
+      "banner": "res://assets/maps/guangming/stage_banner.jpg",
+      "suggest": "适合局外 Lv10~25",
+      "exp": {
+        "mult": 2.0,
+        "run_cap": 800,
+        "cap_level": 25
+      },
+      "drop_weights": [
+        35,
+        40,
+        20,
+        5
+      ]
     },
     "stage3": {
       "name": "？？？",

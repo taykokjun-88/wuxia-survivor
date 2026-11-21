@@ -471,14 +471,28 @@ var TALENT_PER_LEVEL = 2;
 var TALENT_JI_NEED = 99;
 var TALENTS = {"gang_force":["gang",0,2],"gang_body":["gang",0,2],"gang_crit":["gang",1,2],"gang_armor":["gang",1,2],"gang_ying":["gang",2,2],"gang_dragon":["gang",2,2],"gang_cm":["gang",3,2],"gang_force2":["gang",3,2],"gang_emp":["gang",4,2],"gang_vajra":["gang",4,3],"gang_regen":["gang",5,3],"gang_ying2":["gang",5,3],"gang_peak":["gang",6,1],"gang_force3":["gang",6,5],"rou_regen":["rou",0,2],"rou_body":["rou",0,2],"rou_neili":["rou",1,2],"rou_med":["rou",1,2],"rou_med2":["rou",2,2],"rou_shield":["rou",2,2],"rou_block":["rou",3,2],"rou_petal":["rou",3,2],"rou_heal":["rou",4,2],"rou_finger":["rou",4,3],"rou_full":["rou",5,3],"rou_cut":["rou",5,3],"rou_peak":["rou",6,1],"rou_armor":["rou",6,5],"ling_step":["ling",0,2],"ling_luck":["ling",0,2],"ling_cd":["ling",1,2],"ling_qg":["ling",1,2],"ling_crit":["ling",2,2],"ling_palm":["ling",2,2],"ling_exp":["ling",3,2],"ling_dodge":["ling",3,2],"ling_cd2":["ling",4,2],"ling_waste":["ling",4,3],"ling_luck2":["ling",5,3],"ling_cm":["ling",5,3],"ling_peak":["ling",6,1],"ling_step2":["ling",6,5],"ji_peak":["ji",7,1]};
 var GEAR = {"slots":["weapon","coat","pants","boots","charm"],"weights":[60,30,9,1],"invMax":40,"mini":1,"bossMin":1,"bossExtra":0.5,"enh":{"max":10,"bonus":0.08,"costBase":[12,30,70,160],"costExp":1.6},"silver":{"perScore":120,"cap":300,"winBonus":60,"comp":0.5,"discard":[3,10,40,120],"max":999999}};
-var MAPS = {"black_wind":{"minTimes":[180,330,480],"finalT":600,"minWin":620,"requires":""},"guangming":{"minTimes":[180,360,540],"finalT":780,"minWin":800,"requires":""}};
+var MAPS = {"black_wind":{"minTimes":[180,330,480],"finalT":600,"minWin":620,"requires":"","expMult":1.0,"runCap":400,"capLevel":15,"dropWeights":[70,27,3,0]},"guangming":{"minTimes":[180,360,540],"finalT":780,"minWin":800,"requires":"","expMult":2.0,"runCap":800,"capLevel":25,"dropWeights":[35,40,20,5]}};
 var DIFF = {"expMeta":0.5,"dropBonus":0.0,"raritySkew":0.5};
 // END GENERATED
 
 // ---------------------------------------------------------------- 局外成长（scripts/meta.gd 里有同一份，共用 meta_vectors.json 测试）
 var META = { MAX_LEVEL: 50, PER_LEVEL: 3, ATTR_CAP: 99, EXP_CAP: 400, WIN_BONUS: 40, FIRST_WIN_BONUS: 100,
              ATTRS: ['pow', 'agi', 'vit', 'int', 'luk'] };
-function metaNeed(l) { return 40 + 6 * l; }
+/** 升级曲线倍率（scripts/meta.gd 里有同一份）：1~15 级 ×0.75；15~30 → 2.2；30~40 → 3.5；40 以上 → 5.5 */
+function metaCurve(l) {
+  if (l <= 15) return 0.75;
+  if (l <= 30) return 0.75 + (l - 15) * (1.45 / 15.0);
+  if (l <= 40) return 2.2 + (l - 30) * 0.13;
+  return 3.5 + (l - 40) * 0.2;
+}
+function metaNeed(l) { return Math.floor((40 + 6 * l) * metaCurve(l) + 0.5); }
+function metaReach(level) { var t = 0; for (var l = 1; l < level; l++) t += metaNeed(l); return t; }
+/** 地图的修为上限：cap_level 级再加半级；到了就不再给修为 */
+function metaCapped(gained, cur, capLevel) {
+  if (!(capLevel > 0)) return gained;
+  var capExp = metaReach(capLevel) + Math.floor(metaNeed(capLevel) / 2);
+  return Math.max(0, Math.min(gained, capExp - cur));
+}
 function metaLevel(exp) {
   var l = 1, t = 0;
   while (l < META.MAX_LEVEL && t + metaNeed(l) <= exp) { t += metaNeed(l); l++; }
@@ -495,9 +509,10 @@ function diffComp(d) {
   }
   return sum / 300;
 }
-function metaRunExp(score, won, first, comp) {
-  var x = Math.min(META.EXP_CAP, Math.round(score / 80));
-  if (won) x += META.WIN_BONUS + (first ? META.FIRST_WIN_BONUS : 0);
+function metaRunExp(score, won, first, comp, mx) {
+  var mm = mx && mx.expMult ? mx.expMult : 1, cap = mx && mx.runCap ? mx.runCap : META.EXP_CAP;
+  var x = Math.min(cap, Math.round(score / 80 * mm));
+  if (won) x += Math.round((META.WIN_BONUS + (first ? META.FIRST_WIN_BONUS : 0)) * mm);
   return Math.round(x * (1 + ((comp || 1) - 1) * DIFF.expMeta));
 }
 function metaEffective(p) {
@@ -558,20 +573,20 @@ function silverForRun(score, won, comp) {
   return Math.round(x * (1 + ((comp || 1) - 1) * GEAR.silver.comp));
 }
 function addSilver(state, n) { state.silver = Math.min(GEAR.silver.max, Math.max(0, Math.floor(Number(state.silver) || 0)) + Math.max(0, Math.floor(n))); }
-function gearWeight(i, comp) { return GEAR.weights[i] * (1 + ((comp || 1) - 1) * DIFF.raritySkew * i); }
-function gearRoll(comp) {
-  var total = 0, i;
-  for (i = 0; i < GEAR.weights.length; i++) total += gearWeight(i, comp);
+function gearWeight(i, comp, w) { return (w && w.length > i ? w[i] : GEAR.weights[i]) * (1 + ((comp || 1) - 1) * DIFF.raritySkew * i); }
+function gearRoll(comp, map) {
+  var total = 0, i, w = map && MAPS[map] ? MAPS[map].dropWeights : null;
+  for (i = 0; i < GEAR.weights.length; i++) total += gearWeight(i, comp, w);
   var x = Math.random() * total, r = 0;
-  for (i = 0; i < GEAR.weights.length; i++) { x -= gearWeight(i, comp); if (x < 0) { r = i; break; } }
+  for (i = 0; i < GEAR.weights.length; i++) { x -= gearWeight(i, comp, w); if (x < 0) { r = i; break; } }
   return GEAR.slots[Math.floor(Math.random() * GEAR.slots.length)] + '.' + r + '.' + (1 + Math.floor(Math.random() * 999999));
 }
 /** 掉落：每个被击败的小 Boss 固定 1 件；大 Boss（通关）GEAR.bossMin 件，另有 GEAR.bossExtra 的几率再多 1 件（共 1~2 件）。
  *  返回新掉落的编码，并写进 state.items（超过上限先丢最低稀有度、最早的未穿戴装备） */
-function gearDrops(state, comp, minis, won) {
+function gearDrops(state, comp, minis, won, map) {
   var n = minis + (won ? GEAR.bossMin + (Math.random() < GEAR.bossExtra ? 1 : 0) : 0), codes = [];
   state.items = Array.isArray(state.items) ? state.items : [];
-  for (var i = 0; i < n; i++) { var c = gearRoll(comp); codes.push(c); state.items.push(c); }
+  for (var i = 0; i < n; i++) { var c = gearRoll(comp, map); codes.push(c); state.items.push(c); }
   var worn = {}, eq = state.equip || {};
   Object.keys(eq).forEach(function (k) { worn[eq[k]] = true; });
   while (state.items.length > GEAR.invMax) {
@@ -650,7 +665,9 @@ function submitScore(req) {
   var best = score > (Number(row[P.bestScore]) || 0);
   var firstWin = run.won && !(Number(row[P.wins]) > 0);
   var comp = diffComp(req.difficulty);
-  var gained = metaRunExp(score, run.won, firstWin, comp);
+  var mm = MAPS[run.map];
+  var gained0 = metaRunExp(score, run.won, firstWin, comp, mm);
+  var gained = metaCapped(gained0, Number(row[P.xp]) || 0, mm.capLevel);
   var oldLevel = metaLevel(Number(row[P.xp]) || 0);
   row[P.xp] = Math.max(0, Math.floor(Number(row[P.xp]) || 0)) + gained;
   row[P.runs] = (Number(row[P.runs]) || 0) + 1;
@@ -680,7 +697,7 @@ function submitScore(req) {
   var spawned = 0, mts = MAPS[run.map].minTimes;
   for (var mi = 0; mi < mts.length; mi++) if (run.seconds >= mts[mi]) spawned++;
   if (run.won) { stt.cleared = stt.cleared && typeof stt.cleared === 'object' ? stt.cleared : {}; stt.cleared[run.map] = true; }
-  drops = gearDrops(stt, comp, Math.min(minis, spawned), run.won);
+  drops = gearDrops(stt, comp, Math.min(minis, spawned), run.won, run.map);
   row[P.state] = JSON.stringify(stt);
   row[P.updated] = iso();
   row[P.lastSubmit] = iso();
@@ -692,7 +709,7 @@ function submitScore(req) {
     level: rankOf(row[P.cid], 'level')
   };
   var pr = profile(a.account.row, f);
-  return ok({ score: score, best: best, ranks: ranks, bests: pr.bests, gained: gained, exp: pr.exp, level: pr.level, levelUp: pr.level > oldLevel, drops: drops, comp: comp, silverGained: silverGained, silver: pr.silver, cleared: pr.cleared });
+  return ok({ score: score, best: best, ranks: ranks, bests: pr.bests, gained: gained, capped: gained < gained0, exp: pr.exp, level: pr.level, levelUp: pr.level > oldLevel, drops: drops, comp: comp, silverGained: silverGained, silver: pr.silver, cleared: pr.cleared });
 }
 
 // ---------------------------------------------------------------- 排行榜

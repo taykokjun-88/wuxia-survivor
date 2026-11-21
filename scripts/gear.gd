@@ -41,21 +41,22 @@ static func make_code(slot: String, rarity: int, seed_v: int) -> String:
 
 
 ## 随机掉一件（部位平均，稀有度按权重；min_rarity 用于保底）
-static func rarity_weight(i: int, comp: float) -> float:
-	## 难度越高，高稀有度的权重越大：第 i 档 ×(1 + (综合难度−1) × rarity_skew × i)
-	return float(Data.gear["rarity"][i]["weight"]) * (1.0 + (comp - 1.0) * float(Data.difficulty["rarity_skew"]) * float(i))
+static func rarity_weight(i: int, comp: float, weights: Array = []) -> float:
+	## 难度越高，高稀有度的权重越大：第 i 档 ×(1 + (综合难度−1) × rarity_skew × i)；weights：地图自己的稀有度权重（没有就用全局）
+	var base := float(weights[i]) if i < weights.size() else float(Data.gear["rarity"][i]["weight"])
+	return base * (1.0 + (comp - 1.0) * float(Data.difficulty["rarity_skew"]) * float(i))
 
 
-static func roll_code(rng: RandomNumberGenerator, min_rarity: int = 0, comp: float = 1.0) -> String:
+static func roll_code(rng: RandomNumberGenerator, min_rarity: int = 0, comp: float = 1.0, weights: Array = []) -> String:
 	var slots := slot_ids()
 	var slot: String = slots[rng.randi() % slots.size()]
 	var total := 0.0
 	for i in Data.gear["rarity"].size():
-		total += rarity_weight(i, comp)
+		total += rarity_weight(i, comp, weights)
 	var x := rng.randf() * total
 	var rarity := 0
 	for i in Data.gear["rarity"].size():
-		x -= rarity_weight(i, comp)
+		x -= rarity_weight(i, comp, weights)
 		if x < 0.0:
 			rarity = i
 			break
@@ -73,14 +74,15 @@ static func items_for(slot: String, school_id: String) -> Array:
 
 ## 本局掉落：每个被击败的小 Boss 固定 1 件；大 Boss（通关）1 件，另有 boss_extra_chance 的几率再 +1（共 1~2 件）
 ## 稀有度按 60 / 30 / 9 / 1 抽取，综合难度越高，特别 / 稀有 / 传说的权重按比例提高（见 rarity_weight）
-static func run_drops(rng: RandomNumberGenerator, minis: int, won: bool, comp: float = 1.0) -> Array:
+static func run_drops(rng: RandomNumberGenerator, minis: int, won: bool, comp: float = 1.0, map_id: String = "") -> Array:
+	var wts: Array = Data.maps.get(map_id, {}).get("drop_weights", [])
 	var dd: Dictionary = Data.gear["drops"]
 	var n := minis * int(dd["mini"])
 	if won:
 		n += int(dd["boss_min"]) + (1 if rng.randf() < float(dd["boss_extra_chance"]) else 0)
 	var out := []
 	for i in n:
-		out.append(roll_code(rng, 0, comp))
+		out.append(roll_code(rng, 0, comp, wts))
 	return out
 
 

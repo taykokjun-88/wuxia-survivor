@@ -908,14 +908,11 @@ func _pick_type() -> String:
 	return "charger"
 
 
-## 杂兵 / 精英的血量随时间的增幅：默认 1 + 时间 / hp_scale_t；地图时间轴里有 hp_ramp 的（光明顶）改为
-## 「从 1 倍线性涨到 1 + hp_ramp 倍，在大 Boss 出现时到顶」（不含大小 Boss，它们不随时间缩放）
+## 杂兵 / 精英的血量随时间的增幅：1 + 时间 / hp_scale_t；地图时间轴里有自己的 hp_scale_t 就用它
+## （光明顶 111.43：13 分钟时 ×8；其它地图用全局 hp_scale_t = 200）。大小 Boss 不随时间缩放
 func _hp_time_scale() -> float:
 	var tl := _timeline()
-	if tl.has("hp_ramp"):
-		var end_t := maxf(1.0, float(tl["final"]["t"]))
-		return 1.0 + float(tl["hp_ramp"]) * clampf(time / end_t, 0.0, 1.0)
-	return 1.0 + time / Data.T("hp_scale_t")
+	return 1.0 + time / float(tl.get("hp_scale_t", Data.T("hp_scale_t")))
 
 
 func _spawn_enemy(type: String, at: Vector2) -> Enemy:

@@ -263,7 +263,9 @@ func set_meta_alloc(alloc: Dictionary) -> void:
 ## 单机结算：加修为，返回 {gained, exp, level, levelUp}
 func add_run_exp(summary: Dictionary) -> Dictionary:
 	var first := bool(summary.get("won", false)) and not meta_won()
-	var gained := Meta.run_exp(Score.compute(summary), bool(summary.get("won", false)), first, Meta.comp_of(summary.get("difficulty", {})))
+	var mx: Dictionary = Data.maps.get(str(summary.get("map", "black_wind")), {}).get("exp", {})
+	var gained0 := Meta.run_exp(Score.compute(summary), bool(summary.get("won", false)), first, Meta.comp_of(summary.get("difficulty", {})), mx)
+	var gained := Meta.capped(gained0, meta_exp(), int(mx.get("cap_level", 0)))
 	var old_level := Meta.level_of(meta_exp())
 	var m := _meta()
 	m["exp"] = meta_exp() + gained
@@ -276,7 +278,7 @@ func add_run_exp(summary: Dictionary) -> Dictionary:
 	m["silver"] = mini(int(Data.gear["silver"]["max"]), silver() + sg)
 	save_data()
 	var lv := Meta.level_of(meta_exp())
-	return {"gained": gained, "exp": meta_exp(), "level": lv, "levelUp": lv > old_level, "silverGained": sg, "silver": silver()}
+	return {"gained": gained, "capped": gained < gained0, "exp": meta_exp(), "level": lv, "levelUp": lv > old_level, "silverGained": sg, "silver": silver()}
 
 
 # ---------------------------------------------------------------------

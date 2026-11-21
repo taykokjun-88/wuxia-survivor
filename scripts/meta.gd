@@ -20,9 +20,20 @@ const ATTRS := [
 ]
 
 
-## Lv L → L+1 所需修为
+## Lv L → L+1 所需修为：基础 40 + 6L，再乘一条分段的曲线倍率（1~15 级好升，之后越来越陡）
+##   L ≤ 15：×0.75；15~30：0.75 → 2.2；30~40：2.2 → 3.5；40 以上：3.5 → 5.5（Code.gs 里有同一份）
+static func curve(l: int) -> float:
+	if l <= 15:
+		return 0.75
+	if l <= 30:
+		return 0.75 + float(l - 15) * (1.45 / 15.0)
+	if l <= 40:
+		return 2.2 + float(l - 30) * 0.13
+	return 3.5 + float(l - 40) * 0.2
+
+
 static func need(l: int) -> int:
-	return 40 + 6 * l
+	return int(floor(float(40 + 6 * l) * curve(l) + 0.5))
 
 
 ## 到达某等级累计需要的修为（Lv1 为 0）
@@ -66,13 +77,25 @@ static func exp_mult(comp: float) -> float:
 	return 1.0 + (comp - 1.0) * float(Data.difficulty["exp_meta"])
 
 
-static func run_exp(score: int, won: bool, first_win: bool, comp: float = 1.0) -> int:
-	var x := mini(EXP_CAP_PER_RUN, int(round(float(score) / 80.0)))
+## mx：地图的修为设置 {mult, run_cap, cap_level}（没有就按黑风寨：×1、单局上限 400）
+static func run_exp(score: int, won: bool, first_win: bool, comp: float = 1.0, mx: Dictionary = {}) -> int:
+	var mm := float(mx.get("mult", 1.0))
+	var x := mini(int(mx.get("run_cap", EXP_CAP_PER_RUN)), int(round(float(score) / 80.0 * mm)))
 	if won:
-		x += WIN_BONUS
-		if first_win:
-			x += FIRST_WIN_BONUS
+		x += int(round(float(WIN_BONUS + (FIRST_WIN_BONUS if first_win else 0)) * mm))
 	return int(round(float(x) * exp_mult(comp)))
+
+
+## 这张地图能把修为推到的上限：cap_level 级再加半级。到了上限，这张图就不再给修为（银两和装备照给）
+static func exp_cap_of(cap_level: int) -> int:
+	return exp_to_reach(cap_level) + need(cap_level) / 2
+
+
+## 按地图上限截断本局修为：返回实际能拿到的
+static func capped(gained: int, cur_exp: int, cap_level: int) -> int:
+	if cap_level <= 0:
+		return gained
+	return clampi(exp_cap_of(cap_level) - cur_exp, 0, gained)
 
 
 static func points_total(level: int) -> int:
@@ -119,7 +142,7 @@ static func stats_for(alloc: Dictionary) -> Dictionary:
 	return {
 		"damage_pct": 0.005 * pw,
 		"speed_pct": 0.003 * ag,
-		"qg_cd_reduce": 0.004 * ag,
+		"qg_cd_reduce": 0.0015 * ag,
 		"max_hp": 1.5 * vi,
 		"armor": 0.04 * vi,
 		"hp_regen": 0.004 * vi,
@@ -138,7 +161,7 @@ static func effect_text(attr_id: String, points: int) -> String:
 			continue
 		match attr_id:
 			"pow": return str(a["desc"]) % (0.5 * e)
-			"agi": return str(a["desc"]) % [0.3 * e, 0.4 * e]
+			"agi": return str(a["desc"]) % [0.3 * e, 0.15 * e]
 			"vit": return str(a["desc"]) % [1.5 * e, 0.04 * e, 0.004 * e]
 			"int": return str(a["desc"]) % [0.7 * e, 0.09 * e]
 			"luk": return str(a["desc"]) % [0.15 * e, 0.8 * e]

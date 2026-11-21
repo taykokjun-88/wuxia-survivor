@@ -523,7 +523,7 @@ func _on_end(won: bool) -> void:
 			rng.randomize()
 			var sm := world.run_summary()
 			var minis := clampi(int(sm["bosses"]) - (1 if won else 0), 0, 3)
-			local["drops"] = Gear.run_drops(rng, minis, won, Meta.comp_of(sm.get("difficulty", {})))
+			local["drops"] = Gear.run_drops(rng, minis, won, Meta.comp_of(sm.get("difficulty", {})), str(sm.get("map", "black_wind")))
 			Save.add_items(local["drops"])
 			hud.set_end_extra(_exp_line(local))
 		return
@@ -598,8 +598,10 @@ func _flush_pending() -> void:
 
 func _exp_line(r: Dictionary) -> String:
 	var line := "修为 +%d　银两 +%d　局外 Lv%d" % [int(r.get("gained", 0)), int(r.get("silverGained", 0)), int(r.get("level", 1))]
+	if bool(r.get("capped", false)):
+		line += "　（这张图的修为已到上限，去更高的关卡历练吧）"
 	if bool(r.get("levelUp", false)):
-		line += "　升级了！获得 3 个属性点、1 个天赋点"
+		line += "　升级了！获得 3 个属性点、2 个天赋点"
 	var drops: Variant = r.get("drops", [])
 	if drops is Array and not (drops as Array).is_empty():
 		var names: Array = []
@@ -729,7 +731,7 @@ func _on_dialog_option(i: int) -> void:
 					var rec := ""
 					for r in Save.recommend_status(str(id)):
 						rec += "　%s %s" % ["✔" if bool(r["ok"]) else "✘", r["label"]]
-					opts.append({"label": "%s　%s　%s%s" % [m["name"], stars, m["desc"], ("\n推荐：" + rec) if rec != "" else ""], "action": "map:" + str(id)})
+					opts.append({"label": "%s　%s　%s　【%s】%s" % [m["name"], stars, m["desc"], m.get("suggest", ""), ("\n推荐：" + rec) if rec != "" else ""], "action": "map:" + str(id)})
 			opts.append({"label": "返回", "action": "talk"})
 			_dlg(dialog_npc, "想去哪儿历练？", opts)
 		"switch_char":

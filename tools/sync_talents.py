@@ -21,7 +21,7 @@ def block() -> str:
             "invMax": g["inventory_max"], "mini": g["drops"]["mini"], "bossMin": g["drops"]["boss_min"], "bossExtra": g["drops"]["boss_extra_chance"],
             "enh": {"max": g["enhance"]["max"], "bonus": g["enhance"]["bonus"], "costBase": g["enhance"]["cost_base"], "costExp": g["enhance"]["cost_exp"]},
             "silver": {"perScore": g["silver"]["per_score"], "cap": g["silver"]["cap"], "winBonus": g["silver"]["win_bonus"], "comp": g["silver"]["comp"], "discard": g["silver"]["discard"], "max": g["silver"]["max"]}}
-    maps = {k: {"minTimes": [m["t"] for m in v["timeline"]["minis"]], "finalT": v["timeline"]["final"]["t"], "minWin": v["timeline"]["min_win"], "requires": v.get("requires_clear", "")} for k, v in d["maps"].items() if "timeline" in v}
+    maps = {k: {"minTimes": [m["t"] for m in v["timeline"]["minis"]], "finalT": v["timeline"]["final"]["t"], "minWin": v["timeline"]["min_win"], "requires": v.get("requires_clear", ""), "expMult": v.get("exp", {}).get("mult", 1.0), "runCap": v.get("exp", {}).get("run_cap", 400), "capLevel": v.get("exp", {}).get("cap_level", 0), "dropWeights": v.get("drop_weights", [])} for k, v in d["maps"].items() if "timeline" in v}
     df = d["difficulty"]
     diff = {"expMeta": df["exp_meta"], "dropBonus": df["drop_bonus"], "raritySkew": df["rarity_skew"]}
     schools = [k for k, v in d["schools"].items() if v.get("enabled")]
