@@ -18,6 +18,9 @@ func _ready() -> void:
 	var gear_score := int(OS.get_environment("GEAR")) if OS.get_environment("GEAR") != "" else 0
 	var tal := OS.get_environment("TAL") if OS.get_environment("TAL") != "" else "none"
 	var seeds := int(OS.get_environment("SEEDS")) if OS.get_environment("SEEDS") != "" else 2
+	for kv in OS.get_environment("TUNE").split(",", false):        # 临时覆盖数值，例：TUNE=player_dmg_mult=1.0,enemy_hp_mult=2.5
+		var pr := kv.split("=")
+		Data.tuning[pr[0]] = float(pr[1])
 	var alloc: Dictionary = ALLOCS[alloc_name]
 	if lv < 10:
 		alloc = {}
@@ -51,6 +54,11 @@ func _ready() -> void:
 			var cause := ""
 			if not w.won:
 				cause = "超时未击败 Boss" if w.timeout_fail else "阵亡"
+			var alive := ""
+			for b in w.bosses:
+				if b.alive:
+					alive += "%s %d%%" % [b.boss_name, int(b.hp / b.max_hp * 100.0)]
+			cause += " [Boss击杀 %s][场上 %s]" % [", ".join(w.boss_log), alive]
 			print("RES|%s|%s|%s|lv%d|%s|gear%d|%s|seed%d|%s|%d|Lv%d|kills%d|%s" % [school, st, map_id, lv, alloc_name, gear_score, tal, sd, "WIN" if w.won else "LOSE", int(w.time), w.level, w.kills, cause])
 			w.queue_free()
 	get_tree().quit()
