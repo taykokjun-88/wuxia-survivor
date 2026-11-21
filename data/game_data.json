@@ -319,7 +319,10 @@
       "empower": "半径 ×1.5，击退 ×2",
       "fx": {
         "ring": "fist_whirl"
-      }
+      },
+      "fx_alt": [
+        "fist_whirl_ring"
+      ]
     },
     "point_finger": {
       "name": "一阳指",
@@ -573,7 +576,10 @@
       "crit_base": 0.1,
       "fx": {
         "slash": "sw_qingsong"
-      }
+      },
+      "fx_alt": [
+        "sw_qingsong_wave"
+      ]
     },
     "zhongjian": {
       "name": "玄铁重剑",

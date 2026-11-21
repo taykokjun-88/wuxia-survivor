@@ -882,7 +882,7 @@ func _skill_fx_test() -> void:
 				w._hurt(30.0)           # 乾坤大挪移：受击才反击
 			w.step(DT)
 			for fxe in w.effects:
-				if want.values().has(str(fxe.get("vfx", ""))):
+				if want.values().has(str(fxe.get("vfx", ""))) or (Data.skills[id].get("fx_alt", []) as Array).has(str(fxe.get("vfx", ""))):
 					found = true
 			for pr in w.projs:
 				if want.values().has(pr.vfx_id):
@@ -2180,7 +2180,7 @@ func _chars_test() -> void:
 		_check(id != "", "创建角色 " + nm)
 		ids.append(id)
 	_check(Save.add_char("第六个", "fist") == "" and Save.chars().size() == 5, "最多 5 个角色")
-	_check(Save.add_char("x", "spear") == "" or true, "未开放的流派不能建")
+	_check(Save.add_char("x", "mage") == "" or true, "不存在的流派不能建")
 	Save.select_char(ids[0])
 	Save.store_meta(1500, {"pow": 10})
 	Save.set_meta_talents({"gang_force": 2})
@@ -2484,8 +2484,8 @@ func _save_test() -> void:
 	sv2.path = path
 	sv2.load_data()
 	_check(sv2.has_character() and sv2.school() == "fist", "创建角色后应能从存档读回流派")
-	# 未开放的流派 / 不存在的流派 视为没有角色
-	for bad in ["spear", "nonexistent"]:
+	# 不存在的流派 视为没有角色
+	for bad in ["mage", "nonexistent"]:
 		var f := FileAccess.open(path, FileAccess.WRITE)
 		f.store_string(JSON.stringify({"school": bad}))
 		f.close()
