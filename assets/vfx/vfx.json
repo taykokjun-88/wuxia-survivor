@@ -549,7 +549,7 @@
    "file": "fx_blade_wuhu.png",
    "frames": 4,
    "fps": 18.0,
-   "cell": 192,
+   "cell": 256,
    "loop": false,
    "world_size": 280.0,
    "forward": 0.22
@@ -558,7 +558,7 @@
    "file": "fx_blade_kuangfeng.png",
    "frames": 4,
    "fps": 20.0,
-   "cell": 192,
+   "cell": 256,
    "loop": false,
    "world_size": 200.0
   },
@@ -566,24 +566,24 @@
    "file": "fx_blade_hujia.png",
    "frames": 4,
    "fps": 12.0,
-   "cell": 128,
+   "cell": 176,
    "loop": true,
    "world_size": 120.0
   },
   "fx_blade_ranmu": {
    "file": "fx_blade_ranmu.png",
-   "frames": 2,
-   "fps": 10.0,
-   "cell": 192,
+   "frames": 4,
+   "fps": 20.0,
+   "cell": 256,
    "loop": false,
    "world_size": 260.0,
    "forward": 0.22
   },
   "fx_blade_fire": {
    "file": "fx_blade_fire.png",
-   "frames": 2,
+   "frames": 4,
    "fps": 5.0,
-   "cell": 192,
+   "cell": 256,
    "loop": true,
    "world_size": 180.0
   },
@@ -591,7 +591,7 @@
    "file": "fx_blade_xuedao.png",
    "frames": 4,
    "fps": 18.0,
-   "cell": 192,
+   "cell": 256,
    "loop": false,
    "world_size": 240.0
   },
@@ -599,7 +599,7 @@
    "file": "fx_blade_fanliangyi.png",
    "frames": 4,
    "fps": 14.0,
-   "cell": 192,
+   "cell": 256,
    "loop": true,
    "world_size": 230.0
   },
@@ -607,7 +607,7 @@
    "file": "fx_blade_xuanxu.png",
    "frames": 4,
    "fps": 10.0,
-   "cell": 192,
+   "cell": 256,
    "loop": true,
    "world_size": 170.0
   },
@@ -631,7 +631,7 @@
    "file": "fx_blade_soul_aura.png",
    "frames": 4,
    "fps": 10.0,
-   "cell": 192,
+   "cell": 208,
    "loop": true,
    "world_size": 140.0
   },
@@ -639,7 +639,7 @@
    "file": "fx_tulong_break.png",
    "frames": 4,
    "fps": 14.0,
-   "cell": 192,
+   "cell": 256,
    "loop": false,
    "world_size": 260.0
   },
@@ -784,7 +784,7 @@
    "file": "fx_blade_bleed_pop.png",
    "frames": 4,
    "fps": 20.0,
-   "cell": 192,
+   "cell": 256,
    "loop": false,
    "world_size": 200.0
   },
