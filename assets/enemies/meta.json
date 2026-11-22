@@ -3,201 +3,740 @@
   "file": "bandit.png",
   "frames": 4,
   "fps": 8.0,
-  "w": 50,
-  "h": 46
+  "w": 176,
+  "h": 176,
+  "scale": 0.5623,
+  "foot": 11,
+  "fh": 46.0
  },
  "blade": {
   "file": "blade.png",
   "frames": 4,
   "fps": 8.0,
-  "w": 46,
-  "h": 46
+  "w": 176,
+  "h": 176,
+  "scale": 0.5623,
+  "foot": 11,
+  "fh": 46.0
  },
  "soldier": {
   "file": "soldier.png",
   "frames": 4,
   "fps": 8.0,
-  "w": 58,
-  "h": 54
+  "w": 176,
+  "h": 176,
+  "scale": 0.66,
+  "foot": 11,
+  "fh": 54.0
  },
  "elite": {
   "file": "elite.png",
   "frames": 4,
   "fps": 7.0,
-  "w": 78,
-  "h": 72
+  "w": 184,
+  "h": 184,
+  "scale": 0.8144,
+  "foot": 12,
+  "fh": 72.0
  },
  "boss": {
   "file": "boss.png",
   "frames": 4,
   "fps": 6.0,
-  "w": 148,
-  "h": 128
+  "w": 256,
+  "h": 256,
+  "scale": 0.7574,
+  "foot": 16,
+  "fh": 128.0
  },
  "mini_boss_1": {
   "file": "mini_boss_1.png",
   "frames": 4,
   "fps": 6.0,
-  "w": 112,
-  "h": 102
+  "w": 216,
+  "h": 216,
+  "scale": 0.8337,
+  "foot": 14,
+  "fh": 102.0
  },
  "mini_boss_2": {
   "file": "mini_boss_2.png",
   "frames": 4,
   "fps": 6.0,
-  "w": 114,
-  "h": 106
+  "w": 208,
+  "h": 208,
+  "scale": 0.9523,
+  "foot": 13,
+  "fh": 106.0
  },
  "mini_boss_3": {
   "file": "mini_boss_3.png",
   "frames": 4,
   "fps": 6.0,
-  "w": 88,
-  "h": 98
+  "w": 216,
+  "h": 216,
+  "scale": 0.801,
+  "foot": 14,
+  "fh": 98.0
  },
  "huashan": {
   "file": "huashan.png",
   "frames": 4,
   "fps": 8.0,
-  "w": 28,
-  "h": 48,
-  "scale": 1.5
+  "w": 176,
+  "h": 176,
+  "scale": 0.8801,
+  "foot": 11,
+  "fh": 72.0
  },
  "kunlun": {
   "file": "kunlun.png",
   "frames": 4,
   "fps": 8.0,
-  "w": 28,
-  "h": 48,
-  "scale": 1.5
+  "w": 176,
+  "h": 176,
+  "scale": 0.8801,
+  "foot": 11,
+  "fh": 72.0
  },
  "kongtong": {
   "file": "kongtong.png",
   "frames": 4,
   "fps": 8.0,
-  "w": 29,
-  "h": 52,
-  "scale": 1.5
+  "w": 176,
+  "h": 176,
+  "scale": 0.9534,
+  "foot": 11,
+  "fh": 78.0
  },
  "shaolin": {
   "file": "shaolin.png",
   "frames": 4,
   "fps": 8.0,
-  "w": 35,
-  "h": 56,
-  "scale": 1.5
+  "w": 176,
+  "h": 176,
+  "scale": 1.0267,
+  "foot": 11,
+  "fh": 84.0
  },
  "emei": {
   "file": "emei.png",
   "frames": 4,
   "fps": 8.0,
-  "w": 28,
-  "h": 48,
-  "scale": 1.5
+  "w": 176,
+  "h": 176,
+  "scale": 0.8801,
+  "foot": 11,
+  "fh": 72.0
  },
  "s2_mini_1": {
   "file": "s2_mini_1.png",
   "frames": 4,
   "fps": 6.0,
-  "w": 46,
-  "h": 100
+  "w": 216,
+  "h": 216,
+  "scale": 0.8288,
+  "foot": 14,
+  "fh": 100.0
  },
  "s2_mini_2": {
   "file": "s2_mini_2.png",
   "frames": 4,
   "fps": 6.0,
-  "w": 60,
-  "h": 100
+  "w": 216,
+  "h": 216,
+  "scale": 0.8288,
+  "foot": 14,
+  "fh": 100.0
  },
  "s2_mini_3": {
   "file": "s2_mini_3.png",
   "frames": 4,
   "fps": 6.0,
-  "w": 53,
-  "h": 100
+  "w": 208,
+  "h": 208,
+  "scale": 0.8854,
+  "foot": 13,
+  "fh": 100.0
  },
  "s2_boss": {
   "file": "s2_boss.png",
   "frames": 4,
   "fps": 6.0,
-  "w": 76,
-  "h": 142
+  "w": 256,
+  "h": 256,
+  "scale": 0.8402,
+  "foot": 16,
+  "fh": 142.0
  },
  "archer": {
   "file": "archer.png",
   "frames": 4,
   "fps": 6.0,
-  "w": 36,
-  "h": 50
+  "w": 176,
+  "h": 176,
+  "scale": 0.6112,
+  "foot": 11,
+  "fh": 50.0
  },
  "charger": {
   "file": "charger.png",
   "frames": 4,
   "fps": 10.0,
-  "w": 51,
-  "h": 58
+  "w": 176,
+  "h": 176,
+  "scale": 0.7089,
+  "foot": 11,
+  "fh": 58.0
  },
  "th_yapu": {
   "file": "th_yapu.png",
   "frames": 4,
   "fps": 8.0,
-  "w": 29,
-  "h": 46
+  "w": 176,
+  "h": 176,
+  "scale": 0.5623,
+  "foot": 11,
+  "fh": 46.0
  },
  "th_jiading": {
   "file": "th_jiading.png",
   "frames": 4,
   "fps": 8.0,
-  "w": 35,
-  "h": 48
+  "w": 176,
+  "h": 176,
+  "scale": 0.5867,
+  "foot": 11,
+  "fh": 48.0
  },
  "th_yaotong": {
   "file": "th_yaotong.png",
   "frames": 4,
   "fps": 8.0,
-  "w": 36,
-  "h": 48
+  "w": 168,
+  "h": 168,
+  "scale": 0.6589,
+  "foot": 10,
+  "fh": 48.0
  },
  "th_dushe": {
   "file": "th_dushe.png",
   "frames": 4,
   "fps": 10.0,
-  "w": 30,
-  "h": 36
+  "w": 168,
+  "h": 168,
+  "scale": 0.4812,
+  "foot": 10,
+  "fh": 36.0
  },
  "th_jiguan": {
   "file": "th_jiguan.png",
   "frames": 4,
   "fps": 7.0,
-  "w": 64,
-  "h": 64
+  "w": 200,
+  "h": 200,
+  "scale": 0.6159,
+  "foot": 12,
+  "fh": 64.0
  },
  "th_mini_1": {
   "file": "th_mini_1.png",
   "frames": 4,
   "fps": 6.0,
-  "w": 61,
-  "h": 102
+  "w": 208,
+  "h": 208,
+  "scale": 0.9032,
+  "foot": 13,
+  "fh": 102.0
  },
  "th_mini_2": {
   "file": "th_mini_2.png",
   "frames": 4,
   "fps": 6.0,
-  "w": 71,
-  "h": 106
+  "w": 208,
+  "h": 208,
+  "scale": 0.9523,
+  "foot": 13,
+  "fh": 106.0
  },
  "th_mini_3": {
   "file": "th_mini_3.png",
   "frames": 4,
   "fps": 6.0,
-  "w": 63,
-  "h": 102
+  "w": 208,
+  "h": 208,
+  "scale": 0.8903,
+  "foot": 13,
+  "fh": 102.0
  },
  "th_boss": {
   "file": "th_boss.png",
   "frames": 4,
   "fps": 6.0,
-  "w": 102,
-  "h": 142
+  "w": 248,
+  "h": 248,
+  "scale": 0.8777,
+  "foot": 16,
+  "fh": 142.0
+ },
+ "archer_attack": {
+  "file": "archer_attack.png",
+  "frames": 4,
+  "fps": 6.0,
+  "w": 176,
+  "h": 176,
+  "scale": 0.6112,
+  "foot": 11,
+  "fh": 50.0
+ },
+ "bandit_attack": {
+  "file": "bandit_attack.png",
+  "frames": 4,
+  "fps": 8.0,
+  "w": 176,
+  "h": 176,
+  "scale": 0.5623,
+  "foot": 11,
+  "fh": 46.0
+ },
+ "blade_attack": {
+  "file": "blade_attack.png",
+  "frames": 4,
+  "fps": 8.0,
+  "w": 176,
+  "h": 176,
+  "scale": 0.5623,
+  "foot": 11,
+  "fh": 46.0
+ },
+ "boss_attack": {
+  "file": "boss_attack.png",
+  "frames": 6,
+  "fps": 6.0,
+  "w": 256,
+  "h": 256,
+  "scale": 0.7574,
+  "foot": 16,
+  "fh": 128.0
+ },
+ "boss_death": {
+  "file": "boss_death.png",
+  "frames": 6,
+  "fps": 6.0,
+  "w": 256,
+  "h": 256,
+  "scale": 0.7574,
+  "foot": 16,
+  "fh": 128.0
+ },
+ "boss_hurt": {
+  "file": "boss_hurt.png",
+  "frames": 2,
+  "fps": 6.0,
+  "w": 256,
+  "h": 256,
+  "scale": 0.7574,
+  "foot": 16,
+  "fh": 128.0
+ },
+ "boss_windup": {
+  "file": "boss_windup.png",
+  "frames": 4,
+  "fps": 6.0,
+  "w": 256,
+  "h": 256,
+  "scale": 0.7574,
+  "foot": 16,
+  "fh": 128.0
+ },
+ "charger_attack": {
+  "file": "charger_attack.png",
+  "frames": 4,
+  "fps": 10.0,
+  "w": 176,
+  "h": 176,
+  "scale": 0.7089,
+  "foot": 11,
+  "fh": 58.0
+ },
+ "elite_attack": {
+  "file": "elite_attack.png",
+  "frames": 4,
+  "fps": 7.0,
+  "w": 184,
+  "h": 184,
+  "scale": 0.8144,
+  "foot": 12,
+  "fh": 72.0
+ },
+ "emei_attack": {
+  "file": "emei_attack.png",
+  "frames": 4,
+  "fps": 8.0,
+  "w": 176,
+  "h": 176,
+  "scale": 0.8801,
+  "foot": 11,
+  "fh": 72.0
+ },
+ "huashan_attack": {
+  "file": "huashan_attack.png",
+  "frames": 4,
+  "fps": 8.0,
+  "w": 176,
+  "h": 176,
+  "scale": 0.8801,
+  "foot": 11,
+  "fh": 72.0
+ },
+ "kongtong_attack": {
+  "file": "kongtong_attack.png",
+  "frames": 4,
+  "fps": 8.0,
+  "w": 176,
+  "h": 176,
+  "scale": 0.9534,
+  "foot": 11,
+  "fh": 78.0
+ },
+ "kunlun_attack": {
+  "file": "kunlun_attack.png",
+  "frames": 4,
+  "fps": 8.0,
+  "w": 176,
+  "h": 176,
+  "scale": 0.8801,
+  "foot": 11,
+  "fh": 72.0
+ },
+ "mini_boss_1_attack": {
+  "file": "mini_boss_1_attack.png",
+  "frames": 6,
+  "fps": 6.0,
+  "w": 216,
+  "h": 216,
+  "scale": 0.8337,
+  "foot": 14,
+  "fh": 102.0
+ },
+ "mini_boss_1_death": {
+  "file": "mini_boss_1_death.png",
+  "frames": 4,
+  "fps": 6.0,
+  "w": 216,
+  "h": 216,
+  "scale": 0.8337,
+  "foot": 14,
+  "fh": 102.0
+ },
+ "mini_boss_2_attack": {
+  "file": "mini_boss_2_attack.png",
+  "frames": 6,
+  "fps": 6.0,
+  "w": 208,
+  "h": 208,
+  "scale": 0.9523,
+  "foot": 13,
+  "fh": 106.0
+ },
+ "mini_boss_2_death": {
+  "file": "mini_boss_2_death.png",
+  "frames": 4,
+  "fps": 6.0,
+  "w": 208,
+  "h": 208,
+  "scale": 0.9523,
+  "foot": 13,
+  "fh": 106.0
+ },
+ "mini_boss_3_attack": {
+  "file": "mini_boss_3_attack.png",
+  "frames": 6,
+  "fps": 6.0,
+  "w": 216,
+  "h": 216,
+  "scale": 0.801,
+  "foot": 14,
+  "fh": 98.0
+ },
+ "mini_boss_3_death": {
+  "file": "mini_boss_3_death.png",
+  "frames": 4,
+  "fps": 6.0,
+  "w": 216,
+  "h": 216,
+  "scale": 0.801,
+  "foot": 14,
+  "fh": 98.0
+ },
+ "s2_boss_attack": {
+  "file": "s2_boss_attack.png",
+  "frames": 6,
+  "fps": 6.0,
+  "w": 256,
+  "h": 256,
+  "scale": 0.8402,
+  "foot": 16,
+  "fh": 142.0
+ },
+ "s2_boss_death": {
+  "file": "s2_boss_death.png",
+  "frames": 6,
+  "fps": 6.0,
+  "w": 256,
+  "h": 256,
+  "scale": 0.8402,
+  "foot": 16,
+  "fh": 142.0
+ },
+ "s2_boss_hurt": {
+  "file": "s2_boss_hurt.png",
+  "frames": 2,
+  "fps": 6.0,
+  "w": 256,
+  "h": 256,
+  "scale": 0.8402,
+  "foot": 16,
+  "fh": 142.0
+ },
+ "s2_boss_windup": {
+  "file": "s2_boss_windup.png",
+  "frames": 4,
+  "fps": 6.0,
+  "w": 256,
+  "h": 256,
+  "scale": 0.8402,
+  "foot": 16,
+  "fh": 142.0
+ },
+ "s2_mini_1_attack": {
+  "file": "s2_mini_1_attack.png",
+  "frames": 6,
+  "fps": 6.0,
+  "w": 216,
+  "h": 216,
+  "scale": 0.8288,
+  "foot": 14,
+  "fh": 100.0
+ },
+ "s2_mini_1_death": {
+  "file": "s2_mini_1_death.png",
+  "frames": 4,
+  "fps": 6.0,
+  "w": 216,
+  "h": 216,
+  "scale": 0.8288,
+  "foot": 14,
+  "fh": 100.0
+ },
+ "s2_mini_2_attack": {
+  "file": "s2_mini_2_attack.png",
+  "frames": 6,
+  "fps": 6.0,
+  "w": 216,
+  "h": 216,
+  "scale": 0.8288,
+  "foot": 14,
+  "fh": 100.0
+ },
+ "s2_mini_2_death": {
+  "file": "s2_mini_2_death.png",
+  "frames": 4,
+  "fps": 6.0,
+  "w": 216,
+  "h": 216,
+  "scale": 0.8288,
+  "foot": 14,
+  "fh": 100.0
+ },
+ "s2_mini_3_attack": {
+  "file": "s2_mini_3_attack.png",
+  "frames": 6,
+  "fps": 6.0,
+  "w": 208,
+  "h": 208,
+  "scale": 0.8854,
+  "foot": 13,
+  "fh": 100.0
+ },
+ "s2_mini_3_death": {
+  "file": "s2_mini_3_death.png",
+  "frames": 4,
+  "fps": 6.0,
+  "w": 208,
+  "h": 208,
+  "scale": 0.8854,
+  "foot": 13,
+  "fh": 100.0
+ },
+ "shaolin_attack": {
+  "file": "shaolin_attack.png",
+  "frames": 4,
+  "fps": 8.0,
+  "w": 176,
+  "h": 176,
+  "scale": 1.0267,
+  "foot": 11,
+  "fh": 84.0
+ },
+ "soldier_attack": {
+  "file": "soldier_attack.png",
+  "frames": 4,
+  "fps": 8.0,
+  "w": 176,
+  "h": 176,
+  "scale": 0.66,
+  "foot": 11,
+  "fh": 54.0
+ },
+ "th_boss_attack": {
+  "file": "th_boss_attack.png",
+  "frames": 6,
+  "fps": 6.0,
+  "w": 248,
+  "h": 248,
+  "scale": 0.8777,
+  "foot": 16,
+  "fh": 142.0
+ },
+ "th_boss_death": {
+  "file": "th_boss_death.png",
+  "frames": 6,
+  "fps": 6.0,
+  "w": 248,
+  "h": 248,
+  "scale": 0.8777,
+  "foot": 16,
+  "fh": 142.0
+ },
+ "th_boss_hurt": {
+  "file": "th_boss_hurt.png",
+  "frames": 2,
+  "fps": 6.0,
+  "w": 248,
+  "h": 248,
+  "scale": 0.8777,
+  "foot": 16,
+  "fh": 142.0
+ },
+ "th_boss_windup": {
+  "file": "th_boss_windup.png",
+  "frames": 4,
+  "fps": 6.0,
+  "w": 248,
+  "h": 248,
+  "scale": 0.8777,
+  "foot": 16,
+  "fh": 142.0
+ },
+ "th_dushe_attack": {
+  "file": "th_dushe_attack.png",
+  "frames": 4,
+  "fps": 10.0,
+  "w": 168,
+  "h": 168,
+  "scale": 0.4812,
+  "foot": 10,
+  "fh": 36.0
+ },
+ "th_jiading_attack": {
+  "file": "th_jiading_attack.png",
+  "frames": 4,
+  "fps": 8.0,
+  "w": 176,
+  "h": 176,
+  "scale": 0.5867,
+  "foot": 11,
+  "fh": 48.0
+ },
+ "th_jiguan_attack": {
+  "file": "th_jiguan_attack.png",
+  "frames": 4,
+  "fps": 7.0,
+  "w": 200,
+  "h": 200,
+  "scale": 0.6159,
+  "foot": 12,
+  "fh": 64.0
+ },
+ "th_mini_1_attack": {
+  "file": "th_mini_1_attack.png",
+  "frames": 6,
+  "fps": 6.0,
+  "w": 208,
+  "h": 208,
+  "scale": 0.9032,
+  "foot": 13,
+  "fh": 102.0
+ },
+ "th_mini_1_death": {
+  "file": "th_mini_1_death.png",
+  "frames": 4,
+  "fps": 6.0,
+  "w": 208,
+  "h": 208,
+  "scale": 0.9032,
+  "foot": 13,
+  "fh": 102.0
+ },
+ "th_mini_2_attack": {
+  "file": "th_mini_2_attack.png",
+  "frames": 6,
+  "fps": 6.0,
+  "w": 208,
+  "h": 208,
+  "scale": 0.9523,
+  "foot": 13,
+  "fh": 106.0
+ },
+ "th_mini_2_death": {
+  "file": "th_mini_2_death.png",
+  "frames": 4,
+  "fps": 6.0,
+  "w": 208,
+  "h": 208,
+  "scale": 0.9523,
+  "foot": 13,
+  "fh": 106.0
+ },
+ "th_mini_3_attack": {
+  "file": "th_mini_3_attack.png",
+  "frames": 6,
+  "fps": 6.0,
+  "w": 208,
+  "h": 208,
+  "scale": 0.8903,
+  "foot": 13,
+  "fh": 102.0
+ },
+ "th_mini_3_death": {
+  "file": "th_mini_3_death.png",
+  "frames": 4,
+  "fps": 6.0,
+  "w": 208,
+  "h": 208,
+  "scale": 0.8903,
+  "foot": 13,
+  "fh": 102.0
+ },
+ "th_yaotong_attack": {
+  "file": "th_yaotong_attack.png",
+  "frames": 4,
+  "fps": 8.0,
+  "w": 168,
+  "h": 168,
+  "scale": 0.6589,
+  "foot": 10,
+  "fh": 48.0
+ },
+ "th_yapu_attack": {
+  "file": "th_yapu_attack.png",
+  "frames": 4,
+  "fps": 8.0,
+  "w": 176,
+  "h": 176,
+  "scale": 0.5623,
+  "foot": 11,
+  "fh": 46.0
  }
 }

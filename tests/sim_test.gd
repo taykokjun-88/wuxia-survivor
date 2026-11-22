@@ -4047,6 +4047,22 @@ func _enemy_action_test() -> void:
 	for i in 5:
 		w.step(1.0 / 60.0)
 	_check(e2.melee_t > 0.0 or w.hp < w.max_hp, "接触伤害时置位近战动画计时 melee_t=%.2f" % e2.melee_t)
+	# 死亡动作：有 <key>_death 素材时击杀产生 corpse 特效，没有则仍是烟尘
+	var e3: Enemy = w._spawn_enemy("bandit", w.player_pos + Vector2(150, 0))
+	var nfx0 := w.effects.size()
+	w._kill(e3)
+	var has_corpse := false
+	for fx in w.effects:
+		if str(fx.get("kind", "")) == "corpse":
+			has_corpse = true
+	_check(not has_corpse, "没有 _death 素材的怪物不产生倒地动画")
+	w.enemy_art.add("bandit_death", d["tex"], 4, 10.0, int(d["w"]), int(d["h"]))
+	var e4: Enemy = w._spawn_enemy("bandit", w.player_pos + Vector2(150, 0))
+	w._kill(e4)
+	for fx in w.effects:
+		if str(fx.get("kind", "")) == "corpse":
+			has_corpse = true
+	_check(has_corpse, "有 bandit_death 素材时击杀产生倒地动画")
 	# 绘制不报错（真正画一帧）
 	w.queue_redraw()
 	await get_tree().process_frame

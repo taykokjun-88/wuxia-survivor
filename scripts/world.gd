@@ -1427,7 +1427,10 @@ func _kill(e: Enemy) -> void:
 	_drop_gem(e.pos, e.exp_value)
 	if not e.is_boss and not e.is_elite:
 		_maybe_drop_absorb(e.pos)
-	if vfx.has("death_puff") and effects.size() < MAX_EFFECTS:
+	var dk := _enemy_art_key(e) + "_death"
+	if enemy_art != null and enemy_art.has(dk) and effects.size() < MAX_EFFECTS:      # 有死亡动作素材（Boss / 小 Boss）：倒地动画
+		add_fx("corpse", e.pos, 1.5 if e.is_boss else 1.0, {"art": dk, "flip": player_pos.x < e.pos.x, "fh": enemy_art.height_of(dk)})
+	elif vfx.has("death_puff") and effects.size() < MAX_EFFECTS:
 		add_fx("splat", e.pos, 0.35, {"r": e.radius * 1.4, "color": e.color, "vfx": "death_puff", "size": e.radius * 4.0})
 	else:
 		add_fx("splat", e.pos, 0.6, {"r": e.radius * 1.4, "color": e.color})
@@ -3012,6 +3015,12 @@ func _draw_effects() -> void:
 				var r := lerpf(float(fx["r0"]), float(fx["r1"]), t / life)
 				var col2: Color = fx["color"]
 				draw_arc(at, r, 0.0, TAU, 48, Color(col2, a * 0.8), 5.0)
+			"corpse":
+				var cn := enemy_art.frame_count(str(fx["art"]))
+				var cf := mini(cn - 1, int(clampf(t / (life * 0.6), 0.0, 1.0) * float(cn)))      # 前 60% 的时间播完倒地，之后停在最后一帧并渐隐
+				var cfade := 1.0 if t < life * 0.7 else clampf((life - t) / (life * 0.3), 0.0, 1.0)
+				var cfeet: Vector2 = at + Vector2(0, float(fx["fh"]) * 0.42)
+				enemy_art.draw_frame(self, str(fx["art"]), cf, cfeet, bool(fx["flip"]), Color(1, 1, 1, cfade), 0.0, 1.0, true)
 			"splat":
 				var col3: Color = fx["color"]
 				draw_circle(at, float(fx["r"]) * (1.0 + t), Color(col3, a * 0.35))

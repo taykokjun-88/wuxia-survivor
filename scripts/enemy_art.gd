@@ -18,18 +18,18 @@ func load_dir(dir: String) -> int:
 		var d: Dictionary = js[id]
 		var f := "%s/%s" % [dir, str(d["file"])]
 		if ResourceLoader.exists(f):
-			add(str(id), load(f), int(d["frames"]), float(d["fps"]), int(d["w"]), int(d["h"]), float(d.get("scale", 1.0)))
+			add(str(id), load(f), int(d["frames"]), float(d["fps"]), int(d["w"]), int(d["h"]), float(d.get("scale", 1.0)), float(d.get("foot", 0.0)), float(d.get("fh", 0.0)))
 	return sprites.size()
 
 
-func add(id: String, tex: Texture2D, frames: int, fps: float, w: int, h: int, scale: float = 1.0) -> void:
+func add(id: String, tex: Texture2D, frames: int, fps: float, w: int, h: int, scale: float = 1.0, foot: float = 0.0, fh: float = 0.0) -> void:
 	# 预先生成水平翻转的整条（帧顺序也反过来）：怪物很多时用它直接绘制，不需要逐个设置变换
 	var tex_f: Texture2D = null
 	var img := tex.get_image()
 	if img != null and not img.is_empty():
 		img.flip_x()
 		tex_f = ImageTexture.create_from_image(img)
-	sprites[id] = {"tex": tex, "tex_f": tex_f, "frames": maxi(1, frames), "fps": fps, "w": w, "h": h, "scale": scale}
+	sprites[id] = {"tex": tex, "tex_f": tex_f, "frames": maxi(1, frames), "fps": fps, "w": w, "h": h, "scale": scale, "foot": foot, "fh": fh}
 
 
 func has(id: String) -> bool:
@@ -37,7 +37,8 @@ func has(id: String) -> bool:
 
 
 func height_of(id: String) -> float:
-	return float(sprites[id]["h"]) * float(sprites[id].get("scale", 1.0))
+	var fh: float = float(sprites[id].get("fh", 0.0))
+	return fh if fh > 0.0 else float(sprites[id]["h"]) * float(sprites[id].get("scale", 1.0))
 
 
 ## 快速绘制（同屏怪物很多时用）：不做倾斜 / 挤压，没有变换，一次绘制调用
@@ -50,10 +51,11 @@ func draw_fast(ci: CanvasItem, id: String, t: float, feet: Vector2, flip: bool, 
 	var f := fr0 + int(maxf(t, 0.0) * float(d["fps"])) % (last - fr0 + 1)       # 只在 fr0~fr1 帧里循环（弓手：行走 0~1 / 拉弓 2~3）
 	var tex: Texture2D = d["tex"]
 	var sc: float = float(d.get("scale", 1.0))
+	var ft: float = float(d.get("foot", 0.0))
 	if flip and d["tex_f"] != null:
 		tex = d["tex_f"]
 		f = frames - 1 - f
-	ci.draw_texture_rect_region(tex, Rect2(feet.x - w * sc * 0.5, feet.y - h * sc, w * sc, h * sc), Rect2(f * w, 0, w, h), tint)
+	ci.draw_texture_rect_region(tex, Rect2(feet.x - w * sc * 0.5, feet.y - h * sc + ft * sc, w * sc, h * sc), Rect2(f * w, 0, w, h), tint)
 
 
 ## feet：脚底中心（世界坐标）；flip：朝左
@@ -65,8 +67,9 @@ func draw(ci: CanvasItem, id: String, t: float, feet: Vector2, flip: bool, tint:
 	var f := fr0 + int(maxf(t, 0.0) * float(d["fps"])) % (last - fr0 + 1)
 	var tex: Texture2D = d["tex"]
 	var sc: float = float(d.get("scale", 1.0))
+	var ft: float = float(d.get("foot", 0.0))
 	ci.draw_set_transform(feet, rot, Depth.scale_of(squash, flip, 1.0, feet.y))
-	ci.draw_texture_rect_region(tex, Rect2(-w * sc * 0.5, -h * sc, w * sc, h * sc), Rect2(f * w, 0, w, h), tint)
+	ci.draw_texture_rect_region(tex, Rect2(-w * sc * 0.5, -h * sc + ft * sc, w * sc, h * sc), Rect2(f * w, 0, w, h), tint)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
@@ -78,15 +81,16 @@ func draw_frame(ci: CanvasItem, id: String, frame: int, feet: Vector2, flip: boo
 	var frames: int = d["frames"]
 	var f := clampi(frame, 0, frames - 1)
 	var sc: float = float(d.get("scale", 1.0))
+	var ft: float = float(d.get("foot", 0.0))
 	if fast:
 		var tex: Texture2D = d["tex"]
 		if flip and d["tex_f"] != null:
 			tex = d["tex_f"]
 			f = frames - 1 - f
-		ci.draw_texture_rect_region(tex, Rect2(feet.x - w * sc * 0.5, feet.y - h * sc, w * sc, h * sc), Rect2(f * w, 0, w, h), tint)
+		ci.draw_texture_rect_region(tex, Rect2(feet.x - w * sc * 0.5, feet.y - h * sc + ft * sc, w * sc, h * sc), Rect2(f * w, 0, w, h), tint)
 		return
 	ci.draw_set_transform(feet, rot, Depth.scale_of(squash, flip, 1.0, feet.y))
-	ci.draw_texture_rect_region(d["tex"], Rect2(-w * sc * 0.5, -h * sc, w * sc, h * sc), Rect2(f * w, 0, w, h), tint)
+	ci.draw_texture_rect_region(d["tex"], Rect2(-w * sc * 0.5, -h * sc + ft * sc, w * sc, h * sc), Rect2(f * w, 0, w, h), tint)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 

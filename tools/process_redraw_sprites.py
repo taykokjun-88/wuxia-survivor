@@ -15,11 +15,15 @@
 import json
 import pathlib
 
+import sys
+
 import numpy as np
 from PIL import Image
 from scipy import ndimage as ndi
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "tools"))
+from sprite_clean import defragment
 SRC = ROOT / "assets/source/redraw_01_v2"
 OUT = ROOT / "assets/sprites"
 DIRS = {"fist": "player", "sword": "sword", "blade": "blade", "spear": "spear"}
@@ -59,6 +63,7 @@ def process_cell(cell: np.ndarray) -> np.ndarray:
     out = np.zeros(cell.shape[:2] + (4,), np.uint8)
     out[..., :3] = c.astype(np.uint8)
     out[..., 3] = (a * 255).astype(np.uint8)
+    out, _rm = defragment(out, gap=5, ramp=22)       # 不把精灵切碎：漂在外面的碎块去掉，格边被切断的部分渐隐
     return out
 
 
