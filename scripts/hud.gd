@@ -970,6 +970,47 @@ func hide_loadout() -> void:
 # 账号 / 排行榜 / 反馈（需要在线服务；api_url 为空时这些界面不会出现）
 # ---------------------------------------------------------------------
 
+## 登录界面的古风素材（assets/ui/login/*.png，九宫格拉伸）；缺图时返回 null，调用方保持原来的样式
+func _login_box(name: String, margin: Array) -> StyleBoxTexture:
+	var tex := _load_tex("res://assets/ui/login/%s.png" % name)
+	if tex == null:
+		return null
+	var sb := StyleBoxTexture.new()
+	sb.texture = tex
+	sb.texture_margin_left = margin[0]
+	sb.texture_margin_top = margin[1]
+	sb.texture_margin_right = margin[2]
+	sb.texture_margin_bottom = margin[3]
+	sb.content_margin_left = margin[0]
+	sb.content_margin_right = margin[2]
+	sb.content_margin_top = margin[1] * 0.6
+	sb.content_margin_bottom = margin[3] * 0.6
+	return sb
+
+
+func _skin_button(b: Button) -> void:
+	var n := _login_box("btn_normal", [34, 14, 34, 14])
+	if n == null:
+		return
+	b.add_theme_stylebox_override("normal", n)
+	b.add_theme_stylebox_override("hover", _login_box("btn_hover", [34, 14, 34, 14]))
+	b.add_theme_stylebox_override("pressed", _login_box("btn_pressed", [34, 14, 34, 14]))
+	b.add_theme_stylebox_override("focus", _login_box("btn_hover", [34, 14, 34, 14]))
+	b.add_theme_color_override("font_color", Color("#f3ead2"))
+	b.add_theme_color_override("font_hover_color", Color("#fff2c0"))
+	b.add_theme_color_override("font_pressed_color", Color("#e6c65a"))
+
+
+func _skin_input(le: LineEdit) -> void:
+	var n := _login_box("input", [12, 10, 12, 10])
+	if n == null:
+		return
+	le.add_theme_stylebox_override("normal", n)
+	le.add_theme_stylebox_override("focus", n)
+	le.add_theme_color_override("font_color", Color("#f3ead2"))
+	le.add_theme_color_override("font_placeholder_color", Color("#8a8070"))
+
+
 func _button(text: String, size: Vector2, font_size: int = 20) -> Button:
 	var b := Button.new()
 	b.text = text
@@ -1015,13 +1056,31 @@ func _build_auth(prefill: String) -> void:
 	auth_box.anchor_left = 0.46       # 新封面：四位主角在左边，表单放右半边
 	auth_box.anchor_right = 1.0
 	var box: VBoxContainer = pb[1]
-	var at := _label("武侠幸存者", 52)
+	var logo_tex := _load_tex("res://assets/ui/login/logo.png")
 	var ver := _label("V%s" % str(ProjectSettings.get_setting("application/config/version", "0")), 22, Color("#e6c65a"))
 	var ah := _label("请登录。还没有账号？点「注册」，需要管理员给你的邀请码", 18, Color("#f3ead2"))
-	for l: Label in [at, ver, ah]:       # 封面偏亮：加深色描边
+	for l: Label in [ver, ah]:       # 封面偏亮：加深色描边
 		l.add_theme_color_override("font_outline_color", Color(0.04, 0.03, 0.03, 0.95))
 		l.add_theme_constant_override("outline_size", 8)
-	box.add_child(at)
+	if logo_tex != null:                # 古风卷轴字标：标题压在卷轴中央的留白上
+		var lg := TextureRect.new()
+		lg.texture = logo_tex
+		lg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		lg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		lg.custom_minimum_size = Vector2(520, 190)
+		lg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var at2 := _label("武侠幸存者", 46, Color("#7a1a14"))
+		at2.set_anchors_preset(Control.PRESET_FULL_RECT)
+		at2.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		at2.add_theme_color_override("font_outline_color", Color(1, 0.95, 0.85, 0.9))
+		at2.add_theme_constant_override("outline_size", 4)
+		lg.add_child(at2)
+		box.add_child(lg)
+	else:
+		var at := _label("武侠幸存者", 52)
+		at.add_theme_color_override("font_outline_color", Color(0.04, 0.03, 0.03, 0.95))
+		at.add_theme_constant_override("outline_size", 8)
+		box.add_child(at)
 	box.add_child(ver)
 	box.add_child(ah)
 	var mode_row := _center_row(10)
@@ -1033,12 +1092,14 @@ func _build_auth(prefill: String) -> void:
 		b.button_group = group
 		b.button_pressed = auth_mode == m[0]
 		b.pressed.connect(func(): auth_mode = m[0]; _refresh_auth())
+		_skin_button(b)
 		mode_row.add_child(b)
 	auth_nick = _field("昵称（2–12 个字）", false, 12)
 	auth_nick.text = prefill
 	auth_pin = _field("PIN（4–8 位数字）", true, 8)
 	auth_code = _field("邀请码（注册必填，找管理员要）", false, 12)
 	for f in [auth_nick, auth_pin, auth_code]:
+		_skin_input(f)
 		var r := _center_row()
 		r.add_child(f)
 		box.add_child(r)
@@ -1048,7 +1109,17 @@ func _build_auth(prefill: String) -> void:
 	var btns := _center_row(16)
 	auth_submit_btn = _button("登录", Vector2(260, 50), 22)
 	auth_submit_btn.pressed.connect(_submit_auth)
+	_skin_button(auth_submit_btn)
 	btns.add_child(auth_submit_btn)
+	var seal_tex := _load_tex("res://assets/ui/login/seal.png")
+	if seal_tex != null:
+		var sl := TextureRect.new()
+		sl.texture = seal_tex
+		sl.custom_minimum_size = Vector2(56, 56)
+		sl.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		sl.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		sl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		btns.add_child(sl)
 	box.add_child(btns)
 	_refresh_auth()
 
@@ -1593,6 +1664,7 @@ func _build_gear() -> void:
 		var bt: Button
 		if gear_equip.has(slot):
 			bt = _gear_button(str(gear_equip[slot]), 232, 74, true)
+			bt.text = "已装备 · " + bt.text
 			bt.pressed.connect(func():
 				gear_equip.erase(slot)
 				_gear_refresh())
@@ -1633,8 +1705,10 @@ func _build_gear() -> void:
 		grid.add_child(_label("还没有装备。通关一次（击败大 Boss）就会掉落。" if gear_tab == "" else "这一类还没有装备。", 16, Color("#8d8670")))
 	for c in inv:
 		var bt2 := _gear_button(str(c), 596, 52)
-		if gear_equip.values().has(c):
-			bt2.text = "✔ " + bt2.text
+		if gear_equip.values().has(c):                      # 已穿戴：醒目的「已装备」标记 + 整行偏绿底色（再点一下卸下）
+			bt2.text = "【已装备】" + bt2.text
+			bt2.modulate = Color(0.78, 1.0, 0.82)
+			bt2.tooltip_text = "已装备：再点一下卸下\n" + bt2.tooltip_text
 		bt2.pressed.connect(_gear_item_click.bind(str(c)))
 		grid.add_child(bt2)
 	gear_status = _label("", 16, Color("#cfc6ae"))
