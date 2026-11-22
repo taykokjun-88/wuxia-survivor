@@ -37,6 +37,24 @@ def gb2312_level1() -> set:
     return out
 
 
+def rename_family(path: str, new_name: str) -> None:
+    """OFL：裁剪 / 改动后的版本不得继续使用保留字体名，所以把内部字体名换掉（版权声明保留）。"""
+    from fontTools.ttLib import TTFont
+    f = TTFont(path)
+    bold = new_name.endswith("-Bold")
+    fam = new_name.split("-")[0]
+    for rec in list(f["name"].names):
+        if rec.nameID in (1, 16):
+            rec.string = fam
+        elif rec.nameID in (4, 3):
+            rec.string = new_name.replace("-", " ") if rec.nameID == 4 else fam + (";Bold" if bold else ";Regular")
+        elif rec.nameID == 6:
+            rec.string = new_name
+        elif rec.nameID in (2, 17):
+            rec.string = "Bold" if bold else "Regular"
+    f.save(path)
+
+
 def main(src: str, dst: str) -> None:
     import uharfbuzz as hb
 
@@ -49,6 +67,7 @@ def main(src: str, dst: str) -> None:
     out = hb.subset(face, inp)
     data = out.blob.data
     pathlib.Path(dst).write_bytes(data)
+    rename_family(dst, "QunxiaKai" + ("-Bold" if "bold" in dst.lower() else ""))
     print(f"{dst}: {len(chars)} 个字符，{len(data) / 1024:.0f} KB")
 
 

@@ -1362,7 +1362,7 @@ func _dugu_test() -> void:
 		w4.step(DT)
 		for fx in w4.effects:
 			var tx := str(fx.get("text", ""))
-			if tx.begins_with("破") and tx.ends_with("式") or tx == "总纲变":
+			if tx.ends_with("变"):
 				names[tx] = true
 	_check(int(dsk.get("sb_strikes")) == 9, "剑破天下连续闪现 9 次，实际 %d" % int(dsk.get("sb_strikes")))
 	_check(int(dsk.get("sb_left")) == 0, "九次打完")
