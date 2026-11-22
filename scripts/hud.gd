@@ -1538,8 +1538,13 @@ func _gear_item_click(code: String) -> void:
 	_gear_refresh()
 
 
-func _slot_icon(bt: Button, slot: String) -> void:
-	var ic := Data.icon("gear", slot)
+func _slot_icon(bt: Button, slot: String, icon_id: String = "") -> void:
+	var ic: Texture2D = null
+	if icon_id != "":                                   # 武器按具体那一件配图（assets/icons/<目录>/<名>.png）
+		var parts := icon_id.split("/")
+		ic = Data.icon(parts[0], parts[1])
+	if ic == null:
+		ic = Data.icon("gear", slot)
 	if ic != null:
 		bt.icon = ic
 		bt.expand_icon = false
@@ -1564,7 +1569,7 @@ func _gear_button(code: String, w_min: int, h_min: int, compact: bool = false) -
 	bt.text = "【%s】%s　%d 分\n%s" % [it["rarity_name"], it["name"], pts, second] if compact else full
 	bt.tooltip_text = full
 	bt.clip_text = true
-	_slot_icon(bt, str(it["slot"]))
+	_slot_icon(bt, str(it["slot"]), str(it.get("icon", "")))
 	var col := Color(str(it["color"]))
 	bt.add_theme_color_override("font_color", col)
 	bt.add_theme_color_override("font_hover_color", col)
@@ -1710,7 +1715,7 @@ func show_smith(msg: String = "") -> void:
 				next += "（银两不够）"
 				bt.disabled = true
 		bt.text = "%s\n%s\n%s" % [head, Gear.describe(it), next]
-		_slot_icon(bt, str(it["slot"]))
+		_slot_icon(bt, str(it["slot"]), str(it.get("icon", "")))
 		var col := Color(str(it["color"]))
 		bt.add_theme_color_override("font_color", col)
 		bt.add_theme_color_override("font_hover_color", col)

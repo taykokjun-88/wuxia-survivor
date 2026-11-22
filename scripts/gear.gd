@@ -126,7 +126,7 @@ static func make(code: String, school_id: String = "fist", enh_level: int = 0) -
 			stats[k] = float(stats[k]) * level_mult(lvl)
 	return {
 		"code": code, "slot": pc["slot"], "slot_name": sd["name"], "rarity": pc["rarity"], "rarity_name": rd["name"],
-		"color": rd["color"], "name": str(idef["name"]) + (" +%d" % lvl if lvl > 0 else ""),
+		"icon": str(idef.get("icon", "")), "color": rd["color"], "name": str(idef["name"]) + (" +%d" % lvl if lvl > 0 else ""),
 		"stats": stats, "affixes": affixes, "enh": lvl,
 	}
 

@@ -3640,21 +3640,24 @@
               "name": "铁指套",
               "base": {
                 "damage_pct": 0.04
-              }
+              },
+              "icon": "skills/chain_fist"
             },
             {
               "name": "龙纹拳套",
               "base": {
                 "damage_pct": 0.03,
                 "crit_chance": 0.015
-              }
+              },
+              "icon": "skills/chain_fist"
             },
             {
               "name": "裂石护腕",
               "base": {
                 "damage_pct": 0.03,
                 "max_neili": 5
-              }
+              },
+              "icon": "skills/chain_fist"
             },
             {
               "name": "断岳手甲",
@@ -3662,49 +3665,56 @@
                 "damage_pct": 0.03,
                 "crit_mult": 0.05,
                 "qi_gain": 0.06
-              }
+              },
+              "icon": "skills/chain_fist"
             },
             {
               "name": "金刚指环",
               "base": {
                 "damage_pct": 0.025,
                 "qi_gain": 0.12
-              }
+              },
+              "icon": "skills/chain_fist"
             },
             {
               "name": "玄冥寒掌",
               "base": {
                 "damage_pct": 0.025,
                 "hit_slow": 0.04
-              }
+              },
+              "icon": "skills/chain_fist"
             },
             {
               "name": "九阳护掌",
               "base": {
                 "damage_pct": 0.025,
                 "neili_regen": 0.8
-              }
+              },
+              "icon": "skills/chain_fist"
             },
             {
               "name": "七伤指虎",
               "base": {
                 "damage_pct": 0.03,
                 "kill_neili": 0.4
-              }
+              },
+              "icon": "skills/chain_fist"
             },
             {
               "name": "降龙臂铠",
               "base": {
                 "damage_pct": 0.03,
                 "empower_cut": 0.03
-              }
+              },
+              "icon": "skills/chain_fist"
             },
             {
               "name": "乾坤拳套",
               "base": {
                 "damage_pct": 0.03,
                 "cd_reduce": 0.01
-              }
+              },
+              "icon": "skills/chain_fist"
             }
           ],
           "sword": [
@@ -3784,7 +3794,8 @@
               "name": "百炼柳叶刀",
               "base": {
                 "damage_pct": 0.04
-              }
+              },
+              "icon": "blade_weapons/w1"
             },
             {
               "name": "鬼头大环刀",
@@ -3792,42 +3803,48 @@
                 "damage_pct": 0.03,
                 "max_hp": 8,
                 "soul_gain": 0.06
-              }
+              },
+              "icon": "blade_weapons/w2"
             },
             {
               "name": "黑煞雁翎刀",
               "base": {
                 "damage_pct": 0.03,
                 "crit_chance": 0.015
-              }
+              },
+              "icon": "blade_weapons/w3"
             },
             {
               "name": "精钢破甲刀",
               "base": {
                 "damage_pct": 0.035,
                 "armor_pierce": 0.02
-              }
+              },
+              "icon": "blade_weapons/w4"
             },
             {
               "name": "鸳鸯子母刀",
               "base": {
                 "damage_pct": 0.03,
                 "cd_reduce": 0.01
-              }
+              },
+              "icon": "blade_weapons/w5"
             },
             {
               "name": "寒月冷艳锯",
               "base": {
                 "damage_pct": 0.025,
                 "hit_slow": 0.04
-              }
+              },
+              "icon": "blade_weapons/w6"
             },
             {
               "name": "赤焰燃木刀",
               "base": {
                 "damage_pct": 0.03,
                 "kill_hp": 0.05
-              }
+              },
+              "icon": "blade_weapons/w7"
             },
             {
               "name": "血海魔刀",
@@ -3835,14 +3852,16 @@
                 "damage_pct": 0.03,
                 "hp_regen": 0.2,
                 "soul_gain": 0.1
-              }
+              },
+              "icon": "blade_weapons/w8"
             },
             {
               "name": "闯王胡家宝刀",
               "base": {
                 "damage_pct": 0.03,
                 "crit_mult": 0.06
-              }
+              },
+              "icon": "blade_weapons/w9"
             },
             {
               "name": "屠龙宝刀",
@@ -3850,7 +3869,8 @@
                 "damage_pct": 0.045,
                 "armor_pierce": 0.03,
                 "crit_chance": 0.01
-              }
+              },
+              "icon": "blade_weapons/w10"
             }
           ],
           "spear": [
@@ -3858,42 +3878,48 @@
               "name": "梅花枪",
               "base": {
                 "damage_pct": 0.04
-              }
+              },
+              "icon": "spear_weapons/w2"
             },
             {
               "name": "点钢枪",
               "base": {
                 "damage_pct": 0.03,
                 "crit_chance": 0.015
-              }
+              },
+              "icon": "spear_weapons/w1"
             },
             {
               "name": "白蜡杆",
               "base": {
                 "damage_pct": 0.03,
                 "max_hp": 8
-              }
+              },
+              "icon": "spear_weapons/w4"
             },
             {
               "name": "丈八蛇矛",
               "base": {
                 "damage_pct": 0.035,
                 "block_chance": 0.02
-              }
+              },
+              "icon": "spear_weapons/w3"
             },
             {
               "name": "哨棒",
               "base": {
                 "damage_pct": 0.03,
                 "block_chance": 0.03
-              }
+              },
+              "icon": "spear_weapons/w5"
             },
             {
               "name": "齐眉棍",
               "base": {
                 "damage_pct": 0.03,
                 "crit_chance": 0.02
-              }
+              },
+              "icon": "spear_weapons/w6"
             },
             {
               "name": "禅杖",
@@ -3901,7 +3927,8 @@
                 "damage_pct": 0.035,
                 "armor": 0.4,
                 "block_chance": 0.02
-              }
+              },
+              "icon": "spear_weapons/w7"
             },
             {
               "name": "方天画戟",
@@ -3909,7 +3936,8 @@
                 "damage_pct": 0.04,
                 "crit_chance": 0.015,
                 "speed_pct": 0.01
-              }
+              },
+              "icon": "spear_weapons/w8"
             },
             {
               "name": "混铁棍",
@@ -3917,7 +3945,8 @@
                 "damage_pct": 0.04,
                 "block_chance": 0.03,
                 "max_hp": 8
-              }
+              },
+              "icon": "spear_weapons/w9"
             },
             {
               "name": "龙胆亮银枪",
@@ -3925,7 +3954,8 @@
                 "damage_pct": 0.05,
                 "crit_chance": 0.02,
                 "block_chance": 0.03
-              }
+              },
+              "icon": "spear_weapons/w10"
             }
           ]
         },
