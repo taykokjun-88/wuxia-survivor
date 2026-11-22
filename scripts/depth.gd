@@ -4,6 +4,19 @@ extends RefCounted
 
 
 static var _shadow_tex: Texture2D = null
+## 伪 2.5D 的俯视倾角：世界节点在竖直方向压缩 tilt 倍（地面、圈、预警变成椭圆，像从斜上方看）；
+## 站立的东西（角色 / 怪物 / 场景物件 / 文字）要反向拉伸 1/tilt 才不会变扁。1.0 = 不倾斜（村子、测试里用）
+static var tilt := 1.0
+
+
+## 让后面的绘制「站直」：以 anchor_y 这一行为不动点，竖直拉伸 1/tilt；画完用 flat() 还原
+static func upright(ci: CanvasItem, anchor_y: float) -> void:
+	if tilt < 0.999:
+		ci.draw_set_transform_matrix(Transform2D(Vector2(1.0, 0.0), Vector2(0.0, 1.0 / tilt), Vector2(0.0, anchor_y * (1.0 - 1.0 / tilt))))
+
+
+static func flat(ci: CanvasItem) -> void:
+	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 ## 柔边的椭圆影子贴图（只建一次）：一次 draw_texture_rect 代替三个圆 + 两次变换，同屏几百个怪时省很多
@@ -37,4 +50,4 @@ static func bob(t: float, amp: float, speed: float, phase: float = 0.0) -> float
 
 ## 挤压 / 拉伸：squash < 1 时变扁变宽，> 1 时变高变窄（体积大致守恒）
 static func scale_of(squash: float, flip: bool = false, zoom: float = 1.0) -> Vector2:
-	return Vector2((-1.0 if flip else 1.0) * (2.0 - squash) * zoom, squash * zoom)
+	return Vector2((-1.0 if flip else 1.0) * (2.0 - squash) * zoom, squash * zoom / tilt)

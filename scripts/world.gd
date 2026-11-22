@@ -2462,7 +2462,7 @@ func _update_effects(dt: float) -> void:
 
 
 func _vis(p: Vector2, margin: float = 40.0) -> bool:
-	return absf(p.x - player_pos.x) < 640.0 + margin and absf(p.y - player_pos.y) < 360.0 + margin
+	return absf(p.x - player_pos.x) < 640.0 + margin and absf(p.y - player_pos.y) < 360.0 / Depth.tilt + margin
 
 
 func _draw() -> void:
@@ -2505,7 +2505,7 @@ func _draw() -> void:
 			ents.append([fy + uniq, 0, e])         # 加一点点序号让第一项互不相同：用原生排序，比 sort_custom 快得多
 	_lite = ents.size() > LITE_ENEMIES
 	if map_art != null:
-		for pr in map_art.visible_props(player_pos, Vector2(700.0, 420.0)):
+		for pr in map_art.visible_props(player_pos, Vector2(700.0, 420.0 / Depth.tilt)):
 			uniq += 1e-6
 			ents.append([(pr["pos"] as Vector2).y + uniq, 1, pr])
 	ents.append([player_pos.y + 14.0 + 0.5, 2, null])
@@ -2570,14 +2570,14 @@ func _hash(cx: int, cy: int) -> int:
 
 func _draw_background() -> void:
 	if map_art != null:
-		map_art.draw_ground(self, player_pos, Vector2(680.0, 400.0))
+		map_art.draw_ground(self, player_pos, Vector2(680.0, 400.0 / Depth.tilt))
 		return
 	# 水墨风占位：淡墨山石 + 草丛笔触，按格子哈希稳定生成
 	var cs := 180
 	var x0 := int(floorf((player_pos.x - 720.0) / cs))
 	var x1 := int(floorf((player_pos.x + 720.0) / cs))
-	var y0 := int(floorf((player_pos.y - 440.0) / cs))
-	var y1 := int(floorf((player_pos.y + 440.0) / cs))
+	var y0 := int(floorf((player_pos.y - 440.0 / Depth.tilt) / cs))
+	var y1 := int(floorf((player_pos.y + 440.0 / Depth.tilt) / cs))
 	for cx in range(x0, x1 + 1):
 		for cy in range(y0, y1 + 1):
 			var h := _hash(cx, cy)
@@ -2941,8 +2941,10 @@ func _draw_effects() -> void:
 				var ta := clampf(a * 2.2, 0.0, 1.0)
 				var tw := maxf(200.0, float(fs) * float(str(fx["text"]).length()) + 24.0)
 				var tp := at - Vector2(tw * 0.5, 0)
+				Depth.upright(self, tp.y)
 				draw_string_outline(tfont, tp, str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, tw, fs, maxi(4, fs / 4), Color(0.05, 0.03, 0.02, ta))
 				draw_string(tfont, tp, str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, tw, fs, Color(col, ta))
+				Depth.flat(self)
 			"ring":
 				var r := lerpf(float(fx["r0"]), float(fx["r1"]), t / life)
 				var col2: Color = fx["color"]
@@ -3292,7 +3294,7 @@ func _load_pickups() -> void:
 func _draw_pickup(id: String, at: Vector2, h: float, rot: float = 0.0, tint: Color = Color.WHITE) -> void:
 	var a: Dictionary = pickup_art[id]
 	var w := h * float(a["w"]) / float(a["h"])
-	draw_set_transform(at, rot, Vector2.ONE)
+	draw_set_transform(at, rot, Vector2(1.0, 1.0 / Depth.tilt) if rot == 0.0 else Vector2.ONE)
 	draw_texture_rect(a["tex"], Rect2(-w * 0.5, -h * 0.5, w, h), false, tint)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
@@ -3428,12 +3430,16 @@ func _draw_bagua() -> void:
 		draw_colored_polygon(pts, Color(col, 0.10 + (0.12 if here else 0.0) + (0.10 * flash if bagua_warn else 0.0)))
 		draw_polyline(pts, Color(col, 0.55), 2.0)
 		var mid := bagua_center + Vector2.from_angle(a0 + PI / 8.0) * R * 0.68
+		Depth.upright(self, mid.y)
 		draw_string(font, mid + Vector2(-28, -6), str(g["name"]), HORIZONTAL_ALIGNMENT_CENTER, 56, 22, Color(col, 0.95))
 		draw_string(font, mid + Vector2(-40, 18), str(g["tip"]), HORIZONTAL_ALIGNMENT_CENTER, 80, 14, Color(1, 1, 1, 0.6))
+		Depth.flat(self)
 		if bagua_warn and not bagua_next.is_empty():            # 预警：新排布的门名画在外圈
 			var ng: Dictionary = BAGUA_GATES[str(bagua_next[i])]
 			var out := bagua_center + Vector2.from_angle(a0 + PI / 8.0) * (R + 34.0)
+			Depth.upright(self, out.y)
 			draw_string(font, out + Vector2(-22, 6), "→" + str(ng["name"]), HORIZONTAL_ALIGNMENT_CENTER, 52, 16, Color(Color(str(ng["col"])), 0.5 + 0.5 * flash))
+			Depth.flat(self)
 	draw_arc(bagua_center, R, 0.0, TAU, 64, Color("#f0b429", 0.6), 3.0)
 	if vfx.has("bagua_gate_glow"):        # 八卦环贴花：盖在阵眼外圈，预警时更亮
 		vfx.draw(self, "bagua_gate_glow", vfx.frame_loop("bagua_gate_glow", time), bagua_center, R * 2.0, 0.0, Color(1, 1, 1, 0.16 + (0.14 * flash if bagua_warn else 0.0)))

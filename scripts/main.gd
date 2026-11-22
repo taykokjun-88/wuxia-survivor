@@ -112,7 +112,7 @@ func _process(_dt: float) -> void:
 		cam.position = town.player_pos
 		cam.offset = Vector2.ZERO
 		return
-	cam.position = world.player_pos
+	cam.position = Vector2(world.player_pos.x, world.player_pos.y * Depth.tilt)
 	if world.shake > 0.0:
 		cam.offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * world.shake
 	else:
@@ -183,6 +183,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## 创建角色 / 登录 / 开局选择时隐藏世界和 HUD，避免透出游戏画面
 func _show_game(on: bool) -> void:
+	Depth.tilt = clampf(Data.T("view_tilt"), 0.5, 1.0) if on else 1.0      # 伪 2.5D：局内斜俯视，村子 / 菜单不倾斜
+	world.scale = Vector2(1.0, Depth.tilt)
 	world.visible = on
 	hud.canvas.visible = on
 	town.visible = false
