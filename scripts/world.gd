@@ -2436,6 +2436,8 @@ func apply_choice(c: Dictionary) -> void:
 			add_shi(id, int(c["gain"]))
 			shi_bonus[id] = float(shi_bonus.get(id, 0.0)) + float(c.get("bonus", 0.0))
 		"new_xinfa":
+			if xinfa.size() >= MAX_XINFA and not xinfa.has(id):      # 局内最多学两种心法：兜底，哪怕有张旧卡被点中也不会多学
+				return
 			xinfa[id] = 1
 			xinfa_q[id] = []
 		"up_xinfa":

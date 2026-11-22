@@ -3263,7 +3263,24 @@ func _synergy_test() -> void:
 				spoil = spoil or str(c["desc"]).contains("合璧")
 	_check(not spoil, "不能合璧的卡片不提示合璧")
 	_free_world(wh)
-	print("  阴阳属性 / 45 种搭配 / 调和体·纯阳体·纯阴体 / 合璧效果 / 选卡提示  OK")
+	# 局内最多学两种心法：学满后升级卡里不再出现新心法（只剩已学心法的强化），强行应用也学不进去
+	var wf := _new_world(79)
+	wf.skills.clear()
+	wf.xinfa = {"chunyang": 1, "tunhai": 1}
+	var new_seen := 0
+	var up_seen := 0
+	for i in 80:
+		for c in wf.roll_choices(30):
+			if str(c["kind"]) == "new_xinfa":
+				new_seen += 1
+			elif str(c["kind"]) == "up_xinfa":
+				up_seen += 1
+	_check(new_seen == 0, "学满两种心法后，升级卡里不再出现新心法（出现 %d 次）" % new_seen)
+	_check(up_seen > 0, "已学的心法仍能强化")
+	wf.apply_choice({"kind": "new_xinfa", "id": "hanshuang", "src": "level"})
+	_check(wf.xinfa.size() == GameWorld.MAX_XINFA and not wf.xinfa.has("hanshuang"), "强行应用第三种心法也学不进去")
+	_free_world(wf)
+	print("  阴阳属性 / 45 种搭配 / 调和体·纯阳体·纯阴体 / 合璧效果 / 选卡提示 / 心法最多两种  OK")
 
 
 func _p2_test() -> void:
