@@ -4256,6 +4256,29 @@ func _spear_test() -> void:
 		w5.input_move = Vector2.RIGHT
 		w5.step(DT)
 	_check(w5.spear_qs > 20.0, "枪势靠移动攒（3 秒后 %.0f）" % w5.spear_qs)
+	# 游龙突 / 杨家枪法：出枪原地不动（不后退、不闪现）
+	var w6 := GameWorld.new()
+	w6.god = true
+	w6.rng_seed = 6
+	add_child(w6)
+	w6.start_run("yangjia_spear", "tashue")
+	var tg := w6._spawn_enemy("bandit", w6.player_pos + Vector2(180, 0))
+	tg.speed = 0.0
+	w6._rebuild_grid()
+	var p6 := w6.player_pos
+	var ys := w6.skills["yangjia_spear"] as SpearSkills.Yangjia
+	_check(ys.fire(), "杨家枪法普通出枪")
+	w6.step(DT)
+	_check(w6.player_knock.length() < 1.0 and w6.player_pos.distance_to(p6) < 3.0, "杨家枪法出枪不后退（位移 %.1f）" % w6.player_pos.distance_to(p6))
+	w6.spear_qs = 100.0
+	var tg2 := w6._spawn_enemy("bandit", w6.player_pos + Vector2(250, 0))
+	tg2.speed = 0.0
+	var hp_tg2 := tg2.hp
+	w6._rebuild_grid()
+	_check(ys.fire(), "枪势满：游龙突出枪")
+	_check(w6.player_pos.distance_to(p6) < 3.0 and w6.spear_qs < 1.0, "游龙突原地释放，不闪现（位移 %.1f，势 %.0f）" % [w6.player_pos.distance_to(p6), w6.spear_qs])
+	_check(tg2.hp < hp_tg2 or not tg2.alive, "游龙突仍贯穿一线命中（%.0f → %.0f）" % [hp_tg2, tg2.hp])
+	_free_world(w6)
 	_free_world(w2)
 	_free_world(w3)
 	_free_world(w5)

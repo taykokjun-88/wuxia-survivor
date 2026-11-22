@@ -62,7 +62,7 @@ class Base extends SkillBase:
 		if not vfx_at(id, from + d * 0.5, d.length() * length_scale, d.angle(), 0.3):
 			ray_fx(from, to, width, color)
 
-	## 枪势满：下一枪变「游龙突」——向前冲出约 320 像素，沿途无敌，贯穿路径上所有敌人（×1.8、必暴击）
+	## 枪势满：下一枪变「游龙突」——原地向前刺出一道约 320 像素的枪龙（人不位移），贯穿一线所有敌人（×1.8、必暴击），0.45 秒无敌
 	func breakthrough(dir: Vector2) -> bool:
 		if free_cast or str(def.get("route", "")) != "spear" or id == "wuming_spear" or w.spear_qs < 100.0:
 			return false
@@ -71,9 +71,8 @@ class Base extends SkillBase:
 		w.invuln = maxf(w.invuln, 0.45)
 		var start := w.player_pos
 		line_hit(start, dir, dist, 64.0, p("damage") * 1.8, 120.0, 1.45, true)
-		w.player_pos += dir * dist
 		if not vfx_at("fx_youlong_dash", start + dir * dist * 0.5, dist * 1.35, dir.angle(), 0.45):
-			ray_fx(start, w.player_pos, 46.0, Color("#ffd878"))
+			ray_fx(start, start + dir * dist, 46.0, Color("#ffd878"))
 		w.add_fx("text", w.player_pos + Vector2(0, -50), 0.9, {"text": "游龙突！", "size": 28, "color": Color("#ffd878")})
 		w.shake = maxf(w.shake, 5.0)
 		return true
