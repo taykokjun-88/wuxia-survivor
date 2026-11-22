@@ -430,6 +430,6 @@ func _draw_player() -> void:
 			hero_art.draw(self, key, time if moving else 0.0, player_pos + Vector2(0, 4.0 - bob), facing.x < 0.0 and key == "hero_side", Color.WHITE, lean, 1.0 + (0.025 * sin(time * 24.0) if moving else 0.0))
 			return
 	if sprite_anim != null:
-		if sprite_anim.draw(self, "walk" if moving else "idle", time, player_pos + Vector2(0, 14.0 - bob), facing.x < 0.0):
+		if sprite_anim.draw(self, "walk" if moving else "idle", time, player_pos + Vector2(0, 14.0 - bob), facing.x < 0.0, Color.WHITE, Data.T("player_zoom")):
 			return
 	draw_circle(player_pos + Vector2(0, -14), 10.0, Color("#3aa6a0"))

@@ -11,6 +11,8 @@ const FALLBACK := {
 }
 
 var cell := 64
+var world := 0.0   # 绘制时的世界尺寸（0 = 和格子一样大）；新版精致精灵的纹理比世界尺寸大
+var foot_px := 4.0    # 角色脚底距格子底边（纹理像素）
 var anims: Dictionary = {}   # name -> {tex, frames, fps, loop}
 
 
@@ -23,6 +25,8 @@ func load_dir(dir: String) -> bool:
 		return false
 	var d: Dictionary = json.data
 	cell = int(d.get("cell", 64))
+	world = float(d.get("world", cell))
+	foot_px = float(d.get("foot", 4.0))
 	var list: Dictionary = d.get("anims", {})
 	for name in list:
 		var a: Dictionary = list[name]
@@ -71,8 +75,9 @@ func draw(ci: CanvasItem, name: String, t: float, foot: Vector2, flip: bool, tin
 	var a: Dictionary = anims[key]
 	var tex: Texture2D = a["tex"]
 	var src := Rect2(frame_index(key, t) * cell, 0, cell, cell)
-	# 以脚底为支点旋转 / 挤压；条带里角色脚底距格子底部 4px
+	# 以脚底为支点旋转 / 挤压；条带里角色脚底距格子底部 foot 个纹理像素
 	ci.draw_set_transform(foot, rot, Depth.scale_of(squash, flip, zoom, foot.y))
-	ci.draw_texture_rect_region(tex, Rect2(-cell * 0.5, 4.0 - cell, cell, cell), src, tint)
+	var w := world if world > 0.0 else float(cell)
+	ci.draw_texture_rect_region(tex, Rect2(-w * 0.5, foot_px * w / float(cell) - w, w, w), src, tint)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	return true

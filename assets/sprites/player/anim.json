@@ -1,53 +1,55 @@
 {
-  "cell": 96,
+  "cell": 156,
+  "world": 120,
+  "foot": 10,
   "anims": {
+    "dash": {
+      "file": "dash.png",
+      "frames": 4,
+      "fps": 18.67,
+      "loop": false
+    },
+    "death": {
+      "file": "death.png",
+      "frames": 6,
+      "fps": 9.0,
+      "loop": false
+    },
+    "hurt": {
+      "file": "hurt.png",
+      "frames": 3,
+      "fps": 15.0,
+      "loop": false
+    },
     "idle": {
       "file": "idle.png",
       "frames": 4,
       "fps": 4.0,
       "loop": true
     },
+    "palm": {
+      "file": "palm.png",
+      "frames": 6,
+      "fps": 24.0,
+      "loop": false
+    },
+    "punch": {
+      "file": "punch.png",
+      "frames": 6,
+      "fps": 24.0,
+      "loop": false
+    },
+    "ult": {
+      "file": "ult.png",
+      "frames": 6,
+      "fps": 12.0,
+      "loop": false
+    },
     "walk": {
       "file": "walk.png",
       "frames": 6,
       "fps": 10.0,
       "loop": true
-    },
-    "punch": {
-      "file": "punch.png",
-      "frames": 4,
-      "fps": 16.0,
-      "loop": false
-    },
-    "palm": {
-      "file": "palm.png",
-      "frames": 3,
-      "fps": 12.0,
-      "loop": false
-    },
-    "dash": {
-      "file": "dash.png",
-      "frames": 3,
-      "fps": 14.0,
-      "loop": false
-    },
-    "ult": {
-      "file": "ult.png",
-      "frames": 4,
-      "fps": 8.0,
-      "loop": false
-    },
-    "death": {
-      "file": "death.png",
-      "frames": 4,
-      "fps": 6.0,
-      "loop": false
-    },
-    "hurt": {
-      "file": "hurt.png",
-      "frames": 2,
-      "fps": 10.0,
-      "loop": false
     }
   }
 }
