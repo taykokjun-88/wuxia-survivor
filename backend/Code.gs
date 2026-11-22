@@ -140,7 +140,7 @@ function doGet(e) {
   var p = (e && e.parameter) || {};
   var res;
   try {
-    if (p.action === 'ping') res = ok({ v: VERSION, time: iso() });
+    if (p.action === 'ping') res = ok({ v: VERSION, time: iso(), schools: SCHOOLS });
     else if (p.action === 'board') res = board(p);
     else res = fail('bad_action', '未知请求');
   } catch (err) { res = serverError(err, 'doGet'); }
@@ -163,7 +163,7 @@ function serverError(err, where) {
 
 function dispatch(req) {
   var a = req.action;
-  if (a === 'ping') return ok({ v: VERSION, time: iso() });
+  if (a === 'ping') return ok({ v: VERSION, time: iso(), schools: SCHOOLS });
   if (a === 'board') return board(req);
   var lock = LockService.getScriptLock();
   lock.waitLock(15000);
