@@ -608,7 +608,7 @@ func _monster_icon(map_id: String, id: String, size: Vector2) -> Control:
 		var ea := _stage_art()
 		var akey := id
 		if not ea.has(akey) and Data.enemies.has(id) and ea.has(str(Data.enemies[id].get("art", ""))):
-			akey = str(Data.enemies[id]["art"])        # 没有专属素材：借用别的怪的图（光明顶占位）
+			akey = str(Data.enemies[id]["art"])        # 没有专属素材：借用别的怪的图（赤焰巅占位）
 		if ea.has(akey):
 			var d: Dictionary = ea.sprites[akey]
 			var at := AtlasTexture.new()
@@ -1893,7 +1893,7 @@ func hide_smith() -> void:
 
 
 # ---------------------------------------------------------------------
-# 小镇：对话框 / 百晓生图鉴 / 村子 HUD
+# 小镇：对话框 / 茶馆老包图鉴 / 村子 HUD
 # ---------------------------------------------------------------------
 
 ## NPC 对话：options 里每项 {label, enabled?}；数字键 1~9 或点击选择
@@ -1939,7 +1939,7 @@ func hide_dialog() -> void:
 	dialog_count = 0
 
 
-## 百晓生的图鉴：上面四个分类，左边条目，右边详情
+## 茶馆老包的图鉴：上面四个分类，左边条目，右边详情
 func show_guide(cat: String = "play", index: int = 0) -> void:
 	guide_cat = cat
 	guide_index = index
@@ -1959,7 +1959,7 @@ func _build_guide() -> void:
 	guide_panel = pb[0]
 	var box: VBoxContainer = pb[1]
 	box.add_theme_constant_override("separation", 8)
-	box.add_child(_label("百晓册", 38))
+	box.add_child(_label("江湖手札", 38))
 	var tabs := _center_row(10)
 	for c in Guide.CATEGORIES:
 		var cid: String = c[0]
@@ -2170,7 +2170,7 @@ func show_choices(choices: Array, title: String, rerolls: int = -1) -> void:
 	levelup_panel.visible = true
 
 
-## 选卡上的图标：招式 / 心法 / 独孤九剑的式；没有图标的（调息）返回 null
+## 选卡上的图标：招式 / 心法 / 无迹九变剑的式；没有图标的（调息）返回 null
 func _choice_icon(c: Dictionary) -> Texture2D:
 	var id := str(c.get("id", ""))
 	match str(c.get("kind", "")):
@@ -2492,7 +2492,7 @@ func _draw_hud() -> void:
 				Color("#a0521d") if bool(sy2["harmony"]) else Color("#1f6f6a"))
 			cx += 18.0
 		if w.skills.has("dugu"):
-			canvas.draw_string(font, Vector2(16, ry + (30.0 if not w.xinfa.is_empty() else 0.0) + 14.0), "式 %d/%d　%s" % [w.shi_total(), int(Data.T("shi_stage3")), _stage_name()],
+			canvas.draw_string(font, Vector2(16, ry + (30.0 if not w.xinfa.is_empty() else 0.0) + 14.0), "变 %d/%d　%s" % [w.shi_total(), int(Data.T("shi_stage3")), _stage_name()],
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 13, GameWorld.VERMILION)
 		canvas.draw_string(font, Vector2(16, plate_h + 22.0 - 6.0), ("点「详」展开详情" if touch_mode else "[Tab] 展开详情"), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#7a6a3a"))
 	else:
@@ -2512,7 +2512,7 @@ func _draw_hud() -> void:
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 14, GameWorld.VERMILION if star != "" else Color("#6a5a3a"))
 			y += ICON + 14.0
 		if w.skills.has("dugu"):
-			canvas.draw_string(font, Vector2(16, y + 8.0), "式 总层 %d（≥%d 破兵微步 · ≥%d 万法皆破 · ≥%d 真·独孤九剑）" % [w.shi_total(), int(Data.T("shi_stage1")), int(Data.T("shi_stage2")), int(Data.T("shi_stage3"))],
+			canvas.draw_string(font, Vector2(16, y + 8.0), "变 总层 %d（≥%d 破兵微步 · ≥%d 万法皆破 · ≥%d 真·无迹九变剑）" % [w.shi_total(), int(Data.T("shi_stage1")), int(Data.T("shi_stage2")), int(Data.T("shi_stage3"))],
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 12, GameWorld.VERMILION)
 			y += 28.0
 			for sid in w.shi:
@@ -2564,6 +2564,6 @@ func _shi_extra_h() -> float:
 
 func _stage_name() -> String:
 	match world.dugu_stage():
-		3: return "真·独孤九剑"
+		3: return "真·无迹九变剑"
 		2: return "万法皆破"
 	return "破兵微步" if world.dugu_micro() else "初窥门径"

@@ -41,7 +41,7 @@ const ok = (c, m) => { if (!c) fails++; console.log((c ? '  ✓ ' : '  ✗ ') + 
   await page.keyboard.press('Enter');
   await page.waitForTimeout(3500);
   st = await state(); ok(st.players === 4, '正确的邀请码可以注册（服务器玩家数 ' + st.players + '）');
-  await page.keyboard.press('Enter'); await page.waitForTimeout(2500);              // 创建角色（默认名「无名武者」）→ 进入阿罗拉村
+  await page.keyboard.press('Enter'); await page.waitForTimeout(2500);              // 创建角色（默认名「无名武者」）→ 进入竹溪村
   st = await state(); ok(st.chars === 1, '创建角色在服务器上（角色数 ' + st.chars + '）');
   await shot('02_town');
   // 本机后端才允许 ?npc=<id>：开局直接站到某个 NPC 面前（测试用，免得在软件渲染里计时走路）

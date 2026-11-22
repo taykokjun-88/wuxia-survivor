@@ -733,7 +733,7 @@ func _talk(npc: Dictionary) -> void:
 				{"label": "退出登录" if Net.configured() else "退出登录（未联网）", "action": "logout", "enabled": Net.configured()},
 				{"label": "告辞", "action": "close"}]
 		"sage":
-			opts = [{"label": "翻阅百晓册（玩法 / 招式 / 心法 / 轻功）", "action": "guide"}, {"label": "告辞", "action": "close"}]
+			opts = [{"label": "翻阅江湖手札（玩法 / 招式 / 心法 / 轻功）", "action": "guide"}, {"label": "告辞", "action": "close"}]
 		_:
 			opts = [{"label": "告辞", "action": "close"}]
 	_dlg(npc, greet, opts)

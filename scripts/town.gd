@@ -1,6 +1,6 @@
 class_name Town
 extends Node2D
-## 小镇（阿罗拉村）：可走动的像素风镇子。NPC 和建筑在 data 的 town 里定义；
+## 小镇（竹溪村）：可走动的像素风镇子。NPC 和建筑在 data 的 town 里定义；
 ## NPC 立绘来自 assets/town/npc/<sprite>.png，没有时画占位；建筑目前是程序绘制的像素风占位（等正式素材）。
 ## 本类只管「走动 / 碰撞 / 绘制 / 找最近的 NPC」；点开对话和各种界面由 main.gd 负责。
 

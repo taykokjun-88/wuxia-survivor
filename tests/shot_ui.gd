@@ -40,9 +40,9 @@ func _ready() -> void:
 	await _frames(2)
 	await _snap("ui3_blade_hud_full")
 	var ch: Array = w.roll_choices(3)
-	ch[0] = {"kind": "up_skill", "id": "xuedao", "dir": "damage", "tier": 3, "src": "level", "tag": "传说", "color": "#f0c050", "title": "血刀经 · 加强伤害", "desc": "伤害 +40%　（已升级 3/10）"}
-	ch[1] = {"kind": "new_xinfa", "id": "chunyang", "src": "level", "tag": "心法", "title": "修习：九阳神功【阳】", "desc": Data.xinfa["chunyang"]["desc"]}
-	ch[2] = {"kind": "up_xinfa", "id": "changsheng", "tier": 2, "src": "level", "tag": "优秀", "color": "#b070e8", "title": "先天功 · 强化（Lv2→3）", "desc": "同修招式与被动属性 +3 份强度（累计 2 → 5 份）　（已强化 1/3）"}
+	ch[0] = {"kind": "up_skill", "id": "xuedao", "dir": "damage", "tier": 3, "src": "level", "tag": "传说", "color": "#f0c050", "title": "朱砂饮锋刀 · 加强伤害", "desc": "伤害 +40%　（已升级 3/10）"}
+	ch[1] = {"kind": "new_xinfa", "id": "chunyang", "src": "level", "tag": "心法", "title": "修习：煌日真诀【阳】", "desc": Data.xinfa["chunyang"]["desc"]}
+	ch[2] = {"kind": "up_xinfa", "id": "changsheng", "tier": 2, "src": "level", "tag": "优秀", "color": "#b070e8", "title": "玄龟吐纳 · 强化（Lv2→3）", "desc": "同修招式与被动属性 +3 份强度（累计 2 → 5 份）　（已强化 1/3）"}
 	main.hud.show_choices(ch, "升级！选择一项")
 	await _frames(3)
 	await _snap("ui4_choices")

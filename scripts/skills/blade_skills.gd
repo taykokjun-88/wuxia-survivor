@@ -80,7 +80,7 @@ class Base extends SkillBase:
 		return n
 
 
-## 五虎断门刀：宽扇重劈。强化「猛虎下山」：每第 3 刀变成 360° 横扫，对流血的敌人必定暴击。
+## 五煞断岳刀：宽扇重劈。强化「猛虎下山」：每第 3 刀变成 360° 横扫，对流血的敌人必定暴击。
 class WuHu extends Base:
 	var combo := 0
 
@@ -105,7 +105,7 @@ class WuHu extends Base:
 		return true
 
 
-## 狂风刀法：近身快刀，一前一后两道刀弧。强化「风卷残云」：4 连斩，命中回内力。
+## 暴风卷沙刀：近身快刀，一前一后两道刀弧。强化「风卷残云」：4 连斩，命中回内力。
 class KuangFeng extends Base:
 	var volley := 0
 
@@ -130,7 +130,7 @@ class KuangFeng extends Base:
 		return true                                        # 刀卷残云（催动）：出刀范围 +40%（不再把敌人拉向自己）
 
 
-## 胡家刀法：弯月刀气，穿透多人；近处伤害更高并露出破绽。强化「八方藏刀式」：两侧分出次级刀气。
+## 寒鸦落雪刀：弯月刀气，穿透多人；近处伤害更高并露出破绽。强化「八方藏刀式」：两侧分出次级刀气。
 class HuJia extends Base:
 	func hit_mult(e: Enemy) -> float:
 		return 1.35 if e.pos.distance_to(w.player_pos) < 100.0 else 1.0
@@ -151,7 +151,7 @@ class HuJia extends Base:
 		return true
 
 
-## 燃木刀法：火焰刀浪 + 地面火海。强化「乾柴烈火」：被灼烧的敌人死亡时爆炸。
+## 烈焰焚林刀：火焰刀浪 + 地面火海。强化「乾柴烈火」：被灼烧的敌人死亡时爆炸。
 class RanMu extends Base:
 	func fire() -> bool:
 		var reach := p("reach") * rmul()
@@ -173,7 +173,7 @@ class RanMu extends Base:
 		return true
 
 
-## 血刀经：消耗气血斩出血刃，气血越低越痛；命中叠撕裂、回血。强化「血魔不死」：低血时冷却减半且不耗血。
+## 朱砂饮锋刀：消耗气血斩出血刃，气血越低越痛；命中叠撕裂、回血。强化「血魔不死」：低血时冷却减半且不耗血。
 class XueDao extends Base:
 	func _low() -> bool:
 		return enhanced() and w.hp < w.st("max_hp") * 0.4
@@ -207,7 +207,7 @@ class XueDao extends Base:
 		return true
 
 
-## 反两仪刀法：阴阳刀轮，抹弹幕、弹开敌人、叠撕裂。强化「混沌倒悬」：刀轮期间减伤并把所受伤害反弹。
+## 错位双仪刀：阴阳刀轮，抹弹幕、弹开敌人、叠撕裂。强化「混沌倒悬」：刀轮期间减伤并把所受伤害反弹。
 class FanLiangYi extends Base:
 	var wheel_t := 0.0
 	var wheel_acc := 0.0
@@ -265,7 +265,7 @@ class FanLiangYi extends Base:
 		return dmg
 
 
-## 玄虚刀法：震地裂痕，震晕路径上的敌人。强化「开山裂石」：对被震晕的敌人处决伤害。
+## 幽微藏锋刀：震地裂痕，震晕路径上的敌人。强化「开山裂石」：对被震晕的敌人处决伤害。
 class XuanXu extends Base:
 	func hit_mult(e: Enemy) -> float:
 		return ev(1.8, 2.2, 2.6) if (enhanced() and e.stun > 0.0) else 1.0
@@ -284,7 +284,7 @@ class XuanXu extends Base:
 		return true
 
 
-## 鸳鸯双刀：一长一短两柄飞刀回旋。长刀减速，短刀撕裂。强化「仁义无双」：被两刀都命中过的敌人必暴击并受更多伤害。
+## 双鲤戏浪刀：一长一短两柄飞刀回旋。长刀减速，短刀撕裂。强化「仁义无双」：被两刀都命中过的敌人必暴击并受更多伤害。
 class YuanYang extends Base:
 	func hit_crit(e: Enemy) -> bool:
 		return enhanced() and e.slow_t > 0.0 and e.bleed_stacks > 0
@@ -309,7 +309,7 @@ class YuanYang extends Base:
 		return true
 
 
-## 屠龙刀法：巨刀虚影砸落，击碎护盾、全场减速。强化「号令天下」：真气爆发 / 霸刀破岳时自动免费再来一次。
+## 斩蛟沉海刀：巨刀虚影砸落，击碎护盾、全场减速。强化「号令天下」：真气爆发 / 霸刀破岳时自动免费再来一次。
 class TuLong extends Base:
 	func shield_mult() -> float:
 		return 3.0

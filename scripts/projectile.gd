@@ -13,7 +13,7 @@ var life := 1.0
 var kind := "bolt"      # wave | bolt | palm | finger
 var knock := 0.0
 var hostile := false
-var cuttable := false     # 敌方普通投射物（弓箭 / 小剑气）：独孤九剑可以斩落；Boss 大招不行
+var cuttable := false     # 敌方普通投射物（弓箭 / 小剑气）：无迹九变剑可以斩落；Boss 大招不行
 var angle := 0.0
 var hit := {}           # 已命中敌人 uid，避免同一弹体重复伤害
 
@@ -34,7 +34,7 @@ var splash_frac := 0.0   # 溅射伤害占本次伤害的比例
 var falloff := 1.0       # 每穿透一个目标，后续伤害乘以这个系数
 var stun_chance := 1.0   # 命中时定身的几率
 var chain := false
-var bounce := 0         # 破鞭式：剩余弹射次数（穿透耗尽后转向另一名敌人，与穿透同时生效）
+var bounce := 0         # 折锋变：剩余弹射次数（穿透耗尽后转向另一名敌人，与穿透同时生效）
 var bounce_dmg := 0.5
 var pierce_reset := 1    # 弹射后恢复的穿透数
 var poison := 0.0        # 命中叠加的毒层（每秒伤害）

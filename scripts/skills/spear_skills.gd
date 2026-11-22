@@ -288,7 +288,7 @@ class PanLong extends Base:
 		w.shake = maxf(w.shake, 8.0)
 
 
-## 打狗棒法：点地绊腿，扇形内敌人被绊倒（定身）并露出破绽
+## 翠竹巧拨棒：点地绊腿，扇形内敌人被绊倒（定身）并露出破绽
 class Dagou extends Base:
 	func fire() -> bool:
 		var reach := p("reach")
@@ -304,7 +304,7 @@ class Dagou extends Base:
 		return true
 
 
-## 疯魔杖法：原地旋转，连续横扫并推开敌人
+## 怒涛狂澜杖：原地旋转，连续横扫并推开敌人
 class Fengmo extends Base:
 	var spin_left := 0.0
 	var tick_t := 0.0
@@ -343,7 +343,7 @@ class Fengmo extends Base:
 		w.area_hit_raw(w.player_pos, r, p("damage") * mult, tags(), id, p("knock"), 0.0, false, false)
 
 
-## 降魔杖：蓄力重击，落点大范围冲击并击晕；身边近身敌人越多越痛
+## 定海铁杖：蓄力重击，落点大范围冲击并击晕；身边近身敌人越多越痛
 class Xiangmo extends Base:
 	func fire() -> bool:
 		var t := w.nearest_enemy(p("reach"))

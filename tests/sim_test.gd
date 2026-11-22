@@ -215,9 +215,9 @@ func _levels_report() -> void:
 	print("  平均等级 %.1f" % (float(sum) / n))
 
 
-## 独孤九剑：会选卡的 bot 多个种子，看总层数何时越过 20 / 30（不无敌 + 无敌各一组）
+## 无迹九变剑：会选卡的 bot 多个种子，看总层数何时越过 20 / 30（不无敌 + 无敌各一组）
 func _dugu_report() -> void:
-	print("\n=== 独孤九剑 · 总层数进度（会选卡 bot）===")
+	print("\n=== 无迹九变剑 · 总层数进度（会选卡 bot）===")
 	for god in [true, false]:
 		for sd in [31, 32, 33, 34]:
 			var w := GameWorld.new()
@@ -389,7 +389,7 @@ func _blade_test() -> void:
 			row.append("%7.0f (%d)" % [dmg / 40.0, wk.kills])
 			_free_world(wk)
 		print("  %-8s %s" % [Data.skills[id]["name"], "  ".join(row)])
-	# 耗血刀法：血刀经 / 燃木 / 玄虚 / 屠龙共 4 个会耗血，耗的血也涨刀魂，且不会把自己耗死
+	# 耗血刀法：朱砂饮锋刀 / 燃木 / 玄虚 / 屠龙共 4 个会耗血，耗的血也涨刀魂，且不会把自己耗死
 	var hp_skills := []
 	for id in Data.skills:
 		if str(Data.skills[id]["school"]) == "blade" and float(Data.skills[id].get("hp_cost", 0.0)) > 0.0:
@@ -426,14 +426,14 @@ func _blade_test() -> void:
 	wpay.hp = wpay.st("max_hp")
 	wpay.soul = 0.0
 	wpay.skills["tulong_art"].pay_hp()
-	_check(absf((wpay.st("max_hp") - wpay.hp) - wpay.st("max_hp") * 0.06) < 0.01 and wpay.soul > 4.0, "屠龙刀法耗 6%% 气血并涨刀魂（%.1f）" % wpay.soul)
+	_check(absf((wpay.st("max_hp") - wpay.hp) - wpay.st("max_hp") * 0.06) < 0.01 and wpay.soul > 4.0, "斩蛟沉海刀耗 6%% 气血并涨刀魂（%.1f）" % wpay.soul)
 	wpay.hp = wpay.st("max_hp")
 	wpay.soul = 0.0
 	wpay.skills["tulong_art"].free_cast = true
 	wpay.skills["tulong_art"].pay_hp()
 	_check(is_equal_approx(wpay.hp, wpay.st("max_hp")) and wpay.soul == 0.0, "免费释放（号令天下）不耗血")
 	_free_world(wpay)
-	# 反两仪：抹弹幕、减伤反弹；屠龙刀法：免费释放；血刀经：不会把自己耗死
+	# 反两仪：抹弹幕、减伤反弹；斩蛟沉海刀：免费释放；朱砂饮锋刀：不会把自己耗死
 	var w3 := _blade_world(64)
 	w3.skills.clear()
 	w3.add_skill("fanliangyi")
@@ -462,7 +462,7 @@ func _blade_test() -> void:
 	var zc := w4.zones.size()
 	w4.neili = w4.st("max_neili")
 	w4._burst()
-	_check(w4.zones.size() > zc, "真气爆发触发屠龙刀法「号令天下」")
+	_check(w4.zones.size() > zc, "真气爆发触发斩蛟沉海刀「号令天下」")
 	_free_world(w4)
 	var w5 := _blade_world(66)
 	w5.skills.clear()
@@ -475,11 +475,11 @@ func _blade_test() -> void:
 		TestBot.drive(w5, 75.0)
 		w5.step(DT)
 		min_hp = minf(min_hp, w5.hp)
-	_check(min_hp >= 1.0, "血刀经耗血不会自杀（最低气血 %.1f）" % min_hp)
+	_check(min_hp >= 1.0, "朱砂饮锋刀耗血不会自杀（最低气血 %.1f）" % min_hp)
 	_free_world(w5)
-	# 武器：按稀有度选名；传说只出屠龙宝刀
+	# 武器：按稀有度选名；传说只出斩蛟宝刀
 	var legend := Gear.make("weapon.3.12345", "blade")
-	_check(str(legend["name"]) == "屠龙宝刀", "刀客传说武器 = 屠龙宝刀（%s）" % str(legend["name"]))
+	_check(str(legend["name"]) == "斩蛟宝刀", "刀客传说武器 = 斩蛟宝刀（%s）" % str(legend["name"]))
 	var okn := true
 	for sd in 40:
 		var n0 := str(Gear.make("weapon.0.%d" % (1000 + sd), "blade")["name"])
@@ -488,7 +488,7 @@ func _blade_test() -> void:
 	_check(okn, "刀客普通武器只出前 3 把刀")
 	_check(Gear.items_for("weapon", "blade").size() == 10, "刀客武器清单 10 把")
 	_check(Gear.items_for("weapon", "sword").size() == 10 and str(Gear.make("weapon.3.12345", "sword")["name"]) != "", "剑侠武器不受影响")
-	# 屠龙宝刀彩蛋：灭绝师泰二阶段时触发 —— 无视 50% 防御、护盾双倍伤害、破盾后易伤
+	# 斩蛟宝刀彩蛋：灭灶掌门二阶段时触发 —— 无视 50% 防御、护盾双倍伤害、破盾后易伤
 	var w6 := _s2_world(67)
 	w6.tulong_equipped = true
 	w6._spawn_boss("s2_boss", true)
@@ -497,13 +497,13 @@ func _blade_test() -> void:
 	fb.hp = 4e8
 	for i in 8:
 		w6.step(DT)
-	_check(w6.tulong_on and fb.phase2, "装备屠龙宝刀，灭绝师泰二阶段触发彩蛋")
+	_check(w6.tulong_on and fb.phase2, "装备斩蛟宝刀，灭灶掌门二阶段触发彩蛋")
 	fb.guard = 0.0
 	fb.guard_regen = 99.0
 	fb.shield = 100.0
 	fb.shield_max = 100.0
 	w6.hit_enemy(fb, 1000.0, [], Vector2.ZERO, "wuhu_blade")
-	_check(fb.shield <= 0.0 and fb.vuln_t > 0.0 and fb.vuln >= 0.3, "屠龙宝刀破盾后易伤")
+	_check(fb.shield <= 0.0 and fb.vuln_t > 0.0 and fb.vuln >= 0.3, "斩蛟宝刀破盾后易伤")
 	_free_world(w6)
 	var w7 := _s2_world(68)
 	w7._spawn_boss("s2_boss", true)
@@ -512,7 +512,7 @@ func _blade_test() -> void:
 	fb2.hp = 4e8
 	for i in 8:
 		w7.step(DT)
-	_check(not w7.tulong_on, "没有装备屠龙宝刀不触发彩蛋")
+	_check(not w7.tulong_on, "没有装备斩蛟宝刀不触发彩蛋")
 	_free_world(w7)
 	# 天赋
 	var tn: Dictionary = Talents.nodes("blade")
@@ -528,7 +528,7 @@ func _sword_test() -> void:
 	for id in Data.skills:
 		if str(Data.skills[id]["school"]) == "sword":
 			pool += 1
-	_check(pool == 10, "剑侠应有 9 个招式 + 独孤九剑，实际 %d" % pool)
+	_check(pool == 10, "剑侠应有 9 个招式 + 无迹九变剑，实际 %d" % pool)
 	for sid in Data.schools["sword"]["starters"]:
 		_check(Data.skills.has(sid) and str(Data.skills[sid]["school"]) == "sword", "剑侠起手招式有效: %s" % sid)
 	# 选卡池只出本流派招式
@@ -538,10 +538,10 @@ func _sword_test() -> void:
 		for c in w.roll_choices(3):
 			if str(c["kind"]) == "new_skill":
 				_check(str(Data.skills[c["id"]]["school"]) == "sword", "不应出现其他流派招式: %s" % c["id"])
-	# 起手不选独孤九剑：升级 / 秘籍选项里永远不会出现独孤九剑
+	# 起手不选无迹九变剑：升级 / 秘籍选项里永远不会出现无迹九变剑
 	for i in 300:
 		for c in w.roll_choices(3):
-			_check(not (str(c["kind"]) == "new_skill" and str(c["id"]) == "dugu"), "非独孤路线的升级选项里不应出现独孤九剑")
+			_check(not (str(c["kind"]) == "new_skill" and str(c["id"]) == "dugu"), "非九变路线的升级选项里不应出现无迹九变剑")
 	# 破绽：受伤加成
 	w.time = 120.0
 	var e := w._spawn_enemy("bandit", w.player_pos + Vector2(200, 0))
@@ -578,7 +578,7 @@ func _sword_art_test() -> void:
 		_check(sa.anims.has(n), "剑侠动画缺少 %s" % n)
 	_check(ResourceLoader.exists(str(Data.schools["sword"]["portrait"])), "剑侠立绘存在")
 	var w := _new_world(3, "dugu")
-	_check(w.sprite_anim != null and w.sprite_anim.anims.has("true_walk"), "独孤九剑开局使用剑侠动画")
+	_check(w.sprite_anim != null and w.sprite_anim.anims.has("true_walk"), "无迹九变剑开局使用剑侠动画")
 	w.shi = {"zong": 36}
 	var st := w._player_anim_state()
 	_check(str(st[0]) == "true_idle", "真形态站立用 true_idle，实际 %s" % str(st[0]))
@@ -616,7 +616,7 @@ func _sword_talent_test() -> void:
 	_check(base.size() == sw.size(), "覆盖不改变节点数量")
 	for id in base:
 		_check(int(base[id]["max"]) == int(sw[id]["max"]) and base[id]["branch"] == sw[id]["branch"] and int(base[id]["row"]) == int(sw[id]["row"]), "覆盖不改变 id / 层 / 上限：%s" % id)
-	var expect := {"gang_ying": "剑心", "gang_peak": "剑意凌霄", "rou_finger": "破绽洞察", "ling_qg": "青松不动", "ling_crit": "洞察", "ling_peak": "剑魔"}
+	var expect := {"gang_ying": "剑心", "gang_peak": "剑意凌霄", "rou_finger": "破绽洞察", "ling_qg": "劲柏不动", "ling_crit": "洞察", "ling_peak": "剑魔"}
 	for id in expect:
 		_check(str(sw[id]["name"]) == str(expect[id]), "剑侠节点名 %s" % id)
 	_check(str(base["gang_ying"]["name"]) == "盈劲" and str(Talents.nodes("fist")["gang_ying"]["name"]) == "盈劲", "武者流派的节点不变")
@@ -625,8 +625,8 @@ func _sword_talent_test() -> void:
 	_check(absf(float(ts.get("ying_dmg", 0.0)) - 0.10) < 1e-6, "剑意凌霄 盈境伤害 +10%%")
 	_check(float(ts.get("burst_yang", 0.0)) == 1.0 and not ts.has("burst_harmony"), "剑侠：刚系第 7 层保留阳性内力；灵系第 7 层变成剑魔")
 	_check(absf(float(ts.get("crit_mult", 0.0)) - 0.06) < 1e-6, "剑魔带一点点暴击伤害（+6%%）")
-	_check(absf(float(ts.get("skill:dugu:crit", 0.0)) - (0.08 + 0.06)) < 1e-6, "洞察 2 级（+8%%）+ 剑魔（+6%%）：独孤九剑暴击率 +14%%")
-	_check(absf(float(ts.get("skill:dugu:damage", 0.0)) - 0.12) < 1e-6 and absf(float(ts.get("skill:dugu:cooldown", 0.0)) - 0.08) < 1e-6, "剑魔：独孤九剑 伤害 +12%%、冷却 −8%%")
+	_check(absf(float(ts.get("skill:dugu:crit", 0.0)) - (0.08 + 0.06)) < 1e-6, "洞察 2 级（+8%%）+ 剑魔（+6%%）：无迹九变剑暴击率 +14%%")
+	_check(absf(float(ts.get("skill:dugu:damage", 0.0)) - 0.12) < 1e-6 and absf(float(ts.get("skill:dugu:cooldown", 0.0)) - 0.08) < 1e-6, "剑魔：无迹九变剑 伤害 +12%%、冷却 −8%%")
 	var tf := Talents.stats_for({"gang_ying": 2}, "fist")
 	_check(float(tf.get("ying_dmg", 0.0)) > 0.0 and not tf.has("skill_range"), "武者的盈劲仍是盈境伤害")
 	# 进入局内：范围 / 减益并入招式
@@ -639,7 +639,7 @@ func _sword_talent_test() -> void:
 	var s: SkillBase = w.skills["qingsong"]
 	_check(absf(float(s.mods["range"]) - 0.15) < 1e-6, "剑心 +15%% 范围并入招式，实际 %s" % str(s.mods["range"]))
 	_check(absf(float(s.mods["debuff"]) - 0.20) < 1e-6, "破绽洞察 +20%% 减益并入招式，实际 %s" % str(s.mods["debuff"]))
-	_check(s.p("reach") > float(Data.skills["qingsong"]["reach"]) * 1.14, "青松剑法 reach 变大")
+	_check(s.p("reach") > float(Data.skills["qingsong"]["reach"]) * 1.14, "劲柏凌霜剑 reach 变大")
 	_free_world(w)
 	# 武器名
 	var seen_s := {}
@@ -887,7 +887,7 @@ func _skill_fx_test() -> void:
 				w.god = false
 				w.hp = 1e6
 				w.invuln = 0.0
-				w._hurt(30.0)           # 乾坤大挪移：受击才反击
+				w._hurt(30.0)           # 回澜卸力诀：受击才反击
 			w.step(DT)
 			for fxe in w.effects:
 				if want.values().has(str(fxe.get("vfx", ""))) or (Data.skills[id].get("fx_alt", []) as Array).has(str(fxe.get("vfx", ""))):
@@ -942,8 +942,8 @@ func _stage_test() -> void:
 	var old_path := Save.path
 	Save.path = "user://test_stage.json"
 	Save.load_data()
-	_check(Save.map_unlocked("black_wind") and Save.map_unlocked("guangming"), "光明顶不再需要通关黑风寨（只需局外 Lv5）")
-	_check(int(Data.maps["guangming"]["min_meta_level"]) == 5, "光明顶需局外等级 5")
+	_check(Save.map_unlocked("black_wind") and Save.map_unlocked("guangming"), "赤焰巅不再需要通关黑风寨（只需局外 Lv5）")
+	_check(int(Data.maps["guangming"]["min_meta_level"]) == 5, "赤焰巅需局外等级 5")
 	# 装备分数
 	var eq_n := {"weapon": "weapon.0.5", "coat": "coat.0.6", "pants": "pants.0.7", "boots": "boots.0.8", "charm": "charm.0.9"}
 	var eq_g := {"weapon": "weapon.1.5", "coat": "coat.1.6", "pants": "pants.1.7", "boots": "boots.1.8", "charm": "charm.1.9"}
@@ -953,7 +953,7 @@ func _stage_test() -> void:
 	var eq_p := {"weapon": "weapon.2.99", "coat": "coat.2.291", "pants": "pants.2.205", "boots": "boots.2.154", "charm": "charm.2.251"}
 	var sp_d := Gear.total_score(eq_p, {}, "sword", "dugu")
 	var sp_o := Gear.total_score(eq_p, {}, "sword", "kuang_feng")
-	_check(sp_d > sp_o and sp_o > sg, "适配度：起手独孤时独孤词条套装分更高（%d > %d）" % [sp_d, sp_o])
+	_check(sp_d > sp_o and sp_o > sg, "适配度：起手九变时九变词条套装分更高（%d > %d）" % [sp_d, sp_o])
 	var enh_p := {}
 	for k in eq_p:
 		enh_p[eq_p[k]] = 10
@@ -971,9 +971,9 @@ func _stage_test() -> void:
 
 
 func _map_collision_test() -> void:
-	print("\n=== 光明顶地图：障碍碰撞 / 素材 / 解锁 ===")
+	print("\n=== 赤焰巅地图：障碍碰撞 / 素材 / 解锁 ===")
 	var w := _s2_world(91)
-	_check(w.map_art != null and w.map_art.has_blockers, "光明顶地图有挡路物件")
+	_check(w.map_art != null and w.map_art.has_blockers, "赤焰巅地图有挡路物件")
 	var wb := _new_world(92)
 	_check(wb.map_art != null and not wb.map_art.has_blockers, "黑风寨没有碰撞物件（装饰）")
 	_free_world(wb)
@@ -1016,7 +1016,7 @@ func _map_collision_test() -> void:
 		_check(w.enemy_art.has(id), "怪物素材 %s 存在" % id)
 	for id in ["boss_fan_blade", "boss_poison_mist", "boss_ice_band", "boss_cross_blade", "boss_dragon_claw", "boss_golden_bell_ring", "boss_palm_seal", "boss_buddha_light", "boss_yitian_cross", "boss_sword_rain", "boss_shield", "boss_aura_phase2", "boss_shield_break", "boss_phase2_burst", "fx_minion_stomp", "fx_minion_thrust", "fx_minion_frost", "fx_poison_hit", "proj_emei_sword", "decal_scorch", "decal_ice_zone"]:
 		_check(w.vfx.has(id), "特效 %s 已登记" % id)
-	_check(bool(Data.maps["guangming"]["enabled"]), "光明顶已开放")
+	_check(bool(Data.maps["guangming"]["enabled"]), "赤焰巅已开放")
 	_free_world(w)
 
 
@@ -1033,7 +1033,7 @@ func _s2_world(seed_v: int) -> GameWorld:
 
 
 func _stage2_boss_test() -> void:
-	print("\n=== 光明顶 Boss：新招式 / 红色预警 / 毒雾冰封 / 二阶段 + 护盾 / 破防 / 无视防御 ===")
+	print("\n=== 赤焰巅 Boss：新招式 / 红色预警 / 毒雾冰封 / 二阶段 + 护盾 / 破防 / 无视防御 ===")
 	for id in ["s2_mini_1", "s2_mini_2", "s2_mini_3", "s2_boss"]:
 		var w := _s2_world(81)
 		w._spawn_boss(id, id == "s2_boss")
@@ -1075,7 +1075,7 @@ func _stage2_boss_test() -> void:
 		if id == "s2_mini_1" or id == "s2_mini_2":
 			_check(zone_seen, "%s 留下毒雾 / 冰封带" % id)
 		if id == "s2_boss":
-			_check(b.phase2 and b.defense > 0.29 and b.shield_max > 0.0, "灭绝师泰进入二阶段")
+			_check(b.phase2 and b.defense > 0.29 and b.shield_max > 0.0, "灭灶掌门进入二阶段")
 		_free_world(w)
 	# 五大派小怪：按时间表刷出；华山突刺 / 昆仑减速 / 崆峒震击 / 少林高防御 / 峨眉远程
 	var wm := _s2_world(83)
@@ -1151,9 +1151,9 @@ func _stage2_boss_test() -> void:
 	_check(w2.player_knock.length() > 100.0, "二阶段震退玩家")
 	var found_text := false
 	for fx in w2.effects:
-		if str(fx.get("text", "")) == "倚天不出，谁与争锋":
+		if str(fx.get("text", "")) == "断云不出，谁与争锋":
 			found_text = true
-	_check(found_text, "弹出「倚天不出，谁与争锋」")
+	_check(found_text, "弹出「断云不出，谁与争锋」")
 	b2.guard = 0.0
 	b2.weak_t = 0.0
 	var hp1 := b2.hp
@@ -1182,16 +1182,16 @@ func _stage2_boss_test() -> void:
 
 
 func _dugu_test() -> void:
-	print("\n=== 独孤九剑：式 / 叠加 / 阶段 / 真·独孤九剑 ===")
+	print("\n=== 无迹九变剑：式 / 叠加 / 阶段 / 真·无迹九变剑 ===")
 	var w := _new_world(7, "dugu")
-	_check(w.school_id == "sword" and w.skills.size() == 1 and w.skills.has("dugu"), "独孤九剑起手：只有独孤九剑")
+	_check(w.school_id == "sword" and w.skills.size() == 1 and w.skills.has("dugu"), "无迹九变剑起手：只有无迹九变剑")
 	# 升级卡：只出「式」，不出别的招式 / 招式升级
 	for i in 30:
 		var ch := w.roll_choices(3)
 		var shi_n := 0
 		for c in ch:
 			var k := str(c["kind"])
-			_check(k != "new_skill" and k != "up_skill", "独孤路线不应出招式卡（%s）" % k)
+			_check(k != "new_skill" and k != "up_skill", "九变路线不应出招式卡（%s）" % k)
 			if k == "shi_new" or k == "shi_up":
 				shi_n += 1
 		_check(shi_n >= 2, "每次至少 2 张「式」卡")
@@ -1217,7 +1217,7 @@ func _dugu_test() -> void:
 	w.shi = {"po_jian": 10, "po_dao": 10, "zong": 6}
 	_check(w.dugu_stage() == 2, "总层 26：仍是万法皆破")
 	w.shi["zong"] = 7
-	_check(w.dugu_stage() == 3 and w.dugu_true() and w.dash_sealed(), "总层 27 → 真·独孤九剑，轻功封印")
+	_check(w.dugu_stage() == 3 and w.dugu_true() and w.dash_sealed(), "总层 27 → 真·无迹九变剑，轻功封印")
 	# 升级一次 = 强化一次 = +1 层；品质只加威力，不加层数（不影响 9 / 18 / 27 门槛）
 	var wl := _new_world(70, "dugu")
 	for lvl in 28:
@@ -1245,12 +1245,12 @@ func _dugu_test() -> void:
 	_check(wq.shi_total() == 6 and wq.shi_lv("po_dao") == 7 and float(wq.shi_bonus["po_dao"]) == 1.5, "金色品质：层数 +1（6），生效层数 7（+1 加成，不计入门槛）")
 	wq.pending_levels = 1
 	wq.apply_choice(gold)
-	_check(wq.shi_total() == 7 and wq.shi_lv("po_dao") == 10 and (wq.skills["dugu"] as SwordSkills.Dugu).L("po_dao") == 10, "再来一次：加成累计 3.0，生效层数 10；独孤九剑按生效层数结算")
+	_check(wq.shi_total() == 7 and wq.shi_lv("po_dao") == 10 and (wq.skills["dugu"] as SwordSkills.Dugu).L("po_dao") == 10, "再来一次：加成累计 3.0，生效层数 10；无迹九变剑按生效层数结算")
 	_free_world(wq)
 	# 秘籍：只给紫 / 金品质加成，不加层数
 	w.shi = {"po_jian": 2}
 	var cc := w.roll_chest_choices()
-	_check(not cc.is_empty() and str(cc[0]["kind"]).begins_with("shi_") and int(cc[0]["tier"]) >= 2, "独孤路线的秘籍：紫 / 金品质的式")
+	_check(not cc.is_empty() and str(cc[0]["kind"]).begins_with("shi_") and int(cc[0]["tier"]) >= 2, "九变路线的秘籍：紫 / 金品质的式")
 	var tot0 := w.shi_total()
 	for c in cc:
 		if str(c["kind"]) == "shi_up":
@@ -1340,11 +1340,11 @@ func _dugu_test() -> void:
 	_check(a.vuln_t > 0.0 and b.vuln_t > 0.0, "万法皆破：破绽蔓延到附近敌人")
 	_free_world(w3)
 
-	# ---- 真·独孤九剑：觉醒触发「剑破天下」九连闪现 → 之后近身范围群攻；真气爆发可再次触发 ----
+	# ---- 真·无迹九变剑：觉醒触发「剑破天下」九连闪现 → 之后近身范围群攻；真气爆发可再次触发 ----
 	var w4 := _new_world(10, "dugu")
 	w4.time = 120.0
 	w4.shi = {"zong": 10, "po_jian": 10, "po_dao": 10, "po_bian": 6}      # 总层 36，已是真形态（直接赋值不触发觉醒）
-	_check(w4.dugu_true(), "真·独孤九剑已觉醒")
+	_check(w4.dugu_true(), "真·无迹九变剑已觉醒")
 	var dsk: SkillBase = w4.skills["dugu"]
 	for i in 40:
 		var en3 := w4._spawn_enemy("bandit", w4.player_pos + Vector2(200 + 12 * i, ((i % 5) - 2) * 40.0))
@@ -1362,7 +1362,7 @@ func _dugu_test() -> void:
 		w4.step(DT)
 		for fx in w4.effects:
 			var tx := str(fx.get("text", ""))
-			if tx.begins_with("破") and tx.ends_with("式") or tx == "总诀式":
+			if tx.begins_with("破") and tx.ends_with("式") or tx == "总纲变":
 				names[tx] = true
 	_check(int(dsk.get("sb_strikes")) == 9, "剑破天下连续闪现 9 次，实际 %d" % int(dsk.get("sb_strikes")))
 	_check(int(dsk.get("sb_left")) == 0, "九次打完")
@@ -1430,13 +1430,13 @@ func _dugu_test() -> void:
 		var ds: SkillBase = wp.skills["dugu"]
 		ds.call("refresh")
 		var h0 := tgt.hp
-		ds.call("_pulse", "破剑式", 1.0)
+		ds.call("_pulse", "分锋变", 1.0)
 		dmgs.append(h0 - tgt.hp)
 		radii.append(float(ds.call("pulse_radius")))
 		_free_world(wp)
-	_check(float(dmgs[1]) > float(dmgs[0]) * 1.4, "破剑式：真形态每 3 层多一圈余波（伤害 %d → %d）" % [int(dmgs[0]), int(dmgs[1])])
-	_check(float(radii[2]) > float(radii[0]) + 40.0, "破刀式：真形态斩击范围变大（%d → %d）" % [int(radii[0]), int(radii[2])])
-	_check(float(radii[3]) > float(radii[0]) * 1.2 and float(dmgs[3]) > float(dmgs[0]) * 1.1, "破枪式：真形态斩击范围和伤害提高")
+	_check(float(dmgs[1]) > float(dmgs[0]) * 1.4, "分锋变：真形态每 3 层多一圈余波（伤害 %d → %d）" % [int(dmgs[0]), int(dmgs[1])])
+	_check(float(radii[2]) > float(radii[0]) + 40.0, "贯甲变：真形态斩击范围变大（%d → %d）" % [int(radii[0]), int(radii[2])])
+	_check(float(radii[3]) > float(radii[0]) * 1.2 and float(dmgs[3]) > float(dmgs[0]) * 1.1, "掠空变：真形态斩击范围和伤害提高")
 
 
 func _check(cond: bool, msg: String) -> void:
@@ -1523,7 +1523,7 @@ func _skill_matrix() -> void:
 			for i in int(40.0 / DT):
 				TestBot.drive(w, engage)
 				w.step(DT)
-				# 乾坤大挪移是受击触发：god 模式下直接调用，覆盖反击分支
+				# 回澜卸力诀是受击触发：god 模式下直接调用，覆盖反击分支
 				if id == "taiji" and i % 120 == 0:
 					s.on_hurt(30.0)
 				if w.over:
@@ -1550,7 +1550,7 @@ func _apply_up5(s: SkillBase) -> void:
 
 
 func _enhance_rework_test() -> void:
-	print("\n=== 强化改版：品质 / 10 次强化 / 起手招式不再出现 / 心法同修 / 恢复速度 / 独孤门槛 ===")
+	print("\n=== 强化改版：品质 / 10 次强化 / 起手招式不再出现 / 心法同修 / 恢复速度 / 九变门槛 ===")
 	# 品质：普通 / 特别 / 优秀 / 传说，概率 50 / 25 / 18 / 7；强化量 1× / 2× / 3× / 4×
 	var tn: Array = []
 	for t in Data.tiers:
@@ -1604,12 +1604,12 @@ func _enhance_rework_test() -> void:
 	_check(is_equal_approx(wx.xinfa_power("chunyang"), 6.0), "普通强化 +1 份（共 6 份）")
 	var yue: SkillBase = wx.skills["yue_palm"]
 	var want := float(Data.xinfa["chunyang"]["link"]["yue_palm"]["damage"]) * wx.xinfa_scale("chunyang")
-	_check(absf(float(yue.link_applied.get("damage", 0.0)) - want) < 1e-9, "同修：降龙十八掌伤害 +%.0f%%" % (want * 100.0))
+	_check(absf(float(yue.link_applied.get("damage", 0.0)) - want) < 1e-9, "同修：撼岳惊涛掌伤害 +%.0f%%" % (want * 100.0))
 	var d_before := float(yue.mods["damage"])
 	for i in 5:
 		wx.recalc()
 	_check(is_equal_approx(float(yue.mods["damage"]), d_before), "反复重算不会重复叠加联动")
-	_check(float(yue.link_flags.get("ying", 0.0)) > 0.0, "九阳神功同修：盈境增伤标记")
+	_check(float(yue.link_flags.get("ying", 0.0)) > 0.0, "煌日真诀同修：盈境增伤标记")
 	var other := _new_world(84)
 	other.skills.clear()
 	other.add_skill("eight_waste")
@@ -1627,7 +1627,7 @@ func _enhance_rework_test() -> void:
 	tgt.max_hp = 1e12
 	wn.neili = 10.0
 	wn.hit_enemy(tgt, 10.0, ["防御"], Vector2.ZERO, "taiji")
-	_check(wn.neili > 10.4, "北冥神功同修：命中回内力（%.2f）" % wn.neili)
+	_check(wn.neili > 10.4, "鲸吞秘诀同修：命中回内力（%.2f）" % wn.neili)
 	_free_world(wn)
 	var wv := _new_world(86, "kuang_feng")
 	wv.skills.clear()
@@ -1637,7 +1637,7 @@ func _enhance_rework_test() -> void:
 	tv.hp = 1e12
 	tv.max_hp = 1e12
 	wv.hit_enemy(tv, 10.0, ["范围"], Vector2.ZERO, "yunv")
-	_check(tv.vuln_t > 0.0 and tv.vuln > 0.0, "玄冥神功同修：命中露出破绽")
+	_check(tv.vuln_t > 0.0 and tv.vuln > 0.0, "霜髓寒诀同修：命中露出破绽")
 	_free_world(wv)
 	var wbl := _new_world(87, "wuhu_blade")
 	wbl.skills.clear()
@@ -1655,7 +1655,7 @@ func _enhance_rework_test() -> void:
 		tb.bleed_dps = 0.0
 		wbl.hit_enemy(tb, 20.0, ["近战"], Vector2.ZERO, "xuedao")
 		bled += 1 if tb.bleed_stacks > 0 else 0
-	_check(bled > 10, "先天功同修：命中有几率撕裂（%d/60）" % bled)
+	_check(bled > 10, "玄龟吐纳同修：命中有几率撕裂（%d/60）" % bled)
 	_free_world(wbl)
 	# 每个心法点名 4 个非起手招式（原 3 个 + 杨家将 1 个；可以跨流派，各自的加成不同）；每个非起手招式至少被一个心法点名
 	var covered := {}
@@ -1680,7 +1680,7 @@ func _enhance_rework_test() -> void:
 	# 初始恢复：内力回复 −30%，气血每 5 秒 1 点
 	_check(absf(float(Data.player_base["neili_regen"]) - 8.4) < 1e-6, "初始内力回复 8.4（原 12 的 70%）")
 	_check(absf(float(Data.player_base["hp_regen"]) - 0.2) < 1e-6, "初始气血回复 0.2 / 秒（每 5 秒 1 点）")
-	# 流派特色：剑侠 = 速度 / 攻速；武者 = 内力（盈境加成高、催动贵）；刀客 = 气血；独孤九剑催动消耗减半
+	# 流派特色：剑侠 = 速度 / 攻速；武者 = 内力（盈境加成高、催动贵）；刀客 = 气血；无迹九变剑催动消耗减半
 	var wsw := _new_world(88, "kuang_feng")
 	var wfi := _new_world(89, "chain_fist")
 	var wbl2 := _new_world(90, "wuhu_blade")
@@ -1700,7 +1700,7 @@ func _enhance_rework_test() -> void:
 	var wdu := _new_world(91, "dugu")
 	var cdu: float = wdu.skills["dugu"].empower_cost()
 	var cqs: float = wsw.skills["kuang_feng"].empower_cost() if wsw.skills.has("kuang_feng") else 1.0
-	_check(float(Data.skills["dugu"]["empower_cost"]) <= 4.5 and cdu > 0.0, "独孤九剑：催动消耗大幅降低（%.1f）" % cdu)
+	_check(float(Data.skills["dugu"]["empower_cost"]) <= 4.5 and cdu > 0.0, "无迹九变剑：催动消耗大幅降低（%.1f）" % cdu)
 	_free_world(wdu)
 	_free_world(wsw)
 	_free_world(wfi)
@@ -1716,7 +1716,7 @@ func _enhance_rework_test() -> void:
 			_check(int(sn[nid]["max"]) == int(base_nodes[nid]["max"]), "%s 流派天赋 %s 上限不变" % [sc, nid])
 			diff += 1 if str(sn[nid]["name"]) != str(base_nodes[nid]["name"]) or str(sn[nid]["desc"]) != str(base_nodes[nid]["desc"]) else 0
 		_check(diff >= 4, "%s 流派有专属天赋覆盖（%d 个）" % [sc, diff])
-	# 每个流派的天赋树只能加成本流派的招式（不能在刀客的树里看到降龙十八掌）
+	# 每个流派的天赋树只能加成本流派的招式（不能在刀客的树里看到撼岳惊涛掌）
 	for sc in ["fist", "sword", "blade"]:
 		for nid in Talents.nodes(sc):
 			var nn: Dictionary = Talents.nodes(sc)[nid]
@@ -1727,7 +1727,7 @@ func _enhance_rework_test() -> void:
 			for sid2 in Data.skills:
 				if str(Data.skills[sid2]["school"]) != sc:
 					_check(not str(nn["desc"]).contains(str(Data.skills[sid2]["name"])), "%s 流派天赋 %s 的说明提到了别的流派的招式 %s" % [sc, nid, str(Data.skills[sid2]["name"])])
-	_check(Talents.stats_for({"ling_step": 2}, "sword").has("skill:dugu:damage") and Talents.stats_for({"ling_step": 2}, "fist").has("speed_pct"), "剑侠的灵系左边强化独孤九剑；武者的仍是移速")
+	_check(Talents.stats_for({"ling_step": 2}, "sword").has("skill:dugu:damage") and Talents.stats_for({"ling_step": 2}, "fist").has("speed_pct"), "剑侠的灵系左边强化无迹九变剑；武者的仍是移速")
 	_check(float(Talents.stats_for({"rou_regen": 3}, "blade")["hp_regen"]) > float(Talents.stats_for({"rou_regen": 3}, "fist")["hp_regen"]), "刀客的气血回复天赋更强")
 	_check(float(Talents.stats_for({"rou_neili": 3}, "fist")["neili_regen"]) > 0.0, "武者的养气带回内力")
 	# 吸血要克制（伤害高、血量低）：「增加治疗」最高 0.2% 伤害；每次命中最多回 0.6
@@ -1748,8 +1748,8 @@ func _enhance_rework_test() -> void:
 	for xid in Data.xinfa:
 		for sid2 in Data.xinfa[xid]["link"]:
 			_check(float(Data.xinfa[xid]["link"][sid2].get("heal", 0.0)) <= 0.0016, "心法 %s 对 %s 的命中回血要克制" % [xid, sid2])
-	# 独孤九剑：破 X 式总强化次数门槛 9 / 18 / 27
-	_check(int(Data.T("shi_stage1")) == 9 and int(Data.T("shi_stage2")) == 18 and int(Data.T("shi_stage3")) == 27, "独孤九剑门槛 9 / 18 / 27")
+	# 无迹九变剑：破 X 式总强化次数门槛 9 / 18 / 27
+	_check(int(Data.T("shi_stage1")) == 9 and int(Data.T("shi_stage2")) == 18 and int(Data.T("shi_stage3")) == 27, "无迹九变剑门槛 9 / 18 / 27")
 	for sh in Data.shi:
 		_check(str(sh.get("desc", "")) != "" and str(sh.get("awaken", "")) != "", "式「%s」要有普通效果和觉醒效果的说明" % sh["name"])
 	var wsc := _new_world(96, "dugu")
@@ -1759,9 +1759,9 @@ func _enhance_rework_test() -> void:
 	_free_world(wsc)
 
 
-## 计划书 6：另觅机缘 / 真·霸刀破岳 / 蓄劲 / 独孤九剑 9-18-27
+## 计划书 6：另觅机缘 / 真·霸刀破岳 / 蓄劲 / 无迹九变剑 9-18-27
 func _plan6_test() -> void:
-	print("\n=== 计划书 6：另觅机缘 / 真·霸刀破岳 / 蓄劲 / 独孤九剑 ===")
+	print("\n=== 计划书 6：另觅机缘 / 真·霸刀破岳 / 蓄劲 / 无迹九变剑 ===")
 	# ---- Boss 只吃破绽效果的一半 ----
 	var wbv := _new_world(98, "dugu")
 	wbv.shi = {"zong": 18}
@@ -1821,7 +1821,7 @@ func _plan6_test() -> void:
 	var wdc := _new_world(95, "dugu")
 	wdc.shi = {"zong": 27}
 	var dgc: SwordSkills.Dugu = wdc.skills["dugu"]
-	_check(wdc.dugu_true() and dgc.mods.has("cooldown"), "独孤九剑真形态：冷却词条 / 天赋会生效")
+	_check(wdc.dugu_true() and dgc.mods.has("cooldown"), "无迹九变剑真形态：冷却词条 / 天赋会生效")
 	_free_world(wdc)
 	# ---- 另觅机缘 ----
 	_check(GameWorld.rerolls_for_level(4) == 0 and GameWorld.rerolls_for_level(5) == 3 and GameWorld.rerolls_for_level(10) == 6 and GameWorld.rerolls_for_level(14) == 6, "另觅机缘次数：Lv4=0 / Lv5=3 / Lv10=6 / Lv14=6")
@@ -1946,7 +1946,7 @@ func _plan6_test() -> void:
 	wfs.fist_after_cast(wfs.skills["kuang_feng"])
 	_check(wfs.fist_qi == 0.0, "只有武者蓄劲")
 	_free_world(wfs)
-	# ---- 剑侠天赋「灵」：左边全部强化独孤九剑，右边强化别的剑法；各带一点点通用收益 ----
+	# ---- 剑侠天赋「灵」：左边全部强化无迹九变剑，右边强化别的剑法；各带一点点通用收益 ----
 	var swn := Talents.nodes("sword")
 	var left_ok := true
 	var right_ok := true
@@ -1979,7 +1979,7 @@ func _plan6_test() -> void:
 		right_ok = right_ok and r_other and not r_dugu
 		general_ok = general_ok and l_gen and r_gen
 		_check(not lst.has("shi_gain") and not lst.has("dugu_start"), "灵系第 %d 层左边没有加「式」层数的效果" % (ri + 1))
-	_check(left_ok, "剑侠「灵」左边分支 7 个穴位全部强化独孤九剑")
+	_check(left_ok, "剑侠「灵」左边分支 7 个穴位全部强化无迹九变剑")
 	_check(right_ok, "剑侠「灵」右边分支 7 个穴位全部强化别的剑法")
 	_check(general_ok, "左右每个穴位都带一点点通用收益")
 	for row in ling_rows:
@@ -2088,7 +2088,7 @@ func _plan6_test() -> void:
 	var wjs := _new_world(80, "kuang_feng")
 	var cd0j := wjs.cd_mult()
 	wjs.stats["ji_sword"] = 1.0
-	_check(absf((cd0j - wjs.cd_mult()) - 0.2) < 1e-6, "极·万剑归宗：冷却 −20%")
+	_check(absf((cd0j - wjs.cd_mult()) - 0.2) < 1e-6, "极·千锋聚啸剑：冷却 −20%")
 	wjs.ji_haste_until = wjs.time + 3.0
 	var cd_j20 := cd0j - 0.2
 	_check(wjs.cd_mult() < cd_j20 - 0.1 and wjs.cd_mult() >= 0.3, "冲刺后 3 秒冷却再降（%.2f → %.2f，下限 0.3）" % [cd_j20, wjs.cd_mult()])
@@ -2107,7 +2107,7 @@ func _plan6_test() -> void:
 	wjb.add_soul(10.0)
 	_check(is_equal_approx(wjb.soul, 15.0), "刀魂增长 +50%")
 	_free_world(wjb)
-	# ---- 独孤九剑 9 / 18 / 27 ----
+	# ---- 无迹九变剑 9 / 18 / 27 ----
 	var wd := _new_world(76, "dugu")
 	wd.time = 120.0
 	wd.shi = {"zong": 9}
@@ -2164,8 +2164,8 @@ func _plan6_test() -> void:
 	wd.shi = {"zong": 9}
 	_check(not wd.dugu_can_cut(), "总层 9 还不能斩落")
 	wd.shi = {"zong": 9, "po_arrow": 1}
-	_check(wd.dugu_can_cut(), "学了破箭式也能斩落")
-	_check(not (Data.shi as Array).any(func(d): return str(d["desc"]).contains("追踪剑气")), "破箭式不再是自动射箭")
+	_check(wd.dugu_can_cut(), "学了落矢变也能斩落")
+	_check(not (Data.shi as Array).any(func(d): return str(d["desc"]).contains("追踪剑气")), "落矢变不再是自动射箭")
 	# 连击几率
 	_check(is_equal_approx(Data.T("dugu_combo2"), 0.45) and is_equal_approx(Data.T("dugu_combo4"), 0.20) and is_equal_approx(Data.T("dugu_combo9"), 0.08), "觉醒连击几率 45% / 20% / 8%")
 	_free_world(wd)
@@ -2520,8 +2520,8 @@ var fake_reply: Dictionary = {}
 
 
 func _town_test() -> void:
-	print("\n=== 阿罗拉村：布局 / 走动 / 对话流程 / 图鉴 ===")
-	_check(str(Data.town["name"]) == "阿罗拉村", "村名")
+	print("\n=== 竹溪村：布局 / 走动 / 对话流程 / 图鉴 ===")
+	_check(str(Data.town["name"]) == "竹溪村", "村名")
 	var ids := {}
 	for n in Data.town["npcs"]:
 		ids[n["id"]] = true
@@ -2600,7 +2600,7 @@ func _town_test() -> void:
 	main._on_loadout("point_finger", "feiyan")
 	_check(main.state == main.State.PLAY and main.world.map_id == "black_wind" and main.world.visible and not main.town.visible, "出发后进入战斗，村子隐藏")
 	_check(str(main.world.run_summary().get("map", "")) == "black_wind", "成绩摘要带上地图")
-	# 师父 / 掌柜 / 百晓生
+	# 师父 / 掌柜 / 茶馆老包
 	main.world.over = true
 	main._enter_town()
 	main.town.player_pos = Vector2(-430, 150)
@@ -2614,10 +2614,10 @@ func _town_test() -> void:
 	_check(main.state == main.State.TOWN, "关闭成长界面回到村子")
 	main.town.player_pos = Vector2(0, 190)
 	var sage: Dictionary = main.town.near_npc()
-	_check(not sage.is_empty() and sage["id"] == "sage", "百晓生在广场南面")
+	_check(not sage.is_empty() and sage["id"] == "sage", "茶馆老包在广场南面")
 	main._talk(sage)
 	main._on_dialog_option(0)
-	_check(main.state == main.State.MODAL and main.hud.guide_panel != null and main.hud.guide_panel.visible, "百晓生 → 打开图鉴")
+	_check(main.state == main.State.MODAL and main.hud.guide_panel != null and main.hud.guide_panel.visible, "茶馆老包 → 打开图鉴")
 	main._close_modal()
 	main.town.player_pos = Vector2(430, 150)
 	main._talk(main.town.near_npc())
@@ -2766,14 +2766,14 @@ func _cd_sweep_test() -> void:
 	for i in 30:
 		w2.step(1.0 / 60.0)
 	_check(s2.cd_frac() == 0.0, "没有目标时不显示冷却")
-	# 乾坤大挪移：反击后进入冷却
+	# 回澜卸力诀：反击后进入冷却
 	var w3 := _new_world(133)
 	w3.skills.clear()
 	w3.add_skill("taiji")
 	var s3: SkillBase = w3.skills["taiji"]
 	w3.neili = 0.0
 	s3.on_hurt(20.0)
-	_check(s3.cd_frac() > 0.9, "乾坤大挪移反击后冷却满圈")
+	_check(s3.cd_frac() > 0.9, "回澜卸力诀反击后冷却满圈")
 	_free_world(w)
 	_free_world(w2)
 	_free_world(w3)
@@ -3156,7 +3156,7 @@ func _synergy_test() -> void:
 			n_harm += 1 if want_h else 0
 			_free_world(w)
 	_check(n_harm == Data.harmony.size(), "每个合璧恰好对应一种搭配")
-	# 阴阳效果（用没有合璧的搭配：小无相功 + 铁布衫 阳阳；玄冥神功 + 北冥神功 阴阴；小无相功 + 玄冥神功 一阴一阳）
+	# 阴阳效果（用没有合璧的搭配：千面摹形诀 + 铁布衫 阳阳；霜髓寒诀 + 鲸吞秘诀 阴阴；千面摹形诀 + 霜髓寒诀 一阴一阳）
 	var base_regen := float(Data.player_base["neili_regen"]) + float(Data.schools["fist"]["passive"]["neili_regen"])      # 测试用武者：含流派被动
 	var base_max := float(Data.player_base["max_neili"])
 	var wa := _new_world(71)
@@ -3447,7 +3447,7 @@ func _talent_skill_test() -> void:
 	var wb := _new_world(101)
 	wb.skills.clear()
 	wb.add_skill("cloud_palm")
-	_check(int((wb.skills["cloud_palm"] as SkillBase).p("count")) == 1, "天山六阳掌初始只有 1 个掌印")
+	_check(int((wb.skills["cloud_palm"] as SkillBase).p("count")) == 1, "朔雪融阳掌初始只有 1 个掌印")
 	_free_world(wb)
 	for ranks in [0, 1, 2]:
 		var w := _new_world(102)
@@ -3464,12 +3464,12 @@ func _talent_skill_test() -> void:
 	cp.add_upgrade("targets", 3)
 	_check(int(cp.p("count")) > 1, "升级增加目标 → 掌印更多（%d）" % int(cp.p("count")))
 	_free_world(wu)
-	# 八荒六合功：8 个、冷却更长
+	# 四野归元功：8 个、冷却更长
 	var we := _new_world(104)
 	we.skills.clear()
 	we.add_skill("eight_waste")
 	var ew: SkillBase = we.skills["eight_waste"]
-	_check(int(ew.p("count")) == 8 and ew.p("cooldown") >= 3.0, "八荒六合功：8 个、冷却 ≥ 3 秒（%.1f）" % ew.p("cooldown"))
+	_check(int(ew.p("count")) == 8 and ew.p("cooldown") >= 3.0, "四野归元功：8 个、冷却 ≥ 3 秒（%.1f）" % ew.p("cooldown"))
 	_free_world(we)
 	# 其他招式强化：贯穿 / 伤害 / 范围 / 冷却
 	var w2 := _new_world(105)
@@ -3478,14 +3478,14 @@ func _talent_skill_test() -> void:
 	Build.apply_to(w2, {}, {"gang_force": 3, "gang_crit": 3, "gang_ying": 3, "gang_dragon": 2}, {}, "fist")
 	w2.add_skill("yue_palm")
 	var y0 := float(Data.skills["yue_palm"]["pierce"])
-	_check(absf((w2.skills["yue_palm"] as SkillBase).p("pierce") - (y0 + 2.0)) < 1e-6, "龙吟九天 2 级：降龙十八掌贯穿 +2")
+	_check(absf((w2.skills["yue_palm"] as SkillBase).p("pierce") - (y0 + 2.0)) < 1e-6, "龙吟九天 2 级：撼岳惊涛掌贯穿 +2")
 	_free_world(w2)
 	var w3 := _new_world(106)
 	w3.skills.clear()
 	Build.apply_to(w3, {}, {"ling_step": 3, "ling_cd": 3, "ling_crit": 3, "ling_cd2": 1, "ling_waste": 2}, {}, "fist")
 	w3.add_skill("eight_waste")
 	var cd_base := float(Data.skills["eight_waste"]["cooldown"])
-	_check(absf((w3.skills["eight_waste"] as SkillBase).p("cooldown") - cd_base * 0.8) < 1e-6, "八荒回响 2 级：冷却 −20%")
+	_check(absf((w3.skills["eight_waste"] as SkillBase).p("cooldown") - cd_base * 0.8) < 1e-6, "四野回响 2 级：冷却 −20%")
 	_free_world(w3)
 	print("  初始 1 个掌印 / 天赋加弹数 / 升级加弹数 / 八荒 8 个 · 长冷却 / 贯穿与冷却天赋  OK")
 
@@ -3737,11 +3737,11 @@ func _neili_test() -> void:
 	_check(w.realm() == GameWorld.Realm.PING and is_equal_approx(w.dmg_mult(), 1.0), "平境无加成")
 	w.neili = mx * 0.2
 	_check(w.realm() == GameWorld.Realm.XU, "低于 25% 为虚")
-	# 九阳神功降低盈境门槛
+	# 煌日真诀降低盈境门槛
 	w.xinfa["chunyang"] = 3
 	w.xinfa_q["chunyang"] = [1, 1]           # 修习 1 份 + 两次「特别」强化各 2 份 = 5 份强度
 	w.recalc()
-	_check(absf(w.ying_at() - (Data.T("ying_at") - 0.1)) < 1e-6, "九阳神功 5 份强度：盈境门槛降低 10%%（实际 %.2f）" % w.ying_at())
+	_check(absf(w.ying_at() - (Data.T("ying_at") - 0.1)) < 1e-6, "煌日真诀 5 份强度：盈境门槛降低 10%%（实际 %.2f）" % w.ying_at())
 	w.xinfa.clear()
 	w.recalc()
 	# 虚境回气更快（对比同样时间内的回复量）
@@ -3809,12 +3809,12 @@ func _neili_test() -> void:
 	we.projs.clear()
 	ew.empowered = true
 	ew.fire()
-	_check(we.projs.size() == int(ew.p("count")) + 4, "八荒六合功催动：基础 8 个 + 4 = 12 个（实际 %d）" % we.projs.size())
+	_check(we.projs.size() == int(ew.p("count")) + 4, "四野归元功催动：基础 8 个 + 4 = 12 个（实际 %d）" % we.projs.size())
 	we.projs.clear()
 	ew.empowered = false
 	ew.emp_burst = false
 	ew.fire()
-	_check(we.projs.size() == int(ew.p("count")), "八荒六合功普通版：%d 方向" % int(ew.p("count")))
+	_check(we.projs.size() == int(ew.p("count")), "四野归元功普通版：%d 方向" % int(ew.p("count")))
 	_free_world(we)
 	# 运功升级：催动消耗递减
 	var sb := SkillBase.new()
@@ -4066,7 +4066,7 @@ func _sprite_anim_test() -> void:
 	for i in 120:
 		TestBot.drive(w2, 75.0)
 		w2.step(DT)
-	_check(w2.anim_ovr == "punch", "太祖长拳出招应触发 punch 动画，实际 %s" % w2.anim_ovr)
+	_check(w2.anim_ovr == "punch", "连山贯日拳出招应触发 punch 动画，实际 %s" % w2.anim_ovr)
 	print("  回退链 / 帧索引 / 状态优先级 / 出招触发  OK")
 	_free_world(w2)
 
@@ -4307,7 +4307,7 @@ func _spear_test() -> void:
 	_free_world(w2)
 	_free_world(w3)
 	_free_world(w5)
-	# 数据接入：武器清单、天赋覆盖、「极」、心法同修、百晓册
+	# 数据接入：武器清单、天赋覆盖、「极」、心法同修、江湖手札
 	var wk := Gear.make("weapon.3.12345", "spear", 0)
 	_check(not wk.is_empty() and str(wk["name"]) in ["龙胆亮银枪"], "传说武器只出龙胆亮银枪（%s）" % str(wk.get("name", "")))
 	var nodes := Talents.nodes("spear")
@@ -4322,7 +4322,7 @@ func _spear_test() -> void:
 	for pg in Data.guide["pages"]:
 		if str(pg["title"]) == "杨家将":
 			has_page = true
-	_check(has_page, "百晓册有「杨家将」页")
+	_check(has_page, "江湖手札有「杨家将」页")
 	var was: bool = Data.schools["spear"]["enabled"]
 	Data.schools["spear"]["enabled"] = true
 	Save.path = "user://test_spear.json"
@@ -4333,14 +4333,14 @@ func _spear_test() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_spear.json"))
 
 
-## 桃花岛·奇门遁甲：八门轮换与吉凶效果
+## 海棠屿·八卦迷阵：八门轮换与吉凶效果
 func _bagua_test() -> void:
-	print("\n=== 桃花岛·八门 ===")
+	print("\n=== 海棠屿·八门 ===")
 	var w := GameWorld.new()
 	w.rng_seed = 21
 	add_child(w)
 	w.start_run("chain_fist", "tashue", "taohua")
-	_check(w.bagua_on and w.bagua_gates.is_empty(), "桃花岛开启八门，开局前几秒还没有盘面")
+	_check(w.bagua_on and w.bagua_gates.is_empty(), "海棠屿开启八门，开局前几秒还没有盘面")
 	for i in int(9.0 / DT):
 		w.step(DT)
 	_check(w.bagua_gates.size() == 8 and w.bagua_shuffles == 1, "8 秒后八门出现（%d 个门）" % w.bagua_gates.size())
@@ -4410,7 +4410,7 @@ func _bagua_test() -> void:
 
 ## 第 3 关 Boss 专属招式：同心环冲击波（环带里受伤、缝隙里安全）、奇门易位（预警亮出新排布 → 立刻重排八门）、各 Boss 技能列表
 func _taohua_boss_test() -> void:
-	print("\n=== 桃花岛 · Boss 招式 ===")
+	print("\n=== 海棠屿 · Boss 招式 ===")
 	var w := GameWorld.new()
 	w.rng_seed = 22
 	add_child(w)
@@ -4421,7 +4421,7 @@ func _taohua_boss_test() -> void:
 	w._spawn_boss("th_mini_3", false)
 	var boss: Enemy = w.bosses[w.bosses.size() - 1]
 	boss.speed = 0.0
-	_check(boss.skills.has("ring_wave") and boss.phase_hp > 0.0 and boss.skills2.has("blink"), "周百痛：铜铃连震 + 半血追加闪现")
+	_check(boss.skills.has("ring_wave") and boss.phase_hp > 0.0 and boss.skills2.has("blink"), "破锣道人：铜铃连震 + 半血追加闪现")
 	# 环带：玩家站在 [r-band, r] 里受伤；站在两圈之间的空隙里不受伤
 	var radii: Array = Data.boss_skills["ring_wave"]["rings"]
 	var band := float(Data.boss_skills["ring_wave"]["band"])
@@ -4450,7 +4450,7 @@ func _taohua_boss_test() -> void:
 	w._spawn_boss("th_boss", true)
 	var hb: Enemy = w.bosses[w.bosses.size() - 1]
 	hb.speed = 0.0
-	_check(hb.skills.has("xiao_wave") and hb.skills2.has("gate_shift") and hb.phase_hp > 0.0, "黄荣：乐音环 + 奇门易位（二阶段）")
+	_check(hb.skills.has("xiao_wave") and hb.skills2.has("gate_shift") and hb.phase_hp > 0.0, "千机仙子：乐音环 + 奇门易位（二阶段）")
 	var n0 := w.bagua_shuffles
 	BossAI._start(w, hb, "gate_shift", Vector2.RIGHT)
 	_check(w.bagua_warn and w.bagua_next.size() == 8, "奇门易位：施法预警期间亮出新排布")
@@ -4550,7 +4550,7 @@ func _touch_test() -> void:
 	og.queue_free()
 
 
-## 光明顶只该有五大派弟子、桃花岛只该有岛上的人：合围圈 / 精英 / 怪潮 / 时间表刷出的怪都不能是黑风寨的山贼、铁甲、刀客
+## 赤焰巅只该有五大派弟子、海棠屿只该有岛上的人：合围圈 / 精英 / 怪潮 / 时间表刷出的怪都不能是黑风寨的山贼、铁甲、刀客
 func _map_spawn_test() -> void:
 	print("\n=== 各地图的怪只来自本图 ===")
 	var bw := ["bandit", "soldier", "blade", "archer", "charger"]

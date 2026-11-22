@@ -107,7 +107,7 @@ func _ready() -> void:
 	Save.store_meta(0, {})
 	await _frames(2)
 
-	# 选择：太祖长拳 / 神行百变
+	# 选择：连山贯日拳 / 掠瓦穿檐
 	main.hud.sel_starter = "chain_fist"
 	main.hud.sel_qg = "feiyan"
 	main._on_loadout("chain_fist", "feiyan")
@@ -206,13 +206,13 @@ func _ready() -> void:
 	w.bosses[w.bosses.size() - 1].guard *= 0.6
 	await _advance(0.5)
 	_snap("06b_boss_guard")
-	# 阴阳 / 合璧：已学九阳神功，选卡里出现玄冥神功（合璧）；再学会后 HUD 显示组合
+	# 阴阳 / 合璧：已学煌日真诀，选卡里出现霜髓寒诀（合璧）；再学会后 HUD 显示组合
 	w.xinfa = {"chunyang": 1}
 	w.recalc()
 	main.hud.show_choices([
-		{"kind": "new_xinfa", "id": "hanshuang", "tag": "心法", "title": "修习：玄冥神功【阴】", "desc": str(Data.xinfa["hanshuang"]["desc"]) + w._synergy_hint("hanshuang")},
+		{"kind": "new_xinfa", "id": "hanshuang", "tag": "心法", "title": "修习：霜髓寒诀【阴】", "desc": str(Data.xinfa["hanshuang"]["desc"]) + w._synergy_hint("hanshuang")},
 		{"kind": "new_xinfa", "id": "tiegu", "tag": "心法", "title": "修习：铁布衫【阳】", "desc": str(Data.xinfa["tiegu"]["desc"]) + w._synergy_hint("tiegu")},
-		{"kind": "new_xinfa", "id": "puti", "tag": "心法", "title": "修习：九阴真经【阴】", "desc": str(Data.xinfa["puti"]["desc"]) + w._synergy_hint("puti")}], "测试")
+		{"kind": "new_xinfa", "id": "puti", "tag": "心法", "title": "修习：寒月玄录【阴】", "desc": str(Data.xinfa["puti"]["desc"]) + w._synergy_hint("puti")}], "测试")
 	await _frames(3)
 	_snap("06c_xinfa_cards")
 	main.hud.hide_choices()
@@ -326,7 +326,7 @@ func _ready() -> void:
 	await _frames(3)
 	_snap("06i_pills")
 	w.pills.clear()
-	# 真实战斗里的刀光：大金刚拳 / 太祖长拳，敌人在右边近处
+	# 真实战斗里的刀光：沉岳铁拳 / 连山贯日拳，敌人在右边近处
 	for sid in ["chain_fist", "vajra_fist"]:
 		w.skills.clear()
 		w.add_skill(sid)

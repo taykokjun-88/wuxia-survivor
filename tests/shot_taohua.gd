@@ -1,5 +1,5 @@
 extends Node
-## 桃花岛截图。运行：SHOT_DIR=/tmp/shots xvfb-run -a godot --path . --rendering-driver opengl3 res://tests/shot_taohua.tscn
+## 海棠屿截图。运行：SHOT_DIR=/tmp/shots xvfb-run -a godot --path . --rendering-driver opengl3 res://tests/shot_taohua.tscn
 const DT := 1.0 / 60.0
 var main: Node
 var w: GameWorld

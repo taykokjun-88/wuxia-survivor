@@ -349,11 +349,11 @@ test('装备：背包上限，超过时先丢最低稀有度的未穿戴装备',
   assert.strictEqual(l.items.length, e.ctx.GEAR.invMax, '60 次通关 ≥ 60 件，应已满');
 });
 
-test('地图：按地图校验通关时长；通关记录；光明顶不再要求通关黑风寨', (e) => {
+test('地图：按地图校验通关时长；通关记录；赤焰巅不再要求通关黑风寨', (e) => {
   const me = reg(e, '地图君');
   assert.strictEqual(submit(e, me, RUN({ won: true, seconds: 600, level: 30, kills: 3000, bosses: 4 })).err, 'bad_run', '黑风寨 600 秒通关太快');
   assert.strictEqual(submit(e, me, RUN({ map: 'nowhere' })).err, 'bad_run', '没有这张地图');
-  assert.notStrictEqual(submit(e, me, RUN({ map: 'guangming' })).err, 'locked', '光明顶不再要求通关黑风寨');
+  assert.notStrictEqual(submit(e, me, RUN({ map: 'guangming' })).err, 'locked', '赤焰巅不再要求通关黑风寨');
   let l = e.call({ action: 'login', nick: '地图君', pin: '4815' });
   assert.strictEqual(JSON.stringify(l.cleared), '{}');
   const w = submit(e, l, RUN({ won: true, seconds: 640, level: 30, kills: 3000, bosses: 4 }));
@@ -363,7 +363,7 @@ test('地图：按地图校验通关时长；通关记录；光明顶不再要�
   assert.ok(saveSt(e, l, { school: 'fist', cleared: { guangming: true } }).ok);
   l = e.call({ action: 'login', nick: '地图君', pin: '4815' });
   assert.ok(!l.cleared.guangming, '客户端不能自己写通关记录');
-  assert.strictEqual(submit(e, l, RUN({ map: 'guangming', won: true, seconds: 820, level: 30, kills: 3000, bosses: 4 })).ok, true, '通关后可以打光明顶');
+  assert.strictEqual(submit(e, l, RUN({ map: 'guangming', won: true, seconds: 820, level: 30, kills: 3000, bosses: 4 })).ok, true, '通关后可以打赤焰巅');
 });
 
 test('角色：创建（最多 5 个、名字 / 流派校验）、各自独立的进度、删除、旧账号自动迁移', (e) => {
@@ -425,7 +425,7 @@ test('分地图榜：每张地图单独排名；旧成绩迁移为黑风寨；�
   // 乙、丙各打一局黑风寨
   submit(e, b, RUN({ level: 10, kills: 500, seconds: 300 }));
   submit(e, c, RUN({ level: 20, kills: 1500, seconds: 300 }));
-  // 甲：先通关黑风寨，再打光明顶
+  // 甲：先通关黑风寨，再打赤焰巅
   const w1 = submit(e, a, RUN({ won: true, seconds: 640, level: 30, kills: 3000, bosses: 4 }));
   assert.ok(w1.ok, JSON.stringify(w1));
   const w2 = submit(e, a, RUN({ map: 'guangming', won: true, seconds: 820, level: 30, kills: 6000, bosses: 4 }));
@@ -433,14 +433,14 @@ test('分地图榜：每张地图单独排名；旧成绩迁移为黑风寨；�
   const bw = e.get({ action: 'board', kind: 'score', map: 'black_wind' });
   assert.ok(bw.ok); assert.strictEqual(bw.map, 'black_wind'); assert.strictEqual(bw.total, 3, '三人都打过黑风寨');
   const gm = e.get({ action: 'board', kind: 'score', map: 'guangming', nick: '榜甲' });
-  assert.strictEqual(gm.total, 1, '光明顶只有甲'); assert.strictEqual(gm.rows[0].nick, '榜甲'); assert.strictEqual(gm.me.rank, 1);
+  assert.strictEqual(gm.total, 1, '赤焰巅只有甲'); assert.strictEqual(gm.rows[0].nick, '榜甲'); assert.strictEqual(gm.me.rank, 1);
   const gsp = e.get({ action: 'board', kind: 'speed', map: 'guangming' });
   assert.strictEqual(gsp.rows[0].value, 820);
   const bsp = e.get({ action: 'board', kind: 'speed', map: 'black_wind' });
-  assert.strictEqual(bsp.rows.length, 1); assert.strictEqual(bsp.rows[0].value, 640, '黑风寨最快通关不受光明顶成绩影响');
+  assert.strictEqual(bsp.rows.length, 1); assert.strictEqual(bsp.rows[0].value, 640, '黑风寨最快通关不受赤焰巅成绩影响');
   assert.strictEqual(e.get({ action: 'board', kind: 'score', map: 'nowhere' }).err, 'bad_map');
   assert.strictEqual(e.get({ action: 'board', kind: 'score' }).total, 3, '不带地图 = 全部榜，和以前一样');
-  // 旧数据迁移：模拟「改版前」的玩家（有总成绩、没有 mapBests）第一次提交光明顶 / 黑风寨成绩
+  // 旧数据迁移：模拟「改版前」的玩家（有总成绩、没有 mapBests）第一次提交赤焰巅 / 黑风寨成绩
   reg(e, '榜丁');
   const pl = e.sheetRows('players');
   const di = pl.findIndex((r) => r[0] === '榜丁');

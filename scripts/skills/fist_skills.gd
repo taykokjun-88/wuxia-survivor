@@ -18,7 +18,7 @@ static func create(skill_id: String) -> SkillBase:
 	return null
 
 
-## 降龙十八掌：贯穿掌风。强化「龙战于野」：首次命中后分裂成两道小掌风。
+## 撼岳惊涛掌：贯穿掌风。强化「龙战于野」：首次命中后分裂成两道小掌风。
 class YuePalm extends SkillBase:
 	func fire() -> bool:
 		var t := w.nearest_enemy(p("speed") * p("life"))
@@ -33,7 +33,7 @@ class YuePalm extends SkillBase:
 		return true
 
 
-## 太祖长拳：近身三连击。强化「横扫千军」：第三拳必暴击并释放冲击波。
+## 连山贯日拳：近身三连击。强化「横扫千军」：第三拳必暴击并释放冲击波。
 class ChainFist extends SkillBase:
 	var combo := 0
 
@@ -58,7 +58,7 @@ class ChainFist extends SkillBase:
 		return true
 
 
-## 七伤拳：延迟落点的范围击晕。强化「七伤暗劲」：落点留下 3 秒的裂痕。
+## 裂脉震拳：延迟落点的范围击晕。强化「裂脉暗劲」：落点留下 3 秒的裂痕。
 class QuakeFist extends SkillBase:
 	func fire() -> bool:
 		var t := w.nearest_enemy(p("range"))
@@ -79,7 +79,7 @@ class QuakeFist extends SkillBase:
 		return true
 
 
-## 落英神剑掌：环身掌风。强化「落英缤纷」：掌风过后身周旋涡收束，再轰一次（不再吸拢敌人）。
+## 乱花拂柳掌：环身掌风。强化「落英缤纷」：掌风过后身周旋涡收束，再轰一次（不再吸拢敌人）。
 class WhirlPalm extends SkillBase:
 	func fire() -> bool:
 		var r := p("radius") * (1.5 if empowered else 1.0)
@@ -100,7 +100,7 @@ class WhirlPalm extends SkillBase:
 		return true
 
 
-## 一阳指：定身。强化「一阳连环」：被点穴的敌人死亡时爆炸并定身周围敌人。
+## 凝霜点指：定身。强化「一阳连环」：被点穴的敌人死亡时爆炸并定身周围敌人。
 class PointFinger extends SkillBase:
 	func fire() -> bool:
 		var reach := p("speed") * p("life")
@@ -113,7 +113,7 @@ class PointFinger extends SkillBase:
 		return true
 
 
-## 大金刚拳：消耗内力的重击，内力越满越痛。强化「金刚不坏」：内力 ≥90% 时不耗内力并获得护盾。
+## 沉岳铁拳：消耗内力的重击，内力越满越痛。强化「金刚不坏」：内力 ≥90% 时不耗内力并获得护盾。
 class VajraFist extends SkillBase:
 	func fire() -> bool:
 		var reach := p("reach")
@@ -137,7 +137,7 @@ class VajraFist extends SkillBase:
 		return true
 
 
-## 天山六阳掌：追踪掌印。强化「六阳回环」：掌印飞出后折返，可再次命中。
+## 朔雪融阳掌：追踪掌印。强化「六阳回环」：掌印飞出后折返，可再次命中。
 class CloudPalm extends SkillBase:
 	func fire() -> bool:
 		var t := w.nearest_enemy(520.0)
@@ -151,7 +151,7 @@ class CloudPalm extends SkillBase:
 		return true
 
 
-## 八荒六合功：八方拳气（基础 8 个，催动 12 个）。强化「唯我独尊」：连发三轮，每轮偏转，形成旋转弹幕。
+## 四野归元功：八方拳气（基础 8 个，催动 12 个）。强化「唯我独尊」：连发三轮，每轮偏转，形成旋转弹幕。
 class EightWaste extends SkillBase:
 	var bursts_left := 0
 	var burst_t := 0.0
@@ -187,7 +187,7 @@ class EightWaste extends SkillBase:
 		rot += 0.3 if enhanced() else 0.2
 
 
-## 乾坤大挪移：受击时化解部分伤害并反击；平时周身有微弱劲气。强化「颠倒乾坤」：化解的伤害 ×4 转为反击。
+## 回澜卸力诀：受击时化解部分伤害并反击；平时周身有微弱劲气。强化「颠倒乾坤」：化解的伤害 ×4 转为反击。
 class Taiji extends SkillBase:
 	var guard_cd := 0.0
 	var guard_total := 0.0

@@ -246,7 +246,7 @@ func shield_mult() -> float:
 	return 1.0
 
 
-## 真气爆发 / 霸刀破岳时调用（屠龙刀法「号令天下」使用）
+## 真气爆发 / 霸刀破岳时调用（斩蛟沉海刀「号令天下」使用）
 func on_burst() -> void:
 	pass
 
@@ -255,7 +255,7 @@ func on_baodao() -> void:
 	pass
 
 
-## 玩家受击时调用，返回减免后的伤害（乾坤大挪移等防御类技能使用）
+## 玩家受击时调用，返回减免后的伤害（回澜卸力诀等防御类技能使用）
 func on_hurt(amount: float) -> float:
 	return amount
 

@@ -224,7 +224,7 @@ func _draw() -> void:
 	_draw_ji(font, bold)
 
 
-## 框标题旁的说明（有的流派会改，比如剑侠的「灵」：左列独孤九剑 / 右列其他剑法）
+## 框标题旁的说明（有的流派会改，比如剑侠的「灵」：左列无迹九变剑 / 右列其他剑法）
 func _branch_desc(b: String) -> String:
 	var sd: Variant = Data.talents["branches"][b].get("school_desc", {})
 	if sd is Dictionary and (sd as Dictionary).has(school):

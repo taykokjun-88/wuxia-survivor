@@ -47,7 +47,7 @@ var starter_id := "chain_fist"
 var reward_comp := 1.0              # 综合难度（1.0 ~ 3.0），决定经验 / 修为 / 装备奖励
 var difficulty := {"count": 1.0, "hp": 1.0, "speed": 1.0}   # 开局前选择的难度倍率（1.0 ~ 3.0）
 var map_id := "black_wind"       # 当前地图（见 data 的 maps）
-var shi: Dictionary = {}            # 独孤九剑：已领悟的「式」→ 层数（最多 4 种；计入 9 / 18 / 27 层门槛）
+var shi: Dictionary = {}            # 无迹九变剑：已领悟的「式」→ 层数（最多 4 种；计入 9 / 18 / 27 层门槛）
 var shi_bonus: Dictionary = {}      # 每一式的品质加成（只加威力，不计入门槛）
 var _sh_tex: Texture2D = Depth.shadow_texture()
 var _lite := false                  # 本帧画面里怪太多：普通怪走快速绘制
@@ -60,14 +60,14 @@ var player_slow_t := 0.0           # 银鞭减速
 var boss_deadline := -1.0          # 大 Boss 现身后的限时（秒，游戏内时间）；超时 = 寨主逃遁，判负
 var timeout_fail := false
 var sword_break_count := 0           # 统计：「剑破天下」触发次数（测试用）
-var dugu_combo_log: Array = []     # 统计：真·独孤九剑的连击段数（测试用）
+var dugu_combo_log: Array = []     # 统计：真·无迹九变剑的连击段数（测试用）
 var soul := 0.0                    # 刀魂（刀客，0~100）
 var soul_idle := 0.0
-var tulong_equipped := false         # 装备了传说「屠龙宝刀」（光明顶彩蛋）
+var tulong_equipped := false         # 装备了传说「斩蛟宝刀」（赤焰巅彩蛋）
 var tulong_on := false               # 彩蛋已触发：无视 50% 防御、护盾双倍伤害、破盾后易伤
 var fist_ult_t := 0.0              # 武者「拳掌无敌」剩余时间
 var fist_ult_count := 0
-var cut_count := 0                 # 本局斩落的敌方投射物数量（独孤九剑）
+var cut_count := 0                 # 本局斩落的敌方投射物数量（无迹九变剑）
 var fist_qi := 0.0                 # 武者蓄劲（0~100）
 var fist_qi_crit_t := 0.0
 var cunjin_count := 0              # 本局寸劲震爆次数
@@ -75,7 +75,7 @@ var meta_level := 1                # 局外等级（由 main 在开局前设置�
 var run_id := ""                   # 本局编号（成绩上传用，服务器据此去重）
 var rerolls_left := 0              # 另觅机缘：本局剩余次数
 var rerolls_used := 0
-var ji_haste_until := -1.0          # 极·万剑归宗：冲刺后的加速窗口
+var ji_haste_until := -1.0          # 极·千锋聚啸剑：冲刺后的加速窗口
 var tb_count := 0                  # 本局真·霸刀破岳触发次数
 var tb_t := 0.0                    # 真·霸刀破岳：剩余持续时间（>0 = 生效中）
 var tb_cd := 0.0                   # 真·霸刀破岳：冷却（状态结束后才开始倒计时）
@@ -118,7 +118,7 @@ var meta_alloc: Dictionary = {}    # 局外属性点（福缘 / 身法影响隐�
 var _spear_ctx := false            # 枪影追击中：不再累计连击
 var _spear_aura_t := 0.0
 
-# 奇门遁甲（桃花岛）：八门——地面八卦盘，周期洗牌；吉门有益、凶门有害（玩家和敌人都受影响）
+# 奇门遁甲（海棠屿）：八门——地面八卦盘，周期洗牌；吉门有益、凶门有害（玩家和敌人都受影响）
 const BAGUA_GATES := {
 	"sheng": {"name": "生门", "good": true, "col": "#6fdc6f", "tip": "回血"},
 	"kai": {"name": "开门", "good": true, "col": "#9ad8ff", "tip": "移速 / 冷却"},
@@ -563,7 +563,7 @@ func cd_mult() -> float:
 	# 剑侠：移速越高攻速越快（speed_cd × 移速加成）
 	var sc := st("speed_cd") * maxf(0.0, st("speed_pct"))
 	var jc := 0.0
-	if st("ji_sword") > 0.0:                      # 极·万剑归宗：冷却 −20%，冲刺 / 闪现后 3 秒再 −40%
+	if st("ji_sword") > 0.0:                      # 极·千锋聚啸剑：冷却 −20%，冲刺 / 闪现后 3 秒再 −40%
 		jc = 0.2 + (0.4 if time < ji_haste_until else 0.0)
 	return maxf(0.3 if jc > 0.0 else 0.4, 1.0 - st("cd_reduce") - sc - jc - bagua_cd - (Data.T("burst_yin_cd") if atk_buff_t > 0.0 else 0.0))
 
@@ -573,7 +573,7 @@ func dmg_mult() -> float:
 	return Data.T("ying_dmg") + st("ying_dmg") if realm() == Realm.YING else 1.0
 
 
-## 盈境的门槛（九阳神功等心法可以调低）
+## 盈境的门槛（煌日真诀等心法可以调低）
 func ying_at() -> float:
 	return clampf(Data.T("ying_at") + st("ying_shift"), 0.5, 0.95)
 
@@ -819,7 +819,7 @@ func burst_power() -> float:
 	return clampf(neili / maxf(1.0, st("max_neili")), 0.0, 1.0)
 
 
-## 真·独孤九剑：觉醒、或按「真气爆发」时触发「剑破天下」（九连闪现）
+## 真·无迹九变剑：觉醒、或按「真气爆发」时触发「剑破天下」（九连闪现）
 func _trigger_sword_break(delay: float, mult: float) -> void:
 	var s: SkillBase = skills.get("dugu")
 	if s != null and s.has_method("start_sword_break"):
@@ -954,7 +954,7 @@ func _ring_pos() -> Vector2:
 	return player_pos + Vector2.from_angle(rng.randf() * TAU) * (SPAWN_DIST + rng.randf() * 60.0)
 
 
-## 这张地图有自己的怪物时间表（光明顶 = 五大派弟子、桃花岛 = 岛上的人）就只刷自己的怪；黑风寨用原来的山贼 / 铁甲 / 刀客
+## 这张地图有自己的怪物时间表（赤焰巅 = 五大派弟子、海棠屿 = 岛上的人）就只刷自己的怪；黑风寨用原来的山贼 / 铁甲 / 刀客
 func _map_has_table() -> bool:
 	return not (Data.maps[map_id].get("spawn_table", []) as Array).is_empty()
 
@@ -1008,7 +1008,7 @@ func _pick_type() -> String:
 
 
 ## 杂兵 / 精英的血量随时间的增幅：1 + 时间 / hp_scale_t；地图时间轴里有自己的 hp_scale_t 就用它
-## （光明顶 111.43：13 分钟时 ×8；其它地图用全局 hp_scale_t = 200）。大小 Boss 不随时间缩放
+## （赤焰巅 111.43：13 分钟时 ×8；其它地图用全局 hp_scale_t = 200）。大小 Boss 不随时间缩放
 func _hp_time_scale() -> float:
 	var tl := _timeline()
 	return 1.0 + time / float(tl.get("hp_scale_t", Data.T("hp_scale_t")))
@@ -1335,7 +1335,7 @@ func _boss_radial(e: Enemy, n: int) -> void:
 		p.angle = a
 		p.radius = 9.0
 		p.damage = 14.0 * e.atk_mul()
-		p.cuttable = true          # 杂兵的弓箭 / 剑气：独孤九剑可以斩落
+		p.cuttable = true          # 杂兵的弓箭 / 剑气：无迹九变剑可以斩落
 		p.pierce = 1
 		p.life = 4.0
 		projs.append(p)
@@ -1344,7 +1344,7 @@ func _boss_radial(e: Enemy, n: int) -> void:
 func _hurt(amount: float) -> void:
 	if god:
 		return
-	# 闪避（凌波微步）与免伤（铁布衫）
+	# 闪避（游蛇巧步）与免伤（铁布衫）
 	if st("dodge_chance") > 0.0 and neili >= float(qg.get("dodge_cost", 0.0)) and rng.randf() < st("dodge_chance"):
 		neili -= float(qg.get("dodge_cost", 0.0))
 		invuln = 0.3
@@ -1427,7 +1427,7 @@ func _kill(e: Enemy) -> void:
 		add_fx("splat", e.pos, 0.35, {"r": e.radius * 1.4, "color": e.color, "vfx": "death_puff", "size": e.radius * 4.0})
 	else:
 		add_fx("splat", e.pos, 0.6, {"r": e.radius * 1.4, "color": e.color})
-	if e.burn_burst > 0.0 and e.burn_t > 0.0:        # 燃木刀法强化：灼烧中的敌人死亡时火焰爆炸
+	if e.burn_burst > 0.0 and e.burn_t > 0.0:        # 烈焰焚林刀强化：灼烧中的敌人死亡时火焰爆炸
 		area_hit_raw(e.pos, e.burn_burst, e.burn_dmg, ["范围"], "ranmu_blade", 140.0)
 		add_fx("ring", e.pos, 0.35, {"r0": 10.0, "r1": e.burn_burst, "color": Color("#ff8a30")})
 	if e.poison_burst > 0.0 and e.poison_dps > 0.0:
@@ -1516,7 +1516,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 			m *= 1.0 + 0.06 * float(mini(5, spear_combo / 5))          # 连击：每 5 连击 +6%（最多 +30%）
 	if sk != null:
 		m *= sk.hit_mult(e)
-		if realm() == Realm.YING and float(sk.link_flags.get("ying", 0.0)) > 0.0:     # 九阳神功同修：盈境下额外增伤
+		if realm() == Realm.YING and float(sk.link_flags.get("ying", 0.0)) > 0.0:     # 煌日真诀同修：盈境下额外增伤
 			m *= 1.0 + float(sk.link_flags["ying"])
 	if e.vuln_t > 0.0:
 		m *= 1.0 + e.vuln
@@ -1607,7 +1607,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 			amount = (sd - e.shield) / (shm * (2.0 if e.weak_t > 0.0 else 1.0))
 			e.shield = 0.0
 			add_fx("text", e.pos + Vector2(0, -e.radius - 30), 1.2, {"text": "护盾破碎！", "size": 28, "color": Color("#9ae8ff")})
-			if tulong_on:                                  # 屠龙宝刀破盾：兵刃震脱，3 秒易伤
+			if tulong_on:                                  # 斩蛟宝刀破盾：兵刃震脱，3 秒易伤
 				e.vuln = maxf(e.vuln if e.vuln_t > 0.0 else 0.0, 0.35)
 				e.vuln_t = 3.0
 				add_fx("ring", e.pos, 0.5, {"r0": 20.0, "r1": 200.0, "color": Color("#ffb030"), "vfx": "fx_tulong_break", "size": 340.0})
@@ -1730,7 +1730,7 @@ func fx_slash(at: Vector2, angle: float, reach: float, arc: float, heavy: bool, 
 # 弹体 / 区域
 # =====================================================================
 
-## 破鞭式弹射：整个画面（不是整张地图）里离 pos 最近的敌人
+## 折锋变弹射：整个画面（不是整张地图）里离 pos 最近的敌人
 func _nearest_on_screen(pos: Vector2, exclude: Dictionary) -> Enemy:
 	var best: Enemy = null
 	var bd := INF
@@ -1900,7 +1900,7 @@ func _update_zones(dt: float) -> void:
 						for e in _query(zpos, zr):
 							if e.alive and e.pos.distance_to(zpos) < zr + e.radius:
 								slow_enemy(e, 0.6, 0.7)
-			"fire":                                        # 燃木刀法的火海：持续灼烧 + 减速
+			"fire":                                        # 烈焰焚林刀的火海：持续灼烧 + 减速
 				if z["t"] >= z["life"]:
 					keep = false
 				else:
@@ -2061,7 +2061,7 @@ func _update_chests() -> void:
 			chests.remove_at(i)
 			Sfx.play("chest_open")
 			if skills.has("dugu"):
-				pending_chests += 1   # 独孤九剑：秘籍直接换成「+3 层」的式
+				pending_chests += 1   # 无迹九变剑：秘籍直接换成「+3 层」的式
 			elif enhance_id == "":
 				if pending_chests == 0:
 					pending_chests += 1
@@ -2154,7 +2154,7 @@ func roll_choices(n: int = 3, avoid: Array = [], reroll: bool = false) -> Array:
 			})
 	for id in Data.skills:
 		var def: Dictionary = Data.skills[id]
-		if dugu_route or skills.has(id) or str(def["school"]) != school_id or Data.is_starter(id) or bool(def.get("hidden", false)):      # 起手招式（含独孤九剑）只能在出发前选，升级时不会出现
+		if dugu_route or skills.has(id) or str(def["school"]) != school_id or Data.is_starter(id) or bool(def.get("hidden", false)):      # 起手招式（含无迹九变剑）只能在出发前选，升级时不会出现
 			continue
 		if skills.size() < MAX_SKILLS:
 			pool.append({
@@ -2187,7 +2187,7 @@ func roll_choices(n: int = 3, avoid: Array = [], reroll: bool = false) -> Array:
 		for c: Dictionary in pool:
 			(seen if avoid.has(_choice_key(c)) else fresh).append(c)
 		pool = seen + fresh
-	var out: Array = shi_pool.duplicate()    # 独孤九剑：每次至少两张「式」
+	var out: Array = shi_pool.duplicate()    # 无迹九变剑：每次至少两张「式」
 	while out.size() < n and not pool.is_empty():
 		out.append(pool.pop_back())
 	var hc := _hidden_card(reroll)
@@ -2860,7 +2860,7 @@ func play_anim(name: String, dur: float) -> void:
 ## 当前应播放的角色动画：[名称, 该动画内的时间]
 func _player_anim_state() -> Array:
 	var st := _player_anim_state_base()
-	if dugu_true():         # 真·独孤九剑：散发、持剑、周身气场的另一套动作
+	if dugu_true():         # 真·无迹九变剑：散发、持剑、周身气场的另一套动作
 		match str(st[0]):
 			"idle": st[0] = "true_idle"
 			"walk": st[0] = "true_walk"
@@ -2996,12 +2996,12 @@ func _draw_effects() -> void:
 
 
 # =====================================================================
-# 剑侠：破绽 / 中毒 / 独孤九剑「式」
+# 剑侠：破绽 / 中毒 / 无迹九变剑「式」
 # =====================================================================
 
 ## 破绽：受到的伤害额外 +v，持续 t 秒；spread 时顺带让附近一名敌人也露出破绽（万法皆破）
 func apply_vuln(e: Enemy, v: float, spread: bool = false) -> void:
-	if skills.has("dugu"):                        # 天赋「万法」：独孤九剑的破绽更痛
+	if skills.has("dugu"):                        # 天赋「万法」：无迹九变剑的破绽更痛
 		v *= 1.0 + st("dugu_vuln")
 	if e.is_boss:                                 # Boss 只吃破绽效果的一半（承伤加成、攻击削弱都减半）
 		v *= Data.T("boss_vuln_mult")
@@ -3176,7 +3176,7 @@ func shi_total() -> int:
 	return t
 
 
-## 独孤九剑形态：0 = 没走独孤路线；1 = 起手（≥9 另有「破兵微步」）；2 = 万法皆破（总层 ≥ 18）；3 = 真·独孤九剑（总层 ≥ 27）
+## 无迹九变剑形态：0 = 没走九变路线；1 = 起手（≥9 另有「破兵微步」）；2 = 万法皆破（总层 ≥ 18）；3 = 真·无迹九变剑（总层 ≥ 27）
 func dugu_stage() -> int:
 	if not skills.has("dugu"):
 		return 0
@@ -3191,7 +3191,7 @@ func dugu_micro() -> bool:
 	return skills.has("dugu") and shi_total() >= int(Data.T("shi_stage1"))
 
 
-## 能否斩落敌方普通投射物（万法皆破起；或学了破箭式）
+## 能否斩落敌方普通投射物（万法皆破起；或学了落矢变）
 func dugu_can_cut() -> bool:
 	return skills.has("dugu") and (dugu_stage() >= 2 or int(shi.get("po_arrow", 0)) > 0)
 
@@ -3215,7 +3215,7 @@ func dugu_true() -> bool:
 	return dugu_stage() == 3
 
 
-## 真·独孤九剑封印轻功
+## 真·无迹九变剑封印轻功
 func dash_sealed() -> bool:
 	return dugu_true()
 
@@ -3256,7 +3256,7 @@ func _shi_desc(d: Dictionary) -> String:
 	return "普通：%s\n觉醒：%s" % [d["desc"], d.get("awaken", "同样生效")]
 
 
-## 独孤九剑的「式」卡牌：已学的提升、新式（总共最多 4 种）。gain：本次领悟的层数
+## 无迹九变剑的「式」卡牌：已学的提升、新式（总共最多 4 种）。gain：本次领悟的层数
 func shi_cards(n: int, gain: int, src: String) -> Array:
 	var pool: Array = []
 	var cap := int(Data.T("shi_lv_max"))

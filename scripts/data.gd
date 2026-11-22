@@ -17,10 +17,10 @@ var yinyang: Dictionary = {}      # 阴阳组合（调和体 / 纯阳体 / 纯�
 var harmony: Array = []           # 合璧：两个特定心法同时修习的额外效果
 var town: Dictionary = {}         # 小镇：边界 / NPC / 建筑
 var boss_skills: Dictionary = {}   # Boss / 精英的技能参数（预警时间、形状、伤害…）
-var guide: Dictionary = {}        # 百晓生的玩法说明
+var guide: Dictionary = {}        # 茶馆老包的玩法说明
 var maps: Dictionary = {}         # 地图（黑风寨 / 华山…）
 var difficulty: Dictionary = {}   # 综合难度带来的奖励系数
-var shi: Array = []                # 独孤九剑的九「式」
+var shi: Array = []                # 无迹九变剑的九「式」
 var gear: Dictionary = {}         # 装备：部位 / 稀有度 / 词条池
 var font_bold: Font               # 楷体粗体（"极"等需要突出的字）
 

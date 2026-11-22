@@ -1,7 +1,7 @@
 class_name SwordSkills
 extends RefCounted
-## 剑侠流派的 9 个攻击技能 + 独孤九剑。每个技能的"专属强化"在 enhanced() 分支里实现。
-## 独孤九剑是特殊路线：不学其他招式，只领悟「式」（见 GameWorld.shi），多个式的效果同时生效。
+## 剑侠流派的 9 个攻击技能 + 无迹九变剑。每个技能的"专属强化"在 enhanced() 分支里实现。
+## 无迹九变剑是特殊路线：不学其他招式，只领悟「式」（见 GameWorld.shi），多个式的效果同时生效。
 
 const SWORD_BLUE := Color("#8ab4d8")
 
@@ -22,7 +22,7 @@ static func create(skill_id: String) -> SkillBase:
 	return null
 
 
-## 狂风快剑：近身快剑。强化「风卷残云」：每第四剑的风刃贯穿并回血。
+## 猎风疾影剑：近身快剑。强化「风卷残云」：每第四剑的风刃贯穿并回血。
 class KuangFeng extends SkillBase:
 	var combo := 0
 
@@ -46,7 +46,7 @@ class KuangFeng extends SkillBase:
 		return true
 
 
-## 青松剑法：稳健的连刺。剑锋前有 2 个以上敌人时化作「松涛」，更宽更重。强化「松涛阵阵」：松涛同时射出扇形剑气。
+## 劲柏凌霜剑：稳健的连刺。剑锋前有 2 个以上敌人时化作「松涛」，更宽更重。强化「松涛阵阵」：松涛同时射出扇形剑气。
 class QingSong extends SkillBase:
 	var combo := 0
 
@@ -72,7 +72,7 @@ class QingSong extends SkillBase:
 		return true
 
 
-## 玄铁重剑：缓慢而沉重。强化「无锋大巧」：落地冲击波并击晕。
+## 沉渊重剑：缓慢而沉重。强化「无锋大巧」：落地冲击波并击晕。
 class ZhongJian extends SkillBase:
 	func fire() -> bool:
 		var reach := p("reach")
@@ -90,7 +90,7 @@ class ZhongJian extends SkillBase:
 		return true
 
 
-## 太极剑：周身圆弧，把敌方弹幕原路打回。强化「四两拨千斤」：每打回一枚弹幕，这一剑伤害提高。
+## 圆转绵剑：周身圆弧，把敌方弹幕原路打回。强化「四两拨千斤」：每打回一枚弹幕，这一剑伤害提高。
 class TaijiSword extends SkillBase:
 	func _hostile_near(r: float) -> Array[Projectile]:
 		var out: Array[Projectile] = []
@@ -126,7 +126,7 @@ class TaijiSword extends SkillBase:
 		return true
 
 
-## 万剑归宗：扇形飞剑齐发。强化「剑雨」：命中后分裂成两柄小剑。
+## 千锋聚啸剑：扇形飞剑齐发。强化「剑雨」：命中后分裂成两柄小剑。
 class WanJian extends SkillBase:
 	func fire() -> bool:
 		var reach := p("speed") * p("life")
@@ -145,7 +145,7 @@ class WanJian extends SkillBase:
 		return true
 
 
-## 玉女素心剑：回身一圈剑光，命中回血。强化「双剑合璧」：追加更大的第二圈。
+## 兰溪双影剑：回身一圈剑光，命中回血。强化「双剑合璧」：追加更大的第二圈。
 class YuNv extends SkillBase:
 	func _ring(r: float, dmg: float) -> int:
 		var n := 0
@@ -168,7 +168,7 @@ class YuNv extends SkillBase:
 		return true
 
 
-## 辟邪剑法：闪现到最近的敌人身边刺击，出手无敌。强化「欲练神功」：落地后再补一圈。
+## 残影掠光剑：闪现到最近的敌人身边刺击，出手无敌。强化「欲练神功」：落地后再补一圈。
 class PiXie extends SkillBase:
 	func fire() -> bool:
 		var rng_tp := float(def.get("range_tp", 340.0)) * (1.0 + float(mods["range"]))
@@ -194,7 +194,7 @@ class PiXie extends SkillBase:
 		return true
 
 
-## 金蛇剑法：金蛇锥，命中叠毒。强化「蛇毒入髓」：中毒者死亡时毒雾爆开。
+## 蜿蜒曲锋剑：曲锋锥，命中叠毒。强化「蛇毒入髓」：中毒者死亡时毒雾爆开。
 class JinShe extends SkillBase:
 	func fire() -> bool:
 		var reach := p("speed") * p("life")
@@ -207,7 +207,7 @@ class JinShe extends SkillBase:
 		return true
 
 
-## 倚天剑法：前方极宽的巨大剑光。强化「屠龙之势」：额外射出贯穿剑气。
+## 断云裂帛剑：前方极宽的巨大剑光。强化「斩蛟之势」：额外射出贯穿剑气。
 class YiTian extends SkillBase:
 	func fire() -> bool:
 		var reach := p("reach") * (1.5 if empowered else 1.0)
@@ -223,11 +223,11 @@ class YiTian extends SkillBase:
 		return true
 
 
-## 独孤九剑：起手很弱；「式」的效果全部同时生效。
-## 总层 > 20：万法皆破（破绽 + 蔓延）；总层 > 30：真·独孤九剑（闪现连刺、必破绽必暴击、几率 2/4/9 连击，封印轻功）。
+## 无迹九变剑：起手很弱；「式」的效果全部同时生效。
+## 总层 > 20：万法皆破（破绽 + 蔓延）；总层 > 30：真·无迹九变剑（闪现连刺、必破绽必暴击、几率 2/4/9 连击，封印轻功）。
 class Dugu extends SkillBase:
 	const ORDER := ["zong", "po_jian", "po_dao", "po_qiang", "po_bian", "po_suo", "po_zhang", "po_arrow", "po_qi"]
-	const TRUE_NAMES := ["破剑式", "破刀式", "破枪式", "破鞭式", "破索式", "破掌式", "破箭式", "破气式", "总诀式"]
+	const TRUE_NAMES := ["分锋变", "贯甲变", "掠空变", "折锋变", "滞步变", "震浪变", "落矢变", "化劲变", "总纲变"]
 	var wb_hits: Dictionary = {}     # 破兵微步：本次出手已命中的敌人
 	var wb_cd := 0.0
 	var wb_count := 0                # 统计：破兵微步触发次数（测试用）
@@ -249,7 +249,7 @@ class Dugu extends SkillBase:
 		return Data.T("dugu_flash_range") * (1.0 + float(mods["range"]))
 
 	func vuln_scale() -> float:
-		return 1.0 + (_base_debuff if _base_dmg >= 0.0 else float(mods["debuff"]))    # 只算天赋 / 装备带来的，不含破索式自带的减速
+		return 1.0 + (_base_debuff if _base_dmg >= 0.0 else float(mods["debuff"]))    # 只算天赋 / 装备带来的，不含滞步变自带的减速
 
 	func L(sid: String) -> int:
 		return w.shi_lv(sid)
@@ -279,7 +279,7 @@ class Dugu extends SkillBase:
 			cd = maxf(0.0, cd * (1.0 - Data.T("dugu_wb_cut") - 0.05 * w.st("dugu_wb")))
 			w.add_fx("text", w.player_pos + Vector2(0, -44), 0.6, {"text": "破兵微步", "size": 16, "color": Color("#bfe8ff")})
 
-	## 破箭式 / 万法皆破：近战斩击把范围内的敌方普通投射物全部斩落
+	## 落矢变 / 万法皆破：近战斩击把范围内的敌方普通投射物全部斩落
 	func _cut_in(center: Vector2, radius: float) -> void:
 		if w.dugu_can_cut():
 			w.cut_hostile_projs(center, radius)
@@ -353,12 +353,12 @@ class Dugu extends SkillBase:
 			w.spawn_proj(self, base + (i - (n - 1) * 0.5) * 0.16, o)
 		return true
 
-	# ---------------- 真·独孤九剑 ----------------
+	# ---------------- 真·无迹九变剑 ----------------
 
 	func pulse_radius() -> float:
 		return (Data.T("dugu_pulse_radius") + 6.0 * L("po_dao")) * (1.0 + float(mods["range"])) * (1.0 + 0.03 * L("po_qiang"))
 
-	## 觉醒 / 真气爆发时触发：「真·独孤九剑·剑破天下」——连续闪现九次，每一次是一个「式」
+	## 觉醒 / 真气爆发时触发：「真·无迹九变剑·剑破天下」——连续闪现九次，每一次是一个「式」
 	func start_sword_break(delay: float = 0.0, mult: float = 1.0) -> void:
 		sb_left = 9
 		sb_idx = 0
@@ -368,7 +368,7 @@ class Dugu extends SkillBase:
 		combo_left = 0
 		w.sword_break_count += 1
 		w.invuln = maxf(w.invuln, delay + 1.4)
-		w.add_fx("text", w.player_pos + Vector2(0, -96), 1.6, {"text": "真·独孤九剑 · 剑破天下", "size": 30, "color": GameWorld.VERMILION})
+		w.add_fx("text", w.player_pos + Vector2(0, -96), 1.6, {"text": "真·无迹九变剑 · 剑破天下", "size": 30, "color": GameWorld.VERMILION})
 		w.shake = maxf(w.shake, 6.0)
 
 	func _sb_step() -> void:
@@ -430,7 +430,7 @@ class Dugu extends SkillBase:
 		w.add_fx("text", first.pos + Vector2(0, -first.radius - 34), 0.9, {"text": label, "size": 26, "color": GameWorld.VERMILION})
 		_chain_effects(first, dmg, vuln)
 
-	## 破鞭式（剑势转向画面里另一名敌人）和破掌式（落点爆开），闪现与范围斩共用
+	## 折锋变（剑势转向画面里另一名敌人）和震浪变（落点爆开），闪现与范围斩共用
 	func _chain_effects(first: Enemy, dmg: float, vuln: float) -> void:
 		if L("po_bian") > 0:
 			var seen := {first.uid: true}
@@ -448,12 +448,12 @@ class Dugu extends SkillBase:
 			var sr := 50.0 + 4.0 * L("po_zhang")
 			w.area_hit_raw(first.pos, sr, dmg * (0.35 + 0.03 * L("po_zhang")), tags(), id, 80.0, 0.0, false, true)
 
-	## 平时的真·独孤九剑：近身范围群攻（一圈剑气斩）。必破绽、必暴击；攻速快、有几率 2 / 4 / 9 连击
+	## 平时的真·无迹九变剑：近身范围群攻（一圈剑气斩）。必破绽、必暴击；攻速快、有几率 2 / 4 / 9 连击
 	func _begin_true() -> bool:
 		if not w.any_enemy_within(w.player_pos, pulse_radius() + 20.0):
 			return false
 		# 连击几率各自独立判定，从高到低：先 9 连（9%），没中再判 4 连（20%），再判 2 连（50%）；中了高的，低的就不会触发
-		var cm := 1.25 if w.st("ji_sword") > 0.0 else 1.0           # 极·万剑归宗：连击几率 ×1.25
+		var cm := 1.25 if w.st("ji_sword") > 0.0 else 1.0           # 极·千锋聚啸剑：连击几率 ×1.25
 		if w.rng.randf() < Data.T("dugu_combo9") * cm:
 			combo_total = 9
 		elif w.rng.randf() < Data.T("dugu_combo4") * cm:
@@ -488,9 +488,9 @@ class Dugu extends SkillBase:
 			return TRUE_NAMES[combo_idx % 9]
 		var learned: Array = w.shi.keys()
 		if learned.is_empty():
-			return "破剑式"
+			return "分锋变"
 		var pick := str(learned[w.rng.randi() % learned.size()])
-		return w.shi_name(pick) if pick != "zong" else "总诀式"
+		return w.shi_name(pick) if pick != "zong" else "总纲变"
 
 	func _pulse(label: String, mult: float) -> void:
 		var R := pulse_radius()
@@ -512,7 +512,7 @@ class Dugu extends SkillBase:
 				w.stun_enemy(e, 0.8)
 			if first == null or to.length() < (first.pos - w.player_pos).length():
 				first = e
-		# 破剑式：每 3 层多一圈余波（更大一圈，60% 伤害）
+		# 分锋变：每 3 层多一圈余波（更大一圈，60% 伤害）
 		for i in mini(3, L("po_jian") / 3):
 			var Ri := R * (1.0 + 0.16 * (i + 1))
 			w.area_hit_raw(w.player_pos, Ri, dmg * 0.6, tags(), id, 160.0, 0.0, false, true)

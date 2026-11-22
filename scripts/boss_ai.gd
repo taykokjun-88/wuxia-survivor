@@ -10,7 +10,7 @@ static func _d(id: String) -> Dictionary:
 	return Data.boss_skills.get(id, {})
 
 
-## 某个 Boss 的专属特效 / 弹体覆盖（敌人定义里的 vfx_map / proj_kind_map）：同一个招式在不同 Boss 身上画不同的特效（桃花岛四人）
+## 某个 Boss 的专属特效 / 弹体覆盖（敌人定义里的 vfx_map / proj_kind_map）：同一个招式在不同 Boss 身上画不同的特效（海棠屿四人）
 static func _vx(e: Enemy, id: String, d: Dictionary) -> String:
 	var m: Dictionary = Data.enemies.get(e.type_id, {}).get("vfx_map", {})
 	return str(m.get(id, d.get("vfx", "")))
@@ -165,9 +165,9 @@ static func enter_phase2(w: GameWorld, e: Enemy) -> void:
 	w.add_fx("text", e.pos + Vector2(0, -e.radius - 70), 3.0, {"text": str(d.get("text", "")), "size": 44, "color": Color("#bfe8ff")})
 	w.add_fx("ring", e.pos, 0.8, {"r0": 20.0, "r1": 420.0, "color": Color("#bfe8ff"), "vfx": "boss_phase2_burst" if w.vfx.has("boss_phase2_burst") else "burst_break", "size": 560.0})
 	w.shake = maxf(w.shake, 14.0)
-	if w.tulong_equipped and e.is_final:                    # 彩蛋：屠龙宝刀对倚天剑
+	if w.tulong_equipped and e.is_final:                    # 彩蛋：斩蛟宝刀对断云剑
 		w.tulong_on = true
-		w.add_fx("text", w.player_pos + Vector2(0, -110), 3.0, {"text": "屠龙宝刀，天下至尊", "size": 40, "color": Color("#ffb030")})
+		w.add_fx("text", w.player_pos + Vector2(0, -110), 3.0, {"text": "斩蛟宝刀，天下至尊", "size": 40, "color": Color("#ffb030")})
 	Sfx.play("boss_warn")
 
 

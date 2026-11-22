@@ -1,5 +1,5 @@
 extends Node
-## 剑侠截图：独孤九剑 HUD / 升级卡 / 真·独孤九剑战斗。
+## 剑侠截图：无迹九变剑 HUD / 升级卡 / 真·无迹九变剑战斗。
 ## 运行：SHOT_DIR=/tmp/shots xvfb-run -a godot --path . --rendering-driver opengl3 res://tests/shot_sword.tscn
 
 const DT := 1.0 / 60.0
