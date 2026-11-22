@@ -53,6 +53,9 @@
 <script>
 (function(){
   var cb=null,lock=0;
+  var savedFocus=null;
+  function holdCanvas(){var c=document.querySelector('canvas');if(c&&!savedFocus){savedFocus=c.focus;c.focus=function(){};}}
+  function freeCanvas(){var c=document.querySelector('canvas');if(c&&savedFocus){c.focus=savedFocus;savedFocus=null;}}
   function build(){
     var d=document.createElement('div');d.id='qx-edit';
     d.innerHTML='<div class="box"><div class="t" id="qx-t"></div><input id="qx-i" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"><div class="row"><button class="no" id="qx-no">取消</button><button id="qx-ok">确定</button></div></div>';
@@ -60,7 +63,7 @@
     var i=document.getElementById('qx-i');
     function done(ok){
       if(Date.now()<lock)return;
-      d.style.display='none';i.blur();
+      d.style.display='none';i.blur();freeCanvas();
       var f=cb;cb=null;
       if(f)f(ok?1:0,i.value);
     }
@@ -71,6 +74,7 @@
   }
   if(document.body)build();else document.addEventListener('DOMContentLoaded',build);
   window.qxCoarse=function(){try{if(window.matchMedia('(pointer: coarse)').matches||window.matchMedia('(any-pointer: coarse)').matches)return true;}catch(e){}var ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);return ios||/Android/.test(navigator.userAgent);};
+  ['keydown','keyup','keypress','beforeinput','input','touchstart','touchmove','touchend','touchcancel','pointerdown','pointerup','pointermove','mousedown','mouseup','click','wheel'].forEach(function(n){document.addEventListener(n,function(e){var t=e.target;if(t&&t.closest&&t.closest('#qx-edit'))e.stopPropagation();});});
   window.qxLast=0;['pointerdown','touchstart','mousedown'].forEach(function(n){window.addEventListener(n,function(){window.qxLast=Date.now();},true);});
   window.qxRecent=function(){return Date.now()-window.qxLast<900;};
   window.qxEdit=function(title,value,secret,maxlen,callback){
@@ -79,8 +83,8 @@
     document.getElementById('qx-t').textContent=title;
     var i=document.getElementById('qx-i');
     i.type=secret?'password':'text';i.value=value||'';i.maxLength=maxlen>0?maxlen:524288;
-    d.style.display='flex';
-    setTimeout(function(){try{i.focus();i.select();}catch(e){}},50);
+    d.style.display='flex';holdCanvas();
+    var tries=0;(function f(){try{i.focus();i.select();}catch(e){}if(++tries<6&&document.activeElement!==i)setTimeout(f,120);})();
     return true;
   };
 })();
