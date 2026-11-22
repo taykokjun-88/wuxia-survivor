@@ -7,13 +7,18 @@ from PIL import Image
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 V3 = ROOT / "assets" / "source" / "yangjiajiang_v3"
+V8 = ROOT / "assets" / "source" / "yangjiajiang_v8"     # 第八版：武者成年二次元重画（有就优先）
+
+
+def pick(name):
+    return V8 / name if (V8 / name).exists() else V3 / name
 
 
 def main():
     for k in ["fist", "sword", "blade", "spear"]:               # 创建角色立绘 1200×1600，原样使用
-        Image.open(V3 / f"{k}_hero.jpg").convert("RGB").save(ROOT / "assets" / "portraits" / f"{k}_hero.jpg", quality=93)
+        Image.open(pick(f"{k}_hero.jpg")).convert("RGB").save(ROOT / "assets" / "portraits" / f"{k}_hero.jpg", quality=93)
     for k in ["fist", "sword", "blade", "spear"]:               # 选人全身像：透明底，裁边后放进 512×640
-        cut = Image.open(V3 / f"charselect_{k}.png").convert("RGBA")
+        cut = Image.open(pick(f"charselect_{k}.png")).convert("RGBA")
         bb = cut.getchannel("A").point(lambda v: 255 if v > 128 else 0).getbbox()
         cut = cut.crop(bb)
         sc = min(500 / cut.width, 590 / cut.height)

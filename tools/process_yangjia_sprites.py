@@ -9,7 +9,7 @@ import sys
 from PIL import Image
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SRC = ROOT / "assets" / "source" / "yangjiajiang_v4"   # 第四版：像素 Q 版，各动作人物同比例，每个动作 1 行 4 帧
+SRC = ROOT / "assets" / "source" / "yangjiajiang_v8"   # 第八版：正常比例（头约 1/5），每个动作 1 行 4 帧
 OUT = ROOT / "assets" / "sprites" / "spear"
 WORK = OUT / "source"
 MAGENTA = (255, 0, 255)
