@@ -1597,7 +1597,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 			add_fx("ring", e.pos, 0.5, {"r0": 20.0, "r1": 140.0, "color": Color("#9ae8ff"), "vfx": "boss_shield_break" if vfx.has("boss_shield_break") else "burst_break", "size": maxf(e.radius * 4.0, 150.0)})
 			shake = maxf(shake, 7.0)
 	damage_enemy(e, amount, knock_vec, crit)
-	Sfx.play("hit_crit" if crit else ("hit_blade" if school_id == "blade" else ("hit_sword" if school_id == "sword" else "hit_fist")))
+	Sfx.play("hit_crit" if crit else ("hit_blade" if school_id == "blade" else ("hit_sword" if (school_id == "sword" or school_id == "spear") else "hit_fist")))
 	return amount
 
 
@@ -2041,6 +2041,7 @@ func _update_chests() -> void:
 		if chests[i].distance_to(player_pos) < 30.0:
 			var at := chests[i]
 			chests.remove_at(i)
+			Sfx.play("chest_open")
 			if skills.has("dugu"):
 				pending_chests += 1   # 独孤九剑：秘籍直接换成「+3 层」的式
 			elif enhance_id == "":
@@ -2260,6 +2261,7 @@ func _bagua_shuffle() -> void:
 	bagua_t = 0.0
 	bagua_center = player_pos
 	bagua_shuffles += 1
+	Sfx.play("realm_ying")
 	add_fx("text", player_pos + Vector2(0, -90), 1.6, {"text": "八门重排", "size": 30, "color": Color("#f0b429")})
 	add_fx("ring", player_pos, 0.8, {"r0": 20.0, "r1": float(bagua_cfg.get("radius", 430.0)), "color": Color("#f0b429")})
 

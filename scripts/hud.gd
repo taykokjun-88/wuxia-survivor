@@ -554,6 +554,7 @@ func _build_loadout() -> void:
 	start.custom_minimum_size = Vector2(260, 48)
 	start.focus_mode = Control.FOCUS_NONE
 	start.add_theme_font_size_override("font_size", 22)
+	start.pressed.connect(func() -> void: Sfx.play("ui_confirm", 0.04, -3.0))
 	start.pressed.connect(confirm_loadout)
 	var back := _button("返回村子  [Esc]", Vector2(190, 48), 18)
 	back.pressed.connect(func(): loadout_cancelled.emit())
@@ -1017,7 +1018,8 @@ func _button(text: String, size: Vector2, font_size: int = 20) -> Button:
 	b.custom_minimum_size = size
 	b.focus_mode = Control.FOCUS_NONE
 	b.add_theme_font_size_override("font_size", font_size)
-	b.pressed.connect(func() -> void: Sfx.play("ui_click", 0.04, -3.0))
+	var sid := "ui_back" if text.begins_with("返回") else ("ui_confirm" if (text.begins_with("保存") or text.begins_with("确定") or text.begins_with("开始")) else "ui_click")
+	b.pressed.connect(func() -> void: Sfx.play(sid, 0.04, -3.0))
 	return b
 
 

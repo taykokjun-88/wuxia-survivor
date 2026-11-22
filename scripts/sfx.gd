@@ -67,6 +67,9 @@ const SKILL_MAP := {
 	"fanliangyi": "bl_wheel", "xuanxu_blade": "bl_quake", "yuanyang_blade": "bl_spin", "tulong_art": "bl_dragon",
 	# 武者：拳闷、掌有气浪
 	"chain_fist": "fist_punch", "point_finger": "fist_finger", "quake_fist": "fist_quake", "vajra_fist": "fist_vajra",
+	# 杨家将：枪 = 尖锐刺 / 贯；棍 = 厚重闷响
+	"yangjia_spear": "sw_thrust", "meihua_spear": "sw_multi", "baima_spear": "sw_blink", "wuming_spear": "armor_break",
+	"shaolin_staff": "bl_heavy", "panlong_staff": "bl_wheel", "dagou_staff": "bl_quake", "fengmo_staff": "bl_spin", "xiangmo_staff": "fist_vajra",
 	"yue_palm": "palm_dragon", "whirl_palm": "palm_wave", "eight_waste": "palm_multi", "taiji": "palm_soft", "cloud_palm": "palm_wave",
 }
 

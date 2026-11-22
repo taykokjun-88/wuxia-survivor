@@ -839,8 +839,10 @@ func _on_enhance(code: String) -> void:
 	if state != State.MODAL:
 		return
 	if bool(res.get("ok", false)):
+		Sfx.play("gear_upgrade")
 		hud.show_smith("强化成功！+%d（花费 %d 银两）" % [int(res["level"]), int(res["cost"])])
 	else:
+		Sfx.play("gear_fail")
 		hud.set_smith_status(str(res.get("msg", "强化失败，请稍后再试")), true)
 
 
