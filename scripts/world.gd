@@ -902,7 +902,7 @@ func _spawn(dt: float) -> void:
 		var ring_n := int(round(24.0 * float(difficulty["count"])))
 		for i in ring_n:
 			if enemies.size() < max_enemies:
-				_spawn_enemy("bandit", player_pos + Vector2.from_angle(TAU * i / float(ring_n)) * SPAWN_DIST)
+				_spawn_enemy(_ring_type(), player_pos + Vector2.from_angle(TAU * i / float(ring_n)) * SPAWN_DIST)
 	if time >= next_elite and not boss_spawned:
 		next_elite += Data.T("elite_interval")
 		for i in 1 + int(time / 420.0):          # 越到后面精英越多：每 7 分钟多一只
@@ -952,6 +952,23 @@ func _boss_alive() -> bool:
 
 func _ring_pos() -> Vector2:
 	return player_pos + Vector2.from_angle(rng.randf() * TAU) * (SPAWN_DIST + rng.randf() * 60.0)
+
+
+## 这张地图有自己的怪物时间表（光明顶 = 五大派弟子、桃花岛 = 岛上的人）就只刷自己的怪；黑风寨用原来的山贼 / 铁甲 / 刀客
+func _map_has_table() -> bool:
+	return not (Data.maps[map_id].get("spawn_table", []) as Array).is_empty()
+
+
+## 合围圈的怪：黑风寨 = 山贼；其它地图 = 当前阶段的本图杂兵
+func _ring_type() -> String:
+	return _pick_type() if _map_has_table() else "bandit"
+
+
+## 精英的底子：黑风寨 = 铁甲喽啰 / 刀客；其它地图 = 本图杂兵放大一圈（金圈）
+func _elite_type() -> String:
+	if _map_has_table():
+		return _pick_type()
+	return "soldier" if rng.randf() < 0.6 else "blade"
 
 
 func _pick_type() -> String:
@@ -1047,7 +1064,7 @@ func _spawn_wave() -> void:
 
 
 func _spawn_elite() -> void:
-	var e := _spawn_enemy("soldier" if rng.randf() < 0.6 else "blade", _ring_pos())
+	var e := _spawn_enemy(_elite_type(), _ring_pos())
 	e.is_elite = true
 	e.max_hp *= Data.T("elite_hp")
 	e.hp = e.max_hp

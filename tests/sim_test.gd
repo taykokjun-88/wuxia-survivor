@@ -48,6 +48,7 @@ func _ready() -> void:
 		_map_collision_test()
 		_spear_test()
 		_bagua_test()
+		_map_spawn_test()
 		await _touch_test()
 		await _town_test()
 		_font_coverage_test()
@@ -89,6 +90,8 @@ func _ready() -> void:
 		_bagua_test()
 	if only == "touch":
 		await _touch_test()
+	if only == "spawn":
+		_map_spawn_test()
 	print("\nRESULT: %s" % ("FAIL (%d)" % failures if failures > 0 else "OK"))
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -4528,3 +4531,42 @@ func _touch_test() -> void:
 	await get_tree().process_frame
 	_check(not og.blocking, "桌面 / 无头环境不显示「请横屏」")
 	og.queue_free()
+
+
+## 光明顶只该有五大派弟子、桃花岛只该有岛上的人：合围圈 / 精英 / 怪潮 / 时间表刷出的怪都不能是黑风寨的山贼、铁甲、刀客
+func _map_spawn_test() -> void:
+	print("\n=== 各地图的怪只来自本图 ===")
+	var bw := ["bandit", "soldier", "blade", "archer", "charger"]
+	for mid in ["guangming", "taohua"]:
+		var w := GameWorld.new()
+		w.god = true
+		w.rng_seed = 31
+		add_child(w)
+		w.start_run("chain_fist", "tashue", mid)
+		var allowed := {}
+		for row in Data.maps[mid]["spawn_table"]:
+			allowed[str(row["id"])] = true
+		var bad := {}
+		var elites := 0
+		var rings := 0
+		for i in int(330.0 / DT):
+			w.step(DT)
+			if i % 30 == 0:
+				for e in w.enemies:
+					if e.is_prop or e.is_boss:
+						continue
+					if e.is_elite:
+						elites += 1
+					if not allowed.has(e.type_id):
+						bad[e.type_id] = true
+			if w.over:
+				break
+		_check(bad.is_empty(), "%s：刷出的怪都来自本图时间表（出现了不该有的 %s）" % [mid, str(bad.keys())])
+		_check(elites > 0, "%s：出现过精英（%d 次采样）" % [mid, elites])
+		_free_world(w)
+	var w2 := GameWorld.new()
+	w2.rng_seed = 32
+	add_child(w2)
+	w2.start_run("chain_fist", "tashue", "black_wind")
+	_check(w2._ring_type() == "bandit" and not w2._map_has_table(), "黑风寨的合围圈仍是山贼")
+	_free_world(w2)
