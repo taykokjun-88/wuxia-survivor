@@ -1,4 +1,6 @@
-# 武侠幸存者
+# 群侠千招
+
+> 英文参考名：Heroes of Thousand Arts
 
 Godot 4.4 · 武侠题材 Survivor-like · 独立开发 · 网页版（朋友间非商业试玩）
 

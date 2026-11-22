@@ -1,5 +1,5 @@
 /**
- * 武侠幸存者 · 后端（Google Apps Script，绑定在一个 Google 表格上）
+ * 群侠千招 · 后端（Google Apps Script，绑定在一个 Google 表格上）
  *
  * 模式参照「知识岛」：
  *   - 玩家 Players   ≈ 学生 Students：PIN 加盐哈希（salt + pinHash）、会话令牌（token + tokenExp）、失败锁定（fails + lockUntil）

@@ -1110,7 +1110,7 @@ func _center_row(sep: int = 12) -> HBoxContainer:
 
 
 func show_message(text: String) -> void:
-	overlay_title.text = "武侠幸存者"
+	overlay_title.text = "群侠千招"
 	overlay_body.text = text
 	overlay.visible = true
 
@@ -1138,7 +1138,7 @@ func _build_auth(prefill: String) -> void:
 		lg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		lg.custom_minimum_size = Vector2(520, 190)
 		lg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var at2 := _label("武侠幸存者", 46, Color("#7a1a14"))
+		var at2 := _label("群侠千招", 46, Color("#7a1a14"))
 		at2.set_anchors_preset(Control.PRESET_FULL_RECT)
 		at2.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		at2.add_theme_color_override("font_outline_color", Color(1, 0.95, 0.85, 0.9))
@@ -1146,7 +1146,7 @@ func _build_auth(prefill: String) -> void:
 		lg.add_child(at2)
 		box.add_child(lg)
 	else:
-		var at := _label("武侠幸存者", 52)
+		var at := _label("群侠千招", 52)
 		at.add_theme_color_override("font_outline_color", Color(0.04, 0.03, 0.03, 0.95))
 		at.add_theme_constant_override("outline_size", 8)
 		box.add_child(at)
