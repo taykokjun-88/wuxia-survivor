@@ -14,6 +14,7 @@ var exp_value := 1
 var color := Color.WHITE
 var knock := Vector2.ZERO
 var flash := 0.0
+var melee_t := 0.0          # 近战出手动画剩余时间（接触伤害判定时置位，只用于画面）
 var alive := true
 
 # 状态

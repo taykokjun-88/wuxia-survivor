@@ -1286,7 +1286,11 @@ func _update_enemies(dt: float) -> void:
 		if map_art != null and map_art.has_blockers and d < 900.0:
 			e.pos = map_art.push_out(e.pos, e.radius * 0.8)
 		e.knock *= maxf(0.0, 1.0 - 7.0 * dt)
+		if e.melee_t > 0.0:
+			e.melee_t -= dt
 		if e.stun <= 0.0 and d < e.radius + PLAYER_RADIUS and invuln <= 0.0:
+			if e.melee_t <= 0.0:
+				e.melee_t = MELEE_ANIM
 			_hurt(e.damage * e.atk_mul())
 			if e.touch_slow > 0.0:
 				player_slow_t = maxf(player_slow_t, e.touch_slow)
@@ -2652,6 +2656,31 @@ func _draw_zones() -> void:
 
 
 ## 弓手：行走用第 1~2 帧，预警 / 放箭时用拉弓的第 3~4 帧
+const MELEE_ANIM := 0.4          # 近战出手动画时长（秒）
+
+
+## 当前应播放的「一次性动作」：返回 [条带 id, 帧号]，没有（或没有对应素材）时返回空数组，走原来的循环动画
+## 攻击：施法 / 出招期间按进度播放；近战杂兵在接触伤害时播放。蓄力：Boss 预警阶段循环。受击：被打中的瞬间。
+func _enemy_action(e: Enemy, key: String) -> Array:
+	if enemy_art == null:
+		return []
+	var ak := key + "_attack"
+	if e.cast_id != "":
+		if enemy_art.has(ak):
+			var total := maxf(0.2, maxf(e.cast_dur, 0.5))
+			var n := enemy_art.frame_count(ak)
+			return [ak, int(clampf(e.cast_t / total, 0.0, 0.999) * n)]
+	elif e.melee_t > 0.0 and enemy_art.has(ak):
+		return [ak, int((1.0 - e.melee_t / MELEE_ANIM) * enemy_art.frame_count(ak))]
+	if e.is_boss and e.boss_state == "windup" and enemy_art.has(key + "_windup"):
+		var wk := key + "_windup"
+		return [wk, int(time * 8.0) % enemy_art.frame_count(wk)]
+	if e.flash > 0.0 and enemy_art.has(key + "_hurt"):
+		var hk := key + "_hurt"
+		return [hk, mini(enemy_art.frame_count(hk) - 1, int((0.12 - e.flash) * 20.0))]
+	return []
+
+
 func _fr0(e: Enemy, key: String) -> int:
 	return 2 if (key == "archer" and e.cast_id != "") else 0
 
@@ -2733,6 +2762,10 @@ func _draw_enemy_sprite(e: Enemy, key: String) -> void:
 			tf = Color(0.85, 0.85, 0.85)
 		var rw := h * 0.46
 		draw_texture_rect(_sh_tex, Rect2(feet.x - rw, feet.y - 1.0 - rw * 0.3, rw * 2.0, rw * 0.6), false)
+		var act0 := _enemy_action(e, key)
+		if not act0.is_empty():
+			enemy_art.draw_frame(self, str(act0[0]), int(act0[1]), feet, flip, tf, 0.0, 1.0, true)
+			return
 		enemy_art.draw_fast(self, key, time + float(e.uid % 11) * 0.13, feet, flip, tf, _fr0(e, key), _fr1(e, key))
 		return
 	var walking := e.stun <= 0.0
@@ -2755,7 +2788,11 @@ func _draw_enemy_sprite(e: Enemy, key: String) -> void:
 		tint = Color(0.72, 0.88, 1.0)
 	elif e.stun > 0.0:
 		tint = Color(0.85, 0.85, 0.85)
-	enemy_art.draw(self, key, time + ph * 0.13, feet - Vector2(0, bob), flip, tint, lean, sq, _fr0(e, key), _fr1(e, key))
+	var act := _enemy_action(e, key)
+	if not act.is_empty():
+		enemy_art.draw_frame(self, str(act[0]), int(act[1]), feet - Vector2(0, bob * 0.3), flip, tint, 0.0, 1.0 if e.flash <= 0.0 else sq)
+	else:
+		enemy_art.draw(self, key, time + ph * 0.13, feet - Vector2(0, bob), flip, tint, lean, sq, _fr0(e, key), _fr1(e, key))
 	var r := e.radius
 	if e.is_elite:
 		draw_arc(e.pos + Vector2(0, h * 0.1), h * 0.5, 0.0, TAU, 26, Color(GOLD, 0.8), 2.0)

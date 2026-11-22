@@ -17,6 +17,7 @@ func _ready() -> void:
 		_level_growth_test()
 		_save_test()
 		_sprite_anim_test()
+		await _enemy_action_test()
 		await _net_test()
 		_meta_test()
 		_neili_test()
@@ -4018,6 +4019,38 @@ func _font_coverage_test() -> void:
 	_check(missing.is_empty(), "字库缺少 %d 个字：%s" % [missing.size(), "".join(missing.keys())])
 	if missing.is_empty():
 		print("  %d 个文件、约 %d 个汉字出现，全部在字库中  OK" % [files.size(), total])
+
+
+func _enemy_action_test() -> void:
+	print("\n=== 怪物动作（攻击 / 蓄力 / 受击素材：有就播，没有回退循环） ===")
+	var w := _new_world(81)
+	_check(w.enemy_art != null and w.enemy_art.has("bandit"), "山贼素材已加载")
+	var e: Enemy = w._spawn_enemy("bandit", w.player_pos + Vector2(200, 0))
+	_check(w._enemy_action(e, "bandit").is_empty(), "没有 bandit_attack 素材时回退到循环动画（空数组）")
+	# 造一个 4 帧的攻击条带（借用山贼循环图）
+	var d: Dictionary = w.enemy_art.sprites["bandit"]
+	w.enemy_art.add("bandit_attack", d["tex"], 4, 10.0, int(d["w"]), int(d["h"]))
+	_check(w._enemy_action(e, "bandit").is_empty(), "有素材但没出手时仍是循环动画")
+	e.melee_t = w.MELEE_ANIM * 0.5
+	var act: Array = w._enemy_action(e, "bandit")
+	_check(act.size() == 2 and act[0] == "bandit_attack" and int(act[1]) == 2, "近战出手过半 → 攻击第 3 帧（实际 %s）" % str(act))
+	e.melee_t = 0.0
+	e.cast_id = "arrow"
+	e.cast_dur = 1.0
+	e.cast_t = 0.9
+	act = w._enemy_action(e, "bandit")
+	_check(act.size() == 2 and int(act[1]) == 3, "施法接近结束 → 最后一帧（实际 %s）" % str(act))
+	e.cast_id = ""
+	# 接触伤害会触发近战动画
+	w.god = false
+	var e2: Enemy = w._spawn_enemy("bandit", w.player_pos)
+	for i in 5:
+		w.step(1.0 / 60.0)
+	_check(e2.melee_t > 0.0 or w.hp < w.max_hp, "接触伤害时置位近战动画计时 melee_t=%.2f" % e2.melee_t)
+	# 绘制不报错（真正画一帧）
+	w.queue_redraw()
+	await get_tree().process_frame
+	_check(true, "带攻击素材的敌人能正常绘制")
 
 
 func _sprite_anim_test() -> void:

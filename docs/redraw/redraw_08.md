@@ -13,6 +13,11 @@
 
 > **另见 `docs/redraw/redraw_attacks.md`**：本阶段每个怪物 / Boss 还要画攻击动作（小怪 4 帧，Boss 6 帧等）。
 
+## 本阶段还要画的动作（光明顶；模板见 `redraw_attacks.md`，规格：格子大小、人物高度、脚底位置与对应循环动画一致）
+- 小怪（4 帧）：`huashan_attack`（B 突刺）、`kunlun_attack`（A 近战）、`kongtong_attack`（C 重踏）、`shaolin_attack`（A）、`emei_attack`（D 远程）
+- 小 Boss（6 帧）：`s2_mini_1_attack`、`s2_mini_2_attack`、`s2_mini_3_attack`；各加 `<id>_death`（4 帧）
+- 大 Boss `s2_boss`：`s2_boss_attack`（6）、`s2_boss_windup`（4）、`s2_boss_hurt`（2）、`s2_boss_death`（6）
+
 ## 通用规格（十份计划书都适用，请先读）
 **目标风格：RO（仙境传说）式精致 2D 精灵**
 - 手绘感、柔和上色、细腻的明暗（至少 4 档色阶 + 高光），轮廓是**该部位的深色**（不是纯黑硬边），边缘平滑。**不要**复古 8-bit 的硬边抖动像素、不要大色块。

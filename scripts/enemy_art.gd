@@ -68,3 +68,27 @@ func draw(ci: CanvasItem, id: String, t: float, feet: Vector2, flip: bool, tint:
 	ci.draw_set_transform(feet, rot, Depth.scale_of(squash, flip, 1.0, feet.y))
 	ci.draw_texture_rect_region(tex, Rect2(-w * sc * 0.5, -h * sc, w * sc, h * sc), Rect2(f * w, 0, w, h), tint)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## 指定帧绘制（攻击 / 蓄力 / 受击等一次性动作；怪物素材里以「<id>_attack」「<id>_windup」「<id>_hurt」命名）。fast = true 时不做变换
+func draw_frame(ci: CanvasItem, id: String, frame: int, feet: Vector2, flip: bool, tint: Color = Color.WHITE, rot: float = 0.0, squash: float = 1.0, fast: bool = false) -> void:
+	var d: Dictionary = sprites[id]
+	var w: int = d["w"]
+	var h: int = d["h"]
+	var frames: int = d["frames"]
+	var f := clampi(frame, 0, frames - 1)
+	var sc: float = float(d.get("scale", 1.0))
+	if fast:
+		var tex: Texture2D = d["tex"]
+		if flip and d["tex_f"] != null:
+			tex = d["tex_f"]
+			f = frames - 1 - f
+		ci.draw_texture_rect_region(tex, Rect2(feet.x - w * sc * 0.5, feet.y - h * sc, w * sc, h * sc), Rect2(f * w, 0, w, h), tint)
+		return
+	ci.draw_set_transform(feet, rot, Depth.scale_of(squash, flip, 1.0, feet.y))
+	ci.draw_texture_rect_region(d["tex"], Rect2(-w * sc * 0.5, -h * sc, w * sc, h * sc), Rect2(f * w, 0, w, h), tint)
+	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func frame_count(id: String) -> int:
+	return int(sprites[id]["frames"]) if sprites.has(id) else 0
