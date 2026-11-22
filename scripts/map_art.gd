@@ -235,6 +235,6 @@ func draw_prop(ci: CanvasItem, p: Dictionary) -> void:
 	ci.draw_set_transform(at + Vector2(0, -2), 0.0, Vector2(1.0, 0.32))
 	ci.draw_circle(Vector2.ZERO, w * 0.42, Color(0, 0, 0, 0.22))
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	Depth.upright(ci, at.y)
+	Depth.upright(ci, at)
 	ci.draw_texture_rect(d["tex"], Rect2(at.x - w * 0.5, at.y - h + 4.0, w, h), false)
 	Depth.flat(ci)

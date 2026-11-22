@@ -5,14 +5,23 @@ extends RefCounted
 
 static var _shadow_tex: Texture2D = null
 ## 伪 2.5D 的俯视倾角：世界节点在竖直方向压缩 tilt 倍（地面、圈、预警变成椭圆，像从斜上方看）；
-## 站立的东西（角色 / 怪物 / 场景物件 / 文字）要反向拉伸 1/tilt 才不会变扁。1.0 = 不倾斜（村子、测试里用）
+## 站立的东西（角色 / 怪物 / 场景物件 / 文字）要反向拉伸 1/tilt 才不会变扁。1.0 = 不倾斜（菜单、测试里用）
+## 透视：离相机越远（画面越靠上）越小、越近（越靠下）越大，只作用在站立的东西上
 static var tilt := 1.0
+static var persp_k := 0.0     # 每个世界像素的缩放变化率（view_persp）
+static var cam_y := 0.0       # 相机中心所在的世界 y
 
 
-## 让后面的绘制「站直」：以 anchor_y 这一行为不动点，竖直拉伸 1/tilt；画完用 flat() 还原
-static func upright(ci: CanvasItem, anchor_y: float) -> void:
-	if tilt < 0.999:
-		ci.draw_set_transform_matrix(Transform2D(Vector2(1.0, 0.0), Vector2(0.0, 1.0 / tilt), Vector2(0.0, anchor_y * (1.0 - 1.0 / tilt))))
+static func persp(y: float) -> float:
+	return clampf(1.0 + (y - cam_y) * persp_k, 0.8, 1.22)
+
+
+## 让后面的绘制「站直」：以 anchor 为不动点，竖直拉伸 1/tilt、再乘透视系数；画完用 flat() 还原
+static func upright(ci: CanvasItem, anchor: Vector2) -> void:
+	if tilt < 0.999 or persp_k != 0.0:
+		var k := persp(anchor.y)
+		var ky := k / tilt
+		ci.draw_set_transform_matrix(Transform2D(Vector2(k, 0.0), Vector2(0.0, ky), Vector2(anchor.x * (1.0 - k), anchor.y * (1.0 - ky))))
 
 
 static func flat(ci: CanvasItem) -> void:
@@ -49,5 +58,7 @@ static func bob(t: float, amp: float, speed: float, phase: float = 0.0) -> float
 
 
 ## 挤压 / 拉伸：squash < 1 时变扁变宽，> 1 时变高变窄（体积大致守恒）
-static func scale_of(squash: float, flip: bool = false, zoom: float = 1.0) -> Vector2:
+static func scale_of(squash: float, flip: bool = false, zoom: float = 1.0, y: float = 1.0e9) -> Vector2:
+	if y < 1.0e8:
+		zoom *= persp(y)
 	return Vector2((-1.0 if flip else 1.0) * (2.0 - squash) * zoom, squash * zoom / tilt)

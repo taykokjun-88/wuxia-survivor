@@ -177,14 +177,16 @@ func near_npc() -> Dictionary:
 # ---------------------------------------------------------------------
 
 func _vis(p: Vector2, margin: float = 120.0) -> bool:
-	return absf(p.x - player_pos.x) < 700.0 + margin and absf(p.y - player_pos.y) < 420.0 + margin
+	return absf(p.x - player_pos.x) < 700.0 + margin and absf(p.y - player_pos.y) < 420.0 / Depth.tilt + margin
 
 
 func _draw() -> void:
 	_draw_ground()
 	for n in npcs:
 		if _vis(n["pos"], 260.0):
+			Depth.upright(self, (n["pos"] as Vector2) + Vector2(0, 20))     # 建筑站直（以门前为支点）
 			_draw_building(n)
+			Depth.flat(self)
 	_draw_well()
 	_draw_decor()
 	# NPC 和主角按脚底的 y 排序，谁靠下谁盖在上面
@@ -216,12 +218,12 @@ func _tile_kind(cx: int, cy: int) -> int:
 
 func _draw_ground() -> void:
 	if map_art == null:
-		draw_rect(Rect2(player_pos - Vector2(900, 600), Vector2(1800, 1200)), Color("#6a5a3a"))
+		draw_rect(Rect2(player_pos - Vector2(900, 600 / Depth.tilt), Vector2(1800, 1200 / Depth.tilt)), Color("#6a5a3a"))
 		return
 	var x0 := int(floorf((player_pos.x - 700.0) / 64.0))
 	var x1 := int(floorf((player_pos.x + 700.0) / 64.0))
-	var y0 := int(floorf((player_pos.y - 420.0) / 64.0))
-	var y1 := int(floorf((player_pos.y + 420.0) / 64.0))
+	var y0 := int(floorf((player_pos.y - 420.0 / Depth.tilt) / 64.0))
+	var y1 := int(floorf((player_pos.y + 420.0 / Depth.tilt) / 64.0))
 	for cy in range(y0, y1 + 1):
 		for cx in range(x0, x1 + 1):
 			var c := Vector2(cx * 64 + 32, cy * 64 + 32)
@@ -286,6 +288,7 @@ func _draw_decor() -> void:
 
 
 func _draw_lamp(at: Vector2) -> void:
+	Depth.upright(self, at)
 	draw_rect(Rect2(at.x - 3, at.y - 58, 6, 58), Color("#4a3320"))
 	draw_rect(Rect2(at.x - 12, at.y - 62, 24, 8), Color("#3a2a18"))
 	var glow := 0.18 + 0.06 * sin(time * 3.0 + at.x)
@@ -294,15 +297,18 @@ func _draw_lamp(at: Vector2) -> void:
 	draw_rect(Rect2(at.x - 8, at.y - 50, 16, 4), Color("#8a2a1a"))
 	draw_rect(Rect2(at.x - 8, at.y - 34, 16, 4), Color("#8a2a1a"))
 	draw_rect(Rect2(at.x - 4, at.y - 46, 5, 12), Color("#ffd070"))
+	Depth.flat(self)
 
 
 func _draw_tree(at: Vector2, s: float) -> void:
+	Depth.upright(self, at)
 	_px_circle(at + Vector2(0, 4), 16.0 * s, Color(0, 0, 0, 0.2))
 	draw_rect(Rect2(at.x - 5 * s, at.y - 22 * s, 10 * s, 26 * s), Color("#4a3320"))
 	_px_circle(at + Vector2(0, -42 * s), 28.0 * s, Color("#2f5a2a"))
 	_px_circle(at + Vector2(-8 * s, -50 * s), 20.0 * s, Color("#3f7a3a"))
 	_px_circle(at + Vector2(10 * s, -38 * s), 14.0 * s, Color("#4f8a44"))
 	_px_circle(at + Vector2(-12 * s, -56 * s), 8.0 * s, Color("#78b060"))
+	Depth.flat(self)
 
 
 func _draw_building(n: Dictionary) -> void:
@@ -385,15 +391,17 @@ func _draw_stall(n: Dictionary, r: Rect2) -> void:
 func _draw_npc(n: Dictionary, near: bool) -> void:
 	var pos: Vector2 = n["pos"]
 	Depth.shadow(self, pos + Vector2(0, 1), 34.0)
+	Depth.upright(self, pos)
+	var kk := Depth.persp(pos.y)
 	var tex: Texture2D = n["tex"]
 	var top := pos.y - 62.0
 	if tex != null:
 		var sz := tex.get_size()
 		# 呼吸：以脚底为支点，身体极轻微地胀缩，NPC 才不会像贴在地上的纸片
 		var breathe := 1.0 + 0.018 * sin(time * 2.2 + pos.x * 0.02)
-		draw_set_transform(pos + Vector2(0, 4), 0.0, Vector2(2.0 - breathe, breathe))
+		draw_set_transform(pos + Vector2(0, 4), 0.0, Vector2((2.0 - breathe) * kk, breathe * kk / Depth.tilt))
 		draw_texture_rect(tex, Rect2(-sz.x * 0.5, -sz.y, sz.x, sz.y), false)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		Depth.upright(self, pos)
 		top = pos.y - sz.y - 8.0
 	else:
 		draw_rect(Rect2(pos.x - 10, pos.y - 44, 20, 44), Color("#8a6a45"))
@@ -406,6 +414,7 @@ func _draw_npc(n: Dictionary, near: bool) -> void:
 		draw_rect(Rect2(bp.x - 44, bp.y - 14, 88, 22), Color("#1c1812", 0.88))
 		draw_rect(Rect2(bp.x - 44, bp.y - 14, 88, 22), Color("#c9a227"), false, 2.0)
 		draw_string(banner_font, Vector2(bp.x - 44, bp.y + 3), "[E] 交谈", HORIZONTAL_ALIGNMENT_CENTER, 88, 14, Color("#f3ead2"))
+	Depth.flat(self)
 
 
 func _draw_player() -> void:

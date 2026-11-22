@@ -2941,7 +2941,7 @@ func _draw_effects() -> void:
 				var ta := clampf(a * 2.2, 0.0, 1.0)
 				var tw := maxf(200.0, float(fs) * float(str(fx["text"]).length()) + 24.0)
 				var tp := at - Vector2(tw * 0.5, 0)
-				Depth.upright(self, tp.y)
+				Depth.upright(self, Vector2(at.x, tp.y))
 				draw_string_outline(tfont, tp, str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, tw, fs, maxi(4, fs / 4), Color(0.05, 0.03, 0.02, ta))
 				draw_string(tfont, tp, str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, tw, fs, Color(col, ta))
 				Depth.flat(self)
@@ -3294,7 +3294,7 @@ func _load_pickups() -> void:
 func _draw_pickup(id: String, at: Vector2, h: float, rot: float = 0.0, tint: Color = Color.WHITE) -> void:
 	var a: Dictionary = pickup_art[id]
 	var w := h * float(a["w"]) / float(a["h"])
-	draw_set_transform(at, rot, Vector2(1.0, 1.0 / Depth.tilt) if rot == 0.0 else Vector2.ONE)
+	draw_set_transform(at, rot, Vector2(Depth.persp(at.y), Depth.persp(at.y) / Depth.tilt) if rot == 0.0 else Vector2.ONE * Depth.persp(at.y))
 	draw_texture_rect(a["tex"], Rect2(-w * 0.5, -h * 0.5, w, h), false, tint)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
@@ -3430,14 +3430,14 @@ func _draw_bagua() -> void:
 		draw_colored_polygon(pts, Color(col, 0.10 + (0.12 if here else 0.0) + (0.10 * flash if bagua_warn else 0.0)))
 		draw_polyline(pts, Color(col, 0.55), 2.0)
 		var mid := bagua_center + Vector2.from_angle(a0 + PI / 8.0) * R * 0.68
-		Depth.upright(self, mid.y)
+		Depth.upright(self, mid)
 		draw_string(font, mid + Vector2(-28, -6), str(g["name"]), HORIZONTAL_ALIGNMENT_CENTER, 56, 22, Color(col, 0.95))
 		draw_string(font, mid + Vector2(-40, 18), str(g["tip"]), HORIZONTAL_ALIGNMENT_CENTER, 80, 14, Color(1, 1, 1, 0.6))
 		Depth.flat(self)
 		if bagua_warn and not bagua_next.is_empty():            # 预警：新排布的门名画在外圈
 			var ng: Dictionary = BAGUA_GATES[str(bagua_next[i])]
 			var out := bagua_center + Vector2.from_angle(a0 + PI / 8.0) * (R + 34.0)
-			Depth.upright(self, out.y)
+			Depth.upright(self, out)
 			draw_string(font, out + Vector2(-22, 6), "→" + str(ng["name"]), HORIZONTAL_ALIGNMENT_CENTER, 52, 16, Color(Color(str(ng["col"])), 0.5 + 0.5 * flash))
 			Depth.flat(self)
 	draw_arc(bagua_center, R, 0.0, TAU, 64, Color("#f0b429", 0.6), 3.0)

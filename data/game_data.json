@@ -185,7 +185,8 @@
     "mini_hp_mult": 2.5,
     "final_hp_mult": 6.25,
     "player_dmg_mult": 0.9,
-    "view_tilt": 0.8
+    "view_tilt": 0.7,
+    "view_persp": 0.0004
   },
   "skills": {
     "yue_palm": {

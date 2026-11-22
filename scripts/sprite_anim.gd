@@ -72,7 +72,7 @@ func draw(ci: CanvasItem, name: String, t: float, foot: Vector2, flip: bool, tin
 	var tex: Texture2D = a["tex"]
 	var src := Rect2(frame_index(key, t) * cell, 0, cell, cell)
 	# 以脚底为支点旋转 / 挤压；条带里角色脚底距格子底部 4px
-	ci.draw_set_transform(foot, rot, Depth.scale_of(squash, flip, zoom))
+	ci.draw_set_transform(foot, rot, Depth.scale_of(squash, flip, zoom, foot.y))
 	ci.draw_texture_rect_region(tex, Rect2(-cell * 0.5, 4.0 - cell, cell, cell), src, tint)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	return true

@@ -1011,7 +1011,9 @@ func _build_auth(prefill: String) -> void:
 	var pb := _panel_box()
 	auth_panel = pb[0]
 	_add_cover(auth_panel, 0.4)
-	(auth_panel.get_child(auth_panel.get_child_count() - 1) as Control).anchor_right = 0.5       # 表单放在左半边，不挡住封面上的人物
+	var auth_box := auth_panel.get_child(auth_panel.get_child_count() - 1) as Control
+	auth_box.anchor_left = 0.46       # 新封面：四位主角在左边，表单放右半边
+	auth_box.anchor_right = 1.0
 	var box: VBoxContainer = pb[1]
 	var at := _label("武侠幸存者", 52)
 	var ver := _label("V%s" % str(ProjectSettings.get_setting("application/config/version", "0")), 22, Color("#e6c65a"))

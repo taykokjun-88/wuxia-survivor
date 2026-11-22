@@ -65,6 +65,6 @@ func draw(ci: CanvasItem, id: String, t: float, feet: Vector2, flip: bool, tint:
 	var f := fr0 + int(maxf(t, 0.0) * float(d["fps"])) % (last - fr0 + 1)
 	var tex: Texture2D = d["tex"]
 	var sc: float = float(d.get("scale", 1.0))
-	ci.draw_set_transform(feet, rot, Depth.scale_of(squash, flip))
+	ci.draw_set_transform(feet, rot, Depth.scale_of(squash, flip, 1.0, feet.y))
 	ci.draw_texture_rect_region(tex, Rect2(-w * sc * 0.5, -h * sc, w * sc, h * sc), Rect2(f * w, 0, w, h), tint)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
