@@ -1107,7 +1107,7 @@ func _build_auth(prefill: String) -> void:
 	auth_panel = pb[0]
 	_add_cover(auth_panel, 0.4)
 	var auth_box := auth_panel.get_child(auth_panel.get_child_count() - 1) as Control
-	auth_box.anchor_left = 0.46       # 新封面：四位主角在左边，表单放右半边
+	auth_box.anchor_left = 0.57       # 新封面：四位主角占左边约 58%，表单放右侧
 	auth_box.anchor_right = 1.0
 	var box: VBoxContainer = pb[1]
 	var logo_tex := _load_tex("res://assets/ui/login/logo.png")
