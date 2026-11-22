@@ -12,6 +12,7 @@ from PIL import Image
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "assets" / "source" / "yangjiajiang"
+V2 = ROOT / "assets" / "source" / "yangjiajiang_v2"   # 第二版成品（按 id 命名）；有就优先用
 
 # (源文件, 特效 id, 帧数, fps, 循环, world_size, forward)
 PLAN = [
@@ -58,7 +59,10 @@ def main():
     tmp = pathlib.Path(tempfile.mkdtemp())
     for src, fx, frames, fps, loop, ws, fwd in PLAN:
         p = tmp / f"{fx}.png"
-        clean(SRC / f"{src}.webp").save(p)
+        v2 = V2 / f"{fx.replace('_dash', '')}.png"
+        if not v2.exists():
+            v2 = V2 / f"{fx}.png"
+        clean(v2 if v2.exists() else SRC / f"{src}.webp").save(p)
         cmd = [sys.executable, str(ROOT / "tools" / "process_vfx_alpha.py"), str(p), fx, "--frames", str(frames), "--cell", "192", "--fps", str(fps), "--world-size", str(ws)]
         if loop:
             cmd.append("--loop")

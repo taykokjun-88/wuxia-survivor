@@ -15,8 +15,12 @@ OUT = ROOT / "assets" / "town" / "hero_spear"
 TARGET_H = 62
 
 
+V2 = ROOT / "assets" / "source" / "yangjiajiang_v2"
+
+
 def frames_of(name, n=4):
-    im = to_rgba(load(name))
+    v2 = V2 / f"{name}.png"                      # 第二版成品优先
+    im = to_rgba(Image.open(v2).convert("RGB") if v2.exists() else load(name))
     W, H = im.size
     out = []
     for i in range(n):
