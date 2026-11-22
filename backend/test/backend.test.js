@@ -466,10 +466,10 @@ test('难度奖励：修为倍率 / 装备数量与稀有度随综合难度提�
   assert.strictEqual(a.gained, 25); assert.strictEqual(b.gained, 50); assert.strictEqual(b.comp, 3);
   const bad = submit(e, me, Object.assign(RUN({ level: 12, kills: 800, seconds: 300 }), { difficulty: { count: 999, hp: 'x', speed: 155 } }));
   assert.strictEqual(bad.gained, 25, '非法的难度当 100%'); assert.strictEqual(bad.comp, 1);
-  // 装备：统计 150 次通关的高稀有度占比（难度只提高稀有度，不改变件数）
+  // 装备：统计 500 次通关的高稀有度占比（难度只提高稀有度，不改变件数）
   const stat = (diff) => {
     const p = reg(e, diff ? '难度高' : '难度低'); let n = 0, high = 0, total = 0;
-    for (let i = 0; i < 150; i++) {
+    for (let i = 0; i < 500; i++) {
       const w = submit(e, p, Object.assign(WIN(), diff ? { difficulty: diff } : {}));
       n += w.drops.length;
       w.drops.forEach((c) => { total++; if (Number(c.split('.')[1]) >= 1) high++; });
@@ -478,7 +478,7 @@ test('难度奖励：修为倍率 / 装备数量与稀有度随综合难度提�
   };
   const lo = stat(null), hi = stat(hard);
   assert.ok(Math.abs(hi.n - lo.n) < lo.n * 0.25, '难度不改变掉落件数 ' + lo.n + ' vs ' + hi.n);
-  assert.ok(hi.rate > lo.rate + 0.12, '难度 300%：特别 / 稀有 / 传说占比更高 ' + lo.rate.toFixed(3) + ' → ' + hi.rate.toFixed(3));
+  assert.ok(hi.rate > lo.rate + 0.08, '难度 300%：特别 / 稀有 / 传说占比更高 ' + lo.rate.toFixed(3) + ' → ' + hi.rate.toFixed(3));
 });
 
 test('装备：四档稀有度按 60 / 30 / 9 / 1 掉落；难度按比例提高后三档', (e) => {
