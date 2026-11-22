@@ -395,6 +395,7 @@ func _build_create() -> void:
 	create_name.add_theme_font_size_override("font_size", 20)
 	create_name.text = _default_char_name(sel_school)
 	create_name.text_submitted.connect(func(_t: String) -> void: confirm_create())
+	WebInput.attach(create_name, "角色名（2~12 个字）")
 	nrow.add_child(create_name)
 	var srow := _center_row(10)
 	srow.custom_minimum_size = Vector2(560, 56)
@@ -1099,6 +1100,7 @@ func _field(placeholder: String, secret: bool, max_len: int) -> LineEdit:
 	le.custom_minimum_size = Vector2(380, 46)
 	le.add_theme_font_size_override("font_size", 20)
 	le.text_submitted.connect(func(_t: String): _submit_auth())
+	WebInput.attach(le, placeholder)   # 平板 / 手机网页版：弹出页面输入框以便出现系统键盘
 	return le
 
 

@@ -7,6 +7,13 @@
 #wx-rotate button.ghost{border-color:#555;background:transparent;color:#8d8670;font-size:15px;padding:8px 16px}
 @keyframes wxspin{0%,15%{transform:rotate(0)}55%,85%{transform:rotate(90deg)}100%{transform:rotate(0)}}
 #wx-rotate svg{animation:wxspin 2.6s ease-in-out infinite}
+#qx-edit{position:fixed;inset:0;z-index:100000;display:none;align-items:flex-start;justify-content:center;background:rgba(6,8,12,.72);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+#qx-edit .box{margin-top:10vh;width:min(86vw,460px);background:#1c1a14;border:1px solid #c9a227;border-radius:12px;padding:18px;box-sizing:border-box;color:#f3ead2}
+#qx-edit .t{font-size:17px;margin-bottom:10px;color:#e6c65a}
+#qx-edit input{width:100%;box-sizing:border-box;font-size:20px;padding:12px;border-radius:8px;border:1px solid #6b5d2e;background:#0f0e0a;color:#f3ead2;outline:none}
+#qx-edit .row{display:flex;gap:12px;margin-top:14px}
+#qx-edit button{flex:1;font-size:18px;padding:12px;border-radius:8px;border:1px solid #c9a227;background:#2a2418;color:#f3ead2}
+#qx-edit button.no{border-color:#555;background:transparent;color:#8d8670}
 </style>
 <script>
 (function(){
@@ -41,5 +48,38 @@
   window.addEventListener('resize',update);
   window.addEventListener('orientationchange',function(){setTimeout(update,200);});
   window.__wuxiaPortraitBlock=false;
+})();
+</script>
+<script>
+(function(){
+  var cb=null,lock=0;
+  function build(){
+    var d=document.createElement('div');d.id='qx-edit';
+    d.innerHTML='<div class="box"><div class="t" id="qx-t"></div><input id="qx-i" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"><div class="row"><button class="no" id="qx-no">取消</button><button id="qx-ok">确定</button></div></div>';
+    document.body.appendChild(d);
+    var i=document.getElementById('qx-i');
+    function done(ok){
+      if(Date.now()<lock)return;
+      d.style.display='none';i.blur();
+      var f=cb;cb=null;
+      if(f)f(ok?1:0,i.value);
+    }
+    document.getElementById('qx-ok').onclick=function(){done(true);};
+    document.getElementById('qx-no').onclick=function(){done(false);};
+    i.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();done(true);}});
+    d.addEventListener('click',function(e){if(e.target===d)done(false);});
+  }
+  if(document.body)build();else document.addEventListener('DOMContentLoaded',build);
+  window.qxCoarse=function(){try{return window.matchMedia('(pointer: coarse)').matches;}catch(e){return false;}};
+  window.qxEdit=function(title,value,secret,maxlen,callback){
+    var d=document.getElementById('qx-edit');if(!d)return false;
+    cb=callback;lock=Date.now()+400;
+    document.getElementById('qx-t').textContent=title;
+    var i=document.getElementById('qx-i');
+    i.type=secret?'password':'text';i.value=value||'';i.maxLength=maxlen>0?maxlen:524288;
+    d.style.display='flex';
+    setTimeout(function(){try{i.focus();i.select();}catch(e){}},50);
+    return true;
+  };
 })();
 </script>
