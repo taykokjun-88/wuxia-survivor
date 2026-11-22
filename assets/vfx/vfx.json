@@ -820,6 +820,14 @@
       "loop": false,
       "world_size": 260.0,
       "forward": 0.2
+    },
+    "aura_spear_charge": {
+      "file": "aura_spear_charge.png",
+      "frames": 4,
+      "fps": 10.0,
+      "cell": 192,
+      "loop": true,
+      "world_size": 200.0
     }
   }
 }

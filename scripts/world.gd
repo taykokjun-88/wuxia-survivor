@@ -2341,6 +2341,8 @@ func _tick_spear(dt: float) -> void:
 		_spear_aura_t = 0.5
 		if spear_gs >= 100.0 and vfx.has("aura_staff_charge"):
 			add_fx("ring", player_pos, 0.55, {"r0": 10.0, "r1": 10.0, "color": Color.WHITE, "vfx": "aura_staff_charge", "size": 190.0})
+		if spear_qs >= 100.0 and vfx.has("aura_spear_charge"):
+			add_fx("ring", player_pos, 0.55, {"r0": 10.0, "r1": 10.0, "color": Color.WHITE, "vfx": "aura_spear_charge", "size": 200.0})
 		if panlong_t > 0.0 and vfx.has("fx_panlong"):
 			add_fx("ring", player_pos, 0.55, {"r0": 10.0, "r1": 10.0, "color": Color.WHITE, "vfx": "fx_panlong", "size": 300.0})
 	if panlong_t > 0.0:
