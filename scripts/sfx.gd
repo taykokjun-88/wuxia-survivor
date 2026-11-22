@@ -53,6 +53,9 @@ const RULES := {
 	"palm_multi": [140, 2, 1], "palm_dragon": [200, 2, 2], "palm_soft": [200, 2, 2],
 	# 界面 / 结算
 	"footstep": [180, 1, 0], "ui_click": [40, 2, 1], "ui_confirm": [60, 1, 2], "ui_back": [60, 1, 2], "card_pick": [80, 1, 2], "chest_open": [300, 1, 2],
+	"block_staff": [90, 2, 2], "block_swing": [120, 1, 2], "sp_thrust": [70, 3, 1], "sp_multi": [120, 2, 2], "sp_pierce": [200, 2, 3], "sp_staff_heavy": [150, 2, 2],
+	"sp_staff_sweep": [200, 2, 2], "sp_dragon": [400, 1, 4], "bagua_shift": [1500, 1, 4], "bagua_bad": [900, 1, 1], "xiao_note": [800, 1, 3], "bell_ring": [600, 1, 3],
+	"peach_petal": [400, 1, 2], "poison_dart": [90, 3, 1],
 	"gear_upgrade": [300, 1, 3], "gear_fail": [300, 1, 3], "win_jingle": [2000, 1, 5], "lose_jingle": [2000, 1, 5],
 }
 
@@ -68,8 +71,8 @@ const SKILL_MAP := {
 	# 武者：拳闷、掌有气浪
 	"chain_fist": "fist_punch", "point_finger": "fist_finger", "quake_fist": "fist_quake", "vajra_fist": "fist_vajra",
 	# 杨家将：枪 = 尖锐刺 / 贯；棍 = 厚重闷响
-	"yangjia_spear": "sw_thrust", "meihua_spear": "sw_multi", "baima_spear": "sw_blink", "wuming_spear": "armor_break",
-	"shaolin_staff": "bl_heavy", "panlong_staff": "bl_wheel", "dagou_staff": "bl_quake", "fengmo_staff": "bl_spin", "xiangmo_staff": "fist_vajra",
+	"yangjia_spear": "sp_thrust", "meihua_spear": "sp_multi", "baima_spear": "sp_thrust", "wuming_spear": "sp_pierce",
+	"shaolin_staff": "sp_staff_sweep", "panlong_staff": "sp_dragon", "dagou_staff": "sp_staff_heavy", "fengmo_staff": "sp_staff_sweep", "xiangmo_staff": "sp_staff_heavy",
 	"yue_palm": "palm_dragon", "whirl_palm": "palm_wave", "eight_waste": "palm_multi", "taiji": "palm_soft", "cloud_palm": "palm_wave",
 }
 

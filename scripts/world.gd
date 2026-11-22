@@ -1335,7 +1335,8 @@ func _hurt(amount: float) -> void:
 		return
 	if rng.randf() < block_chance():
 		invuln = 0.3
-		Sfx.play("block_shield")
+		if school_id != "spear":                      # 杨家将的格挡有自己的棍响（见 _on_block）
+			Sfx.play("block_shield")
 		add_fx("text", player_pos + Vector2(0, -24), 0.6, {"text": "挡", "size": 24, "color": JADE})
 		_on_block()
 		return
@@ -2228,8 +2229,10 @@ func _tick_bagua(dt: float) -> void:
 		"jingv":
 			bagua_dmg = 1.25
 		"shang":
+			Sfx.play("bagua_bad", 0.05, -4.0)
 			_bagua_hurt(st("max_hp") * 0.03 * dt)
 		"si":
+			Sfx.play("bagua_bad", 0.05, -4.0)
 			_bagua_hurt(st("max_hp") * 0.05 * dt)
 			player_slow_t = maxf(player_slow_t, 0.25)
 		"jings":
@@ -2261,7 +2264,7 @@ func _bagua_shuffle() -> void:
 	bagua_t = 0.0
 	bagua_center = player_pos
 	bagua_shuffles += 1
-	Sfx.play("realm_ying")
+	Sfx.play("bagua_shift")
 	add_fx("text", player_pos + Vector2(0, -90), 1.6, {"text": "八门重排", "size": 30, "color": Color("#f0b429")})
 	add_fx("ring", player_pos, 0.8, {"r0": 20.0, "r1": float(bagua_cfg.get("radius", 430.0)), "color": Color("#f0b429")})
 
@@ -2320,6 +2323,8 @@ func _on_block() -> void:
 	for e in _query(player_pos, 110.0):
 		if e.alive and not e.is_boss and not e.is_prop:
 			e.knock += (e.pos - player_pos).normalized() * 320.0
+	Sfx.play("block_staff", 0.05, 0.0)
+	Sfx.play("block_swing", 0.05, -3.0)
 	add_fx("slash", player_pos, 0.3, {"angle": facing.angle(), "arc": PI, "r": 80.0, "heavy": true, "color": Color("#e8f2ff"), "vfx": "fx_block_swing" if vfx.has("fx_block_swing") else "", "size": 170.0})
 	add_fx("ring", player_pos, 0.3, {"r0": 20.0, "r1": 110.0, "color": Color(1, 1, 1, 0.5), "vfx": "fx_block_wave" if vfx.has("fx_block_wave") else ""})
 	if panlong_t > 0.0 and skills.has("panlong_staff"):

@@ -242,6 +242,8 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 			if e.cast_stage == 0:
 				e.cast_stage = 1
 				var n := int(d["count"])
+				if _pk(e, id, d) == "dart":
+					Sfx.play("poison_dart", 0.05, -3.0)
 				for k in n:
 					_shot(w, e.pos, e.cast_dir.angle() + (k - (n - 1) * 0.5) * float(d["spread"]), float(d["speed"]), float(d["dmg"]) * _mult(e), 10.0, _pk(e, id, d))
 				Sfx.play("enemy_ranged")
@@ -256,6 +258,8 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 				e.cast_stage = 1
 				w.add_fx("splat", e.pos, 0.5, {"r": e.radius * 1.6, "color": Color(0.05, 0.05, 0.08)})
 				var bv := _vx(e, id, d)
+				if bv != "":
+					Sfx.play("peach_petal", 0.04, -2.0)
 				if bv != "" and w.vfx.has(bv):          # 桃花瓣：起跳点和落点各散一次
 					w.add_fx("ring", e.pos, 0.5, {"r0": 10.0, "r1": 10.0, "color": Color.WHITE, "vfx": bv, "size": 190.0})
 				e.pos = e.cast_pos
@@ -273,6 +277,8 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 			var rings: Array = d["rings"]
 			var band := float(d["band"])
 			var ri := int(u / float(d["gap"]))
+			if e.cast_stage == 0:
+				Sfx.play("xiao_note" if id == "xiao_wave" else "bell_ring", 0.03, -2.0)
 			while e.cast_stage <= ri and e.cast_stage < rings.size():
 				var rr := float(rings[e.cast_stage])
 				e.cast_stage += 1
