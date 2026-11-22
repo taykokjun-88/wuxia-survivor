@@ -4,12 +4,14 @@
 
 ## 本阶段内容
 四位主角全部动作，**动作与帧数不变**（帧数见表）。画完这一阶段，主角会比小怪 / 特效精细很多，这是预期的——后面几个阶段会逐步追上。
-| 角色 | 文件夹 | 动作（帧数） |
+| 角色 | 文件夹 | 动作（帧数，**已按 RO 式调整：攻击 / 死亡 / 大招 6 帧**） |
 |---|---|---|
-| 武者 | `assets/sprites/player/` | idle 4、walk 6、punch 4、palm 3、dash 3、ult 4、hurt 2、death 4 |
-| 剑客 | `assets/sprites/sword/` | idle 4、walk 6、slash 4、thrust 3、dash 3、ult 4、hurt 2、death 4；**觉醒形态**：true_idle 4、true_walk 6、true_thrust 3、awaken 4、finish 3 |
-| 刀客 | `assets/sprites/blade/` | idle 4、walk 4、slash 4、dash 4、ult 4、hurt 4、death 4 |
-| 杨家将 | `assets/sprites/spear/` | idle 4、walk 4、thrust 4、slash 4、block 4、dash 4、ult 4、hurt 4、death 4 |
+| 武者 | `assets/sprites/player/` | idle 4、walk 6、punch 6、palm 6、dash 4、ult 6、hurt 3、death 6 |
+| 剑客 | `assets/sprites/sword/` | idle 4、walk 6、slash 6、thrust 6、dash 4、ult 6、hurt 3、death 6；**觉醒形态**：true_idle 4、true_walk 6、true_thrust 6、awaken 6、finish 6 |
+| 刀客 | `assets/sprites/blade/` | idle 4、walk 6、slash 6、dash 4、ult 6、hurt 3、death 6 |
+| 杨家将 | `assets/sprites/spear/` | idle 4、walk 6、thrust 6、slash 6、block 4、dash 4、ult 6、hurt 3、death 6 |
+- **已交付**：四人的 idle、walk（RO Q 版，头身比约 1:4.3）。其余按本表，**分三批**：①攻击类 ②dash / hurt / death ③ult 与剑客觉醒形态。
+- 格式一律 1 行横排，每帧 256×256，站直 120 px，脚底距底边 16 px，朝右 3/4 侧身。
 - 每个动作文件名 = `<动作名>.png`（如 `idle.png`），放在 `redraw_01/<角色>/` 下，角色名用 `fist` / `sword` / `blade` / `spear`。
 - 设定：武者青绿短打、红围巾、高马尾金冠、缠白布；剑客白青色长衫、长剑、束发；刀客深色劲装、大刀、斗笠；杨家将深藏青补丁长袍、红头带、红腰带、右肩旧银护肩、红缨银枪、背白蜡棍。
 - 觉醒形态（剑客）在原设定上加**更亮的剑气与白金色光**，别改脸和衣服。
