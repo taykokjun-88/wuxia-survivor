@@ -14,7 +14,9 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "assets" / "source" / "yangjiajiang"
 V2 = ROOT / "assets" / "source" / "yangjiajiang_v2"   # 第二版成品（按 id 命名）；有就优先用
 V3 = ROOT / "assets" / "source" / "yangjiajiang_v3"   # 第三版成品，优先级最高
-SKIP_V3 = {"fx_fengmo"}                               # v3 的疯魔杖轮画成了「棉签」，暂时保留 v1
+V4 = ROOT / "assets" / "source" / "yangjiajiang_v4"   # 第四版（疯魔杖轮重画）
+TH = ROOT / "assets" / "source" / "taohua_v2"          # 桃花岛特效（第二版）
+SKIP_V3 = set()
 
 # (源文件, 特效 id, 帧数, fps, 循环, world_size, forward)
 PLAN = [
@@ -35,6 +37,11 @@ PLAN = [
     ("vfx_15RN_white_ring", "fx_block_wave", 4, 14, False, 220, 0.0),
     ("vfx_1AO_brown_vortex", "aura_staff_charge", 4, 10, True, 180, 0.0),
     ("__v2_only", "aura_spear_charge", 4, 10, True, 200, 0.0),
+    ("__th", "boss_xiao_note", 4, 12, False, 300, 0.0),
+    ("__th", "boss_peach_petal", 4, 12, False, 240, 0.0),
+    ("__th", "boss_bell_wave", 4, 12, False, 300, 0.0),
+    ("__th", "boss_poison_dart", 4, 14, False, 90, 0.0),
+    ("__th", "bagua_gate_glow", 4, 8, True, 300, 0.0),
     ("vfx_12q5_red_x_burst", "fx_blade_bleed_pop", 4, 20, False, 200, 0.0),
     ("vfx_1VcW_ink_ring", "fist_whirl_ring", 4, 16, False, 260, 0.0),
     ("vfx_1pfe_taiji_burst", "sw_taiji_reflect", 4, 14, False, 160, 0.0),
@@ -69,7 +76,7 @@ def fade_left(path, frames, cell, width=0.35):
 
 
 # v3 的 fx_staff_wide：第 3 帧的大圆压在等分线上，按内容间隙手动分段，再重排成等宽 4 格
-MANUAL_CUTS = {"fx_staff_wide": [0, 215, 500, 945, 1376]}
+MANUAL_CUTS = {"fx_staff_wide": [0, 215, 500, 945, 1376], "boss_xiao_note": [0, 160, 470, 885, 1376]}
 
 
 def regroup(img, cuts):
@@ -91,8 +98,26 @@ def main():
             v2 = V2 / f"{fx}.png"
         if not v2.exists() and src == "__v2_only":
             continue
+        if src == "__th":
+            f = TH / f"{fx}.png"
+            if not f.exists():
+                f = TH / f"{fx}_green.png"
+            if not f.exists():
+                f = ROOT / "assets" / "source" / "taohua_v1" / f"{fx}.png"
+            if not f.exists():
+                continue
+            im0 = Image.open(f).convert("RGB")
+            a0 = np.array(im0).astype(int)
+            gbg = (a0[..., 1] > 200) & (a0[..., 0] < 80) & (a0[..., 2] < 80)   # 纯绿底 → 洋红底
+            a0[gbg] = (255, 0, 255)
+            im0 = Image.fromarray(a0.astype(np.uint8))
+            im0.save(p)
+            v2 = p
+        v4 = V4 / f"{fx}.png"
+        if v4.exists():
+            v2 = v4
         im = clean(v2 if v2.exists() else SRC / f"{src}.webp")
-        if fx in MANUAL_CUTS and v3.exists():
+        if fx in MANUAL_CUTS and (v3.exists() or src == "__th"):
             im = regroup(im, MANUAL_CUTS[fx])
         im.save(p)
         cmd = [sys.executable, str(ROOT / "tools" / "process_vfx_alpha.py"), str(p), fx, "--frames", str(frames), "--cell", "192", "--fps", str(fps), "--world-size", str(ws)]

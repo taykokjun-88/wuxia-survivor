@@ -33,6 +33,18 @@ func _ready() -> void:
 		w.step(DT)
 	await _frames(2)
 	await _snap("th3_run_late")
+	w.time = 200.0
+	w._spawn_boss("th_mini_1", false)
+	for i in 60 * 6:
+		w.step(DT)
+	await _frames(2)
+	await _snap("th4_boss1")
+	w.time = 840.0
+	w._spawn_boss("th_boss", true)
+	for i in 60 * 9:
+		w.step(DT)
+	await _frames(2)
+	await _snap("th5_boss")
 	get_tree().quit()
 
 

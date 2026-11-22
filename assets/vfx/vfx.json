@@ -828,6 +828,46 @@
       "cell": 192,
       "loop": true,
       "world_size": 200.0
+    },
+    "boss_xiao_note": {
+      "file": "boss_xiao_note.png",
+      "frames": 4,
+      "fps": 12.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 300.0
+    },
+    "boss_peach_petal": {
+      "file": "boss_peach_petal.png",
+      "frames": 4,
+      "fps": 12.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 240.0
+    },
+    "boss_poison_dart": {
+      "file": "boss_poison_dart.png",
+      "frames": 4,
+      "fps": 14.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 90.0
+    },
+    "bagua_gate_glow": {
+      "file": "bagua_gate_glow.png",
+      "frames": 4,
+      "fps": 8.0,
+      "cell": 192,
+      "loop": true,
+      "world_size": 300.0
+    },
+    "boss_bell_wave": {
+      "file": "boss_bell_wave.png",
+      "frames": 4,
+      "fps": 12.0,
+      "cell": 192,
+      "loop": false,
+      "world_size": 300.0
     }
   }
 }

@@ -9,7 +9,7 @@ import sys
 from PIL import Image
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-SRC = ROOT / "assets" / "source" / "yangjiajiang_v3"   # 第三版：像素 Q 版，每个动作 1 行 4 帧
+SRC = ROOT / "assets" / "source" / "yangjiajiang_v4"   # 第四版：像素 Q 版，各动作人物同比例，每个动作 1 行 4 帧
 OUT = ROOT / "assets" / "sprites" / "spear"
 WORK = OUT / "source"
 MAGENTA = (255, 0, 255)
@@ -30,9 +30,7 @@ def run(*args):
     print(r.stdout.strip() or r.stderr.strip())
 
 
-# 第三版各动作图里人物大小不一（Gemini 没做到同比例）：量出「发髻顶 → 脚底」的本体像素高度，统一缩放到 BODY_PX
-BODY = {"idle": 427, "walk": 330, "thrust": 293, "slash": 317, "block": 300, "dash": 280, "ult": 375, "hurt": 376, "death": 313}
-BODY_PX = 54
+SCALE = 0.177     # v4 各动作里人物大小一致（站姿约 305 px 高）→ 统一缩放到约 54 px
 
 
 def main():
@@ -54,7 +52,7 @@ def main():
         (OUT / f).unlink(missing_ok=True)
     run("palette", *[WORK / f"{p[0]}.jpg" for p in plan], "--colors", 28, "--out", OUT)
     for i, (name, src, top, fps, once) in enumerate(plan):
-        args = ["strip", WORK / f"{name}.jpg", name, "--frames", 4, "--fps", fps, "--cell", 128, "--scale", BODY_PX / BODY[name], "--out", OUT]
+        args = ["strip", WORK / f"{name}.jpg", name, "--frames", 4, "--fps", fps, "--cell", 128, "--scale", SCALE, "--out", OUT]
         if once:
             args.append("--once")
         if name == "dash":

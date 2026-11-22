@@ -2343,7 +2343,10 @@
         "whirl"
       ],
       "phase_hp": 0.0,
-      "skills2": []
+      "skills2": [],
+      "proj_kind_map": {
+        "claw_proj": "dart"
+      }
     },
     "th_mini_2": {
       "name": "武修文",
@@ -2379,7 +2382,10 @@
         "palm_seal"
       ],
       "phase_hp": 0.0,
-      "skills2": []
+      "skills2": [],
+      "vfx_map": {
+        "shock": "boss_bell_wave"
+      }
     },
     "th_boss": {
       "name": "黄荣",
@@ -2410,6 +2416,10 @@
         "knock": 760,
         "text": "奇门遁甲，生死由我",
         "aura": "boss_aura_phase2"
+      },
+      "vfx_map": {
+        "palm_seal": "boss_xiao_note",
+        "blink": "boss_peach_petal"
       }
     }
   },

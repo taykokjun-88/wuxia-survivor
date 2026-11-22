@@ -10,6 +10,17 @@ static func _d(id: String) -> Dictionary:
 	return Data.boss_skills.get(id, {})
 
 
+## 某个 Boss 的专属特效 / 弹体覆盖（敌人定义里的 vfx_map / proj_kind_map）：同一个招式在不同 Boss 身上画不同的特效（桃花岛四人）
+static func _vx(e: Enemy, id: String, d: Dictionary) -> String:
+	var m: Dictionary = Data.enemies.get(e.type_id, {}).get("vfx_map", {})
+	return str(m.get(id, d.get("vfx", "")))
+
+
+static func _pk(e: Enemy, id: String, d: Dictionary) -> String:
+	var m: Dictionary = Data.enemies.get(e.type_id, {}).get("proj_kind_map", {})
+	return str(m.get(id, d.get("kind", "")))
+
+
 ## Boss 每帧的 AI：返回这一帧的移动速度向量
 static func think(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 	e.boss_timer += dt
@@ -213,7 +224,7 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 			if e.cast_stage == 0:
 				e.cast_stage = 1
 				var r := float(d["r"])
-				w.add_fx("ring", e.pos, 0.45, {"r0": 16.0, "r1": r, "color": Color("#ff6a4a"), "vfx": str(d.get("vfx", "")), "size": r * 2.4})
+				w.add_fx("ring", e.pos, 0.45, {"r0": 16.0, "r1": r, "color": Color("#ff6a4a"), "vfx": _vx(e, id, d), "size": r * 2.4})
 				if _in_circle(w, e.pos, r):
 					_hurt(w, e, float(d["dmg"]))
 					_knock(w, e.pos, float(d["knock"]))
@@ -224,7 +235,7 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 				e.cast_stage = 1
 				var n := int(d["count"])
 				for k in n:
-					_shot(w, e.pos, e.cast_dir.angle() + (k - (n - 1) * 0.5) * float(d["spread"]), float(d["speed"]), float(d["dmg"]) * _mult(e), 10.0, str(d["kind"]))
+					_shot(w, e.pos, e.cast_dir.angle() + (k - (n - 1) * 0.5) * float(d["spread"]), float(d["speed"]), float(d["dmg"]) * _mult(e), 10.0, _pk(e, id, d))
 				Sfx.play("enemy_ranged")
 		"palm":
 			var i2 := int(u / float(d["gap"]))
@@ -236,8 +247,13 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 			if e.cast_stage == 0:
 				e.cast_stage = 1
 				w.add_fx("splat", e.pos, 0.5, {"r": e.radius * 1.6, "color": Color(0.05, 0.05, 0.08)})
+				var bv := _vx(e, id, d)
+				if bv != "" and w.vfx.has(bv):          # 桃花瓣：起跳点和落点各散一次
+					w.add_fx("ring", e.pos, 0.5, {"r0": 10.0, "r1": 10.0, "color": Color.WHITE, "vfx": bv, "size": 190.0})
 				e.pos = e.cast_pos
 				w.add_fx("splat", e.pos, 0.5, {"r": e.radius * 1.6, "color": Color(0.05, 0.05, 0.08)})
+				if bv != "" and w.vfx.has(bv):
+					w.add_fx("ring", e.pos, 0.5, {"r0": 10.0, "r1": 10.0, "color": Color.WHITE, "vfx": bv, "size": 190.0})
 				e.cast_dir = (w.player_pos - e.pos).normalized()
 			elif e.cast_stage == 1 and u >= float(d["after"]):
 				e.cast_stage = 2
@@ -253,7 +269,7 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 				e.cast_stage = 1
 				e.pos = e.cast_pos
 				var r2 := float(d["r"])
-				w.add_fx("ring", e.pos, 0.5, {"r0": 16.0, "r1": r2, "color": Color("#ff6a4a"), "vfx": str(d.get("vfx", "")), "size": r2 * 2.4})
+				w.add_fx("ring", e.pos, 0.5, {"r0": 16.0, "r1": r2, "color": Color("#ff6a4a"), "vfx": _vx(e, id, d), "size": r2 * 2.4})
 				if _in_circle(w, e.pos, r2):
 					_hurt(w, e, float(d["dmg"]))
 					_knock(w, e.pos, float(d["knock"]))
@@ -312,7 +328,7 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 				var sp: Vector2 = e.cast_list[e.cast_stage]
 				e.cast_stage += 1
 				var sr := float(d["r"])
-				w.add_fx("ring", sp, 0.4, {"r0": 10.0, "r1": sr, "color": Color("#ffd070") if id == "palm_seal" else Color("#bfe8ff"), "vfx": str(d.get("vfx", "")), "size": sr * 2.4})
+				w.add_fx("ring", sp, 0.4, {"r0": 10.0, "r1": sr, "color": Color("#ffd070") if id == "palm_seal" else Color("#bfe8ff"), "vfx": _vx(e, id, d), "size": sr * 2.4})
 				if id == "sword_rain":
 					w.add_hzone({"kind": "scar", "shape": "circle", "pos": sp, "r": sr, "life": 4.0, "dps": 0.0, "slow": 0.0, "vfx": "decal_scorch"})
 				if _in_circle(w, sp, sr):

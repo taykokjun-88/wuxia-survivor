@@ -3435,6 +3435,8 @@ func _draw_bagua() -> void:
 			var out := bagua_center + Vector2.from_angle(a0 + PI / 8.0) * (R + 34.0)
 			draw_string(font, out + Vector2(-22, 6), "→" + str(ng["name"]), HORIZONTAL_ALIGNMENT_CENTER, 52, 16, Color(Color(str(ng["col"])), 0.5 + 0.5 * flash))
 	draw_arc(bagua_center, R, 0.0, TAU, 64, Color("#f0b429", 0.6), 3.0)
+	if vfx.has("bagua_gate_glow"):        # 八卦环贴花：盖在阵眼外圈，预警时更亮
+		vfx.draw(self, "bagua_gate_glow", vfx.frame_loop("bagua_gate_glow", time), bagua_center, R * 2.0, 0.0, Color(1, 1, 1, 0.16 + (0.14 * flash if bagua_warn else 0.0)))
 
 
 func _draw_hzones() -> void:

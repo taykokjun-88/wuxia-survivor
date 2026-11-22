@@ -31,8 +31,8 @@
  },
  "pavilion": {
   "file": "pavilion.png",
-  "w": 120,
-  "h": 132,
+  "w": 104,
+  "h": 124,
   "block": true
  },
  "railing": {

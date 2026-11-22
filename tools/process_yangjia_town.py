@@ -16,10 +16,12 @@ TARGET_H = 62
 
 
 V3 = ROOT / "assets" / "source" / "yangjiajiang_v3"
+V4 = ROOT / "assets" / "source" / "yangjiajiang_v4"
 
 
 def frames_of(name, n=4):
-    im = to_rgba(Image.open(V3 / f"spear_{name}.png").convert("RGB"))
+    f4 = V4 / f"spear_{name}.png"                 # 第四版有的用第四版（侧面还是第三版）
+    im = to_rgba(Image.open(f4 if f4.exists() else V3 / f"spear_{name}.png").convert("RGB"))
     W, H = im.size
     out = []
     for i in range(n):
