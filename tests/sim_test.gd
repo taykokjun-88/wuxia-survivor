@@ -46,6 +46,9 @@ func _ready() -> void:
 		_stage_test()
 		_stage2_boss_test()
 		_map_collision_test()
+		_spear_test()
+		_bagua_test()
+		await _touch_test()
 		await _town_test()
 		_font_coverage_test()
 	if only == "" or only == "matrix":
@@ -84,6 +87,8 @@ func _ready() -> void:
 		_spear_test()
 	if only == "bagua":
 		_bagua_test()
+	if only == "touch":
+		await _touch_test()
 	print("\nRESULT: %s" % ("FAIL (%d)" % failures if failures > 0 else "OK"))
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -4436,3 +4441,90 @@ func _taohua_boss_test() -> void:
 		BossAI._cast(w, hb, DT, Vector2.RIGHT)
 	_check(w.bagua_shuffles == n0 + 1, "奇门易位：施放后八门立刻重排一次（%d → %d）" % [n0, w.bagua_shuffles])
 	_free_world(w)
+
+
+## 手机触控：浮动摇杆写进 move_* 动作、技能键点按、暂停 / 菜单 / 交谈键发信号、键盘一来就隐藏；竖屏判定
+func _touch_test() -> void:
+	print("\n=== 手机 / 平板触控 ===")
+	var tc := TouchControls.new()
+	add_child(tc)
+	tc.touch_seen = true
+	tc.set_mode("play")
+	_check(tc.is_active(), "触屏设备 + 局内：显示触控")
+	# 摇杆：左半屏按下 → 向右拖
+	var down := InputEventScreenTouch.new()
+	down.index = 0
+	down.pressed = true
+	down.position = Vector2(200, 500)
+	tc._input(down)
+	var drag := InputEventScreenDrag.new()
+	drag.index = 0
+	drag.position = Vector2(200 + TouchControls.STICK_R, 500)
+	tc._input(drag)
+	var mv := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	_check(mv.x > 0.9 and absf(mv.y) < 0.05, "摇杆向右拖 = 向右移动（%s）" % str(mv))
+	var drag2 := InputEventScreenDrag.new()
+	drag2.index = 0
+	drag2.position = Vector2(200 + TouchControls.STICK_R, 500 - 2.0 * TouchControls.STICK_R)    # 拖出圈外再向上：原点跟随
+	tc._input(drag2)
+	mv = Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	_check(mv.y < -0.5, "拖出圈外仍能转向（%s）" % str(mv))
+	var up := InputEventScreenTouch.new()
+	up.index = 0
+	up.pressed = false
+	tc._input(up)
+	mv = Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	_check(mv.length() < 0.01, "松手 = 停下")
+	# 技能键：点轻功 → dash 动作被按下
+	var tap := InputEventScreenTouch.new()
+	tap.index = 1
+	tap.pressed = true
+	tap.position = TouchControls.DASH_POS
+	tc._input(tap)
+	_check(Input.is_action_pressed("dash"), "点轻功键：触发 dash 动作")
+	var tap_up := InputEventScreenTouch.new()
+	tap_up.index = 1
+	tap_up.pressed = false
+	tc._input(tap_up)
+	# 暂停 / 详情键发信号
+	var got := {"pause": 0, "detail": 0, "menu": 0, "talk": 0}
+	tc.pause_pressed.connect(func() -> void: got["pause"] += 1)
+	tc.detail_pressed.connect(func() -> void: got["detail"] += 1)
+	tc.menu_pressed.connect(func() -> void: got["menu"] += 1)
+	tc.interact_pressed.connect(func() -> void: got["talk"] += 1)
+	for pos in [TouchControls.PAUSE_POS, TouchControls.DETAIL_POS]:
+		var t := InputEventScreenTouch.new()
+		t.index = 2
+		t.pressed = true
+		t.position = pos
+		tc._input(t)
+		t.pressed = false
+		tc._input(t)
+	_check(got["pause"] == 1 and got["detail"] == 1, "暂停 / 详情键发出信号")
+	tc.set_mode("town")
+	var tm := InputEventScreenTouch.new()
+	tm.index = 3
+	tm.pressed = true
+	tm.position = TouchControls.MENU_POS
+	tc._input(tm)
+	_check(got["menu"] == 1, "村子里的菜单键发出信号")
+	tm.pressed = false
+	tc._input(tm)
+	var tt := InputEventScreenTouch.new()
+	tt.index = 4
+	tt.pressed = true
+	tt.position = TouchControls.INTERACT_POS
+	tc._input(tt)
+	_check(got["talk"] == 0, "附近没有 NPC 时「交谈」键不响应")
+	# 键盘一来就隐藏（笔记本触屏 + 键盘）
+	var key := InputEventKey.new()
+	key.pressed = true
+	key.keycode = KEY_A
+	tc._input(key)
+	_check(not tc.is_active(), "收到键盘按键后触控隐藏")
+	tc.queue_free()
+	var og := OrientationGuard.new()
+	add_child(og)
+	await get_tree().process_frame
+	_check(not og.blocking, "桌面 / 无头环境不显示「请横屏」")
+	og.queue_free()

@@ -17,6 +17,8 @@ var dialog_npc: Dictionary = {}
 var town: Town
 var world: GameWorld
 var cam: Camera2D
+var touch: TouchControls
+var guard: OrientationGuard
 var hud: GameHud
 var choices: Array = []
 var choice_title := ""
@@ -33,6 +35,21 @@ func _ready() -> void:
 	add_child(cam)
 	hud = GameHud.new()
 	add_child(hud)
+	touch = TouchControls.new()
+	add_child(touch)
+	touch.world = world
+	touch.town = town
+	touch.pause_pressed.connect(_touch_pause)
+	touch.detail_pressed.connect(func() -> void: hud.toggle_hud())
+	touch.interact_pressed.connect(_touch_interact)
+	touch.menu_pressed.connect(func() -> void:
+		if state == State.TOWN:
+			_open_town_menu())
+	guard = OrientationGuard.new()
+	add_child(guard)
+	hud.end_continue_requested.connect(func() -> void:
+		if state == State.END and not _uploading:
+			_end_to_town())
 	hud.setup(world)
 	hud.choice_selected.connect(_on_choice)
 	hud.reroll_requested.connect(_on_reroll)
@@ -67,7 +84,22 @@ func _ready() -> void:
 	_boot()
 
 
+func _touch_pause() -> void:
+	if state == State.PLAY:
+		state = State.PAUSED
+		hud.show_pause()
+
+
+func _touch_interact() -> void:
+	if state == State.TOWN:
+		var npc := town.near_npc()
+		if not npc.is_empty():
+			_talk(npc)
+
+
 func _physics_process(dt: float) -> void:
+	if guard != null and guard.blocking:         # 手机竖屏：盖着「请横屏」提示，游戏先停住
+		return
 	if state == State.TOWN:
 		town.input_move = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 		town.step(dt)
@@ -108,6 +140,8 @@ func _desired_bgm() -> String:
 
 func _process(_dt: float) -> void:
 	Bgm.play(_desired_bgm())
+	touch.set_mode("play" if state == State.PLAY else ("town" if state == State.TOWN else ""))
+	GameHud.touch_mode = touch.is_active() or (touch.touch_seen and not touch.keyboard_seen)
 	if town.visible:
 		cam.position = Vector2(town.player_pos.x, town.player_pos.y * Depth.tilt)
 		Depth.cam_y = town.player_pos.y

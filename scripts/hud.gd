@@ -12,6 +12,7 @@ signal char_delete_requested(id: String)
 signal chars_back_requested
 signal create_back_requested
 signal auth_submitted(mode: String, nick: String, pin: String, code: String)
+signal end_continue_requested
 signal board_open_requested
 signal board_kind_requested(kind: String)
 signal feedback_open_requested
@@ -80,6 +81,10 @@ var dialog_count := 0
 var guide_panel: Control
 var guide_cat := "play"
 var guide_index := 0
+static var touch_mode := false      # 触屏设备：提示文字里的「按 E / 空格 / Tab」换成触控按键说法
+var end_box: HBoxContainer
+var end_continue_btn: Button
+var end_board_btn: Button
 var town_layer: Control
 var hud_expanded := false          # 局内左侧信息栏：收起（只显示图标）/ 展开（图标 + 名称 + 等级）
 var meta_work: Dictionary = {}
@@ -233,6 +238,16 @@ func _build_overlay() -> void:
 	pause_confirm.add_child(yes)
 	pause_confirm.add_child(no)
 	pause_box.add_child(pause_confirm)
+	# 结算页的按钮（触屏没有 Enter / R / B 键）
+	end_box = _center_row(16)
+	end_box.visible = false
+	end_continue_btn = _button("回小镇  [Enter]", Vector2(220, 52), 22)
+	end_continue_btn.pressed.connect(func() -> void: end_continue_requested.emit())
+	end_board_btn = _button("排行榜  [B]", Vector2(200, 52), 20)
+	end_board_btn.pressed.connect(func() -> void: board_open_requested.emit())
+	end_box.add_child(end_continue_btn)
+	end_box.add_child(end_board_btn)
+	box.add_child(end_box)
 
 
 func _build_levelup() -> void:
@@ -2029,6 +2044,7 @@ func show_town_hud(on: bool) -> void:
 		title.position = Vector2(0, 10)
 		town_layer.add_child(title)
 		var hint := Label.new()
+		hint.name = "Hint"
 		hint.text = "WASD 移动　　靠近 NPC 按 E 交谈"
 		hint.add_theme_font_size_override("font_size", 17)
 		hint.add_theme_color_override("font_color", Color("#f3ead2"))
@@ -2044,6 +2060,7 @@ func show_town_hud(on: bool) -> void:
 		who.add_theme_constant_override("outline_size", 6)
 		who.position = Vector2(16, 12)
 		town_layer.add_child(who)
+	(town_layer.get_node("Hint") as Label).text = "左半屏拖动移动　　靠近 NPC 点右下「交谈」　　右上「菜单」" if touch_mode else "WASD 移动　　靠近 NPC 按 E 交谈"
 	var w := town_layer.get_node("Who") as Label
 	var lv := int(Meta.progress(Save.meta_exp())["level"])
 	var line := "银两 %d　局外 Lv%d" % [Save.silver(), lv]
@@ -2078,6 +2095,9 @@ func show_end(won: bool) -> void:
 	if int(dd["count"]) != 100 or int(dd["hp"]) != 100 or int(dd["speed"]) != 100:
 		end_base += "\n难度：数量 %d%% · 血量 %d%% · 速度 %d%%" % [dd["count"], dd["hp"], dd["speed"]]
 	end_locked = false
+	end_box.visible = true
+	end_continue_btn.disabled = false
+	end_board_btn.visible = Net.configured()
 	set_end_extra("")
 	var art := _load_tex("res://assets/ui/screens/%s_%s.jpg" % ["victory" if won else "defeat", w.map_id])
 	if art == null:
@@ -2095,6 +2115,9 @@ var end_locked := false
 ## 成绩上传中：结算页不能离开（按键无效），上传结束才恢复
 func set_end_locked(on: bool) -> void:
 	end_locked = on
+	if end_continue_btn != null:
+		end_continue_btn.disabled = on
+		end_board_btn.disabled = on
 	set_end_extra(end_extra_cur)
 
 
@@ -2103,11 +2126,13 @@ var end_extra_cur := ""
 
 func set_end_extra(extra: String) -> void:
 	end_extra_cur = extra
-	var tail := "成绩上传中，请稍候……（上传完成前无法离开）" if end_locked else "按 Enter / R 回小镇" + ("　·　按 B 查看排行榜" if Net.configured() else "")
+	var tail := "成绩上传中，请稍候……（上传完成前无法离开）" if end_locked else (("点下面的按钮回小镇" if touch_mode else "按 Enter / R 回小镇") + (("" if touch_mode else "　·　按 B 查看排行榜") if Net.configured() else ""))
 	overlay_body.text = end_base + ("\n" + extra if extra != "" else "") + "\n\n" + tail
 
 
 func hide_overlay() -> void:
+	if end_box != null:
+		end_box.visible = false
 	overlay.visible = false
 	end_bg.visible = false
 	if pause_box:
@@ -2469,7 +2494,7 @@ func _draw_hud() -> void:
 		if w.skills.has("dugu"):
 			canvas.draw_string(font, Vector2(16, ry + (30.0 if not w.xinfa.is_empty() else 0.0) + 14.0), "式 %d/%d　%s" % [w.shi_total(), int(Data.T("shi_stage3")), _stage_name()],
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 13, GameWorld.VERMILION)
-		canvas.draw_string(font, Vector2(16, plate_h + 22.0 - 6.0), "[Tab] 展开详情", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#7a6a3a"))
+		canvas.draw_string(font, Vector2(16, plate_h + 22.0 - 6.0), ("点「详」展开详情" if touch_mode else "[Tab] 展开详情"), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#7a6a3a"))
 	else:
 		# 装备栏：技能 / 心法 / 轻功
 		var y := 140.0
@@ -2513,16 +2538,16 @@ func _draw_hud() -> void:
 			y += 19.0
 		y += 4.0
 		canvas.draw_string(font, Vector2(16, y), "轻功：%s" % w.qg["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#1f6f6a"))
-		canvas.draw_string(font, Vector2(16, plate_h + 22.0 - 6.0), "[Tab] 收起", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#7a6a3a"))
+		canvas.draw_string(font, Vector2(16, plate_h + 22.0 - 6.0), ("点「详」收起" if touch_mode else "[Tab] 收起"), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#7a6a3a"))
 
 	# 操作提示 + 轻功次数
 	var charges := int(w.qg.get("charges", 1))
-	var hint := "轻功 [空格] "
+	var hint := "轻功 " if touch_mode else "轻功 [空格] "
 	canvas.draw_string(font, Vector2(16, canvas.size.y - 16), hint, HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("#444444"))
 	for i in charges:
 		var c := Vector2(112 + i * 20, canvas.size.y - 22)
 		canvas.draw_circle(c, 7.0, Color("#3aa6a0") if i < w.dash_charges else Color(0.3, 0.3, 0.3, 0.4))
-	var burst_txt := "真气爆发 [E]　剩余 %d / %d 次" % [w.burst_left(), w.burst_max()]
+	var burst_txt := ("真气爆发　剩余 %d / %d 次" if touch_mode else "真气爆发 [E]　剩余 %d / %d 次") % [w.burst_left(), w.burst_max()]
 	if w.school_id == "fist" and w.fist_ult_t > 0.0:
 		burst_txt = "拳掌无敌　%.1f 秒（真伤 +30%%，内力不恢复）　剩余 %d / %d 次" % [w.fist_ult_t, w.burst_left(), w.burst_max()]
 	elif w.burst_left() > 0:
