@@ -10,8 +10,14 @@ V3 = ROOT / "assets" / "source" / "yangjiajiang_v3"
 V8 = ROOT / "assets" / "source" / "yangjiajiang_v8"     # 第八版：武者成年二次元重画（有就优先）
 
 
+V9 = ROOT / "assets" / "source" / "charselect_v9"        # 第九版：四职业选人全身像（与封面同画风）
+
+
 def pick(name):
-    return V8 / name if (V8 / name).exists() else V3 / name
+    for d in (V9, V8):
+        if (d / name).exists():
+            return d / name
+    return V3 / name
 
 
 def main():
