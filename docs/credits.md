@@ -6,6 +6,8 @@
 | 登录界面 | Imperial China Cinematic | （请补充作者与许可） |
 | 小镇 | Guzheng City | （请补充作者与许可） |
 | 黑风寨 | Asian Drums | （请补充作者与许可） |
+| 光明顶 | Wuxia 3（PerituneMaterial） | Peritune（peritune.com，许可请核对；通常要求署名） |
+| 桃花岛 | Eastern Thought | Peritune（同上） |
 | 小 Boss | Boss Fight | Alexander Nakarada |
 | 大 Boss | Dragon Slayer | Makai Symphony |
 
