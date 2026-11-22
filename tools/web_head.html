@@ -70,7 +70,9 @@
     d.addEventListener('click',function(e){if(e.target===d)done(false);});
   }
   if(document.body)build();else document.addEventListener('DOMContentLoaded',build);
-  window.qxCoarse=function(){try{return window.matchMedia('(pointer: coarse)').matches;}catch(e){return false;}};
+  window.qxCoarse=function(){try{if(window.matchMedia('(pointer: coarse)').matches||window.matchMedia('(any-pointer: coarse)').matches)return true;}catch(e){}var ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);return ios||/Android/.test(navigator.userAgent);};
+  window.qxLast=0;['pointerdown','touchstart','mousedown'].forEach(function(n){window.addEventListener(n,function(){window.qxLast=Date.now();},true);});
+  window.qxRecent=function(){return Date.now()-window.qxLast<900;};
   window.qxEdit=function(title,value,secret,maxlen,callback){
     var d=document.getElementById('qx-edit');if(!d)return false;
     cb=callback;lock=Date.now()+400;

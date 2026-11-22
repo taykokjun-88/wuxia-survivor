@@ -18,9 +18,13 @@ static func attach(le: LineEdit, title: String) -> void:
 	if not needed():
 		return
 	le.virtual_keyboard_enabled = false
-	le.gui_input.connect(func(ev: InputEvent) -> void:     # 只在用户真的点了输入框时弹出（程序自动聚焦不触发，避免循环）
+	le.gui_input.connect(func(ev: InputEvent) -> void:     # 用户点了输入框（触摸 / 模拟鼠标都算）
 		if (ev is InputEventMouseButton and ev.pressed) or (ev is InputEventScreenTouch and ev.pressed):
 			le.accept_event()
+			_open(le, title)
+	)
+	le.focus_entered.connect(func() -> void:                # 兜底：手指刚点过屏幕、输入框因此获得焦点时也弹出（程序自动聚焦不算）
+		if not _busy and bool(JavaScriptBridge.eval("window.qxRecent && window.qxRecent()")):
 			_open(le, title)
 	)
 
