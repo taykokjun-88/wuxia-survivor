@@ -13,10 +13,21 @@ from process_yangjia import to_rgba, load  # noqa: E402
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "assets" / "town" / "hero_spear"
 TARGET_H = 62
+DOWN_FIX = 1.07      # 实测：按身体高度缩放后正面仍比背面 / 侧面矮约 7%（站姿帧比走路帧矮），再放大一点
 
 
 V3 = ROOT / "assets" / "source" / "yangjiajiang_v3"
 V4 = ROOT / "assets" / "source" / "yangjiajiang_v4"
+
+
+def body_height(frame):
+    """去掉枪杆 / 棍这类细长物后的「身体高度」：对不透明区域做开运算，只保留粗的部分，再量包围盒"""
+    from scipy import ndimage as ndi
+    a = np.array(frame.getchannel("A")) > 100
+    r = max(2, a.shape[0] // 22)
+    o = ndi.binary_opening(a, structure=np.ones((r, r), bool))
+    ys = np.where(o.any(axis=1))[0]
+    return float(ys.max() - ys.min() + 1) if len(ys) else float(a.shape[0])
 
 
 def frames_of(name, n=4):
@@ -35,10 +46,20 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     meta = {}
     sets = {k: frames_of(f"town_{k}") for k in ["down", "up", "side"]}
+    # 正面那张的枪尖高过头顶，按整体高度缩放会让身体比背面 / 侧面小一号：
+    # 正面改按「身体高度」缩放，目标 = 背面和侧面（仍按整体高度缩放）缩放后的平均身体高度
+    ref = []
+    for key in ("up", "side"):
+        hs = sorted(f.height for f, _ in sets[key])
+        k0 = TARGET_H / hs[len(hs) // 2]
+        ref.append(k0 * sorted(body_height(f) for f, _ in sets[key])[len(sets[key]) // 2])
+    body_target = sum(ref) / len(ref)
     for key, frs in sets.items():
         # 三张源图是分别生成的，比例不一致：每一组按自己的中位帧高度缩放到 TARGET_H（含枪尖，所以身体约 52 像素）
         hs = sorted(f.height for f, _ in frs)
         k = TARGET_H / hs[len(hs) // 2]
+        if key == "down":
+            k = body_target / sorted(body_height(f) for f, _ in frs)[len(frs) // 2] * DOWN_FIX
         tiles = []
         for f, _ in frs:
             tiles.append(f.resize((max(1, round(f.width * k)), max(1, round(f.height * k))), Image.LANCZOS))

@@ -36,6 +36,7 @@ func _ready() -> void:
 	main.hud.hide_chars()
 	main.hud.hide_create()
 	await _frames(30)
+	print("TILT ", Depth.tilt, " K ", Depth.persp_k, " cam_y ", Depth.cam_y, " tscale ", main.town.scale)
 	await _snap("sp2_town")
 	main.hud.show_chars(main._char_list(), main._last_char(), false)
 	await _frames(4)

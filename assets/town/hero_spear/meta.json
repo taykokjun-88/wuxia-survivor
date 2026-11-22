@@ -3,8 +3,8 @@
     "file": "hero_down.png",
     "frames": 4,
     "fps": 8.0,
-    "w": 35,
-    "h": 62
+    "w": 39,
+    "h": 70
   },
   "hero_up": {
     "file": "hero_up.png",

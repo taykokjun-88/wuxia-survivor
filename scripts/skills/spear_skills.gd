@@ -113,7 +113,7 @@ class Base extends SkillBase:
 		return n
 
 
-## 杨家枪法（枪路起手）：超长直刺穿透，枪尖 +80%；刺后退一步（回马枪）
+## 杨家枪法（枪路起手）：超长直刺穿透，枪尖 +80%；出枪时原地不退（强化后才补一记回马枪）
 class Yangjia extends Base:
 	func fire() -> bool:
 		var reach := p("reach")
@@ -126,7 +126,6 @@ class Yangjia extends Base:
 		var origin := w.player_pos
 		beam_fx("fx_yangjia_thrust", origin, origin + dir * reach, 26.0, Color("#dfe8f5"))
 		line_hit(origin, dir, reach, p("width"), p("damage"), p("knock"), float(def["tip"]), empowered)
-		w.player_knock = -dir * 520.0                       # 回马枪：退一小步
 		w.invuln = maxf(w.invuln, 0.2)
 		if enhanced():                                       # 回马连环：对身后再补一枪
 			line_hit(origin, -dir, reach * ev(0.5, 0.65, 0.8), p("width"), p("damage") * ev(0.6, 0.8, 1.0), p("knock"), 1.45, false)

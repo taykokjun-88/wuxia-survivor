@@ -13,7 +13,7 @@ static var cam_y := 0.0       # 相机中心所在的世界 y
 
 
 static func persp(y: float) -> float:
-	return clampf(1.0 + (y - cam_y) * persp_k, 0.8, 1.22)
+	return clampf(1.0 + (y - cam_y) * persp_k, 0.62, 1.38)
 
 
 ## 让后面的绘制「站直」：以 anchor 为不动点，竖直拉伸 1/tilt、再乘透视系数；画完用 flat() 还原
