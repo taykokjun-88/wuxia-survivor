@@ -5,7 +5,7 @@
       "file": "proj_wave.png",
       "frames": 4,
       "fps": 12,
-      "cell": 96,
+      "cell": 208,
       "loop": true,
       "world_size": 140.0
     },
@@ -13,7 +13,7 @@
       "file": "proj_finger.png",
       "frames": 4,
       "fps": 14,
-      "cell": 48,
+      "cell": 176,
       "loop": true,
       "world_size": 120.0
     },
@@ -29,14 +29,14 @@
       "file": "proj_palm.png",
       "frames": 4,
       "fps": 12,
-      "cell": 64,
+      "cell": 120,
       "loop": true,
       "world_size": 80.0
     },
     "slash_fist": {
       "file": "slash_fist.png",
-      "frames": 5,
-      "fps": 24.0,
+      "frames": 4,
+      "fps": 19.2,
       "cell": 192,
       "loop": false
     },
@@ -85,9 +85,9 @@
     },
     "ring_taiji": {
       "file": "ring_taiji.png",
-      "frames": 8,
-      "fps": 18,
-      "cell": 256,
+      "frames": 4,
+      "fps": 9.0,
+      "cell": 192,
       "loop": false
     },
     "burst_gold": {
@@ -260,7 +260,7 @@
       "file": "fist_chain.png",
       "frames": 4,
       "fps": 20.0,
-      "cell": 192,
+      "cell": 256,
       "loop": false,
       "world_size": 200.0,
       "forward": 0.3
@@ -269,7 +269,7 @@
       "file": "fist_yue.png",
       "frames": 4,
       "fps": 12.0,
-      "cell": 128,
+      "cell": 176,
       "loop": true,
       "world_size": 120.0
     },
@@ -277,7 +277,7 @@
       "file": "fist_finger.png",
       "frames": 4,
       "fps": 14.0,
-      "cell": 128,
+      "cell": 224,
       "loop": true,
       "world_size": 150.0
     },
@@ -285,7 +285,7 @@
       "file": "fist_quake.png",
       "frames": 4,
       "fps": 14.0,
-      "cell": 192,
+      "cell": 256,
       "loop": false,
       "world_size": 260.0
     },
@@ -293,7 +293,7 @@
       "file": "fist_whirl.png",
       "frames": 4,
       "fps": 16.0,
-      "cell": 192,
+      "cell": 256,
       "loop": false,
       "world_size": 260.0
     },
@@ -301,7 +301,7 @@
       "file": "fist_eight.png",
       "frames": 4,
       "fps": 14.0,
-      "cell": 192,
+      "cell": 256,
       "loop": false,
       "world_size": 240.0
     },
@@ -309,7 +309,7 @@
       "file": "fist_taiji.png",
       "frames": 4,
       "fps": 14.0,
-      "cell": 192,
+      "cell": 256,
       "loop": false,
       "world_size": 260.0
     },
@@ -317,7 +317,7 @@
       "file": "fist_cloud.png",
       "frames": 4,
       "fps": 10.0,
-      "cell": 128,
+      "cell": 152,
       "loop": true,
       "world_size": 100.0
     },
@@ -325,7 +325,7 @@
       "file": "fist_vajra.png",
       "frames": 4,
       "fps": 10.0,
-      "cell": 192,
+      "cell": 256,
       "loop": false,
       "world_size": 190.0
     },
@@ -792,7 +792,7 @@
       "file": "fist_whirl_ring.png",
       "frames": 4,
       "fps": 16.0,
-      "cell": 192,
+      "cell": 256,
       "loop": false,
       "world_size": 260.0
     },
@@ -808,7 +808,7 @@
       "file": "proj_taiji_reflect.png",
       "frames": 4,
       "fps": 14.0,
-      "cell": 192,
+      "cell": 136,
       "loop": true,
       "world_size": 90.0
     },

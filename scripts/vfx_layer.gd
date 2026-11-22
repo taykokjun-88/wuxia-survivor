@@ -12,7 +12,7 @@ var world: GameWorld
 
 
 func _init() -> void:
-	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	z_index = 5
 
 
