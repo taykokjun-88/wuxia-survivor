@@ -4964,41 +4964,6 @@
         5
       ]
     },
-    "stage3": {
-      "name": "？？？",
-      "desc": "尚未开放。",
-      "enabled": false,
-      "min_meta_level": 10,
-      "stars": 3
-    },
-    "stage4": {
-      "name": "？？？",
-      "desc": "尚未开放。",
-      "enabled": false,
-      "min_meta_level": 15,
-      "stars": 4
-    },
-    "stage5": {
-      "name": "？？？",
-      "desc": "尚未开放。",
-      "enabled": false,
-      "min_meta_level": 20,
-      "stars": 4
-    },
-    "huashan": {
-      "name": "华山论剑",
-      "desc": "五绝论剑之地：东邪黄药师、西毒欧阳锋、南帝一灯、北丐洪七公、中神通王重阳，最高难度。",
-      "enabled": false,
-      "min_meta_level": 30,
-      "stars": 5,
-      "bosses": [
-        "东邪 黄药师",
-        "西毒 欧阳锋",
-        "南帝 一灯大师",
-        "北丐 洪七公",
-        "中神通 王重阳"
-      ]
-    },
     "taohua": {
       "name": "桃花岛·奇门遁甲",
       "desc": "桃花岛奇门遁甲阵：地面八门周期轮换，吉门有益、凶门有害。14 分钟，三名小 Boss 与黄荣。",
@@ -5155,6 +5120,34 @@
         "radius": 430.0
       },
       "requires_clear": "guangming"
+    },
+    "stage4": {
+      "name": "？？？",
+      "desc": "尚未开放。",
+      "enabled": false,
+      "min_meta_level": 15,
+      "stars": 4
+    },
+    "stage5": {
+      "name": "？？？",
+      "desc": "尚未开放。",
+      "enabled": false,
+      "min_meta_level": 20,
+      "stars": 4
+    },
+    "huashan": {
+      "name": "华山论剑",
+      "desc": "五绝论剑之地：东邪黄药师、西毒欧阳锋、南帝一灯、北丐洪七公、中神通王重阳，最高难度。",
+      "enabled": false,
+      "min_meta_level": 30,
+      "stars": 5,
+      "bosses": [
+        "东邪 黄药师",
+        "西毒 欧阳锋",
+        "南帝 一灯大师",
+        "北丐 洪七公",
+        "中神通 王重阳"
+      ]
     }
   },
   "guide": {

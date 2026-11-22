@@ -431,8 +431,10 @@ func gear_score() -> int:
 ## 本角色上次出发选的起手招式（装备分的「适配度」按它算）
 func last_starter() -> String:
 	var ui: Variant = data.get("ui", {})
-	if ui is Dictionary and (ui as Dictionary).get("last_starter", {}) is Dictionary:
-		return str(((ui as Dictionary)["last_starter"] as Dictionary).get(char_id(), ""))
+	if ui is Dictionary:
+		var ls: Variant = (ui as Dictionary).get("last_starter", {})      # 没存过时取默认值（直接用 ["last_starter"] 取不到会报错）
+		if ls is Dictionary:
+			return str((ls as Dictionary).get(char_id(), ""))
 	return ""
 
 
