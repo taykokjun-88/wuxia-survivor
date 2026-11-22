@@ -32,3 +32,12 @@
   **Kane53126**（Body Thud）、**courtneyeck**（Falling body）— 均为 CC0。
 - 原始文件放在作者的云端硬盘 `sfx_raw`（不进仓库）；重新生成：`python3 tools/build_sfx_real.py <原始采样目录>`。
 - **Kenney**：RPG Audio（CC0）— 脚步声、翻页（升级选卡）。
+
+
+---
+## 查证结果（2026-11-22，由 Gemini 按官方页面核对；我没有独立复核）
+**背景音乐**：登录曲 = Imperial China Cinematic，Shane Ivers（Silverman Sound），CC BY 4.0；小镇曲 = Guzheng City，Kevin MacLeod，CC BY 4.0；黑风寨 = Asian Drums，桃花岛 = Eastern Thought（均 Kevin MacLeod，CC BY 4.0）；光明顶 = Wuxia 3，PeriTune（署名任意；若将来收费发售需加密打包）；小 Boss = Boss Fight，Alexander Nakarada，CC BY 4.0；大 Boss = Dragon Slayer，Makai Symphony（官网自定义条款，第三方站标 CC BY-SA 3.0，禁止单独再分发音乐）。
+**音效风险（需关注）**：LiamG_SFX 全部 CC BY-NC 4.0；Vrymaa、Jagadamba 含 CC BY-NC 4.0；CastIronCarousel 混合 CC0 / CC BY 3.0。**现在是朋友间免费试玩，NC 可以；若将来商业化，必须替换或逐条核对具体采样。** Kenney 的包请以下载包内 license.txt 为准（Gemini 查不到官网）。
+**字体**：霞鹜文楷裁剪后分发须保留 OFL.txt 全文；裁剪版属修改版，不得用 `霞鹜` / `LXGW` 作为对外展示的字体主名（待核实 Reserved Font Name 条款）。
+**引擎**：Godot，MIT，致谢页写明即可。
+**AI 生成内容**：Google 条款不主张生成内容所有权，允许免费分发 / 商用；不强制标注，但不得欺骗性冒充纯人工创作，致谢页已注明。

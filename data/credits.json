@@ -2,43 +2,41 @@
   {
     "title": "背景音乐",
     "lines": [
-      "登录界面：Imperial China Cinematic（作者 / 许可待补）",
-      "小镇：Guzheng City（作者 / 许可待补）",
-      "黑风寨：Asian Drums — Kevin MacLeod (incompetech.com)，CC BY 4.0",
-      "光明顶：Wuxia 3 — PeriTune (peritune.com)，CC BY 4.0",
-      "桃花岛：Eastern Thought — Kevin MacLeod (incompetech.com)，CC BY 4.0",
-      "小 Boss：Boss Fight — Alexander Nakarada",
-      "大 Boss：Dragon Slayer — Makai Symphony"
+      "登录界面：Imperial China Cinematic — Shane Ivers (silvermansound.com)，CC BY 4.0",
+      "小镇：“Guzheng City” Kevin MacLeod (incompetech.com)，Licensed under Creative Commons: By Attribution 4.0 License (creativecommons.org/licenses/by/4.0/)",
+      "黑风寨：“Asian Drums” Kevin MacLeod (incompetech.com)，Licensed under Creative Commons: By Attribution 4.0 License",
+      "光明顶：Wuxia 3 — PeriTune (peritune.com)",
+      "桃花岛：“Eastern Thought” Kevin MacLeod (incompetech.com)，Licensed under Creative Commons: By Attribution 4.0 License",
+      "小 Boss：Boss Fight — Alexander Nakarada (creatorchords.com)，CC BY 4.0",
+      "大 Boss：Dragon Slayer — Makai Symphony (makai-symphony.com)"
     ]
   },
   {
     "title": "音效",
     "lines": [
-      "采样来自 freesound.org 与 kenney.nl，绝大多数为 CC0。",
-      "qubodup（Iwan Gabovitch）：Free Whoosh Sound Pack（CC0）",
-      "qubodup & Slave2theLight：Sword Slash Attack（CC BY 3.0）",
-      "Qvantor：Cinematic Booms Trailer Hits、Success / Level Up / Reward Sounds（CC0）",
-      "Kenney：Impact Sounds、UI Audio、RPG Audio（CC0）",
-      "CastIronCarousel、GammaGool、Bertsz、Vrymaa、Kinoton、nanliu_music、Jagadamba、Sadiquecat、michorvath、steprock、LiamG_SFX、JohnBuhr、AardsReal、Kane53126、courtneyeck 等（CC0）",
+      "采样来自 freesound.org 与 kenney.nl；多数为 CC0，下列需署名：",
+      "Sword Slash Attack：Copyright 2013 Iwan Gabovitch (qubodup)，CC-BY3；Blood and gore FX performance 1：Copyright 2012 Slave2theLight，CC-BY3。",
+      "CastIronCarousel、Vrymaa (Paul Couture)、Jagadamba、LiamG_SFX：部分采样为 CC BY / CC BY-NC，谨此署名致谢。",
+      "CC0：qubodup（Free Whoosh Sound Pack）、Qvantor、Kenney、GammaGool、Bertsz、Kinoton、nanliu_music、Sadiquecat、michorvath、steprock、JohnBuhr、AardsReal、Kane53126、courtneyeck 等。",
       "杨家将与桃花岛的新增音效由 Gemini 生成。"
     ]
   },
   {
     "title": "字体",
     "lines": [
-      "霞鹜文楷（LXGW WenKai），SIL OFL 1.1。"
+      "霞鹜文楷（LXGW WenKai），SIL Open Font License 1.1（字库已裁剪，许可全文见 assets/fonts/OFL.txt）。"
     ]
   },
   {
-    "title": "美术",
+    "title": "美术与 AI",
     "lines": [
-      "像素精灵、立绘、封面、结算插画、图标、特效、建筑：由项目作者使用 AI 绘图工具制作（Gemini）。"
+      "像素精灵、立绘、封面、结算插画、图标、特效、建筑：由项目作者使用 AI 工具生成（Google Gemini）。"
     ]
   },
   {
     "title": "引擎",
     "lines": [
-      "使用 Godot Engine 4（MIT 许可）。"
+      "Godot Engine (godotengine.org/license)，MIT License。Copyright (c) 2014-present Godot Engine contributors; Copyright (c) 2007-2014 Juan Linietsky, Ariel Manzur."
     ]
   }
 ]
