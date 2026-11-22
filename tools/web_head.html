@@ -53,12 +53,13 @@
 <script>
 (function(){
   var cb=null,lock=0;
-  var savedFocus=null;
-  function holdCanvas(){var c=document.querySelector('canvas');if(c&&!savedFocus){savedFocus=c.focus;c.focus=function(){};}}
-  function freeCanvas(){var c=document.querySelector('canvas');if(c&&savedFocus){c.focus=savedFocus;savedFocus=null;}}
+  var savedFocus=null,dbg=/[?&]dbg=1/.test(location.search),logs=[];
+  function log(m){if(!dbg)return;logs.push(m);if(logs.length>8)logs.shift();var e=document.getElementById('qx-log');if(e)e.textContent=logs.join(' · ');}
+  function holdCanvas(){var c=document.querySelector('canvas');if(c&&!savedFocus){savedFocus=c.focus;c.focus=function(){};c._pe=c.style.pointerEvents;c.style.pointerEvents='none';try{c.blur();}catch(e){}}}
+  function freeCanvas(){var c=document.querySelector('canvas');if(c&&savedFocus){c.focus=savedFocus;savedFocus=null;c.style.pointerEvents=c._pe||'';}}
   function build(){
     var d=document.createElement('div');d.id='qx-edit';
-    d.innerHTML='<div class="box"><div class="t" id="qx-t"></div><input id="qx-i" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"><div class="row"><button class="no" id="qx-no">取消</button><button id="qx-ok">确定</button></div></div>';
+    d.innerHTML='<div class="box"><div class="t" id="qx-t"></div><input id="qx-i" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"><div id="qx-log" style="font-size:12px;color:#8d8670;margin-top:8px;min-height:14px"></div><div class="row"><button class="no" id="qx-no">取消</button><button id="qx-ok">确定</button></div></div>';
     document.body.appendChild(d);
     var i=document.getElementById('qx-i');
     function done(ok){
@@ -67,6 +68,8 @@
       var f=cb;cb=null;
       if(f)f(ok?1:0,i.value);
     }
+    i.addEventListener('blur',function(){log('blur');if(d.style.display!=='none'&&!done.closing){setTimeout(function(){if(d.style.display!=='none'&&document.activeElement!==i&&!(document.activeElement&&document.activeElement.tagName==='BUTTON')){try{i.focus();}catch(e){}log('refocus');}},60);}});
+    i.addEventListener('focus',function(){log('focus');});
     document.getElementById('qx-ok').onclick=function(){done(true);};
     document.getElementById('qx-no').onclick=function(){done(false);};
     i.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();done(true);}});
