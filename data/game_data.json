@@ -187,7 +187,7 @@
     "player_dmg_mult": 0.9,
     "view_tilt": 0.7,
     "view_persp": 0.0004,
-    "view_persp_town": 0.0011
+    "view_persp_town": 0.0
   },
   "skills": {
     "yue_palm": {
