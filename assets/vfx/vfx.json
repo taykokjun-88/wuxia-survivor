@@ -21,7 +21,7 @@
    "file": "proj_bolt.png",
    "frames": 4,
    "fps": 14,
-   "cell": 48,
+   "cell": 96,
    "loop": true,
    "world_size": 64.0
   },
@@ -43,44 +43,44 @@
   "halo_empower": {
    "file": "halo_empower.png",
    "frames": 4,
-   "fps": 16,
-   "cell": 128,
+   "fps": 16.0,
+   "cell": 192,
    "loop": false
   },
   "slash_heavy": {
    "file": "slash_heavy.png",
-   "frames": 7,
-   "fps": 22,
+   "frames": 4,
+   "fps": 12.57,
    "cell": 192,
    "loop": false,
    "forward": 0.28
   },
   "burst_wind": {
    "file": "burst_wind.png",
-   "frames": 7,
-   "fps": 22,
-   "cell": 256,
+   "frames": 4,
+   "fps": 12.57,
+   "cell": 192,
    "loop": false
   },
   "burst_break": {
    "file": "burst_break.png",
-   "frames": 7,
-   "fps": 16,
-   "cell": 256,
+   "frames": 4,
+   "fps": 9.14,
+   "cell": 192,
    "loop": false
   },
   "burst_ult": {
    "file": "burst_ult.png",
-   "frames": 8,
-   "fps": 16,
-   "cell": 256,
+   "frames": 4,
+   "fps": 8.0,
+   "cell": 192,
    "loop": false
   },
   "ring_qinggong": {
    "file": "ring_qinggong.png",
-   "frames": 6,
-   "fps": 22,
-   "cell": 256,
+   "frames": 4,
+   "fps": 14.67,
+   "cell": 192,
    "loop": false
   },
   "ring_taiji": {
@@ -92,65 +92,65 @@
   },
   "burst_gold": {
    "file": "burst_gold.png",
-   "frames": 8,
-   "fps": 20,
-   "cell": 256,
+   "frames": 4,
+   "fps": 10.0,
+   "cell": 192,
    "loop": false
   },
   "burst_quake": {
    "file": "burst_quake.png",
-   "frames": 7,
-   "fps": 20,
-   "cell": 256,
+   "frames": 4,
+   "fps": 11.43,
+   "cell": 192,
    "loop": false
   },
   "zone_crack": {
    "file": "zone_crack.png",
    "frames": 4,
    "fps": 8.0,
-   "cell": 256,
+   "cell": 192,
    "loop": true
   },
   "zone_vortex": {
    "file": "zone_vortex.png",
-   "frames": 6,
+   "frames": 4,
    "fps": 12.0,
-   "cell": 256,
+   "cell": 192,
    "loop": true
   },
   "hit_impact": {
    "file": "hit_impact.png",
    "frames": 4,
    "fps": 20.0,
-   "cell": 64,
+   "cell": 192,
    "loop": false
   },
   "hit_crit": {
    "file": "hit_crit.png",
-   "frames": 5,
-   "fps": 20.0,
-   "cell": 96,
+   "frames": 4,
+   "fps": 16.0,
+   "cell": 192,
    "loop": false
   },
   "trail_dash": {
    "file": "trail_dash.png",
    "frames": 4,
    "fps": 16.0,
-   "cell": 96,
+   "cell": 192,
    "loop": false
   },
   "death_puff": {
    "file": "death_puff.png",
-   "frames": 5,
-   "fps": 14.0,
-   "cell": 96,
+   "frames": 4,
+   "fps": 11.2,
+   "cell": 192,
    "loop": false
   },
   "afterimage": {
    "file": "afterimage.png",
-   "frames": 3,
-   "fps": 8.0,
-   "cell": 128,
+   "frames": 4,
+   "fps": 10.67,
+   "cell": 168,
    "loop": false,
    "world_size": 110.0
   },
@@ -158,7 +158,7 @@
    "file": "flash_streak.png",
    "frames": 4,
    "fps": 20.0,
-   "cell": 128,
+   "cell": 240,
    "loop": false,
    "world_size": 160.0
   },
@@ -532,9 +532,9 @@
   },
   "decal_scorch": {
    "file": "decal_scorch.png",
-   "frames": 3,
-   "fps": 1.0,
-   "cell": 192,
+   "frames": 4,
+   "fps": 1.33,
+   "cell": 224,
    "loop": false,
    "world_size": 150.0
   },
@@ -542,7 +542,7 @@
    "file": "decal_ice_zone.png",
    "frames": 4,
    "fps": 4.0,
-   "cell": 256,
+   "cell": 192,
    "loop": true
   },
   "fx_blade_wuhu": {
@@ -647,7 +647,7 @@
    "file": "proj_arrow.png",
    "frames": 4,
    "fps": 12.0,
-   "cell": 128,
+   "cell": 104,
    "loop": true,
    "world_size": 70.0
   },
@@ -655,7 +655,7 @@
    "file": "fx_yangjia_thrust.png",
    "frames": 4,
    "fps": 16.0,
-   "cell": 192,
+   "cell": 256,
    "loop": false,
    "world_size": 400.0
   },
@@ -663,7 +663,7 @@
    "file": "fx_wuming_thrust.png",
    "frames": 4,
    "fps": 16.0,
-   "cell": 192,
+   "cell": 256,
    "loop": false,
    "world_size": 300.0
   },
@@ -671,7 +671,7 @@
    "file": "fx_wuming_hit.png",
    "frames": 4,
    "fps": 14.0,
-   "cell": 192,
+   "cell": 256,
    "loop": false,
    "world_size": 200.0
   },
@@ -679,7 +679,7 @@
    "file": "fx_meihua_spear.png",
    "frames": 4,
    "fps": 14.0,
-   "cell": 192,
+   "cell": 256,
    "loop": false,
    "world_size": 220.0
   },
@@ -687,7 +687,7 @@
    "file": "fx_baima_dash.png",
    "frames": 4,
    "fps": 14.0,
-   "cell": 192,
+   "cell": 256,
    "loop": false,
    "world_size": 300.0
   },
@@ -695,7 +695,7 @@
    "file": "fx_spear_tip.png",
    "frames": 4,
    "fps": 20.0,
-   "cell": 192,
+   "cell": 176,
    "loop": false,
    "world_size": 120.0
   },
@@ -703,7 +703,7 @@
    "file": "fx_youlong_dash.png",
    "frames": 4,
    "fps": 14.0,
-   "cell": 192,
+   "cell": 256,
    "loop": false,
    "world_size": 420.0
   },
@@ -711,7 +711,7 @@
    "file": "fx_staff_sweep.png",
    "frames": 4,
    "fps": 16.0,
-   "cell": 192,
+   "cell": 256,
    "loop": false,
    "world_size": 260.0,
    "forward": 0.2
@@ -720,7 +720,7 @@
    "file": "fx_staff_wide.png",
    "frames": 4,
    "fps": 14.0,
-   "cell": 192,
+   "cell": 256,
    "loop": false,
    "world_size": 560.0
   },
@@ -728,7 +728,7 @@
    "file": "fx_panlong.png",
    "frames": 4,
    "fps": 10.0,
-   "cell": 192,
+   "cell": 256,
    "loop": true,
    "world_size": 300.0
   },
@@ -736,7 +736,7 @@
    "file": "fx_dagou.png",
    "frames": 4,
    "fps": 14.0,
-   "cell": 192,
+   "cell": 256,
    "loop": false,
    "world_size": 200.0
   },
@@ -744,7 +744,7 @@
    "file": "fx_fengmo.png",
    "frames": 4,
    "fps": 14.0,
-   "cell": 192,
+   "cell": 256,
    "loop": true,
    "world_size": 260.0
   },
@@ -752,7 +752,7 @@
    "file": "fx_xiangmo.png",
    "frames": 4,
    "fps": 12.0,
-   "cell": 192,
+   "cell": 256,
    "loop": false,
    "world_size": 300.0
   },
@@ -760,7 +760,7 @@
    "file": "fx_block_swing.png",
    "frames": 4,
    "fps": 18.0,
-   "cell": 192,
+   "cell": 256,
    "loop": false,
    "world_size": 170.0
   },
@@ -768,7 +768,7 @@
    "file": "fx_block_wave.png",
    "frames": 4,
    "fps": 14.0,
-   "cell": 192,
+   "cell": 256,
    "loop": false,
    "world_size": 220.0
   },
@@ -776,7 +776,7 @@
    "file": "aura_staff_charge.png",
    "frames": 4,
    "fps": 10.0,
-   "cell": 192,
+   "cell": 256,
    "loop": true,
    "world_size": 180.0
   },
@@ -825,7 +825,7 @@
    "file": "aura_spear_charge.png",
    "frames": 4,
    "fps": 10.0,
-   "cell": 192,
+   "cell": 256,
    "loop": true,
    "world_size": 200.0
   },
