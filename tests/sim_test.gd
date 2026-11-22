@@ -4357,3 +4357,59 @@ func _bagua_test() -> void:
 	w.step(DT)
 	_check(w.bagua_shuffles == 2 and w.bagua_center.distance_to(w.player_pos) < 50.0, "20 秒后重排，盘面以玩家所在处为中心")
 	_free_world(w)
+	_taohua_boss_test()
+
+
+## 第 3 关 Boss 专属招式：同心环冲击波（环带里受伤、缝隙里安全）、奇门易位（预警亮出新排布 → 立刻重排八门）、各 Boss 技能列表
+func _taohua_boss_test() -> void:
+	print("\n=== 桃花岛 · Boss 招式 ===")
+	var w := GameWorld.new()
+	w.rng_seed = 22
+	add_child(w)
+	w.start_run("chain_fist", "tashue", "taohua")
+	w.god = false
+	for i in int(9.0 / DT):
+		w.step(DT)
+	w._spawn_boss("th_mini_3", false)
+	var boss: Enemy = w.bosses[w.bosses.size() - 1]
+	boss.speed = 0.0
+	_check(boss.skills.has("ring_wave") and boss.phase_hp > 0.0 and boss.skills2.has("blink"), "周百痛：铜铃连震 + 半血追加闪现")
+	# 环带：玩家站在 [r-band, r] 里受伤；站在两圈之间的空隙里不受伤
+	var radii: Array = Data.boss_skills["ring_wave"]["rings"]
+	var band := float(Data.boss_skills["ring_wave"]["band"])
+	var gap_r := (float(radii[0]) + float(radii[1]) - band) * 0.5            # 第 1 圈外缘到第 2 圈内缘的中间
+	for case_id in ["in_band", "in_gap"]:
+		w.hp = w.st("max_hp")
+		w.invuln = 0.0
+		boss.pos = w.player_pos + Vector2(0, 0)
+		BossAI._start(w, boss, "ring_wave", Vector2.RIGHT)
+		boss.cast_start = boss.pos
+		var off: float = float(radii[0]) - band * 0.5 if case_id == "in_band" else gap_r
+		w.player_pos = boss.cast_start + Vector2(off, 0)
+		var hp0 := w.hp
+		for i in int(2.5 / DT):
+			w.player_pos = boss.cast_start + Vector2(off, 0)
+			boss.pos = boss.cast_start
+			if boss.cast_id == "":
+				break
+			BossAI._cast(w, boss, DT, Vector2.RIGHT)
+		if case_id == "in_band":
+			_check(w.hp < hp0, "站在环带里挨到冲击（%.1f → %.1f）" % [hp0, w.hp])
+		else:
+			_check(w.hp >= hp0 - 0.01, "站在环间空隙里不受伤（%.1f → %.1f）" % [hp0, w.hp])
+		boss.cast_id = ""
+	# 奇门易位
+	w._spawn_boss("th_boss", true)
+	var hb: Enemy = w.bosses[w.bosses.size() - 1]
+	hb.speed = 0.0
+	_check(hb.skills.has("xiao_wave") and hb.skills2.has("gate_shift") and hb.phase_hp > 0.0, "黄荣：乐音环 + 奇门易位（二阶段）")
+	var n0 := w.bagua_shuffles
+	BossAI._start(w, hb, "gate_shift", Vector2.RIGHT)
+	_check(w.bagua_warn and w.bagua_next.size() == 8, "奇门易位：施法预警期间亮出新排布")
+	var prev: Array = w.bagua_gates.duplicate()
+	for i in int(3.0 / DT):
+		if hb.cast_id == "":
+			break
+		BossAI._cast(w, hb, DT, Vector2.RIGHT)
+	_check(w.bagua_shuffles == n0 + 1, "奇门易位：施放后八门立刻重排一次（%d → %d）" % [n0, w.bagua_shuffles])
+	_free_world(w)

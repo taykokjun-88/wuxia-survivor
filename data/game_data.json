@@ -2342,10 +2342,12 @@
       "skills": [
         "claw_proj",
         "poison_mist",
+        "rush"
+      ],
+      "phase_hp": 0.5,
+      "skills2": [
         "whirl"
       ],
-      "phase_hp": 0.0,
-      "skills2": [],
       "proj_kind_map": {
         "claw_proj": "dart"
       }
@@ -2365,8 +2367,10 @@
         "palm",
         "leap"
       ],
-      "phase_hp": 0.0,
-      "skills2": []
+      "phase_hp": 0.5,
+      "skills2": [
+        "rush"
+      ]
     },
     "th_mini_3": {
       "name": "周百痛",
@@ -2379,12 +2383,14 @@
       "bolts": 12,
       "art": "th_mini_3",
       "skills": [
-        "blink",
+        "ring_wave",
         "shock",
         "palm_seal"
       ],
-      "phase_hp": 0.0,
-      "skills2": [],
+      "phase_hp": 0.5,
+      "skills2": [
+        "blink"
+      ],
       "vfx_map": {
         "shock": "boss_bell_wave"
       }
@@ -2400,12 +2406,15 @@
       "bolts": 14,
       "art": "th_boss",
       "skills": [
+        "xiao_wave",
         "blink",
         "palm_seal",
         "sword_rain"
       ],
-      "phase_hp": 0.0,
-      "skills2": [],
+      "phase_hp": 0.5,
+      "skills2": [
+        "gate_shift"
+      ],
       "phase2": {
         "hp": 0.5,
         "shield": 0.5,
@@ -5557,6 +5566,45 @@
       "r": 80,
       "dmg": 11,
       "knock": 300
+    },
+    "ring_wave": {
+      "name": "铜铃连震",
+      "warn": 0.9,
+      "shape": "rings",
+      "rings": [
+        110,
+        200,
+        290
+      ],
+      "band": 40,
+      "gap": 0.38,
+      "dmg": 18,
+      "knock": 320,
+      "vfx": "boss_bell_wave"
+    },
+    "xiao_wave": {
+      "name": "玉箫乐音",
+      "warn": 1.0,
+      "shape": "rings",
+      "rings": [
+        130,
+        230,
+        330,
+        430
+      ],
+      "band": 38,
+      "gap": 0.32,
+      "dmg": 20,
+      "knock": 300,
+      "vfx": "boss_xiao_note"
+    },
+    "gate_shift": {
+      "name": "奇门易位",
+      "warn": 2.0,
+      "shape": "circle",
+      "r": 160,
+      "dmg": 0,
+      "vfx": ""
     }
   }
 }

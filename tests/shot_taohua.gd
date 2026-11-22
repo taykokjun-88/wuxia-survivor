@@ -33,18 +33,31 @@ func _ready() -> void:
 		w.step(DT)
 	await _frames(2)
 	await _snap("th3_run_late")
-	w.time = 200.0
-	w._spawn_boss("th_mini_1", false)
-	for i in 60 * 6:
-		w.step(DT)
-	await _frames(2)
-	await _snap("th4_boss1")
+	w.god = true
 	w.time = 840.0
-	w._spawn_boss("th_boss", true)
-	for i in 60 * 9:
+	for i in 120:
+		w.step(DT)
+	var hb: Enemy = null
+	for b in w.bosses:
+		if b.alive and b.type_id == "th_boss":
+			hb = b
+	hb.speed = 0.0
+	hb.hp = 1.0e9
+	hb.max_hp = 1.0e9
+	for i in 60 * 5:
+		w.step(DT)
+	hb.pos = w.player_pos + Vector2(0, -90)
+	hb.cast_id = ""
+	BossAI._start(w, hb, "xiao_wave", Vector2.RIGHT)
+	for i in 40:
 		w.step(DT)
 	await _frames(2)
-	await _snap("th5_boss")
+	print("BOSS ", hb.pos, w.player_pos, hb.alive, hb.cast_id, hb.cast_t, w.enemies.has(hb))
+	await _snap("th4_xiao_warn")
+	for i in 45:
+		w.step(DT)
+	await _frames(2)
+	await _snap("th5_xiao_hit")
 	get_tree().quit()
 
 

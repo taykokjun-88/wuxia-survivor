@@ -83,6 +83,10 @@ static func _exec_len(id: String, d: Dictionary) -> float:
 			return float(d["dur"])
 		"leap":
 			return float(d["fly"]) + 0.3
+		"ring_wave", "xiao_wave":
+			return float(d["gap"]) * float((d["rings"] as Array).size() - 1) + 0.4
+		"gate_shift":
+			return 0.6
 	return 0.35
 
 
@@ -96,6 +100,10 @@ static func _start(w: GameWorld, e: Enemy, id: String, dir: Vector2) -> void:
 	e.cast_pos = w.player_pos - w.facing * 72.0 if (id == "blink" or id == "backstab") else w.player_pos     # 瞄准点在开始施放这一刻就锁定
 	e.cast_dur = float(d["warn"]) + _exec_len(id, d)
 	e.cast_list.clear()
+	if id == "gate_shift":                          # 奇门易位：预警期间就把「下一个排布」亮出来（外圈显示 →门名），施放时八门立刻重排
+		w.bagua_next = w._bagua_order()
+		w.bagua_warn = true
+		w.add_fx("text", e.pos + Vector2(0, -90), 1.8, {"text": "奇门易位", "size": 30, "color": Color("#7ae0c0")})
 	if str(d["shape"]) == "spots":                 # 多点落点：第一个落在玩家脚下，其余散在周围
 		for k in int(d["n"]):
 			var off := Vector2.ZERO if k == 0 else Vector2.from_angle(w.rng.randf() * TAU) * w.rng.randf_range(40.0, float(d["around"]))
@@ -261,6 +269,26 @@ static func _cast(w: GameWorld, e: Enemy, dt: float, dir: Vector2) -> Vector2:
 				_slash_fx(w, e, cd, e.cast_dir)
 				if _in_fan(w, e.pos, e.cast_dir, float(cd["reach"]), float(cd["arc"])):
 					_hurt(w, e, float(cd["dmg"]))
+		"ring_wave", "xiao_wave":                    # 同心环冲击波：由内向外逐圈炸开，每圈是一条环带——站在两圈之间的空隙里 / 冲刺穿过去就能躲
+			var rings: Array = d["rings"]
+			var band := float(d["band"])
+			var ri := int(u / float(d["gap"]))
+			while e.cast_stage <= ri and e.cast_stage < rings.size():
+				var rr := float(rings[e.cast_stage])
+				e.cast_stage += 1
+				w.add_fx("ring", e.cast_start, 0.5, {"r0": rr * 0.5, "r1": rr, "color": Color("#7ae0c0"), "vfx": _vx(e, id, d), "size": rr * 2.2})
+				var dd := w.player_pos.distance_to(e.cast_start)
+				if dd <= rr and dd >= rr - band:
+					_hurt(w, e, float(d["dmg"]))
+					_knock(w, e.cast_start, float(d["knock"]))
+				w.shake = maxf(w.shake, 4.0)
+				Sfx.play("boss_cleave")
+		"gate_shift":
+			if e.cast_stage == 0:
+				e.cast_stage = 1
+				w._bagua_shuffle()
+				w.shake = maxf(w.shake, 6.0)
+				Sfx.play("boss_cleave")
 		"leap":
 			var fly := float(d["fly"])
 			if u < fly:
@@ -462,6 +490,14 @@ static func draw_telegraph(w: GameWorld, e: Enemy) -> void:
 				w.draw_circle(sp, sr, fill)
 				w.draw_circle(sp, sr * p, inner)
 				w.draw_arc(sp, sr, 0.0, TAU, 28, edge, 3.0)
+		"rings":                                   # 同心环带：全部圈位一次画出来，随预警进度加深
+			var rr2: Array = d["rings"]
+			var bd := float(d["band"])
+			for rv in rr2:
+				var rad := float(rv)
+				w.draw_arc(e.pos, rad - bd * 0.5, 0.0, TAU, 48, Color(WARN_COL, 0.10 + 0.22 * p), bd)
+				w.draw_arc(e.pos, rad, 0.0, TAU, 48, edge, 2.0)
+				w.draw_arc(e.pos, rad - bd, 0.0, TAU, 48, Color(WARN_COL, 0.35), 1.5)
 		"circle":
 			var c := e.pos
 			if e.cast_id == "leap" or e.cast_id == "blink" or e.cast_id == "backstab":
