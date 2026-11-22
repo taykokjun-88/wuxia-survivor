@@ -2279,7 +2279,7 @@
       "radius": 17,
       "exp": 3,
       "color": "#6a6a7a",
-      "art": "bandit"
+      "art": "th_yapu"
     },
     "th_jiading": {
       "name": "桃花岛家丁",
@@ -2291,7 +2291,7 @@
       "color": "#8a6a4a",
       "behavior": "thruster",
       "mskill": "thrust",
-      "art": "soldier"
+      "art": "th_jiading"
     },
     "th_yaotong": {
       "name": "药童",
@@ -2302,7 +2302,7 @@
       "exp": 3,
       "color": "#5a9a6a",
       "behavior": "archer",
-      "art": "archer"
+      "art": "th_yaotong"
     },
     "th_dushe": {
       "name": "毒蝎",
@@ -2314,7 +2314,7 @@
       "color": "#9a4a8a",
       "behavior": "charger",
       "mskill": "rush",
-      "art": "charger"
+      "art": "th_dushe"
     },
     "th_jiguan": {
       "name": "机关人偶",
@@ -2325,7 +2325,7 @@
       "exp": 5,
       "color": "#b0a070",
       "behavior": "stomper",
-      "art": "shaolin"
+      "art": "th_jiguan"
     },
     "th_mini_1": {
       "name": "陆乘疯",
@@ -2336,7 +2336,7 @@
       "exp": 100,
       "color": "#6a8a4a",
       "bolts": 10,
-      "art": "s2_mini_1",
+      "art": "th_mini_1",
       "skills": [
         "claw_proj",
         "poison_mist",
@@ -2354,7 +2354,7 @@
       "exp": 120,
       "color": "#4a6a8a",
       "bolts": 10,
-      "art": "s2_mini_2",
+      "art": "th_mini_2",
       "skills": [
         "fan_blade",
         "palm",
@@ -2372,7 +2372,7 @@
       "exp": 150,
       "color": "#8a4a6a",
       "bolts": 12,
-      "art": "s2_mini_3",
+      "art": "th_mini_3",
       "skills": [
         "blink",
         "shock",
@@ -2390,7 +2390,7 @@
       "exp": 80,
       "color": "#2a6a5a",
       "bolts": 14,
-      "art": "s2_boss",
+      "art": "th_boss",
       "skills": [
         "blink",
         "palm_seal",
@@ -4950,7 +4950,7 @@
     "taohua": {
       "name": "桃花岛·奇门遁甲",
       "desc": "桃花岛奇门遁甲阵：地面八门周期轮换，吉门有益、凶门有害。14 分钟，三名小 Boss 与黄荣。",
-      "enabled": false,
+      "enabled": true,
       "min_meta_level": 20,
       "stars": 4,
       "recommend": {
@@ -5063,27 +5063,27 @@
         "th_mini_3"
       ],
       "art": {
-        "dir": "res://assets/maps/guangming",
+        "dir": "res://assets/maps/taohua",
         "weights": {
-          "wall_seg": 1.3,
-          "wall_corner": 0.8,
-          "column_fallen": 0.9,
-          "pillar_broken": 1.2,
-          "rock_pile": 1.1,
-          "chevaux": 0.6,
-          "cauldron": 0.5,
-          "lion_gate": 0.4,
-          "brazier": 0.7,
-          "weapon_rack": 0.6,
-          "crate": 0.6,
-          "war_banner": 0.8,
-          "pine": 0.9,
-          "stele": 0.6,
-          "censer": 0.4,
-          "lantern": 0.7
+          "peach_tree": 1.4,
+          "taihu_rock": 1.0,
+          "bamboo": 1.2,
+          "stone_pillar": 0.8,
+          "rockery": 0.9,
+          "pavilion": 0.4,
+          "railing": 0.8,
+          "flag_base": 0.5,
+          "herb_bed": 0.8,
+          "stone_table": 0.5,
+          "stone_lantern": 0.7,
+          "petal_pile": 0.9,
+          "basket": 0.4,
+          "target": 0.3,
+          "guqin": 0.3,
+          "flute_stand": 0.3
         }
       },
-      "banner": "res://assets/maps/guangming/stage_banner.jpg",
+      "banner": "res://assets/maps/taohua/stage_banner.jpg",
       "suggest": "适合局外 Lv22~32",
       "exp": {
         "mult": 3.0,

@@ -1,0 +1,90 @@
+{
+ "peach_tree": {
+  "file": "peach_tree.png",
+  "w": 125,
+  "h": 136,
+  "block": true
+ },
+ "taihu_rock": {
+  "file": "taihu_rock.png",
+  "w": 117,
+  "h": 119,
+  "block": true
+ },
+ "bamboo": {
+  "file": "bamboo.png",
+  "w": 129,
+  "h": 128,
+  "block": true
+ },
+ "stone_pillar": {
+  "file": "stone_pillar.png",
+  "w": 109,
+  "h": 50,
+  "block": true
+ },
+ "rockery": {
+  "file": "rockery.png",
+  "w": 108,
+  "h": 106,
+  "block": true
+ },
+ "pavilion": {
+  "file": "pavilion.png",
+  "w": 120,
+  "h": 132,
+  "block": true
+ },
+ "railing": {
+  "file": "railing.png",
+  "w": 125,
+  "h": 62,
+  "block": true
+ },
+ "flag_base": {
+  "file": "flag_base.png",
+  "w": 108,
+  "h": 88,
+  "block": true
+ },
+ "herb_bed": {
+  "file": "herb_bed.png",
+  "w": 78,
+  "h": 62
+ },
+ "stone_table": {
+  "file": "stone_table.png",
+  "w": 85,
+  "h": 50
+ },
+ "stone_lantern": {
+  "file": "stone_lantern.png",
+  "w": 43,
+  "h": 74
+ },
+ "petal_pile": {
+  "file": "petal_pile.png",
+  "w": 62,
+  "h": 33
+ },
+ "basket": {
+  "file": "basket.png",
+  "w": 63,
+  "h": 58
+ },
+ "target": {
+  "file": "target.png",
+  "w": 52,
+  "h": 71
+ },
+ "guqin": {
+  "file": "guqin.png",
+  "w": 88,
+  "h": 40
+ },
+ "flute_stand": {
+  "file": "flute_stand.png",
+  "w": 66,
+  "h": 35
+ }
+}
