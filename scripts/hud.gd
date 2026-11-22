@@ -972,6 +972,58 @@ func hide_loadout() -> void:
 # ---------------------------------------------------------------------
 
 ## 登录界面的古风素材（assets/ui/login/*.png，九宫格拉伸）；缺图时返回 null，调用方保持原来的样式
+## 致谢：登录界面和小镇菜单里都能打开；数据在 data/credits.json（和 docs/credits.md 同步维护）
+var credits_panel: Control = null
+
+
+func show_credits() -> void:
+	if credits_panel != null:
+		credits_panel.queue_free()
+	var pb := _panel_box()
+	credits_panel = pb[0]
+	credits_panel.visible = true
+	credits_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	move_child(credits_panel, get_child_count() - 1)
+	var box: VBoxContainer = pb[1]
+	box.add_child(_label("致谢", 40))
+	var sc := ScrollContainer.new()
+	sc.custom_minimum_size = Vector2(900, 470)
+	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var inner := VBoxContainer.new()
+	inner.custom_minimum_size = Vector2(880, 0)
+	inner.add_theme_constant_override("separation", 6)
+	sc.add_child(inner)
+	var js: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://data/credits.json")) if FileAccess.file_exists("res://data/credits.json") else []
+	for sec in (js if js is Array else []):
+		var h := _label(str(sec["title"]), 22, Color("#e6c65a"))
+		h.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		inner.add_child(h)
+		for ln in sec["lines"]:
+			var l := _label("· " + str(ln), 16, Color("#f3ead2"))
+			l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			l.custom_minimum_size = Vector2(860, 0)
+			inner.add_child(l)
+	box.add_child(sc)
+	var back := _button("返回  [Esc]", Vector2(180, 46), 18)
+	back.pressed.connect(hide_credits)
+	var row := _center_row()
+	row.add_child(back)
+	box.add_child(row)
+
+
+func hide_credits() -> void:
+	if credits_panel != null:
+		credits_panel.queue_free()
+		credits_panel = null
+
+
+func _input(event: InputEvent) -> void:
+	if credits_panel != null and event is InputEventKey and event.pressed and not event.echo and (event.keycode == KEY_ESCAPE or event.keycode == KEY_ENTER):
+		hide_credits()
+		get_viewport().set_input_as_handled()
+
+
 func _login_box(name: String, margin: Array) -> StyleBoxTexture:
 	var tex := _load_tex("res://assets/ui/login/%s.png" % name)
 	if tex == null:
@@ -1123,6 +1175,11 @@ func _build_auth(prefill: String) -> void:
 		sl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		btns.add_child(sl)
 	box.add_child(btns)
+	var cr := _button("致谢", Vector2(120, 36), 15)
+	cr.pressed.connect(show_credits)
+	var cr_row := _center_row()
+	cr_row.add_child(cr)
+	box.add_child(cr_row)
 	_refresh_auth()
 
 

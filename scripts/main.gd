@@ -711,6 +711,7 @@ func _open_town_menu() -> void:
 	_dlg({"id": "menu", "name": "菜单", "title": "小镇", "greet": ""}, "要去哪儿？",
 		[{"label": "继续游戏", "action": "close"},
 		{"label": "返回角色选择", "action": "switch_char"},
+		{"label": "致谢", "action": "credits"},
 		{"label": "退出登录（返回登录画面）" if online else "退出登录（未联网，无登录画面）", "action": "logout", "enabled": online}])
 
 
@@ -730,6 +731,8 @@ func _on_dialog_option(i: int) -> void:
 	match act:
 		"close":
 			_dialog_close()
+		"credits":
+			hud.show_credits()
 		"talk":
 			_talk(dialog_npc)
 		"depart":
