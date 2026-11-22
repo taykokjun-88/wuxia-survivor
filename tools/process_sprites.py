@@ -171,7 +171,9 @@ def cmd_strip(args):
     scale_file = out_dir / "scale.json"
     ref = frames[args.ref_frame - 1]["bbox"]
     ref_h = ref[3] - ref[1]
-    if args.scale_mode == "image":
+    if args.scale > 0:
+        scale = args.scale                       # 手动指定（各动作里人物本体大小不一致时，按本体高度换算）
+    elif args.scale_mode == "image":
         if not scale_file.exists():
             sys.exit("scale-mode=image 需要先处理过一条 frame 模式的动画（scale.json）")
         k = json.loads(scale_file.read_text())["k"]
@@ -253,6 +255,7 @@ def main():
     s.add_argument("--scale-mode", choices=["frame", "image"], default="frame")
     s.add_argument("--align", choices=["ground", "keep"], default="ground")
     s.add_argument("--height", type=int, default=56, help="参考帧的目标身高（像素）")
+    s.add_argument("--scale", type=float, default=0.0, help="直接指定缩放倍数（覆盖 --height / --scale-mode）")
     s.add_argument("--cell", type=int, default=96)
     s.add_argument("--out", default=str(DEFAULT_OUT))
     s.set_defaults(fn=cmd_strip)

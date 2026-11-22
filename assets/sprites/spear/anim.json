@@ -43,6 +43,12 @@
       "fps": 8.0,
       "loop": false
     },
+    "hurt": {
+      "file": "hurt.png",
+      "frames": 4,
+      "fps": 10.0,
+      "loop": false
+    },
     "death": {
       "file": "death.png",
       "frames": 4,

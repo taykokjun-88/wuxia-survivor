@@ -13,6 +13,8 @@ from PIL import Image
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "assets" / "source" / "yangjiajiang"
 V2 = ROOT / "assets" / "source" / "yangjiajiang_v2"   # 第二版成品（按 id 命名）；有就优先用
+V3 = ROOT / "assets" / "source" / "yangjiajiang_v3"   # 第三版成品，优先级最高
+SKIP_V3 = {"fx_fengmo"}                               # v3 的疯魔杖轮画成了「棉签」，暂时保留 v1
 
 # (源文件, 特效 id, 帧数, fps, 循环, world_size, forward)
 PLAN = [
@@ -66,24 +68,39 @@ def fade_left(path, frames, cell, width=0.35):
     Image.fromarray(im.astype(np.uint8)).save(path)
 
 
+# v3 的 fx_staff_wide：第 3 帧的大圆压在等分线上，按内容间隙手动分段，再重排成等宽 4 格
+MANUAL_CUTS = {"fx_staff_wide": [0, 215, 500, 945, 1376]}
+
+
+def regroup(img, cuts):
+    segs = [img.crop((a, 0, b, img.height)) for a, b in zip(cuts[:-1], cuts[1:])]
+    w = max(sg.width for sg in segs)
+    out = Image.new("RGB", (w * len(segs), img.height), (255, 0, 255))
+    for i, sg in enumerate(segs):
+        out.paste(sg, (i * w + (w - sg.width) // 2, 0))
+    return out
+
+
 def main():
     tmp = pathlib.Path(tempfile.mkdtemp())
     for src, fx, frames, fps, loop, ws, fwd in PLAN:
         p = tmp / f"{fx}.png"
-        v2 = V2 / f"{fx.replace('_dash', '')}.png"
+        v3 = V3 / f"{fx}.png"
+        v2 = V3 / f"{fx}.png" if v3.exists() and fx not in SKIP_V3 else V2 / f"{fx.replace('_dash', '')}.png"
         if not v2.exists():
             v2 = V2 / f"{fx}.png"
         if not v2.exists() and src == "__v2_only":
             continue
-        clean(v2 if v2.exists() else SRC / f"{src}.webp").save(p)
+        im = clean(v2 if v2.exists() else SRC / f"{src}.webp")
+        if fx in MANUAL_CUTS and v3.exists():
+            im = regroup(im, MANUAL_CUTS[fx])
+        im.save(p)
         cmd = [sys.executable, str(ROOT / "tools" / "process_vfx_alpha.py"), str(p), fx, "--frames", str(frames), "--cell", "192", "--fps", str(fps), "--world-size", str(ws)]
         if loop:
             cmd.append("--loop")
         if fwd:
             cmd += ["--forward", str(fwd)]
         r = subprocess.run(cmd, capture_output=True, text=True)
-        if fx == "fx_wuming_thrust":
-            fade_left(ROOT / "assets" / "vfx" / f"{fx}.png", frames, 192)
         print(fx, (r.stdout.strip().splitlines() or r.stderr.strip().splitlines() or ["?"])[-1])
 
 
