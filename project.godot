@@ -5,7 +5,7 @@ config_version=5
 
 config/name="群侠千招"
 run/main_scene="res://scenes/main.tscn"
-config/version="0.8"
+config/version="0.9"
 config/features=PackedStringArray("4.4", "GL Compatibility")
 
 [autoload]
