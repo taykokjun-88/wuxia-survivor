@@ -40,7 +40,12 @@ func _draw() -> void:
 		if not v.has(pid) or not world._vis(p.pos):
 			continue
 		var ws := float(v.effects[pid]["world_size"])
-		var size := (ws if ws > 0.0 else maxf(p.radius * 3.2, 34.0)) * (1.25 if p.empowered else 1.0)
+		var rsc := 1.0                                   # 弹体特效随「增加范围」放大：招式的半径类数值已加成，素材的默认大小按加成比例放大
+		if not p.hostile and world.skills.has(p.skill_id):
+			var sk0: SkillBase = world.skills[p.skill_id]
+			if ((sk0.def["map"]["range"]) as Array).has("radius"):
+				rsc = 1.0 + float(sk0.mods["range"])
+		var size := (ws * rsc if ws > 0.0 else maxf(p.radius * 3.2, 34.0)) * (1.25 if p.empowered else 1.0)
 		if p.empowered:    # 催动版：保持原色，加一圈青色光环
 			draw_arc(p.pos, size * 0.3, 0.0, TAU, 24, Color(EMP_RING, 0.85), 3.0)
 			draw_arc(p.pos, size * 0.3 + 5.0, 0.0, TAU, 24, Color(EMP_RING, 0.3), 5.0)
@@ -52,6 +57,12 @@ func _draw() -> void:
 			continue
 		var prog := float(fx["t"]) / float(fx["life"])
 		var sz := float(fx.get("size", 0.0))
+		# 特效范围要对应招式范围：招式把自己的半径 / 距离传进来（r / r1，已含「增加范围」的加成）时，按它定大小；world_size 只是没给范围时的默认值
+		if sz <= 0.0:
+			if fx.has("r") and float(fx["r"]) > 20.0:
+				sz = float(fx["r"]) * 2.2
+			elif fx.has("r1") and float(fx["r1"]) > 20.0:
+				sz = float(fx["r1"]) * 2.2
 		if sz <= 0.0 and float(v.effects[id2]["world_size"]) > 0.0:
 			sz = float(v.effects[id2]["world_size"])
 		if sz <= 0.0:
@@ -60,4 +71,4 @@ func _draw() -> void:
 		sz *= float(v.effects[id2]["scale"])
 		var ang := float(fx.get("angle", 0.0))
 		var at: Vector2 = fx["pos"] + Vector2.from_angle(ang) * sz * float(v.effects[id2]["forward"])
-		v.draw(self, id2, v.frame_progress(id2, prog), at, sz, ang, col)
+		v.draw(self, id2, v.frame_progress(id2, prog), at, sz, ang, col, float(fx.get("yscale", 1.0)))

@@ -303,7 +303,7 @@ class YuanYang extends Base:
 			var base := a + (float(k) - (pairs - 1) * 0.5) * 0.5
 			w.spawn_proj(self, base + 0.9, {"boomerang": true, "slowv": 0.3})                  # 长刀：减速
 			w.spawn_proj(self, base - 0.9, {"boomerang": true, "bleed": 1.0, "radius": p("radius") * 0.85})   # 短刀：撕裂
-		w.add_fx("ring", w.player_pos, 0.5, {"r0": 40.0, "r1": 140.0, "color": Color("#f0c050"), "vfx": fxid("ring"), "size": 300.0})
+		w.add_fx("ring", w.player_pos, 0.5, {"r0": 40.0, "r1": 140.0, "color": Color("#f0c050"), "vfx": fxid("ring"), "size": 300.0 * (1.0 + float(mods["range"]))})
 		if empowered:                                       # 双宿双飞：两刀交汇时爆开刀花
 			w.add_zone({"kind": "impact", "skill": self, "pos": w.player_pos, "r": 120.0, "delay": 0.65, "dmg": p("damage") * 1.2, "stun": 0.0, "crack": false, "elv": 0})
 		return true

@@ -46,10 +46,10 @@ func frame_progress(id: String, progress: float) -> int:
 
 
 ## 在 pos 处画第 frame 帧：size 是画面边长（世界像素），angle 是朝向（弧度）
-func draw(ci: CanvasItem, id: String, frame: int, pos: Vector2, size: float, angle: float = 0.0, tint: Color = Color.WHITE) -> void:
+func draw(ci: CanvasItem, id: String, frame: int, pos: Vector2, size: float, angle: float = 0.0, tint: Color = Color.WHITE, yscale: float = 1.0) -> void:
 	var e: Dictionary = effects[id]
 	var cell: int = e["cell"]
 	var tex: Texture2D = e["tex"]
-	ci.draw_set_transform(pos, angle, Vector2.ONE)
+	ci.draw_set_transform(pos, angle, Vector2(1.0, yscale))
 	ci.draw_texture_rect_region(tex, Rect2(-size * 0.5, -size * 0.5, size, size), Rect2(frame * cell, 0, cell, cell), tint)
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

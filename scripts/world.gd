@@ -1553,7 +1553,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 		add_fx("text", e.pos + Vector2(0, -e.radius - 14), 0.85, {"text": "破绽", "size": 22, "color": JADE})
 	var crit := force_crit or bd or (sk != null and sk.hit_crit(e)) or rng.randf() < crit_p
 	if crit:
-		m *= st("crit_mult")
+		m *= st("crit_mult") + (float(sk.mods["crit_dmg"]) if sk != null else 0.0)
 	var emp := (_emp_ctx == 1) if _emp_ctx >= 0 else (sk != null and sk.empowered)
 	if emp:
 		m *= maxf(0.2, 1.0 + st("emp_power"))
@@ -2060,7 +2060,8 @@ func _gain_exp(v: int) -> void:
 		hp += maxf(0.0, st("max_hp") - old_max)
 
 
-## 小 Boss 掉落「秘籍」：首次拾取三选一专属强化；之后每次拾取把该强化升一级（最高 3 级），满级后改为回复奖励。
+## 小 Boss 掉落「秘籍」：每次拾取都三选一专属强化。三张里必有目前生效的那一本（选它 = 升一级，最高 3 级，满级后改为回复奖励），
+## 另外两张是别的招式的强化，选了就替换掉原来的（局内只有一个专属强化生效，新强化从 Lv1 开始）。
 func _update_chests() -> void:
 	var i := 0
 	while i < chests.size():
@@ -2068,20 +2069,7 @@ func _update_chests() -> void:
 			var at := chests[i]
 			chests.remove_at(i)
 			Sfx.play("chest_open")
-			if skills.has("dugu"):
-				pending_chests += 1   # 无迹九变剑：秘籍直接换成「+3 层」的式
-			elif enhance_id == "":
-				if pending_chests == 0:
-					pending_chests += 1
-				else:
-					deferred_upgrades += 1   # 还没来得及选强化又拾到第二本：选完后直接升级
-			elif enhance_level < 3:
-				enhance_level += 1
-				_enhance_upgraded(at)
-			else:
-				hp = minf(st("max_hp"), hp + st("max_hp") * 0.3)
-				exp_now += int(exp_next * 0.4)
-				add_fx("text", at + Vector2(0, -30), 1.2, {"text": "强化已圆满：气血回复、修为精进", "size": 20, "color": GOLD})
+			pending_chests += 1       # 每本秘籍都是三选一（无迹九变剑：换成「+3 层」的式）
 			continue
 		i += 1
 
@@ -2100,18 +2088,31 @@ func roll_chest_choices() -> Array:
 		var sc := shi_cards(3, int(Data.T("shi_chest_gain")), "chest")
 		if not sc.is_empty():
 			return sc
+	var out: Array = []
+	if enhance_id != "" and skills.has(enhance_id):                  # 目前生效的强化：必出
+		var cdef: Dictionary = Data.skills[enhance_id]
+		var cen: Dictionary = cdef["enhance"]
+		if enhance_level < 3:
+			out.append({"kind": "enhance", "id": enhance_id, "tag": "秘籍·升级", "src": "chest",
+				"title": "%s · %s（Lv%d→Lv%d）" % [cdef["name"], cen["name"], enhance_level, enhance_level + 1], "desc": cen["desc"] + "　" + str(cen.get("up", ""))})
+		else:
+			out.append({"kind": "enhance", "id": enhance_id, "tag": "秘籍·圆满", "src": "chest",
+				"title": "%s · %s（已圆满）" % [cdef["name"], cen["name"]], "desc": "回复 30% 气血，并获得相当于当前升级所需 40% 的修为"})
 	var ids: Array = skills.keys()
 	_shuffle(ids)
-	var out: Array = []
 	for id in ids:
 		if out.size() >= 3:
 			break
+		if id == enhance_id:
+			continue
 		var def: Dictionary = Data.skills[id]
 		var en: Dictionary = def["enhance"]
+		var swap := enhance_id != ""
 		out.append({
-			"kind": "enhance", "id": id, "tag": "秘籍", "src": "chest",
-			"title": "%s · %s" % [def["name"], en["name"]], "desc": en["desc"],
+			"kind": "enhance", "id": id, "tag": "秘籍·改修" if swap else "秘籍", "src": "chest",
+			"title": "%s · %s" % [def["name"], en["name"]], "desc": en["desc"] + ("　（选它会替换现在的强化，从 Lv1 开始）" if swap else ""),
 		})
+	_shuffle(out)
 	return out
 
 
@@ -2201,10 +2202,37 @@ func roll_choices(n: int = 3, avoid: Array = [], reroll: bool = false) -> Array:
 	var hc := _hidden_card(reroll)
 	if not hc.is_empty() and not out.is_empty():
 		out[rng.randi() % out.size()] = hc
+	var wc := _wuming_up_card(out)                       # 学会无名枪法后：每次升级必有一张它的强化
+	if not wc.is_empty() and not out.is_empty():
+		var wi := rng.randi() % out.size()
+		out[wi] = wc
 	if out.is_empty():
 		out.append({"kind": "heal", "id": "", "tag": "调息", "src": "level", "title": "运功疗伤", "desc": "回复 40% 气血"})
 		out.append({"kind": "elixir", "id": "", "tag": "调息", "src": "level", "title": "凝神静气", "desc": "获得相当于当前升级所需 60% 的修为"})
 	return out
+
+
+## 学会无名枪法后，每次升级三选一里必定有一张它的强化卡（方向：连击 / 暴击 / 暴击伤害 / 贯穿 / 破绽）；已有就不重复，升满后不再出
+func _wuming_up_card(cur: Array) -> Dictionary:
+	if not skills.has("wuming_spear"):
+		return {}
+	var s: SkillBase = skills["wuming_spear"]
+	if s.upgrades.size() >= Data.max_upgrades:
+		return {}
+	for c: Dictionary in cur:
+		if str(c.get("kind", "")) == "up_skill" and str(c.get("id", "")) == "wuming_spear":
+			return {}
+	var dirs := s.available_dirs()
+	if dirs.is_empty():
+		return {}
+	_shuffle(dirs)
+	var tier := Data.roll_tier(rng, st("luck"))
+	return {
+		"kind": "up_skill", "id": "wuming_spear", "dir": dirs[0], "tier": tier, "src": "level",
+		"tag": str(Data.tiers[tier]["name"]), "color": str(Data.tiers[tier]["color"]),
+		"title": "%s · %s" % [s.def["name"], Data.directions[dirs[0]]["name"]],
+		"desc": "%s　（已升级 %d/%d）" % [s.upgrade_text(dirs[0], tier), s.upgrades.size(), Data.max_upgrades],
+	}
 
 
 ## 杨家将的隐藏武功「无名枪法」：每次升级 5% 几率出一张卡（福缘每 +10 点 +2%，身法每 +10 点 +1%，无上限）；
@@ -2375,7 +2403,7 @@ func _tick_spear(dt: float) -> void:
 		if spear_qs >= 100.0 and vfx.has("aura_spear_charge"):
 			add_fx("ring", player_pos, 0.55, {"r0": 10.0, "r1": 10.0, "color": Color.WHITE, "vfx": "aura_spear_charge", "size": 200.0})
 		if panlong_t > 0.0 and vfx.has("fx_panlong"):
-			add_fx("ring", player_pos, 0.55, {"r0": 10.0, "r1": 10.0, "color": Color.WHITE, "vfx": "fx_panlong", "size": 300.0})
+			add_fx("ring", player_pos + Vector2(0, 14.0), 0.55, {"r0": 10.0, "r1": 10.0, "color": Color.WHITE, "vfx": "fx_panlong", "size": 120.0, "yscale": 0.45})
 	if panlong_t > 0.0:
 		panlong_t -= dt
 		if panlong_t <= 0.0 and skills.has("panlong_staff"):
@@ -2453,10 +2481,18 @@ func apply_choice(c: Dictionary) -> void:
 			qa.append(int(c.get("tier", 0)))
 			xinfa_q[id] = qa
 		"enhance":
-			enhance_id = id
-			enhance_level = mini(3, 1 + deferred_upgrades)
-			deferred_upgrades = 0
-			add_fx("ring", player_pos, 0.8, {"r0": 10.0, "r1": 220.0, "color": GOLD})
+			if id == enhance_id:                                       # 选目前生效的那一本：升一级，满级给奖励
+				if enhance_level < 3:
+					enhance_level += 1
+					_enhance_upgraded(player_pos)
+				else:
+					hp = minf(st("max_hp"), hp + st("max_hp") * 0.3)
+					exp_now += int(exp_next * 0.4)
+					add_fx("text", player_pos + Vector2(0, -30), 1.2, {"text": "强化已圆满：气血回复、修为精进", "size": 20, "color": GOLD})
+			else:                                                      # 换一本：替换原来的强化，从 Lv1 开始
+				enhance_id = id
+				enhance_level = 1
+				add_fx("ring", player_pos, 0.8, {"r0": 10.0, "r1": 220.0, "color": GOLD})
 		"heal":
 			hp = minf(st("max_hp"), hp + st("max_hp") * 0.4)
 		"elixir":

@@ -1308,16 +1308,16 @@
       "fixed_cd": true,
       "hidden": true,
       "only_dirs": [
-        "crit",
         "hits",
+        "crit",
+        "crit_dmg",
         "pierce_def",
-        "stun",
         "vuln"
       ],
       "enhance": {
         "name": "无名之名",
-        "desc": "打出无名枪法后的 5 秒内，杨家将全部招式（枪法 / 棍法）伤害 +30%",
-        "up": "Lv2/3：持续时间更长"
+        "desc": "无名枪法击杀敌人时立刻重置自身冷却（每 5 秒最多触发一次）",
+        "up": "Lv2/3：触发间隔缩短为 4 / 3 秒"
       },
       "map": {
         "range": [],

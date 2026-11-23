@@ -180,7 +180,7 @@ class EightWaste extends SkillBase:
 
 	func _burst() -> void:
 		if fxid("muzzle") != "":
-			w.add_fx("ring", w.player_pos, 0.4, {"r0": 30.0, "r1": 150.0, "color": GameWorld.GOLD, "vfx": fxid("muzzle"), "size": 240.0})
+			w.add_fx("ring", w.player_pos, 0.4, {"r0": 30.0, "r1": 150.0, "color": GameWorld.GOLD, "vfx": fxid("muzzle"), "size": 240.0 * (1.0 + float(mods["range"]))})
 		var n := int(p("count")) + (4 if emp_burst else 0)
 		for i in n:
 			w.spawn_proj(self, rot + TAU * i / n)

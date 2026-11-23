@@ -179,6 +179,15 @@ class Baima extends Base:
 ## 无名枪法（隐藏武功）：单体破防——全游戏最高的单发伤害，无视 50% 防御并降低目标防御 30%，冷却固定 10 秒，每打出 10 下升一级（基础伤害 +20%/级）
 class WuMing extends Base:
 	var casts := 0
+	var _last_reset := -99.0
+	var _reset_cd := false
+
+	func tick(dt: float) -> void:
+		super.tick(dt)
+		if _reset_cd:                      # 出手之后才会设置冷却，所以在这里把冷却清掉
+			_reset_cd = false
+			cd = 0.0
+			cd_total = 0.0
 
 	func lvl() -> int:
 		return 1 + casts / 10
@@ -227,8 +236,10 @@ class WuMing extends Base:
 			t.stun = maxf(t.stun, 1.0)
 		if float(mods["vuln"]) > 0.0:
 			w.apply_vuln(t, float(mods["vuln"]))
-		if enhanced():                                        # 无名之名：打出后一段时间内杨家将全部招式伤害 +30%
-			w.spear_buff_t = ev(5.0, 6.0, 7.0)
+		if enhanced() and not t.alive and w.time - _last_reset >= ev(5.0, 4.0, 3.0):      # 无名之名：击杀重置自身冷却（5 / 4 / 3 秒内最多一次）
+			_last_reset = w.time
+			_reset_cd = true
+			w.add_fx("text", w.player_pos + Vector2(0, -80), 0.9, {"text": "无名·冷却重置", "size": 22, "color": Color("#ffd878")})
 		if casts % 10 == 0:
 			w.add_fx("text", w.player_pos + Vector2(0, -60), 1.2, {"text": "无名枪法 %d 级" % lvl(), "size": 26, "color": Color("#ffd878")})
 		w.shake = maxf(w.shake, 4.0)
@@ -260,12 +271,19 @@ class Shaolin extends Base:
 
 ## 蟠龙棍法：盘龙守势。守势期间格挡几率 +30%，每次成功格挡龙影自动反击
 class PanLong extends Base:
+	## 盘龙守势的光圈：缩成主角脚下一圈（压扁的椭圆、画在脚底），不再遮住主角
+	func panlong_ring(life: float) -> bool:
+		if not w.vfx.has("fx_panlong"):
+			return false
+		w.add_fx("ring", w.player_pos + Vector2(0, 14.0), life, {"r0": 10.0, "r1": 10.0, "color": Color.WHITE, "vfx": "fx_panlong", "size": 120.0, "yscale": 0.45})
+		return true
+
 	func fire() -> bool:
 		if not w.any_enemy_within(w.player_pos, 300.0):
 			return false
 		w.panlong_t = p("stance") + (2.0 if empowered else 0.0)
 		w.panlong_blocks = 0
-		if not vfx_at("fx_panlong", w.player_pos, 300.0, 0.0, 0.5):
+		if not panlong_ring(0.5):
 			w.add_fx("ring", w.player_pos, 0.5, {"r0": 20.0, "r1": 90.0, "color": Color("#9ab8c8")})
 		w.add_fx("text", w.player_pos + Vector2(0, -50), 0.9, {"text": "盘龙守势", "size": 26, "color": Color("#9ab8c8")})
 		return true

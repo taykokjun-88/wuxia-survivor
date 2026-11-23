@@ -136,7 +136,7 @@ class WanJian extends SkillBase:
 		var n := int(p("count")) + (3 if empowered else 0)
 		var base := (t.pos - w.player_pos).angle()
 		if fxid("muzzle") != "":
-			w.add_fx("trail", w.player_pos + Vector2.from_angle(base) * 40.0, 0.4, {"vfx": fxid("muzzle"), "size": 220.0, "angle": base})
+			w.add_fx("trail", w.player_pos + Vector2.from_angle(base) * 40.0, 0.4, {"vfx": fxid("muzzle"), "size": 220.0 * (1.0 + float(mods["range"])), "angle": base})
 		for i in n:
 			var o := {}
 			if enhanced():

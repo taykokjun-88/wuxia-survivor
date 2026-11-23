@@ -49,6 +49,7 @@ func _ready() -> void:
 		_map_collision_test()
 		_spear_test()
 		_spear_sweep_test()
+		_wuming_test()
 		_bagua_test()
 		_map_spawn_test()
 		await _touch_test()
@@ -89,6 +90,7 @@ func _ready() -> void:
 	if only == "spear":
 		_spear_test()
 		_spear_sweep_test()
+		_wuming_test()
 	if only == "bagua":
 		_bagua_test()
 	if only == "touch":
@@ -1483,24 +1485,51 @@ func _chest_flow_test() -> void:
 	w.apply_choice(ch[0])
 	_check(w.enhance_id == "chain_fist" and w.enhance_level == 1, "首次应获得 Lv1 强化")
 	_check(w.pending_chests == 0, "选择后待选应清零")
-	# 之后每本秘籍：直接升级，不再弹选择
+	# 之后每本秘籍：仍然三选一，必有目前生效的那一本；选它升一级
 	for expect in [2, 3]:
 		w.chests.append(w.player_pos)
 		w.step(DT)
-		_check(w.pending_chests == 0, "已有强化时不应再弹出选择")
-		_check(w.enhance_level == expect, "强化应升到 Lv%d，实际 Lv%d" % [expect, w.enhance_level])
+		_check(w.pending_chests == 1, "已有强化时拾到秘籍仍要选择")
+		var chs := w.roll_chest_choices()
+		var has_cur := false
+		for c: Dictionary in chs:
+			if str(c["id"]) == "chain_fist":
+				has_cur = true
+		_check(has_cur, "三张秘籍里必有当前生效的强化")
+		for c: Dictionary in chs:
+			if str(c["id"]) == "chain_fist":
+				w.apply_choice(c)
+				break
+		_check(w.enhance_level == expect, "选当前强化应升到 Lv%d，实际 Lv%d" % [expect, w.enhance_level])
 	w.chests.append(w.player_pos)
 	w.step(DT)
-	_check(w.enhance_level == 3, "强化最高 Lv3")
-	# 边界：还没选强化就连续拾到两本 → 选完直接 Lv2
+	for c: Dictionary in w.roll_chest_choices():
+		if str(c["id"]) == "chain_fist":
+			w.apply_choice(c)
+			break
+	_check(w.enhance_level == 3, "强化最高 Lv3，满级选它给奖励但不超过 3")
+	# 换一本：替换原来的强化，从 Lv1 开始（局内只有一个专属强化）
+	w.add_skill("vajra_fist")
+	w.chests.append(w.player_pos)
+	w.step(DT)
+	var other := {}
+	for c: Dictionary in w.roll_chest_choices():
+		if str(c["id"]) == "vajra_fist":
+			other = c
+	_check(not other.is_empty(), "另一张秘籍给出别的招式的强化")
+	w.apply_choice(other)
+	_check(w.enhance_id == "vajra_fist" and w.enhance_level == 1, "选别的秘籍会替换原强化并从 Lv1 开始")
+	# 边界：连续拾到两本 → 要选两次
 	var w2 := _new_world(12)
 	w2.chests.append(w2.player_pos)
 	w2.chests.append(w2.player_pos)
 	w2.step(DT)
 	w2.step(DT)
+	_check(w2.pending_chests == 2, "连续拾到两本应有 2 个待选")
 	w2.apply_choice(w2.roll_chest_choices()[0])
-	_check(w2.enhance_level == 2, "连续拾到两本应直接 Lv2，实际 Lv%d" % w2.enhance_level)
-	print("  强化 Lv1→2→3、封顶、连拾边界  OK")
+	w2.apply_choice(w2.roll_chest_choices()[0])
+	_check(w2.enhance_level == 2 and w2.pending_chests == 0, "两次选当前强化 → Lv2，实际 Lv%d" % w2.enhance_level)
+	print("  强化 Lv1→2→3、封顶、替换、连拾  OK")
 	_free_world(w2)
 	_free_world(w)
 
@@ -2361,6 +2390,7 @@ func _upgrade_system_test() -> void:
 					"pierce_def": ok = float(s.mods["pierce_def"]) > 0.0
 					"stun": ok = float(s.mods["stun"]) > 0.0
 					"vuln": ok = float(s.mods["vuln"]) > 0.0
+					"crit_dmg": ok = float(s.mods["crit_dmg"]) > 0.0
 				_check(ok, "%s 的方向 %s 档位 %d 没有生效" % [id, dir, tier])
 				_check(not s.upgrade_text(dir, tier).contains("{"), "%s/%s 的描述有未替换的占位符" % [id, dir])
 				checked += 1
@@ -4259,6 +4289,44 @@ func _spear_sweep_test() -> void:
 	w.queue_free()
 
 
+func _wuming_test() -> void:
+	print("\n=== 无名枪法：必出强化卡 / 方向 / 击杀重置冷却 ===")
+	var w := _new_world(93, "yangjia_spear")
+	w.add_skill("wuming_spear")
+	var wm: SkillBase = w.skills["wuming_spear"]
+	var dirs := wm.available_dirs()
+	dirs.sort()
+	_check(dirs == ["crit", "crit_dmg", "hits", "pierce_def", "vuln"], "无名枪法强化方向：连击 / 暴击 / 暴击伤害 / 贯穿 / 破绽（实际 %s）" % str(dirs))
+	for i in 12:
+		var ch := w.roll_choices(3)
+		var found := false
+		for c: Dictionary in ch:
+			if str(c.get("id", "")) == "wuming_spear" and str(c.get("kind", "")) == "up_skill":
+				found = true
+		_check(found, "第 %d 次升级三选一里必有无名枪法强化" % (i + 1))
+		if not found:
+			break
+	# 暴击伤害方向真的生效
+	var before := float(wm.mods["crit_dmg"])
+	wm.add_upgrade("crit_dmg", 1)
+	_check(float(wm.mods["crit_dmg"]) > before, "暴击伤害方向累加到 mods")
+	# 击杀重置冷却（强化 Lv1：5 秒内最多一次）
+	w.enhance_id = "wuming_spear"
+	w.enhance_level = 1
+	var e: Enemy = w._spawn_enemy("bandit", w.player_pos + Vector2(120, 0))
+	e.hp = 1.0
+	e.speed = 0.0
+	wm.cd = 0.0
+	w._rebuild_grid()
+	for i in 40:
+		w.step(1.0 / 60.0)
+		if not e.alive:
+			break
+	_check(not e.alive, "无名枪法击杀了敌人")
+	_check(wm.cd <= 0.2, "击杀后冷却被重置（cd=%.2f）" % wm.cd)
+	w.queue_free()
+
+
 func _spear_test() -> void:
 	print("\n=== 杨家将：招式冒烟与机制 ===")
 	var all_ids := ["yangjia_spear", "meihua_spear", "baima_spear", "wuming_spear", "shaolin_staff", "panlong_staff", "dagou_staff", "fengmo_staff", "xiangmo_staff"]
@@ -4328,7 +4396,7 @@ func _spear_test() -> void:
 	wm.add_upgrade("cooldown", 3)
 	_check(absf(wm.p("cooldown") - 10.0) < 1e-6, "无名枪法：冷却固定 10 秒，不能缩短")
 	var dirs := wm.available_dirs()
-	_check(not dirs.has("damage") and not dirs.has("range") and not dirs.has("targets") and dirs.has("crit") and dirs.has("hits") and dirs.has("pierce_def") and dirs.has("stun") and dirs.has("vuln"), "无名枪法：强化方向只有暴击 / 连击 / 贯穿 / 定身 / 破绽（%s）" % str(dirs))
+	_check(not dirs.has("damage") and not dirs.has("range") and not dirs.has("targets") and dirs.has("crit") and dirs.has("crit_dmg") and dirs.has("hits") and dirs.has("pierce_def") and not dirs.has("stun") and dirs.has("vuln"), "无名枪法：强化方向 = 连击 / 暴击 / 暴击伤害 / 贯穿 / 破绽（%s）" % str(dirs))
 	_check(absf(wm.ignore_def() - 0.5) < 1e-9, "无名枪法：无视 50%% 防御")
 	wm.add_upgrade("pierce_def", 3)
 	_check(wm.ignore_def() > 0.7, "贯穿强化提高无视防御比例（%.2f）" % wm.ignore_def())

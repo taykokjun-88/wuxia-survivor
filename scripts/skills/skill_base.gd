@@ -19,7 +19,7 @@ var upgrades: Array[Dictionary] = []   # [{dir, tier}]
 var mods: Dictionary = {
 	"damage": 0.0, "cooldown": 0.0, "range": 0.0, "targets": 0.0, "buff": 0.0,
 	"debuff": 0.0, "duration": 0.0, "heal": 0.0, "hits": 0.0, "crit": 0.0, "empower": 0.0,
-	"block": 0.0, "pierce_def": 0.0, "stun": 0.0, "vuln": 0.0,          # 杨家将的方向：铁壁 / 贯穿 / 定身 / 破绽
+	"block": 0.0, "pierce_def": 0.0, "stun": 0.0, "vuln": 0.0, "crit_dmg": 0.0,          # 杨家将的方向：铁壁 / 贯穿 / 定身 / 破绽
 }
 var echoing := false
 var empowered := false           # 本次出手是否催动（盈境 + 内力够）
@@ -167,6 +167,7 @@ func add_upgrade(dir: String, tier: int) -> void:
 		"pierce_def": mods["pierce_def"] += v / 100.0
 		"stun": mods["stun"] += v / 100.0
 		"vuln": mods["vuln"] += v / 100.0
+		"crit_dmg": mods["crit_dmg"] += v / 100.0
 
 
 ## 升级卡片上的效果文字
