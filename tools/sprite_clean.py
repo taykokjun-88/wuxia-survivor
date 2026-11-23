@@ -43,3 +43,27 @@ def defragment(cell: np.ndarray, gap: int = 7, ramp: int = 10, thr: int = 24):
                     f = (i + 1) / float(ramp + 1)
                     out[:, xx, 3] = (out[:, xx, 3] * f).astype(np.uint8)
     return out, removed
+
+
+def fig_height(cells) -> float:
+    """一组格子（RGBA 数组列表）里人物的中位高度（不透明像素的纵向范围）"""
+    hs = []
+    for c in cells:
+        ys = np.where((c[..., 3] > 40).any(axis=1))[0]
+        if len(ys):
+            hs.append(int(ys.max() - ys.min()))
+    return float(np.median(hs)) if hs else 0.0
+
+
+def rescale_to(cell: np.ndarray, k: float, foot_x: float = 128.0, foot_y: float = 240.0) -> np.ndarray:
+    """把一格内容按 k 缩放（k<1 缩小），以脚底 (foot_x, foot_y) 为支点，保持格子大小。用于把画得偏大的新条带对齐到现有角色的高度"""
+    from PIL import Image
+    h, w = cell.shape[:2]
+    if abs(k - 1.0) < 0.02:
+        return cell
+    im = Image.fromarray(cell, "RGBA").convert("RGBa")
+    nw, nh = max(1, round(w * k)), max(1, round(h * k))
+    im = im.resize((nw, nh), Image.LANCZOS).convert("RGBA")
+    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    out.alpha_composite(im, (round(foot_x - foot_x * k), round(foot_y - foot_y * k)))
+    return np.array(out)

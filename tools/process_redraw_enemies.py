@@ -20,10 +20,11 @@ from scipy import ndimage as ndi
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
-from sprite_clean import defragment
+from sprite_clean import defragment, fig_height, rescale_to
 SRC = ROOT / "assets/source"
 OUT = ROOT / "assets/enemies"
 STAGES = ["redraw_07", "redraw_08", "redraw_09"]
+NEW12 = set((ROOT / "assets/source/redraw_12_files.txt").read_text().split()) if (ROOT / "assets/source/redraw_12_files.txt").exists() else set()   # 计划书 12 的新条带：人物画得偏大，要按循环动画的人物高度归一化
 SRC_CELL = 256
 SRC_FOOT = 16
 SUFFIX = ("_attack", "_windup", "_hurt", "_death")
@@ -90,9 +91,18 @@ def main() -> None:
                 continue
             im = np.array(Image.open(f).convert("RGBA"))
             n = im.shape[1] // SRC_CELL
+            kn = 1.0
+            if name in NEW12 and name != eid:
+                fa = fig_height([im[:, i * SRC_CELL:(i + 1) * SRC_CELL] for i in range(n)])
+                kn = min(1.0, fig / fa) if fa > 0 else 1.0
+            elif name in NEW12 and name == eid:
+                fa = fig_height([im[:, i * SRC_CELL:(i + 1) * SRC_CELL] for i in range(n)])
+                kn = min(1.0, fig / fa) if fa > 0 else 1.0
             strip = Image.new("RGBA", (cell * n, cell), (0, 0, 0, 0))
             for i in range(n):
                 c = clean(im[:, i * SRC_CELL:(i + 1) * SRC_CELL])
+                if kn < 0.98:
+                    c = rescale_to(c, kn, 128.0, 256.0 - SRC_FOOT)
                 c, _rm = defragment(c, gap=4, ramp=26)                  # 去掉漂在外面的碎块；被格子边界切断的边缘渐隐
                 pm = Image.fromarray(c, "RGBA").convert("RGBa").resize((cell, cell), Image.LANCZOS).convert("RGBA")
                 strip.paste(pm, (i * cell, 0))

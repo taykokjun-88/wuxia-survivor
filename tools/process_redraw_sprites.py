@@ -23,11 +23,12 @@ from scipy import ndimage as ndi
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
-from sprite_clean import defragment
+from sprite_clean import defragment, fig_height, rescale_to
 SRC = ROOT / "assets/source/redraw_01_v2"
 OUT = ROOT / "assets/sprites"
 DIRS = {"fist": "player", "sword": "sword", "blade": "blade", "spear": "spear"}
 SRC_CELL = 256
+NEW12 = set((ROOT / "assets/source/redraw_12_files.txt").read_text().split()) if (ROOT / "assets/source/redraw_12_files.txt").exists() else set()   # 计划书 12 新条带：按 idle 的人物高度归一化
 CELL = 156                 # 输出格：角色 120px × 156/256 ≈ 73px，正好等于「旧 56px × player_zoom 1.3」
 WORLD = 120                # 绘制时的世界尺寸；player_zoom 1.3 → 156，和纹理 1:1，不再缩放
 SRC_FOOT = 16              # 源图里脚底距格子底边
@@ -77,6 +78,11 @@ def main() -> None:
         old = json.loads(path.read_text(encoding="utf-8"))
         old_anims = old["anims"]
         anims = {}
+        _ii = Image.open(SRC / sdir / "idle.png").convert("RGBA")
+        _ia = np.array(_ii)
+        _has = (_ia[..., 3] < 10).mean() > 0.05
+        _ir = np.array(_ii.convert("RGB"))
+        idle_fig = fig_height([process_cell(_ir[:, i * SRC_CELL:(i + 1) * SRC_CELL], _ia[:, i * SRC_CELL:(i + 1) * SRC_CELL] if _has else None) for i in range(_ii.width // SRC_CELL)])
         for f in sorted((SRC / sdir).glob("*.png")):
             name = f.stem
             src_im = Image.open(f).convert("RGBA")
@@ -86,8 +92,14 @@ def main() -> None:
             arr = np.array(im)
             arr_a = np.array(src_im)
             strip = Image.new("RGBA", (CELL * n, CELL), (0, 0, 0, 0))
+            cells_p = [process_cell(arr[:, i * SRC_CELL:(i + 1) * SRC_CELL], arr_a[:, i * SRC_CELL:(i + 1) * SRC_CELL] if has_alpha else None) for i in range(n)]
+            if f"{sdir}/{name}" in NEW12 and name != "idle":
+                fa = fig_height(cells_p)
+                kk = min(1.0, idle_fig / fa) if fa > 0 else 1.0
+                cells_p = [rescale_to(c, kk, 128.0, 256.0 - SRC_FOOT) for c in cells_p]
             for i in range(n):
-                cell = process_cell(arr[:, i * SRC_CELL:(i + 1) * SRC_CELL], arr_a[:, i * SRC_CELL:(i + 1) * SRC_CELL] if has_alpha else None)
+                cell = cells_p[i]
+                _unused = (arr[:, i * SRC_CELL:(i + 1) * SRC_CELL], arr_a[:, i * SRC_CELL:(i + 1) * SRC_CELL] if has_alpha else None)
                 pm = Image.fromarray(cell, "RGBA").convert("RGBa").resize((CELL, CELL), Image.LANCZOS).convert("RGBA")
                 strip.paste(pm, (i * CELL, 0))
             strip.save(OUT / odir / f"{name}.png")

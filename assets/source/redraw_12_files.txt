@@ -1,0 +1,10 @@
+soldier_attack
+th_mini_1_attack
+s2_mini_3_attack
+spear/block
+spear/walk
+sword/awaken
+sword/finish
+sword/true_idle
+sword/true_thrust
+sword/true_walk

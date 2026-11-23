@@ -2591,6 +2591,12 @@
       ],
       "only": true
     },
+    "crit_dmg": {
+      "name": "暴击伤害",
+      "fmt": "暴击伤害 +{v}%",
+      "values": [10, 20, 30, 40],
+      "only": true
+    },
     "stun": {
       "name": "定身",
       "fmt": "命中有 {v}% 几率定身 1 秒",
