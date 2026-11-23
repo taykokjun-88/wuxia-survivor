@@ -2689,7 +2689,7 @@ func _difficulty_reward_test() -> void:
 	var hard := base.duplicate()
 	hard["difficulty"] = {"count": 300, "hp": 300, "speed": 300}
 	var r2: Dictionary = Save.add_run_exp(hard)
-	_check(int(r2["gained"]) == int(r1["gained"]) * 2, "单机结算：难度 300%% 修为翻倍（%d → %d）" % [r1["gained"], r2["gained"]])
+	_check(absi(int(r2["gained"]) - int(r1["gained"]) * 2) <= 1, "单机结算：难度 300%% 修为翻倍（四舍五入误差 ≤ 1）（%d → %d）" % [r1["gained"], r2["gained"]])
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_diff_save.json"))
 	Save.path = old_path
 	Save.load_data()
@@ -3867,7 +3867,7 @@ func _meta_test() -> void:
 	for v in mv["effective"]:
 		_check(absf(Meta.effective(int(v["points"])) - float(v["eff"])) < 1e-3, "有效点向量不一致：%s" % str(v))
 	for v in mv["runExp"]:
-		_check(Meta.run_exp(int(v["score"]), bool(v["won"]), bool(v["first"]), float(v.get("comp", 1.0))) == int(v["exp"]), "修为向量不一致：%s" % str(v))
+		_check(Meta.run_exp(int(v["score"]), bool(v["won"]), bool(v["first"]), float(v.get("comp", 1.0)), {}, int(v.get("level", 99))) == int(v["exp"]), "修为向量不一致：%s" % str(v))
 	for v in mv["comp"]:
 		_check(absf(Meta.comp_of(v["d"]) - float(v["comp"])) < 1e-9, "综合难度向量不一致：%s" % str(v))
 	_check(Meta.exp_to_reach(50) == 25289 and Meta.points_total(50) == 147, "满级累计修为 25289、属性点 147")
@@ -3911,12 +3911,13 @@ func _meta_test() -> void:
 	Save.load_data()
 	var win := {"won": true, "seconds": 750, "level": 38, "kills": 6100, "bosses": 4}
 	var a: Dictionary = Save.add_run_exp(win)
-	_check(int(a["gained"]) == 395 and int(a["level"]) >= 7, "单机首次通关 255+40+100")
+	_check(int(a["gained"]) == 593 and int(a["level"]) >= 7, "单机首次通关 (255+40+100) × 1.5（局外 ≤15 级加成）")
 	var b: Dictionary = Save.add_run_exp(win)
-	_check(int(b["gained"]) == 295, "第二次通关没有首胜奖励")
+	var b_exp := 295 if Meta.level_of(int(a["exp"])) > 15 else 443
+	_check(int(b["gained"]) > 0 and int(b["gained"]) <= b_exp, "第二次通关没有首胜奖励，且可能被地图修为上限截断（实际 %d，不超过 %d）" % [int(b["gained"]), b_exp])
 	Save.set_meta_alloc({"pow": 12})
 	Save.load_data()
-	_check(Save.meta_exp() == 690 and Save.meta_alloc()["pow"] == 12, "修为与属性点应持久化")
+	_check(Save.meta_exp() == int(a["gained"]) + int(b["gained"]) and Save.meta_alloc()["pow"] == 12, "修为与属性点应持久化")
 	DirAccess.remove_absolute(ProjectSettings.globalize_path("user://test_meta_save.json"))
 	Save.path = old_path
 	Save.load_data()

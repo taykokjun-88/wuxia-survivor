@@ -164,6 +164,27 @@
    "first": false,
    "comp": 1.5,
    "exp": 1
+  },
+  {
+   "score": 12000,
+   "won": false,
+   "first": false,
+   "level": 10,
+   "exp": 225
+  },
+  {
+   "score": 12000,
+   "won": false,
+   "first": false,
+   "level": 15,
+   "exp": 225
+  },
+  {
+   "score": 12000,
+   "won": false,
+   "first": false,
+   "level": 16,
+   "exp": 150
   }
  ],
  "comp": [

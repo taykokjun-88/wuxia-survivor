@@ -7,6 +7,8 @@ const MAX_LEVEL := 50
 const POINTS_PER_LEVEL := 3
 const ATTR_CAP := 99
 const EXP_CAP_PER_RUN := 400
+const LOW_LEVEL_MAX := 15          # 局外 1~15 级：局内修为转化为局外修为 +50%
+const LOW_LEVEL_BONUS := 0.5
 const WIN_BONUS := 40
 const FIRST_WIN_BONUS := 100
 
@@ -78,12 +80,13 @@ static func exp_mult(comp: float) -> float:
 
 
 ## mx：地图的修为设置 {mult, run_cap, cap_level}（没有就按黑风寨：×1、单局上限 400）
-static func run_exp(score: int, won: bool, first_win: bool, comp: float = 1.0, mx: Dictionary = {}) -> int:
+static func run_exp(score: int, won: bool, first_win: bool, comp: float = 1.0, mx: Dictionary = {}, level: int = 99) -> int:
 	var mm := float(mx.get("mult", 1.0))
 	var x := mini(int(mx.get("run_cap", EXP_CAP_PER_RUN)), int(round(float(score) / 80.0 * mm)))
 	if won:
 		x += int(round(float(WIN_BONUS + (FIRST_WIN_BONUS if first_win else 0)) * mm))
-	return int(round(float(x) * exp_mult(comp)))
+	var low := 1.0 + LOW_LEVEL_BONUS if level <= LOW_LEVEL_MAX else 1.0       # 新手加成：本局开始时局外等级 ≤ 15 → 修为 ×1.5
+	return int(round(float(x) * exp_mult(comp) * low))
 
 
 ## 这张地图能把修为推到的上限：cap_level 级再加半级。到了上限，这张图就不再给修为（银两和装备照给）

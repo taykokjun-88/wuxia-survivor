@@ -509,11 +509,12 @@ function diffComp(d) {
   }
   return sum / 300;
 }
-function metaRunExp(score, won, first, comp, mx) {
+function metaRunExp(score, won, first, comp, mx, level) {
   var mm = mx && mx.expMult ? mx.expMult : 1, cap = mx && mx.runCap ? mx.runCap : META.EXP_CAP;
   var x = Math.min(cap, Math.round(score / 80 * mm));
   if (won) x += Math.round((META.WIN_BONUS + (first ? META.FIRST_WIN_BONUS : 0)) * mm);
-  return Math.round(x * (1 + ((comp || 1) - 1) * DIFF.expMeta));
+  var low = (level > 0 && level <= 15) ? 1.5 : 1;   // 局外 1~15 级：修为 +50%
+  return Math.round(x * (1 + ((comp || 1) - 1) * DIFF.expMeta) * low);
 }
 function metaEffective(p) {
   p = Math.max(0, Math.min(META.ATTR_CAP, p));
@@ -676,7 +677,7 @@ function submitScore(req) {
   var firstWin = run.won && !(Number(row[P.wins]) > 0);
   var comp = diffComp(req.difficulty);
   var mm = MAPS[run.map];
-  var gained0 = metaRunExp(score, run.won, firstWin, comp, mm);
+  var gained0 = metaRunExp(score, run.won, firstWin, comp, mm, metaLevel(Number(row[P.xp]) || 0));
   var gained = metaCapped(gained0, Number(row[P.xp]) || 0, mm.capLevel);
   var oldLevel = metaLevel(Number(row[P.xp]) || 0);
   row[P.xp] = Math.max(0, Math.floor(Number(row[P.xp]) || 0)) + gained;
