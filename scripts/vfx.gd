@@ -21,13 +21,13 @@ func load_dir(dir: String) -> int:
 		var e: Dictionary = list[id]
 		var tex_path := dir + "/" + str(e["file"])
 		if ResourceLoader.exists(tex_path):
-			add(str(id), load(tex_path), int(e["frames"]), float(e["fps"]), int(e["cell"]), bool(e.get("loop", false)), float(e.get("world_size", 0.0)), float(e.get("scale", 1.0)), float(e.get("forward", 0.0)))
+			add(str(id), load(tex_path), int(e["frames"]), float(e["fps"]), int(e["cell"]), bool(e.get("loop", false)), float(e.get("world_size", 0.0)), float(e.get("scale", 1.0)), float(e.get("forward", 0.0)), int(e.get("passes", 1)))
 	return effects.size()
 
 
 ## world_size：整张格子在游戏里的边长（像素）；0 表示由调用方按招式半径等决定
-func add(id: String, tex: Texture2D, frames: int, fps: float, cell: int, loop: bool = false, world_size: float = 0.0, scale: float = 1.0, forward: float = 0.0) -> void:
-	effects[id] = {"tex": tex, "frames": maxi(1, frames), "fps": fps, "cell": cell, "loop": loop, "world_size": world_size, "scale": scale, "forward": forward}
+func add(id: String, tex: Texture2D, frames: int, fps: float, cell: int, loop: bool = false, world_size: float = 0.0, scale: float = 1.0, forward: float = 0.0, passes: int = 1) -> void:
+	effects[id] = {"tex": tex, "frames": maxi(1, frames), "fps": fps, "cell": cell, "loop": loop, "world_size": world_size, "scale": scale, "forward": forward, "passes": passes}
 
 
 func has(id: String) -> bool:

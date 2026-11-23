@@ -622,10 +622,11 @@
   "fx_blade_tulong": {
    "file": "fx_blade_tulong.png",
    "frames": 4,
-   "fps": 7.0,
+   "fps": 5.0,
    "cell": 256,
    "loop": false,
-   "world_size": 460.0
+   "world_size": 460.0,
+   "passes": 3
   },
   "fx_blade_soul_aura": {
    "file": "fx_blade_soul_aura.png",

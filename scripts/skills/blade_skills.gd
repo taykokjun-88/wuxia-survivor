@@ -97,7 +97,14 @@ class WuHu extends Base:
 		var sweep := enhanced() and combo % 3 == 0
 		var arc := TAU if sweep else p("arc")
 		var dmg := p("damage") * (1.0 + (ev(0.4, 0.8, 1.2) if sweep else 0.0))
-		w.fx_slash(w.player_pos, a, reach, minf(arc, 3.4), true, fxid("slash"))
+		# 特效集中在真实打击范围内：刀痕素材的有效内容约占格子的 74%，按 reach 缩放并前移，使其落在 0~reach 之间；
+		# 360° 横扫则在四个方向各放一道（对应真实的全方位判定），不再只画一道偏在身边的刀痕
+		var angs: Array = [a]
+		if sweep:
+			angs = [a, a + PI * 0.5, a + PI, a + PI * 1.5]
+		for ang in angs:
+			w.add_fx("slash", w.player_pos, 0.2, {"angle": ang, "r": reach, "arc": arc, "heavy": true, "vfx": fxid("slash"),
+				"size": reach * 1.4, "fwd": reach * 0.55, "yscale": 1.25})
 		cone(w.player_pos, a, arc * 0.5, reach, dmg, p("knock"), 1)
 		if empowered:
 			w.spawn_proj(self, a, {"speed": 480.0, "radius": 24.0, "life": 0.5, "pierce": 3, "knock": 80.0, "damage": p("damage") * 0.6, "bleed": 1.0})

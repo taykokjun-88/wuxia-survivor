@@ -1889,7 +1889,8 @@ func _update_zones(dt: float) -> void:
 				if z["t"] >= z["delay"]:
 					var s: SkillBase = z["skill"]
 					area_hit(s, zpos, zr, z["dmg"], 250.0, z["stun"])
-					add_fx("ring", zpos, 0.3, {"r0": 10.0, "r1": zr, "color": VERMILION, "vfx": s.fxid("impact") if s.fxid("impact") != "" else "burst_quake"})
+					var ifx: String = s.fxid("impact") if s.fxid("impact") != "" else "burst_quake"
+					add_fx("ring", zpos, 0.7 if ifx == "fx_blade_tulong" else 0.3, {"r0": 10.0, "r1": zr, "color": VERMILION, "vfx": ifx})
 					shake = maxf(shake, 5.0)
 					if z["crack"]:
 						var cl: int = z["elv"]

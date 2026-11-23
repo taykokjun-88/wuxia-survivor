@@ -70,5 +70,6 @@ func _draw() -> void:
 		var col: Color = fx.get("tint", Color.WHITE)
 		sz *= float(v.effects[id2]["scale"])
 		var ang := float(fx.get("angle", 0.0))
-		var at: Vector2 = fx["pos"] + Vector2.from_angle(ang) * sz * float(v.effects[id2]["forward"])
-		v.draw(self, id2, v.frame_progress(id2, prog), at, sz, ang, col, float(fx.get("yscale", 1.0)))
+		var at: Vector2 = fx["pos"] + Vector2.from_angle(ang) * (float(fx["fwd"]) if fx.has("fwd") else sz * float(v.effects[id2]["forward"]))
+		for _pass in int(v.effects[id2].get("passes", 1)):     # passes>1：同一帧叠画几次，提高半透明素材的不透明度
+			v.draw(self, id2, v.frame_progress(id2, prog), at, sz, ang, col, float(fx.get("yscale", 1.0)))
