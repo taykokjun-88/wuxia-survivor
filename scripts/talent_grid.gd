@@ -39,13 +39,18 @@ static func grid_size() -> Vector2:
 	return Vector2(G_BOX_W * 3.0 + GAP * 2.0, grid_h() + G_STRIP)
 
 
+## 三个框从左到右的顺序（默认 刚 / 柔 / 灵；剑客是 刚 / 灵 / 柔，灵系在中间）
+func _order() -> Array:
+	return _tree.get("order", ["gang", "rou", "ling"])
+
+
 func _bi(branch: String) -> int:
-	return ["gang", "rou", "ling"].find(branch)
+	return _order().find(branch)
 
 
 ## 每个框的列数（武者 / 刀客 / 杨家将都是 4 列；剑客「灵」系 6 列）；框宽按列数分配
 func _ncols(bi: int) -> int:
-	var b: String = ["gang", "rou", "ling"][bi]
+	var b: String = _order()[bi]
 	return int((_tree["branches"][b]["cols"] as Array).size())
 
 
@@ -159,7 +164,7 @@ func _draw() -> void:
 	var bold: Font = Data.font_bold if Data.font_bold != null else font
 	var gates: Array = _tree.get("gates", [])
 	for bi in 3:
-		var b: String = ["gang", "rou", "ling"][bi]
+		var b: String = _order()[bi]
 		var bd: Dictionary = _tree["branches"][b]
 		var col := Color(COLORS[b])
 		var rect := g_box(bi)

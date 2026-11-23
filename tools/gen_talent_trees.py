@@ -251,5 +251,6 @@ sword = build({"id": "sword_ji", "name": "极意·千锋聚啸剑", "max": 1, "n
                "rou": ("柔", "快剑 · 回旋 · 回春", "kuang_feng", ["猎风疾影剑", "圆转绵剑", "兰溪双影剑", "通用"], ["kuang_feng", "taiji_sword", "yunv"], sw_rou),
                "ling": ("灵", "九变 · 远程 · 身法", "dugu", ["九变·根基", "九变·攻势", "九变·控势", "残影掠光剑", "千锋聚啸剑", "蜿蜒曲锋剑"],
                         ["dugu", "dugu", "dugu", "pixie", "wanjian", "jinshe"], sw_ling)})
+sword["order"] = ["gang", "ling", "rou"]          # 剑客：灵系（九变）放在中间，刚柔在左右
 (ROOT / "data" / "talent_trees.json").write_text(json.dumps({"fist": fist, "sword": sword}, ensure_ascii=False, indent=1), encoding="utf-8")
 print("ok, 每系 50 点")
