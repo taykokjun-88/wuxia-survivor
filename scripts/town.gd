@@ -55,7 +55,7 @@ func _ready() -> void:
 			d["th"] = float(nm["h"])
 		npcs.append(d)
 		_add_building_obstacle(d)
-	obstacles.append(Rect2(-40, -150, 80, 70))          # 水井（挪到广场偏北，避开茶摊）
+	obstacles.append(Rect2(-40, -110, 80, 70))          # 水井（挪到广场偏北，避开茶摊）
 	reset_player()
 
 
@@ -253,10 +253,10 @@ func _draw() -> void:
 func _tile_kind(cx: int, cy: int) -> int:
 	## 小镇地面瓦片（assets/maps/town）：0 夯土 / 1 石板路 / 2 泥地杂草 / 3 青石广场
 	var c := Vector2(cx * TILE_T + TILE_T / 2, cy * TILE_T + TILE_T / 2)
-	if absf(c.x) < 80.0 or absf(c.y + 130.0) < 60.0 or absf(c.y - 190.0) < 60.0:
-		if absf(c.y) < 520.0:
+	if absf(c.x) < 80.0 or absf(c.y + 300.0) < 60.0 or absf(c.y - 200.0) < 60.0:
+		if absf(c.y) < 800.0:
 			return 1                 # 石板路
-	if (c - Vector2(0, 40)).length() < 170.0:
+	if (c - Vector2(0, 40)).length() < 190.0:
 		return 3                     # 青石广场
 	if map_art != null and map_art.noise(cx * 0.12, cy * 0.12, 5) > 0.72:
 		return 0                     # 夯土（少量斑块）
@@ -300,7 +300,7 @@ func _px_circle(c: Vector2, r: float, col: Color, step: float = 4.0) -> void:
 
 
 func _draw_well() -> void:
-	var c := Vector2(0, -105)
+	var c := Vector2(0, -65)
 	if not _vis(c):
 		return
 	if _deco.has("well"):
@@ -321,18 +321,18 @@ func _draw_well() -> void:
 
 func _draw_decor() -> void:
 	# 灯笼柱与树：沿着路和镇边
-	var lamps := [Vector2(-110, -40), Vector2(110, -40), Vector2(-110, 330), Vector2(110, 330), Vector2(-260, -130), Vector2(260, -130), Vector2(-260, 190), Vector2(260, 190)]
+	var lamps := [Vector2(-110, -90), Vector2(110, -90), Vector2(-110, 460), Vector2(110, 460), Vector2(-260, -300), Vector2(260, -300), Vector2(-260, 200), Vector2(260, 200)]
 	for l in lamps:
 		if _vis(l):
 			_draw_lamp(l)
-	for i in 14:
+	for i in 17:
 		var p := Vector2(bounds.position.x + 30.0 + i * 108.0, bounds.position.y + 26.0 + float((i * 37) % 3) * 8.0)
 		if _vis(p):
 			_draw_tree(p, 1.0 + 0.2 * float(i % 3))
 		var q := Vector2(bounds.position.x + 70.0 + i * 108.0, bounds.end.y - 24.0 - float((i * 53) % 3) * 8.0)
 		if _vis(q):
 			_draw_tree(q, 1.0 + 0.2 * float((i + 1) % 3))
-	for j in 8:
+	for j in 10:
 		for sx in [bounds.position.x + 30.0, bounds.end.x - 30.0]:
 			var p2 := Vector2(sx, bounds.position.y + 150.0 + j * 120.0)
 			if _vis(p2):
