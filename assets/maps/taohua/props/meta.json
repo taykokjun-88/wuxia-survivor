@@ -1,7 +1,7 @@
 {
  "peach_tree": {
   "file": "peach_tree.png",
-  "w": 142,
+  "w": 138,
   "h": 136,
   "block": true
  },
@@ -64,7 +64,7 @@
  },
  "petal_pile": {
   "file": "petal_pile.png",
-  "w": 52,
+  "w": 54,
   "h": 33
  },
  "basket": {
