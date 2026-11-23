@@ -233,6 +233,171 @@ COLS = {"gang": ["连山贯日拳", "沉岳铁拳", "裂脉震拳", "通用"], "
         "ling": ["朔雪融阳掌", "撼岳惊涛掌", "四野归元功", "通用"]}
 
 COL_SKILLS = {"gang": ["chain_fist", "vajra_fist", "quake_fist"], "rou": ["point_finger", "whirl_palm", "taiji"], "ling": ["cloud_palm", "yue_palm", "eight_waste"]}
+
+# ======================= 刀客 =======================
+bl_gang = (
+    chain("bg_a", 0, A_T, A_R, [
+        ("断门", 3, {"skill:wuhu_blade:damage": 0.08}, "五煞断岳刀伤害 +8%/级"),
+        ("虎啸", 3, {"skill:wuhu_blade:range": 0.08}, "范围 +8%/级"),
+        ("撕裂入骨", 2, {"t_sliegu": 1, "bleed_pow": 0.1}, "命中叠的撕裂层数 +1，撕裂伤害 +10%/20%"),
+        ("猛虎下山·极", 1, {"t_menghu": 1}, "终极：流血的敌人死亡时爆出刀气，对周围 100 范围造成 80% 伤害")]) +
+    chain("bg_b", 1, B_T, B_R, [
+        ("斩蛟余威", 3, {"skill:tulong_art:range": 0.10}, "斩蛟沉海刀范围 +10%/级"),
+        ("沉海", 3, {"skill:tulong_art:damage": 0.08}, "伤害 +8%/级"),
+        ("浪涌", 2, {"t_langyong": 1}, "全场减速更强（−15%/30%）、更久（+0.5/1 秒）"),
+        ("蛟龙出海", 1, {"t_jiaolong": 1}, "终极：落地 1 秒后再涌起一道巨浪（伤害 50%）")]) +
+    chain("bg_c", 2, B_T, B_R, [
+        ("裂地", 3, {"skill:xuanxu_blade:damage": 0.08}, "幽微藏锋刀伤害 +8%/级"),
+        ("绵延", 3, {"skill:xuanxu_blade:range": 0.08}, "范围 +8%/级"),
+        ("处决", 2, {"t_chujue": 1}, "对被震晕 / 定身的敌人额外伤害 +20%/40%"),
+        ("开山·极", 1, {"t_kaishan": 1}, "终极：裂地刀痕由 3 道变 5 道")]) +
+    generic("bg_g", [
+        ("刚劲", 3, {"damage_pct": 0.02}, "招式伤害 +2%/级"),
+        ("聚魂", 3, {"soul_gain": 0.15}, "刀魂增长 +15%/级"),
+        ("魂火余烬", 3, {"t_hunhuo": 1}, "霸刀破岳后保留 10%/级 的刀魂"),
+        ("破岳·余震", 3, {"t_poyue": 1}, "霸刀破岳 0.6 秒后再劈一次（30%/50%/70%）"),
+        ("破军", 4, {"crit_mult": 0.1}, "暴击伤害 +10%/级"),
+        ("破盾", 3, {"t_podun": 1}, "霸刀破岳击碎护盾 / 罡气时，晕眩敌人 1 秒/级"),
+        ("魂爆", 2, {"t_hunbao": 1}, "霸刀破岳后 3 秒内刀魂增长 ×1.5 / ×2"),
+        ("霸刀无双", 1, {"t_bawu": 1}, "终极：刀魂只需攒到 80 就触发霸刀破岳，破岳时范围 +30%")], SIG_TIERS, SIG_ROWS, SIG_MODES))
+bl_gang.append(N("bg_peak", "狂刀喋血", 1, 8, 1.5, 9, {"burst_yang": 1, "ying_dmg": 0.1, "lowhp_dmg": 0.03},
+                 "巅峰：阳性内力，盈境伤害 +10%；气血每降低 10%，全部伤害再 +3%", peak=True))
+bl_rou = (
+    chain("br_a", 0, A_T, A_R, [
+        ("暴风刀势", 3, {"skill:kuangfeng_blade:cooldown": 0.08}, "暴风卷沙刀冷却 −8%/级"),
+        ("卷沙", 3, {"skill:kuangfeng_blade:damage": 0.08}, "伤害 +8%/级"),
+        ("撕裂引爆", 2, {"t_liebao": 1}, "每第 4 次出刀引爆撕裂的伤害 +30%/60%"),
+        ("风卷残云·极", 1, {"t_fengjuan": 1}, "终极：引爆时，周围一圈敌人各叠 2 层撕裂")]) +
+    chain("br_b", 1, B_T, B_R, [
+        ("饮锋", 3, {"skill:xuedao:damage": 0.08}, "朱砂饮锋刀伤害 +8%/级"),
+        ("血刃", 3, {"skill:xuedao:heal": 0.12}, "吸回气血 +12%/级（受吸血上限限制）"),
+        ("血债", 2, {"t_xuezhai": 1}, "朱砂饮锋刀耗血减少 25%/50%"),
+        ("血魔不死·极", 1, {"t_xuemo": 1}, "终极：气血低于 50% 时，每击杀一个敌人回复 2% 气血")]) +
+    chain("br_c", 2, B_T, B_R, [
+        ("两仪化气", 3, {"skill:fanliangyi:range": 0.12}, "错位双仪刀刀轮范围 +12%/级"),
+        ("阴阳轮转", 3, {"skill:fanliangyi:duration": 0.10}, "刀轮持续 +10%/级"),
+        ("反刃", 2, {"t_fanren": 1}, "刀轮期间受到的伤害，30%/60% 反弹给周围敌人"),
+        ("混沌初开", 1, {"t_hundun": 1}, "终极：刀轮存续期间，每 0.5 秒向外放出一道刀气（伤害 40%）")]) +
+    generic("br_g", [
+        ("调息", 3, {"hp_regen": 0.4}, "气血回复 +0.4/秒每级"),
+        ("血契", 3, {"t_xueqi": 1}, "耗血刀法耗血 −10%/级"),
+        ("以血养刀", 3, {"t_yangdao": 1}, "每耗 1% 气血，2 秒内伤害 +2%/级"),
+        ("撕裂易伤", 3, {"t_liexi": 1}, "撕裂 ≥5 层的敌人受到的伤害 +10%/级"),
+        ("绵里藏针", 4, {"armor": 0.4}, "防御 +0.4/级"),
+        ("饮血", 3, {"t_yinxue": 1}, "击杀回复 2%/级 气血"),
+        ("血雾", 2, {"t_xuewu": 1}, "气血低于 50% 时，刀招额外叠 1 层撕裂"),
+        ("血魂归一", 1, {"t_xuehun": 1}, "终极：自己耗的血转化为刀魂的比例 ×2")], SIG_TIERS, SIG_ROWS, SIG_MODES))
+bl_rou.append(N("br_peak", "阴柔回春", 1, 8, 1.5, 9, {"burst_yin": 1},
+                "巅峰：阴性内力：真气爆发时额外回血，并获得 8 秒攻速 +30%", peak=True))
+bl_ling = (
+    chain("bl_a", 0, A_T, A_R, [
+        ("寒鸦", 3, {"skill:hujia_blade:damage": 0.08}, "寒鸦落雪刀伤害 +8%/级"),
+        ("穿云", 3, {"skill:hujia_blade:targets": 1.0}, "刀气贯穿 +1/级"),
+        ("落单必杀", 2, {"t_luodan": 1}, "近处 / 落单目标的额外伤害 +20%/40%"),
+        ("八方藏刀·极", 1, {"t_bafang": 1}, "终极：刀气飞到尽头折返一次（伤害 60%）")]) +
+    chain("bl_b", 1, B_T, B_R, [
+        ("烈焰", 3, {"skill:ranmu_blade:damage": 0.08}, "烈焰焚林刀伤害 +8%/级"),
+        ("火海", 3, {"skill:ranmu_blade:range": 0.10}, "范围 +10%/级"),
+        ("灼烧蔓延", 2, {"t_zhuoshao": 1}, "被灼烧的敌人死亡时，在它脚下再生出一小片火海"),
+        ("燎原", 1, {"t_liaoyuan": 1}, "终极：火海持续时间 ×1.5，范围内敌人受到的灼烧伤害 +50%")]) +
+    chain("bl_c", 2, B_T, B_R, [
+        ("双鲤连环", 3, {"skill:yuanyang_blade:targets": 1.0}, "双鲤戏浪刀飞刀 +1 对/级"),
+        ("戏浪", 3, {"skill:yuanyang_blade:damage": 0.08}, "伤害 +8%/级"),
+        ("逆流", 2, {"t_niliu": 1}, "飞刀折返时伤害 +25%/50%"),
+        ("仁义无双·极", 1, {"t_renyi": 1}, "终极：被长刀减速又被短刀撕裂的敌人，易伤 +25% 并下一击必暴击")]) +
+    generic("bl_g", [
+        ("蓄势", 4, {"t_xushib": 1}, "真·霸刀破岳持续 +1 秒/级"),
+        ("绝境", 3, {"t_juejing": 1}, "真·霸刀破岳的触发线从气血 20% 提高到 25% / 30% / 35%"),
+        ("回复加深", 3, {"t_huifu": 1}, "真·霸刀期间回复倍率 ×2 → ×2.3 / 2.6 / 3"),
+        ("浴血", 3, {"t_yuxue": 1}, "真·霸刀期间每击杀回复 1%/级 气血"),
+        ("余威", 3, {"t_yuweib": 1}, "真·霸刀结束后 5 秒内，全部伤害 +8%/级"),
+        ("不灭", 3, {"t_bumie": 1}, "真·霸刀期间受到的伤害 −10%/级"),
+        ("重燃", 2, {"t_chongran": 1}, "真·霸刀冷却 30 秒 → 24 / 18 秒"),
+        ("刀魂不灭", 1, {"t_hunbumie": 1}, "终极：真·霸刀期间每一刀都附带 50% 的霸刀破岳效果")], SIG_TIERS, SIG_ROWS, SIG_MODES))
+bl_ling.append(N("bl_peak", "刀皇霸体", 1, 8, 1.5, 9, {"burst_harmony": 1, "cd_reduce": 0.05, "max_hp": 10},
+                 "巅峰：调和内力：真气爆发次数 ×2；招式冷却 −5%，气血上限 +10", peak=True))
+
+
+# ======================= 杨家将 =======================
+sp_gang = (
+    chain("pg_a", 0, A_T, A_R, [
+        ("力劈华山", 3, {"skill:shaolin_staff:damage": 0.08}, "少林棍法伤害 +8%/级"),
+        ("横扫", 3, {"skill:shaolin_staff:range": 0.08}, "范围 +8%/级"),
+        ("棍势满溢", 2, {"t_gunshi": 1}, "打出「横扫千军」后立刻再攒 15/30 点棍势"),
+        ("大开大合·极", 1, {"t_dakai": 1}, "终极：少林棍法每第 2 下（原本第 3 下）变成 360° 横扫")]) +
+    chain("pg_b", 1, B_T, B_R, [
+        ("怒涛", 3, {"skill:fengmo_staff:damage": 0.08}, "怒涛狂澜杖伤害 +8%/级"),
+        ("狂澜", 3, {"skill:fengmo_staff:duration": 0.10}, "旋转持续 +10%/级"),
+        ("魔音", 2, {"t_moyin": 1}, "旋转结束的冲击波伤害 +40%/80%（不强化也会震出）"),
+        ("风魔·极", 1, {"t_fengmo": 1}, "终极：旋转时每 0.3 秒把近身敌人向中心吸拢")]) +
+    chain("pg_c", 2, B_T, B_R, [
+        ("降魔怒目", 3, {"skill:xiangmo_staff:damage": 0.08}, "定海铁杖伤害 +8%/级"),
+        ("镇海", 3, {"skill:xiangmo_staff:range": 0.08}, "范围 +8%/级"),
+        ("震慑", 2, {"skill:xiangmo_staff:duration": 0.3}, "击晕时间 +30%/60%"),
+        ("金刚震地·极", 1, {"t_jingangz": 1}, "终极：冲击波每命中一个敌人，下一次出手冷却 −0.3 秒（最多 −2 秒）")]) +
+    generic("pg_g", [
+        ("刚劲", 3, {"damage_pct": 0.02}, "招式伤害 +2%/级"),
+        ("聚势", 3, {"gs_gain": 0.15}, "近身命中 / 格挡攒棍势 +15%/级"),
+        ("横扫·余震", 3, {"t_hsyz": 1}, "横扫千军 0.6 秒后再扫一次（30%/50%/70%）"),
+        ("破阵棍", 3, {"t_pzg": 1}, "横扫千军命中的敌人防御 −10%/级（3 秒）"),
+        ("破军", 4, {"crit_mult": 0.1}, "暴击伤害 +10%/级"),
+        ("蓄势待扫", 3, {"t_xsds": 1}, "棍势满时暴击率 +10%/级"),
+        ("连扫", 2, {"t_liansao": 1}, "横扫千军后有 12%/24% 几率保留一半棍势"),
+        ("横扫天下", 1, {"t_hengsao_cap": 1}, "终极：横扫千军范围 +40%，击退 ×2 并晕眩 1 秒")], SIG_TIERS, SIG_ROWS, SIG_MODES))
+sp_gang.append(N("pg_peak", "金刚不坏", 1, 8, 1.5, 9, {"block_chance": 0.05, "crit_mult": 0.1}, "巅峰：格挡几率 +5%，暴击伤害 +10%", peak=True))
+sp_rou = (
+    chain("pr_a", 0, A_T, A_R, [
+        ("蟠龙盘旋", 3, {"skill:panlong_staff:duration": 0.12}, "蟠龙棍法守势时间 +12%/级"),
+        ("龙影", 3, {"skill:panlong_staff:damage": 0.08}, "伤害 +8%/级"),
+        ("龙影追击", 2, {"t_longying": 1}, "每次成功格挡，龙影额外反击一次（60%/100%）"),
+        ("龙腾九天·极", 1, {"t_longteng": 1}, "终极：守势期间格挡几率再 +20%（仍受上限），守势结束的砸落范围 ×1.5")]) +
+    chain("pr_b", 1, B_T, B_R, [
+        ("绊腿", 3, {"skill:dagou_staff:damage": 0.08}, "翠竹巧拨棒伤害 +8%/级"),
+        ("天下无狗", 3, {"skill:dagou_staff:duration": 0.10}, "绊倒时间 +10%/级"),
+        ("露出破绽", 2, {"t_pozhan": 1}, "被绊倒（定身）的敌人受到的伤害 +15%/30%"),
+        ("打狗阵", 1, {"t_dagouzhen": 1}, "终极：点地时在身周一圈再绊一次")]) +
+    chain("pr_c", 2, B_T, B_R, [
+        ("无名之势", 3, {"skill:wuming_spear:crit": 0.05}, "无名枪法暴击率 +5%/级"),
+        ("破防", 3, {"skill:wuming_spear:pierce_def": 0.10}, "无视防御额外 +10%/级"),
+        ("无名之名", 2, {"t_wmzm": 1}, "击杀敌人后，下一次无名枪法伤害 +25%/50%"),
+        ("返璞归真", 1, {"t_fanpu": 1}, "终极：对 Boss 伤害 ×1.5，防御削弱从 5 秒延长到 8 秒")]) +
+    generic("pr_g", [
+        ("调息", 3, {"hp_regen": 0.3}, "气血回复 +0.3/秒每级"),
+        ("卸力", 3, {"t_xieli_b": 1}, "格挡成功的震退范围 +30%/级"),
+        ("反击", 3, {"t_fanji": 1}, "格挡成功自动反击周围一枪（50%/80%/110%）"),
+        ("铁壁连环", 3, {"t_tiebi": 1}, "格挡成功后 1 秒内格挡几率 +10%/级"),
+        ("铁壁", 4, {"block_chance": 0.02}, "格挡几率 +2%/级"),
+        ("无懈可击", 3, {"t_wuxie": 1}, "格挡几率上限 70% → 75% / 80% / 85%"),
+        ("以守为攻", 2, {"t_yishou": 1}, "每格挡 4/3 次，下一击伤害 ×1.5/×2"),
+        ("万法归宗", 1, {"t_wanfa_gui": 1}, "终极：任意招式的每次命中都同时攒枪势和棍势、计连击；「游龙突」「横扫千军」可由任意枪棍打出")], SIG_TIERS, SIG_ROWS, SIG_MODES))
+sp_rou.append(N("pr_peak", "阴柔回春", 1, 8, 1.5, 9, {"burst_yin": 1}, "巅峰：阴性内力：真气爆发时额外回血，并获得 8 秒攻速 +30%", peak=True))
+sp_ling = (
+    chain("pl_a", 0, A_T, A_R, [
+        ("回马无双", 3, {"skill:yangjia_spear:range": 0.08}, "杨家枪法射程 +8%/级"),
+        ("杨家", 3, {"skill:yangjia_spear:damage": 0.08}, "伤害 +8%/级"),
+        ("枪尖淬火", 2, {"tip_dmg": 0.1}, "枪尖伤害 +10%/20%"),
+        ("回马连环·极", 1, {"t_huima": 1}, "终极：打出「游龙突」后 3 秒内，杨家枪法冷却 −50%")]) +
+    chain("pl_b", 1, B_T, B_R, [
+        ("梅花点点", 3, {"skill:meihua_spear:targets": 1.0}, "梅花枪法枪数 +1/级"),
+        ("落梅", 3, {"skill:meihua_spear:damage": 0.08}, "伤害 +8%/级"),
+        ("五瓣连环", 2, {"t_wuban": 1}, "梅花枪每次命中累计的连击 +1/+2"),
+        ("梅花雨", 1, {"t_meihuayu": 1}, "终极：每第 5 次出枪变成环绕一圈的梅花雨（枪数 ×2）")]) +
+    chain("pl_c", 2, B_T, B_R, [
+        ("白马蹄疾", 3, {"skill:baima_spear:cooldown": 0.10}, "白马银枪冷却 −10%/级"),
+        ("银龙", 3, {"skill:baima_spear:damage": 0.08}, "伤害 +8%/级"),
+        ("踏雪", 2, {"skill:baima_spear:range": 0.30}, "冲刺距离 / 范围 +30%/60%"),
+        ("一骑绝尘", 1, {"t_yiqi": 1}, "终极：冲刺路径留下 2 秒枪痕，持续伤害路过的敌人")]) +
+    generic("pl_g", [
+        ("轻灵", 3, {"speed_pct": 0.015}, "移速 +1.5%/级"),
+        ("点穴", 3, {"t_dianxue": 1}, "枪尖命中后追击一枪（30%/50%/70%）"),
+        ("游龙·余势", 3, {"t_youlong": 1}, "游龙突的枪龙长度 +15%/级"),
+        ("连击枪影", 3, {"t_yingying": 1}, "枪影所需连击从 10 降到 8 / 6 / 5"),
+        ("枪走游龙", 4, {"qs_gain": 0.15}, "枪势攒速 +15%/级"),
+        ("枪影·扩", 3, {"t_yingk": 1}, "枪影追击目标 3 → 4 / 5 / 6"),
+        ("乘胜", 2, {"t_chengsheng": 1}, "连击 ≥10 时暴击率 +8%/16%"),
+        ("枪出如龙", 1, {"t_qiangchu": 1}, "终极：每第 5 次枪路出手，游龙突无需攒势")], SIG_TIERS, SIG_ROWS, SIG_MODES))
+sp_ling.append(N("pl_peak", "神枪合一", 1, 8, 1.5, 9, {"burst_harmony": 1, "qs_gain": 0.2, "gs_gain": 0.2}, "巅峰：调和内力：真气爆发次数 ×2；枪势 / 棍势攒速 +20%", peak=True))
+
 def build(ji, branches):
     out = {"gates": GATES, "ji": ji, "branches": {}}
     for b, (name, sub_, starter, cols, col_skills, nodes) in branches.items():
@@ -251,6 +416,16 @@ sword = build({"id": "sword_ji", "name": "极意·千锋聚啸剑", "max": 1, "n
                "rou": ("柔", "快剑 · 回旋 · 回春", "kuang_feng", ["猎风疾影剑", "圆转绵剑", "兰溪双影剑", "通用"], ["kuang_feng", "taiji_sword", "yunv"], sw_rou),
                "ling": ("灵", "九变 · 远程 · 身法", "dugu", ["九变·根基", "九变·攻势", "九变·控势", "残影掠光剑", "千锋聚啸剑", "蜿蜒曲锋剑"],
                         ["dugu", "dugu", "dugu", "pixie", "wanjian", "jinshe"], sw_ling)})
+blade = build({"id": "blade_ji", "name": "极意·霸刀", "max": 1, "need": 99, "stat": {"ji_blade": 1.0},
+               "desc": "刀客之极意：真·霸刀破岳持续 +5 秒、冷却减半；刀法耗血减半；刀魂增长 +50%；霸刀 / 破岳回复已损气血的比例翻倍"},
+              {"gang": ("刚", "刀魂 · 霸刀破岳 · 重劈", "wuhu_blade", ["五煞断岳刀", "斩蛟沉海刀", "幽微藏锋刀", "刀魂"], ["wuhu_blade", "tulong_art", "xuanxu_blade"], bl_gang),
+               "rou": ("柔", "撕裂 · 耗血 · 回春", "kuangfeng_blade", ["暴风卷沙刀", "朱砂饮锋刀", "错位双仪刀", "血债"], ["kuangfeng_blade", "xuedao", "fanliangyi"], bl_rou),
+               "ling": ("灵", "飞刀 · 火海 · 绝境", "hujia_blade", ["寒鸦落雪刀", "烈焰焚林刀", "双鲤戏浪刀", "绝境"], ["hujia_blade", "ranmu_blade", "yuanyang_blade"], bl_ling)})
+spear = build({"id": "spear_ji", "name": "极意·万军辟易", "max": 1, "need": 99, "stat": {"ji_spear": 1.0},
+               "desc": "杨家将之极意：枪路——游龙突后只清一半枪势、枪尖区间扩大；棍路——横扫千军后立刻再攒 40 点棍势、格挡几率 +10%（格挡仍受上限）；格挡成功回复 3% 气血"},
+              {"gang": ("刚", "棍势 · 横扫千军 · 重击", "shaolin_staff", ["少林棍法", "怒涛狂澜杖", "定海铁杖", "棍势"], ["shaolin_staff", "fengmo_staff", "xiangmo_staff"], sp_gang),
+               "rou": ("柔", "格挡 · 守势 · 万法归宗", "", ["蟠龙棍法", "翠竹巧拨棒", "无名枪法", "守势"], ["panlong_staff", "dagou_staff", "wuming_spear"], sp_rou),
+               "ling": ("灵", "枪势 · 游龙突 · 连击枪影", "yangjia_spear", ["杨家枪法", "梅花枪法", "白马银枪", "枪势"], ["yangjia_spear", "meihua_spear", "baima_spear"], sp_ling)})
 sword["order"] = ["gang", "ling", "rou"]          # 剑客：灵系（九变）放在中间，刚柔在左右
-(ROOT / "data" / "talent_trees.json").write_text(json.dumps({"fist": fist, "sword": sword}, ensure_ascii=False, indent=1), encoding="utf-8")
+(ROOT / "data" / "talent_trees.json").write_text(json.dumps({"fist": fist, "sword": sword, "blade": blade, "spear": spear}, ensure_ascii=False, indent=1), encoding="utf-8")
 print("ok, 每系 50 点")

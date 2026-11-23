@@ -16,6 +16,10 @@ func _ready() -> void:
 		_fist_sig_test()
 	if only == "sword":
 		_sword_tree_test()
+	if only == "bladetree":
+		_blade_tree_test()
+	if only == "speartree":
+		_spear_tree_test()
 	if only == "" or only == "upgrade":
 		_upgrade_system_test()
 		_enhance_rework_test()
@@ -32,6 +36,8 @@ func _ready() -> void:
 		_fist_talent_test()
 		_fist_sig_test()
 		_sword_tree_test()
+		_blade_tree_test()
+		_spear_tree_test()
 		_vfx_test()
 		_p2_test()
 		_synergy_test()
@@ -529,9 +535,8 @@ func _blade_test() -> void:
 	_free_world(w7)
 	# 天赋
 	var tn: Dictionary = Talents.nodes("blade")
-	_check(str(tn["gang_ying"]["name"]) == "霸刀阔刃" and str(tn["ling_peak"]["name"]) == "刀皇霸体", "刀客天赋改名")
-	_check(float(Talents.stats_for({"gang_ying": 2, "rou_finger": 1}, "blade").get("bleed_pow", 0.0)) > 0.1, "泣血撕裂：撕裂强化")
-	_check(int(Talents.nodes()["gang_ying"]["max"]) == int(tn["gang_ying"]["max"]), "天赋节点上限不变（服务器校验不受影响）")
+	_check(str(tn["bl_peak"]["name"]) == "刀皇霸体" and str(tn["bg_g_2"]["name"]) == "聚魂", "刀客天赋（新树）")
+	_check(float(Talents.stats_for({"bg_a_3": 2}, "blade").get("bleed_pow", 0.0)) > 0.15, "撕裂入骨：撕裂强化")
 
 
 func _sword_test() -> void:
@@ -624,7 +629,7 @@ func _sword_art_test() -> void:
 
 func _sword_talent_test() -> void:
 	print("\n=== 剑侠天赋（新树）/ 武器名 ===")
-	_check(Talents.has_tree("sword") and Talents.has_tree("fist") and not Talents.has_tree("blade"), "武者 / 剑客用新树，刀客 / 杨家将仍用旧树")
+	_check(Talents.has_tree("sword") and Talents.has_tree("fist") and Talents.has_tree("blade") and Talents.has_tree("spear"), "四个职业都用新树")
 	var ts := Talents.stats_for({"sg_peak": 1, "sl_peak": 1, "sl_a_3": 2, "sg_a_1": 2}, "sword")
 	_check(absf(float(ts.get("ying_dmg", 0.0)) - 0.10) < 1e-6 and float(ts.get("burst_yang", 0.0)) == 1.0, "剑意凌霄：阳性内力 + 盈境伤害 +10%")
 	_check(absf(float(ts.get("skill:dugu:damage", 0.0)) - 0.12) < 1e-6 and absf(float(ts.get("skill:dugu:crit", 0.0)) - 0.06) < 1e-6 and absf(float(ts.get("skill:dugu:cooldown", 0.0)) - 0.08) < 1e-6 and absf(float(ts.get("crit_mult", 0.0)) - 0.06) < 1e-6, "剑魔：无迹九变剑 伤害 +12%、暴击率 +6%、冷却 −8%，暴击伤害 +6%")
@@ -1733,7 +1738,7 @@ func _enhance_rework_test() -> void:
 	var ms := Meta.stats_for({"pow": 0, "agi": 0, "vit": 30, "int": 30, "luk": 0})
 	_check(float(ms["hp_regen"]) > 0.1 and float(ms["neili_regen"]) > 2.0, "根骨加气血回复、内息加内力回复（%.2f / %.2f）" % [ms["hp_regen"], ms["neili_regen"]])
 	var base_nodes: Dictionary = Talents.nodes()
-	for sc in ["blade"]:
+	for sc in []:
 		var sn: Dictionary = Talents.nodes(sc)
 		var diff := 0
 		for nid in sn:
@@ -1752,7 +1757,7 @@ func _enhance_rework_test() -> void:
 				if str(Data.skills[sid2]["school"]) != sc:
 					_check(not str(nn["desc"]).contains(str(Data.skills[sid2]["name"])), "%s 流派天赋 %s 的说明提到了别的流派的招式 %s" % [sc, nid, str(Data.skills[sid2]["name"])])
 	_check(Talents.stats_for({"sl_a_1": 2}, "sword").has("t_chuwu") and Talents.stats_for({"fl_g_1": 2}, "fist").has("t_xushi"), "剑侠灵系第一格是初悟；武者灵系第一格是蓄势待发")
-	_check(float(Talents.stats_for({"rou_regen": 3}, "blade")["hp_regen"]) > float(Talents.stats_for({"fr_g_1": 3}, "fist")["hp_regen"]), "刀客的气血回复天赋更强")
+	_check(float(Talents.stats_for({"br_g_1": 3}, "blade")["hp_regen"]) > float(Talents.stats_for({"fr_g_1": 3}, "fist")["hp_regen"]), "刀客的气血回复天赋更强")
 	_check(Talents.stats_for({"fr_g_6": 2}, "fist").has("med_regen"), "武者的入定归元加快入定回气")
 	# 吸血要克制（伤害高、血量低）：「增加治疗」最高 0.2% 伤害；每次命中最多回 0.6
 	var hv: Array = Data.directions["heal"]["values"]
@@ -3479,16 +3484,16 @@ func _talent_map_test() -> void:
 	print("\n=== 天赋树（三个框）布局 / 交互 ===")
 	var tt := TalentTree.new()
 	tt.size = TalentTree.tree_size()
-	tt.school = "blade"
+	tt.school = ""
 	tt.level = 10
 	add_child(tt)
-	var all := Talents.nodes("blade")
+	var all := Talents.nodes()
 	var per := {}
 	for id in all:
 		per[all[id]["branch"]] = int(per.get(all[id]["branch"], 0)) + 1
 	for b in Talents.branches():
 		_check(int(per[b]) >= 10 and int(per[b]) <= 15, "%s 系有 %d 个穴位（要求 10~15）" % [b, int(per[b])])
-	_check(all.has(Talents.ji_id()) and str(all[Talents.ji_id()]["name"]) == "极·霸刀", "刀客的「极」穴位叫 极·霸刀")
+	_check(all.has(Talents.ji_id()), "旧树有「极」穴位")
 	# 位置：每个节点唯一、落在自己的框里、互不重叠
 	var pos := {}
 	var min_d := 1.0e9
@@ -4404,7 +4409,7 @@ func _spear_test() -> void:
 	var wk := Gear.make("weapon.3.12345", "spear", 0)
 	_check(not wk.is_empty() and str(wk["name"]) in ["龙胆亮银枪"], "传说武器只出龙胆亮银枪（%s）" % str(wk.get("name", "")))
 	var nodes := Talents.nodes("spear")
-	_check(str(nodes["ling_crit"]["name"]) == "破军" and str(nodes["ji_peak"]["name"]) == "极·万军辟易", "天赋覆盖：灵系 / 「极」按杨家将改写")
+	_check(str(nodes["pl_peak"]["name"]) == "神枪合一" and str(nodes["spear_ji"]["name"]) == "极意·万军辟易", "杨家将新树：灵系巅峰 / 「极意」")
 	var linked := 0
 	for xid in Data.xinfa:
 		for sid in Data.xinfa[xid]["skills"]:
@@ -5092,3 +5097,222 @@ func _sword_tree_test() -> void:
 	_check(int((wl.skills["jinshe"] as SkillBase).p("count")) == int(Data.skills["jinshe"]["count"]) + 3 or (wl.skills["jinshe"] as SkillBase).mods["targets"] > 0.0, "曲锋缠丝 +3")
 	_free_world(wl)
 	print("  剑客结构 / 通用机制 / 九变  OK")
+
+
+func _bl_world(talents: Dictionary, skill: String, seed_v: int = 900) -> GameWorld:
+	var w := _new_world(seed_v, "wuhu_blade")
+	w.skills.clear()
+	w.school_id = "blade"
+	Build.apply_to(w, {}, talents, {}, "blade")
+	w.add_skill(skill)
+	w.recalc()
+	w.hp = w.st("max_hp")
+	return w
+
+
+func _blade_tree_test() -> void:
+	print("\n=== 刀客新天赋树：刀魂 / 血债 / 绝境 + 招式链 ===")
+	var tr: Dictionary = Talents.tree("blade")
+	var nodes := Talents.nodes("blade")
+	for b in ["gang", "rou", "ling"]:
+		var tot := 0
+		for n in tr["branches"][b]["nodes"]:
+			tot += int(n["max"])
+			for rq in n["req"]:
+				_check(nodes.has(rq[0]), "前置节点存在：" + str(rq[0]))
+		_check(tot == 50, "刀客 %s 系共 50 点（%d）" % [b, tot])
+	var src := ""
+	for f in ["res://scripts/skills/blade_skills.gd", "res://scripts/world.gd"]:
+		src += FileAccess.get_file_as_string(f)
+	for id in nodes:
+		for k in nodes[id].get("stat", {}):
+			if str(k).begins_with("t_"):
+				_check(src.contains('"%s"' % str(k)), "刀客节点 %s 的属性 %s 在代码里有实现" % [id, k])
+	_check(Talents.group_of("blade") == "blade", "刀客用新树")
+	# 刀魂
+	var w := _bl_world({"bg_g_3": 3, "bg_g_4": 3, "bg_g_7": 2, "bg_g_8": 1}, "wuhu_blade", 901)
+	w.soul = 80.0
+	var s1: SkillBase = w.skills["wuhu_blade"]
+	_check(w.baodao_try(s1), "霸刀无双：刀魂 80 就能触发霸刀破岳")
+	w.baodao = false
+	w.baodao_done()
+	_check(absf(w.soul - 30.0) < 1e-6 and w.hunbao_t > 0.0 and absf(w.hunbao_v - 1.0) < 1e-6, "魂火余烬保留 30 刀魂、魂爆（刀魂 ×2）（%.0f）" % w.soul)
+	var has_imp := false
+	for z in w.zones:
+		has_imp = has_imp or str(z["kind"]) == "impact"
+	_check(has_imp, "破岳·余震：0.6 秒后再劈一次")
+	_free_world(w)
+	# 血债
+	var w2 := _bl_world({"br_g_2": 3, "br_g_3": 3, "br_g_8": 1}, "xuedao", 902)
+	var x: SkillBase = w2.skills["xuedao"]
+	var hp0 := w2.hp
+	w2.soul = 0.0
+	(x as BladeSkills.Base).pay_hp()
+	var paid := hp0 - w2.hp
+	var w2b := _bl_world({}, "xuedao", 902)
+	var hpb := w2b.hp
+	(w2b.skills["xuedao"] as BladeSkills.Base).pay_hp()
+	_check(paid < (hpb - w2b.hp) and w2.yd_t > 0.0 and w2.yd_v > 0.0 and w2.soul > w2b.soul * 1.0, "血契耗血更少（%.1f < %.1f）、以血养刀增伤、血魂归一刀魂更多" % [paid, hpb - w2b.hp])
+	_free_world(w2)
+	_free_world(w2b)
+	var w3 := _bl_world({"br_g_4": 3}, "xuedao", 903)
+	var f3 := _ft_foe(w3)
+	f3.bleed_stacks = 5
+	var d1: float = w3.hit_enemy(f3, 100.0, [], Vector2.ZERO, "xuedao", true)
+	f3.bleed_stacks = 0
+	var d0: float = w3.hit_enemy(f3, 100.0, [], Vector2.ZERO, "xuedao", true)
+	_check(d1 > d0 * 1.2, "撕裂易伤：≥5 层的敌人受伤 +30%%（%.0f vs %.0f）" % [d1, d0])
+	_free_world(w3)
+	var w4 := _bl_world({"br_g_6": 3}, "xuedao", 904)
+	w4.hp = 10.0
+	var k4: Enemy = w4._spawn_enemy("bandit", w4.player_pos + Vector2(300, 0))
+	w4._kill(k4)
+	_check(w4.hp > 10.0 + w4.st("max_hp") * 0.05, "饮血：击杀回复 6% 气血")
+	_free_world(w4)
+	# 绝境
+	var w5 := _bl_world({"bl_g_1": 4, "bl_g_2": 3, "bl_g_3": 3, "bl_g_7": 2}, "hujia_blade", 905)
+	w5.hp = w5.st("max_hp") * 0.34
+	w5._tick_true_blade(0.1)
+	_check(w5.tb_t > 0.0, "绝境 3 级：气血 ≤35% 就触发真·霸刀")
+	_check(absf(w5.tb_t - (Data.T("true_blade_dur") + 4.0)) < 0.01, "蓄势 4 级：真·霸刀 +4 秒（%.1f）" % w5.tb_t)
+	_check(absf(w5.heal_mult() - (Data.T("true_blade_heal_mult") + 0.9)) < 1e-6, "回复加深 3 级")
+	w5.tb_t = 0.05
+	w5._tick_true_blade(0.1)
+	_check(absf(w5.tb_cd - 18.0) < 0.01, "重燃 2 级：冷却 18 秒（%.1f）" % w5.tb_cd)
+	_free_world(w5)
+	# 招式链
+	var w6 := _bl_world({"bg_a_3": 2}, "wuhu_blade", 906)
+	var f6 := _ft_foe(w6)
+	(w6.skills["wuhu_blade"] as SkillBase).cd = 0.0
+	w6.step(1.0 / 60.0)
+	_check(f6.bleed_stacks >= 3, "撕裂入骨：一刀叠 3 层撕裂（%d）" % f6.bleed_stacks)
+	_free_world(w6)
+	var w7 := _bl_world({"bg_c_4": 1}, "xuanxu_blade", 907)
+	_ft_foe(w7, Vector2(200, 0))
+	(w7.skills["xuanxu_blade"] as SkillBase).cd = 0.0
+	w7.step(1.0 / 60.0)
+	_check(w7.projs.size() >= 5, "开山·极：裂地刀痕 5 道（%d）" % w7.projs.size())
+	_free_world(w7)
+	var w8 := _bl_world({"bl_a_4": 1, "bl_a_3": 2}, "hujia_blade", 908)
+	_ft_foe(w8, Vector2(200, 0))
+	(w8.skills["hujia_blade"] as SkillBase).cd = 0.0
+	w8.step(1.0 / 60.0)
+	var boom := false
+	for pr in w8.projs:
+		boom = boom or (pr.boomerang and absf(pr.ret_mult - 0.6) < 1e-6)
+	_check(boom and absf((w8.skills["hujia_blade"] as SkillBase).hit_mult(_ft_foe(w8, Vector2(30, 0))) - 1.75) < 1e-6, "八方藏刀·极折返；落单必杀 2 级近处 ×1.75")
+	_free_world(w8)
+	var w9 := _bl_world({"bl_b_3": 2}, "ranmu_blade", 909)
+	var e9: Enemy = w9._spawn_enemy("bandit", w9.player_pos + Vector2(300, 0))
+	e9.burn_t = 2.0
+	var zn := w9.zones.size()
+	w9._kill(e9)
+	_check(w9.zones.size() == zn + 1, "灼烧蔓延：被灼烧的敌人死亡生出火海")
+	_free_world(w9)
+	print("  刀客 刀魂 / 血债 / 绝境 / 招式链  OK")
+
+
+func _sp_world(talents: Dictionary, skill: String, seed_v: int = 950) -> GameWorld:
+	var w := _new_world(seed_v, "yangjia_spear")
+	w.skills.clear()
+	w.school_id = "spear"
+	Build.apply_to(w, {}, talents, {}, "spear")
+	w.add_skill(skill)
+	w.recalc()
+	w.hp = w.st("max_hp")
+	return w
+
+
+func _spear_tree_test() -> void:
+	print("\n=== 杨家将新天赋树：棍势 / 守势 / 枪势 + 招式链 ===")
+	var tr: Dictionary = Talents.tree("spear")
+	var nodes := Talents.nodes("spear")
+	for b in ["gang", "rou", "ling"]:
+		var tot := 0
+		for n in tr["branches"][b]["nodes"]:
+			tot += int(n["max"])
+			for rq in n["req"]:
+				_check(nodes.has(rq[0]), "前置节点存在：" + str(rq[0]))
+		_check(tot == 50, "杨家将 %s 系共 50 点（%d）" % [b, tot])
+	_check(str(tr["branches"]["rou"]["starter"]) == "", "杨家将柔系没有起手招式")
+	var src := ""
+	for f in ["res://scripts/skills/spear_skills.gd", "res://scripts/world.gd"]:
+		src += FileAccess.get_file_as_string(f)
+	for id in nodes:
+		for k in nodes[id].get("stat", {}):
+			if str(k).begins_with("t_"):
+				_check(src.contains('"%s"' % str(k)), "杨家将节点 %s 的属性 %s 在代码里有实现" % [id, k])
+	_check(Talents.group_of("spear") == "spear", "杨家将用新树")
+	# 守势
+	var w := _sp_world({"pr_g_6": 3, "pr_g_5": 4, "pr_g_2": 3, "pr_g_3": 3, "pr_g_4": 3, "pr_g_7": 2}, "panlong_staff", 951)
+	w.panlong_t = 0.0
+	_check(absf(w.block_chance() - minf(0.85, w.st("block_chance"))) < 1e-6, "格挡几率上限 85%%（无懈可击 3 级）：%.2f" % w.block_chance())
+	var f := _ft_foe(w, Vector2(60, 0), 1.0e7)
+	var hp0 := f.hp
+	w._on_block()
+	_check(f.hp < hp0 and w.tiebi_t > 0.0, "反击：格挡成功自动反击周围；铁壁连环开启窗口")
+	for i in 3:
+		w._on_block()
+	_check(w.yishou_buff >= 2.0, "以守为攻 2 级：每 3 次格挡，下一击 ×2")
+	_free_world(w)
+	# 万法归宗：任意招式都能打游龙突 / 横扫千军，攒势
+	var w2 := _sp_world({"pr_g_8": 1}, "shaolin_staff", 952)
+	var fy := _ft_foe(w2, Vector2(100, 0), 1.0e7)
+	w2.spear_qs = 100.0
+	var sk: SpearSkills.Base = w2.skills["shaolin_staff"]
+	_check(sk.breakthrough(Vector2.RIGHT) and w2.spear_qs < 100.0, "万法归宗：棍法也能打出游龙突")
+	w2.spear_gs = 100.0
+	_check(sk.wide_sweep(), "横扫千军可由任意招式打出")
+	w2.spear_qs = 0.0
+	w2._spear_on_hit(sk, fy)
+	_check(w2.spear_qs > 0.0 and w2.spear_combo >= 1, "任意招式命中都攒枪势、计连击")
+	_free_world(w2)
+	# 棍势链
+	var w3 := _sp_world({"pg_g_2": 3, "pg_g_8": 1, "pg_g_4": 3, "pg_a_3": 2}, "shaolin_staff", 953)
+	var f3 := _ft_foe(w3, Vector2(100, 0), 1.0e7)
+	var sk3: SpearSkills.Base = w3.skills["shaolin_staff"]
+	w3.spear_gs = 100.0
+	_check(sk3.wide_sweep(), "横扫千军打出")
+	_check(w3.spear_gs >= 30.0, "棍势满溢：横扫后再攒棍势（%.0f）" % w3.spear_gs)
+	_check(f3.def_down_t > 0.0 and f3.stun > 0.0, "破阵棍降防；横扫天下晕眩")
+	_free_world(w3)
+	var w3b := _sp_world({"pg_a_4": 1}, "shaolin_staff", 954)
+	_ft_foe(w3b, Vector2(100, 0), 1.0e7)
+	var sh: SkillBase = w3b.skills["shaolin_staff"]
+	var fulls := 0
+	for i in 4:
+		sh.cd = 0.0
+		var before := w3b.effects.size()
+		sh.fire()
+		fulls += 1
+	_check(fulls == 4 and (sh as SpearSkills.Shaolin).combo == 4, "大开大合·极：第 2 下就能 360° 横扫")
+	_free_world(w3b)
+	# 枪势链
+	var w4 := _sp_world({"pl_g_2": 3, "pl_g_4": 3, "pl_g_6": 3, "pl_g_8": 1, "pl_a_4": 1, "pl_g_3": 3}, "yangjia_spear", 955)
+	var f4 := _ft_foe(w4, Vector2(150, 0), 1.0e7)
+	var y: SpearSkills.Base = w4.skills["yangjia_spear"]
+	w4.spear_fire_n = 5
+	_check(y.breakthrough(Vector2.RIGHT), "枪出如龙：第 5 次出枪游龙突无需攒势")
+	_check(w4.huima_t > 0.0, "回马连环·极：游龙突后杨家枪法加速")
+	for i in 5:
+		w4._spear_on_hit(y, f4)
+	_check(w4.spear_since_shadow == 0 or w4.spear_since_shadow < 5, "连击枪影 3 级：连击 5 触发枪影")
+	_free_world(w4)
+	var w5 := _sp_world({"pr_c_3": 2, "pr_c_4": 1}, "wuming_spear", 956)
+	var f5 := _ft_foe(w5, Vector2(100, 0), 1.0e7)
+	var k5: Enemy = w5._spawn_enemy("bandit", w5.player_pos + Vector2(400, 0))
+	w5._kill(k5)
+	_check(absf(w5.wm_boost - 0.5) < 1e-6, "无名之名 2 级：击杀后下一发 +50%")
+	(w5.skills["wuming_spear"] as SkillBase).cd = 0.0
+	w5.step(1.0 / 60.0)
+	_check(w5.wm_boost == 0.0 and f5.def_down_t > 7.0, "增伤被消耗；返璞归真：防御削弱 8 秒")
+	_free_world(w5)
+	var w6 := _sp_world({"pl_b_4": 1}, "meihua_spear", 957)
+	_ft_foe(w6, Vector2(120, 0), 1.0e7)
+	var mh: SkillBase = w6.skills["meihua_spear"]
+	for i in 5:
+		mh.cd = 0.0
+		mh.fire()
+	_check((mh as SpearSkills.Meihua)._mh == 5, "梅花雨：计数到第 5 次")
+	_free_world(w6)
+	print("  杨家将 棍势 / 守势 / 枪势 / 招式链  OK")

@@ -189,7 +189,7 @@ func tick(dt: float) -> void:
 			echoing = true
 			fire()
 			echoing = false
-	cd -= dt
+	cd -= dt * (2.0 if (w.huima_t > 0.0 and id == "yangjia_spear") else 1.0)       # 回马连环·极：游龙突后杨家枪法冷却 −50%
 	if cd <= 0.0:
 		empowered = w.can_empower(empower_cost())
 		var yuan: bool = w.yuanman_ready and str(def.get("school", "")) == "fist"     # 天赋「盈而圆满」：这一次出手免费催动 + 必暴击
@@ -222,6 +222,8 @@ func _after_fire() -> void:
 		w.play_anim(str(def["anim"]), 0.3)
 	if float(mods["buff"]) > 0.0:
 		w.add_neili(float(mods["buff"]))
+	if str(def.get("school", "")) == "spear" and str(def.get("route", "")) == "spear":
+		w.spear_fire_n += 1
 	var hc := float(mods["hits"])
 	var melee := tags().has("近战")
 	if melee:

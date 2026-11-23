@@ -195,6 +195,19 @@ var ys_buff := 0.0             # 天赋「影随身动」：闪现后下一次�
 var ys_t := 0.0
 var zhenbian_cd := 0.0         # 天赋「真·九变」：觉醒后真气爆发改为冷却型
 var guiyi_ready := false       # 天赋「九变归一」：下一次出剑增伤
+var yd_t := 0.0                # 刀客天赋「以血养刀」：耗血后短时增伤
+var yd_v := 0.0
+var tbw_t := 0.0               # 「余威」：真·霸刀结束后的增伤窗口
+var hunbao_t := 0.0            # 「魂爆」：霸刀破岳后刀魂增长加成
+var hunbao_v := 0.0
+var baodao_skill: SkillBase = null
+var tiebi_t := 0.0             # 杨家将天赋「铁壁连环」：格挡后的格挡几率加成窗口
+var yishou_n := 0              # 「以守为攻」：格挡计数 / 下一击增伤
+var yishou_buff := 1.0
+var spear_fire_n := 0          # 「枪出如龙」：枪路出手计数
+var huima_t := 0.0             # 「回马连环」：游龙突后杨家枪法加速
+var spear_since_shadow := 0
+var wm_boost := 0.0            # 「无名之名」：击杀后下一次无名枪法增伤
 var fenfeng_hits: Dictionary = {}   # 天赋「分锋合流」：敌人 uid → [同一次出手内的命中数, 时间]
 var shake := 0.0
 
@@ -683,6 +696,11 @@ func _update_player(dt: float) -> void:
 	buff_t = maxf(0.0, buff_t - dt)
 	tal_dr_t = maxf(0.0, tal_dr_t - dt)
 	ys_t = maxf(0.0, ys_t - dt)
+	tiebi_t = maxf(0.0, tiebi_t - dt)
+	huima_t = maxf(0.0, huima_t - dt)
+	yd_t = maxf(0.0, yd_t - dt)
+	tbw_t = maxf(0.0, tbw_t - dt)
+	hunbao_t = maxf(0.0, hunbao_t - dt)
 	zhenbian_cd = maxf(0.0, zhenbian_cd - dt)
 	tal_spd_t = maxf(0.0, tal_spd_t - dt)
 	if school_id == "fist":                        # 蓄劲：盈境下自然蓄劲
@@ -1408,6 +1426,8 @@ func _hurt(amount: float) -> void:
 	dmg = maxf(maxf(1.0, dmg * 0.25), dmg - st("armor"))
 	if tal_dr_t > 0.0:
 		dmg *= 1.0 - tal_dr_v
+	if tb_t > 0.0 and st("t_bumie") > 0.0:                    # 不灭：真·霸刀期间受伤 −10%/级
+		dmg *= 1.0 - 0.1 * st("t_bumie")
 	if meditating():
 		dmg *= 1.0 - minf(0.6, Data.T("meditate_reduce") + st("med_reduce"))
 	since_hit = 0.0
@@ -1462,6 +1482,22 @@ func _kill(e: Enemy) -> void:
 		_break_prop(e)
 		return
 	kills += 1
+	if school_id == "spear" and st("t_wmzm") > 0.0:
+		wm_boost = 0.25 * st("t_wmzm")
+	if school_id == "blade":
+		var mhp := st("max_hp")
+		if st("t_yinxue") > 0.0:                                              # 饮血
+			hp = minf(mhp, hp + mhp * 0.02 * st("t_yinxue") * heal_mult())
+		if tb_t > 0.0 and st("t_yuxue") > 0.0:                                # 浴血
+			hp = minf(mhp, hp + mhp * 0.01 * st("t_yuxue") * heal_mult())
+		if st("t_xuemo") > 0.0 and hp < mhp * 0.5:                            # 血魔不死·极
+			hp = minf(mhp, hp + mhp * 0.02 * heal_mult())
+		if e.bleed_stacks > 0 and st("t_menghu") > 0.0 and skills.has("wuhu_blade"):      # 猛虎下山·极
+			area_hit_raw(e.pos, 100.0, (skills["wuhu_blade"] as SkillBase).p("damage") * 0.8, ["近战", "范围"], "wuhu_blade", 160.0)
+			add_fx("ring", e.pos, 0.3, {"r0": 8.0, "r1": 100.0, "color": Color("#ff8a30")})
+		if e.burn_t > 0.0 and st("t_zhuoshao") > 0.0 and skills.has("ranmu_blade"):       # 灼烧蔓延
+			var rs: SkillBase = skills["ranmu_blade"]
+			add_zone({"kind": "fire", "skill": rs, "pos": e.pos, "r": 70.0, "t": 0.0, "life": 2.0, "tick": 0.0, "dmg": rs.p("damage") * 0.25})
 	if fist_ult_t > 0.0 and st("t_shafa") > 0.0:                         # 杀伐还元：无敌期间击杀累计，返还真气爆发次数
 		ult_kills += 1
 		if ult_kills >= [30, 22, 15][clampi(int(st("t_shafa")), 1, 3) - 1]:
@@ -1596,6 +1632,23 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 			fenfeng_hits[e.uid] = fh
 			if fenfeng_hits.size() > 200:
 				fenfeng_hits.clear()
+	if school_id == "spear":
+		if yishou_buff > 1.0 and not _spear_ctx:                                 # 以守为攻（反击 / 枪影不消耗）
+			m *= yishou_buff
+			yishou_buff = 1.0
+		if e.stun > 0.0 and st("t_pozhan") > 0.0:                                # 露出破绽
+			m *= 1.0 + 0.15 * st("t_pozhan")
+	if school_id == "blade":
+		if sid == "xuanxu_blade" and e.stun > 0.0 and st("t_chujue") > 0.0:       # 处决：对被震晕的敌人 +20%/40%
+			m *= 1.0 + 0.2 * st("t_chujue")
+		if e.bleed_stacks >= 5 and st("t_liexi") > 0.0:                          # 撕裂易伤
+			m *= 1.0 + 0.1 * st("t_liexi")
+		if yd_t > 0.0:                                                           # 以血养刀
+			m *= 1.0 + yd_v
+		if tbw_t > 0.0:                                                          # 余威
+			m *= 1.0 + 0.08 * st("t_yuweib")
+		if tb_t > 0.0 and st("t_hunbumie") > 0.0:                                # 刀魂不灭：真·霸刀期间每一刀带 50% 破岳效果
+			m *= 1.0 + 0.5 * (Data.T("blade_break_mult") - 1.0)
 	if e.stun > 0.0 and st("t_zhenduan") > 0.0:                      # 天赋「震断筋骨」：被击晕的敌人受到的所有伤害 +8%/级
 		m *= 1.0 + 0.08 * st("t_zhenduan")
 	if sid == "dugu":
@@ -1605,6 +1658,11 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 				m *= 1.0 + 0.1 * qi
 			add_neili(0.3 * qi)
 	var crit_p := st("crit_chance") + (float(sk.mods["crit"]) if sk != null else 0.0)
+	if school_id == "spear":
+		if spear_gs >= 100.0 and st("t_xsds") > 0.0:                         # 蓄势待扫：棍势满时暴击率 +10%/级
+			crit_p += 0.1 * st("t_xsds")
+		if spear_combo >= 10 and st("t_chengsheng") > 0.0:                   # 乘胜：连击 ≥10 暴击率 +8%/16%
+			crit_p += 0.08 * st("t_chengsheng")
 	if (e.stun > 0.0 or e.slow_t > 0.0) and st("t_kongchang") > 0.0:       # 控场易伤：攻击被定身 / 减速的敌人，暴击率 +15%/级
 		crit_p += 0.15 * st("t_kongchang")
 	# 破绽联动：被定身 / 减速的敌人，特定标签的招式有额外效果
@@ -1673,6 +1731,8 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 				apply_bleed(e, bn, amount)
 	if bd:
 		apply_bleed(e, int(Data.T("blade_break_stacks")), amount)
+	if school_id == "blade" and sk != null and st("t_xuewu") > 0.0 and hp < st("max_hp") * 0.5 and not e.is_prop:     # 血雾：气血 <50% 时额外叠 1 层撕裂
+		apply_bleed(e, 1, amount)
 	if e.defense > 0.0:
 		var dfn := e.defense * (1.0 - e.def_down if e.def_down_t > 0.0 else 1.0)
 		if e.bleed_stacks > 0:                          # 撕裂：每层降低目标防御
@@ -1691,6 +1751,8 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 			amount = (sd - e.shield) / (shm * (2.0 if e.weak_t > 0.0 else 1.0))
 			e.shield = 0.0
 			add_fx("text", e.pos + Vector2(0, -e.radius - 30), 1.2, {"text": "护盾破碎！", "size": 28, "color": Color("#9ae8ff")})
+			if bd and st("t_podun") > 0.0:                 # 破盾：霸刀破岳击碎护盾时晕眩
+				stun_enemy(e, st("t_podun"))
 			if tulong_on:                                  # 斩蛟宝刀破盾：兵刃震脱，3 秒易伤
 				e.vuln = maxf(e.vuln if e.vuln_t > 0.0 else 0.0, 0.35)
 				e.vuln_t = 3.0
@@ -2465,7 +2527,11 @@ func block_chance() -> float:
 		b += 0.30
 	if spear_guard_t > 0.0:
 		b += 0.50
-	return minf(0.70, b)                                 # 格挡几率上限 70%
+	if tiebi_t > 0.0:
+		b += 0.1 * st("t_tiebi")                         # 铁壁连环
+	if panlong_t > 0.0:
+		b += 0.2 * st("t_longteng")                      # 龙腾九天·极：守势期间格挡几率再 +20%
+	return minf(0.70 + 0.05 * st("t_wuxie"), b)          # 格挡几率上限 70%（无懈可击：75 / 80 / 85%）
 
 
 ## 成功格挡：挥棍划半个圈、稍微震退近身的敌人；棍势 +10；盘龙守势中龙影反击
@@ -2476,9 +2542,25 @@ func _on_block() -> void:
 	add_gs(10.0)                                           # 枪路 / 棍路都攒棍势
 	if st("ji_spear") > 0.0:                               # 极·万军辟易：格挡回复气血
 		hp = minf(st("max_hp"), hp + st("max_hp") * 0.03 * heal_mult())
-	for e in _query(player_pos, 110.0):
+	var kr := 110.0 * (1.0 + 0.3 * st("t_xieli_b"))                       # 卸力：震退范围 +30%/级
+	for e in _query(player_pos, kr):
 		if e.alive and not e.is_boss and not e.is_prop:
 			e.knock += (e.pos - player_pos).normalized() * 320.0
+	var fj := int(st("t_fanji"))                                         # 反击：格挡成功自动反击周围一枪
+	if fj > 0:
+		for sk0: SkillBase in skills.values():
+			if str(sk0.def.get("school", "")) == "spear":
+				_spear_ctx = true
+				area_hit_raw(player_pos, 120.0, sk0.p("damage") * (0.2 + 0.3 * float(fj)), sk0.tags(), sk0.id, 200.0)
+				_spear_ctx = false
+				break
+	if st("t_tiebi") > 0.0:
+		tiebi_t = 1.0
+	if st("t_yishou") > 0.0:                                             # 以守为攻：每格挡 4/3 次，下一击增伤
+		yishou_n += 1
+		if yishou_n >= (4 if st("t_yishou") < 2.0 else 3):
+			yishou_n = 0
+			yishou_buff = 1.5 if st("t_yishou") < 2.0 else 2.0
 	Sfx.play("block_staff", 0.05, 0.0)
 	Sfx.play("block_swing", 0.05, -3.0)
 	add_fx("slash", player_pos, 0.3, {"angle": facing.angle(), "arc": PI, "r": 80.0, "heavy": true, "color": Color("#e8f2ff"), "vfx": "fx_block_swing" if vfx.has("fx_block_swing") else "", "size": 170.0})
@@ -2518,11 +2600,17 @@ func _tick_spear(dt: float) -> void:
 func _spear_on_hit(sk: SkillBase, e: Enemy) -> void:
 	if str(sk.def.get("school", "")) != "spear":
 		return
-	if str(sk.def.get("route", "")) == "spear":
-		spear_combo += 1
+	var wf := st("t_wanfa_gui") > 0.0                                 # 万法归宗：任意招式命中都计连击、攒枪势
+	if str(sk.def.get("route", "")) == "spear" or wf:
+		var add := 1 + (int(st("t_wuban")) if sk.id == "meihua_spear" else 0)
+		spear_combo += add
 		spear_combo_t = 2.0
-		if spear_combo % 10 == 0:
+		spear_since_shadow += add
+		if spear_since_shadow >= [10, 8, 6, 5][clampi(int(st("t_yingying")), 0, 3)]:
+			spear_since_shadow = 0
 			_spear_shadow(sk, e)
+	if wf and str(sk.def.get("route", "")) != "spear":
+		spear_qs = minf(100.0, spear_qs + 2.0 * (1.0 + st("qs_gain")))
 	if e.pos.distance_to(player_pos) < 120.0:
 		add_gs(2.0)                                        # 近身命中攒棍势（枪路也算）
 
@@ -2532,7 +2620,7 @@ func _spear_shadow(sk: SkillBase, from: Enemy) -> void:
 	_spear_ctx = true
 	var n := 0
 	for e in _query(player_pos, 300.0):
-		if n >= 3:
+		if n >= 3 + int(st("t_yingk")):
 			break
 		if e.alive and e != from and not e.is_prop:
 			hit_enemy(e, sk.p("damage") * 0.5, sk.tags(), (e.pos - player_pos).normalized() * 60.0, sk.id)
@@ -2548,6 +2636,14 @@ func spear_tip_hit(e: Enemy) -> void:
 	if e.is_prop or not e.alive:
 		return
 	apply_vuln(e, 0.12)
+	var dx := int(st("t_dianxue"))                                       # 点穴：枪尖命中后追击一枪
+	if dx > 0 and not _spear_ctx:
+		for sk0: SkillBase in skills.values():
+			if str(sk0.def.get("route", "")) == "spear":
+				_spear_ctx = true
+				hit_enemy(e, sk0.p("damage") * (0.1 + 0.2 * float(dx)), sk0.tags(), Vector2.ZERO, sk0.id)
+				_spear_ctx = false
+				break
 	if vfx.has("fx_spear_tip") and effects.size() < MAX_EFFECTS:
 		add_fx("ring", e.pos, 0.3, {"r0": 10.0, "r1": 10.0, "color": Color.WHITE, "vfx": "fx_spear_tip", "size": 110.0})
 	if effects.size() < MAX_EFFECTS and rng.randf() < 0.35:
@@ -3212,7 +3308,7 @@ func apply_vuln(e: Enemy, v: float, spread: bool = false) -> void:
 func add_soul(n: float) -> void:
 	if school_id != "blade" or n <= 0.0:
 		return
-	soul = minf(100.0, soul + n * (1.0 + st("soul_gain") + (0.5 if st("ji_blade") > 0.0 else 0.0)))
+	soul = minf(100.0, soul + n * (1.0 + st("soul_gain") + (0.5 if st("ji_blade") > 0.0 else 0.0) + (hunbao_v if hunbao_t > 0.0 else 0.0)))
 	soul_idle = 0.0
 
 
@@ -3222,12 +3318,14 @@ func _tick_true_blade(dt: float) -> void:
 		tb_t -= dt
 		if tb_t <= 0.0:
 			tb_t = 0.0
-			tb_cd = Data.T("true_blade_cd") * (0.5 if st("ji_blade") > 0.0 else 1.0)
+			tb_cd = (Data.T("true_blade_cd") - 6.0 * st("t_chongran")) * (0.5 if st("ji_blade") > 0.0 else 1.0)       # 重燃：冷却 30 → 24 / 18
+			if st("t_yuweib") > 0.0:
+				tbw_t = 5.0
 			add_fx("text", player_pos + Vector2(0, -52), 0.9, {"text": "破岳之势已尽", "size": 22, "color": Color("#c9a227")})
 	elif tb_cd > 0.0:
 		tb_cd = maxf(0.0, tb_cd - dt)
-	elif hp > 0.0 and not over and hp <= st("max_hp") * Data.T("true_blade_hp_pct"):
-		tb_t = Data.T("true_blade_dur") + (5.0 if st("ji_blade") > 0.0 else 0.0)
+	elif hp > 0.0 and not over and hp <= st("max_hp") * (Data.T("true_blade_hp_pct") + 0.05 * st("t_juejing")):
+		tb_t = Data.T("true_blade_dur") + st("t_xushib") + (5.0 if st("ji_blade") > 0.0 else 0.0)
 		tb_count += 1
 		invuln = maxf(invuln, Data.T("true_blade_invuln"))
 		add_fx("text", player_pos + Vector2(0, -60), 1.6, {"text": "真·霸刀破岳！", "size": 34, "color": Color("#ff6030")})
@@ -3238,7 +3336,7 @@ func _tick_true_blade(dt: float) -> void:
 
 ## 回复倍率（真·霸刀破岳期间：吸血 / 击杀回血 / 自然回复都翻倍）
 func heal_mult() -> float:
-	return Data.T("true_blade_heal_mult") if tb_t > 0.0 else 1.0
+	return Data.T("true_blade_heal_mult") + 0.3 * st("t_huifu") if tb_t > 0.0 else 1.0
 
 
 ## 武者天赋（气海 / 无敌两条招牌链）每帧的逻辑
@@ -3371,13 +3469,14 @@ func blade_dmg() -> float:
 
 
 func blade_range() -> float:
-	return 1.0 + Data.T("blade_soul_range") * floorf(soul / 10.0) if school_id == "blade" else 1.0
+	return (1.0 + Data.T("blade_soul_range") * floorf(soul / 10.0)) * (1.3 if (baodao and st("t_bawu") > 0.0) else 1.0) if school_id == "blade" else 1.0
 
 
 ## 刀魂满时，这一次出手是「霸刀破岳」：返回 true 表示已「上膛」
 func baodao_try(s: SkillBase) -> bool:
-	if school_id == "blade" and soul >= 100.0 and not s.free_cast and str(s.def.get("school", "")) == "blade":
+	if school_id == "blade" and soul >= (80.0 if st("t_bawu") > 0.0 else 100.0) and not s.free_cast and str(s.def.get("school", "")) == "blade":
 		baodao = true
+		baodao_skill = s
 		return true
 	return false
 
@@ -3385,8 +3484,14 @@ func baodao_try(s: SkillBase) -> bool:
 func baodao_done() -> void:
 	for sk_f: SkillBase in skills.values():
 		sk_f.on_baodao()
-	soul = 0.0
+	soul = 10.0 * st("t_hunhuo")                            # 魂火余烬：保留一部分刀魂
 	soul_idle = 0.0
+	if st("t_hunbao") > 0.0:                                # 魂爆：破岳后 3 秒刀魂增长 ×1.5 / ×2
+		hunbao_t = 3.0
+		hunbao_v = 0.5 * st("t_hunbao")
+	if st("t_poyue") > 0.0 and baodao_skill != null:        # 破岳·余震：0.6 秒后再劈一次
+		add_zone({"kind": "impact", "skill": baodao_skill, "pos": player_pos, "r": 150.0, "delay": 0.6, "t": 0.0,
+			"dmg": baodao_skill.p("damage") * (0.1 + 0.2 * st("t_poyue")), "stun": 0.0, "crack": false, "elv": 0})
 	var heal := (st("max_hp") - hp) * Data.T("blade_break_heal") * (2.0 if st("ji_blade") > 0.0 else 1.0)
 	hp = minf(st("max_hp"), hp + heal)
 	add_fx("text", player_pos + Vector2(0, -52), 1.0, {"text": "霸刀！" if rng.randf() < 0.5 else "破岳！", "size": 30, "color": Color("#ffb030")})

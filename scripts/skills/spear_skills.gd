@@ -64,10 +64,14 @@ class Base extends SkillBase:
 
 	## 枪势满：下一枪变「游龙突」——原地向前刺出一道约 320 像素的枪龙（人不位移），贯穿一线所有敌人（×1.8、必暴击），0.45 秒无敌
 	func breakthrough(dir: Vector2) -> bool:
-		if free_cast or str(def.get("route", "")) != "spear" or id == "wuming_spear" or w.spear_qs < 100.0:
+		var wf := w.st("t_wanfa_gui") > 0.0                  # 万法归宗：任意枪 / 棍都能打出游龙突
+		var free_qc := w.st("t_qiangchu") > 0.0 and w.spear_fire_n % 5 == 0 and str(def.get("route", "")) == "spear"      # 枪出如龙：每第 5 次枪路出手无需攒势
+		if free_cast or (not wf and (str(def.get("route", "")) != "spear" or id == "wuming_spear")) or (w.spear_qs < 100.0 and not free_qc):
 			return false
-		w.spear_qs = 50.0 if w.st("ji_spear") > 0.0 else 0.0
-		var dist := 320.0 * (1.0 + float(mods["range"]))
+		if not free_qc:
+			w.spear_qs = 50.0 if w.st("ji_spear") > 0.0 else 0.0
+		w.huima_t = 3.0 if w.st("t_huima") > 0.0 else 0.0
+		var dist := 320.0 * (1.0 + float(mods["range"])) * (1.0 + 0.15 * w.st("t_youlong"))
 		w.invuln = maxf(w.invuln, 0.45)
 		var start := w.player_pos
 		line_hit(start, dir, dist, 64.0, p("damage") * 1.8, 120.0, 1.45, true)
@@ -82,10 +86,22 @@ class Base extends SkillBase:
 	func wide_sweep() -> bool:
 		if free_cast or w.spear_gs < 100.0:
 			return false
-		w.spear_gs = 40.0 if w.st("ji_spear") > 0.0 else 0.0
-		var r := (p("reach") if def.has("reach") else p("radius")) * 2.0 * (1.0 + w.st("sweep_r"))
+		w.spear_gs = (40.0 if w.st("ji_spear") > 0.0 else 0.0) + 15.0 * w.st("t_gunshi")            # 棍势满溢：横扫后再攒棍势
+		if w.rng.randf() < 0.12 * w.st("t_liansao"):                                               # 连扫：保留一半棍势
+			w.spear_gs = maxf(w.spear_gs, 50.0)
+		var cap := w.st("t_hengsao_cap") > 0.0
+		var r := (p("reach") if def.has("reach") else p("radius")) * 2.0 * (1.0 + w.st("sweep_r")) * (1.4 if cap else 1.0)
 		w.spear_guard_t = 0.5
-		w.cone_hit(self, w.player_pos, 0.0, PI, r, p("damage") * 2.5, p("knock") * 2.0, true)
+		w.cone_hit(self, w.player_pos, 0.0, PI, r, p("damage") * 2.5, p("knock") * 2.0 * (2.0 if cap else 1.0), true)
+		for e in w._query(w.player_pos, r):
+			if e.alive and e.pos.distance_to(w.player_pos) < r + e.radius:
+				if w.st("t_pzg") > 0.0:                                                            # 破阵棍：降防
+					e.def_down = maxf(e.def_down, 0.1 * w.st("t_pzg"))
+					e.def_down_t = 3.0
+				if cap and not e.is_boss:                                                          # 横扫天下：晕眩 1 秒
+					e.stun = maxf(e.stun, 1.0)
+		if w.st("t_hsyz") > 0.0:                                                                   # 横扫·余震：0.6 秒后再扫一次
+			w.add_zone({"kind": "impact", "skill": self, "pos": w.player_pos, "r": r, "delay": 0.6, "t": 0.0, "dmg": p("damage") * (0.1 + 0.2 * w.st("t_hsyz")), "stun": 0.0, "crack": false, "elv": 0})
 		if not vfx_at("fx_staff_wide", w.player_pos, r * 2.2, 0.0, 0.5):
 			w.add_fx("ring", w.player_pos, 0.45, {"r0": 20.0, "r1": r, "color": Color("#ffd878")})
 		w.add_fx("text", w.player_pos + Vector2(0, -50), 0.9, {"text": "横扫千军！", "size": 28, "color": Color("#ffd878")})
@@ -135,6 +151,8 @@ class Yangjia extends Base:
 
 ## 梅花枪法：三（五）枪散开扇面，各自穿透
 class Meihua extends Base:
+	var _mh := 0
+
 	func fire() -> bool:
 		var reach := p("reach")
 		var t := w.nearest_enemy(reach + 40.0)
@@ -146,8 +164,14 @@ class Meihua extends Base:
 		var n := int(p("count")) + (2 if enhanced() else 0)
 		var dmg := p("damage") * (1.0 + (ev(0.1, 0.2, 0.3) if enhanced() else 0.0))
 		vfx_at("fx_meihua_spear", t.pos, 190.0, 0.0, 0.35)
+		_mh += 1
+		var rain := int(w.st("t_meihuayu")) > 0 and _mh % 5 == 0             # 梅花雨：每第 5 次出枪变成环绕一圈（枪数 ×2）
+		if rain:
+			n *= 2
 		for i in n:
 			var d2 := dir.rotated((i - (n - 1) * 0.5) * float(def["spread"]))
+			if rain:
+				d2 = Vector2.from_angle(TAU * float(i) / float(n))
 			ray_fx(w.player_pos, w.player_pos + d2 * reach, 14.0, Color("#f0c8c8"))
 			line_hit(w.player_pos, d2, reach, p("width"), dmg, p("knock"), 1.45, empowered)
 		return true
@@ -169,6 +193,9 @@ class Baima extends Base:
 		line_hit(start, dir, dist, p("width"), p("damage"), p("knock"), 1.2, false)
 		w.player_pos += dir * dist
 		beam_fx("fx_baima_dash", start, w.player_pos, 38.0, Color("#eaf2ff"), 1.4)
+		if int(w.st("t_yiqi")) > 0:                            # 一骑绝尘：冲刺路径留下 2 秒枪痕
+			for k in 4:
+				w.add_zone({"kind": "crack", "skill": self, "pos": start + dir * dist * float(k) / 3.0, "r": 55.0, "t": 0.0, "life": 2.0, "tick": 0.0, "dmg": p("damage") * 0.25})
 		if enhanced():                                       # 银龙探海：终点炸开一圈枪气
 			var r := ev(110.0, 135.0, 160.0)
 			w.area_hit(self, w.player_pos, r, p("damage") * ev(0.8, 1.0, 1.2), 200.0)
@@ -230,8 +257,10 @@ class WuMing extends Base:
 		vfx_at("fx_wuming_hit", t.pos, 200.0, 0.0, 0.4)
 		casts += 1
 		t.def_down = 0.3
-		t.def_down_t = 5.0
-		hit(t, p("damage"), dir * p("knock"), empowered)
+		t.def_down_t = 8.0 if w.st("t_fanpu") > 0.0 else 5.0                    # 返璞归真：防御削弱 8 秒
+		var wmd := p("damage") * (1.0 + w.wm_boost) * (1.5 if (w.st("t_fanpu") > 0.0 and t.is_boss) else 1.0)       # 无名之名：击杀后下一发增伤；返璞归真：对 Boss ×1.5
+		w.wm_boost = 0.0
+		hit(t, wmd, dir * p("knock"), empowered)
 		if float(mods["stun"]) > 0.0 and w.rng.randf() < float(mods["stun"]) and not t.is_boss:
 			t.stun = maxf(t.stun, 1.0)
 		if float(mods["vuln"]) > 0.0:
@@ -259,8 +288,9 @@ class Shaolin extends Base:
 		if wide_sweep():
 			return true
 		combo += 1
-		var third := combo % 3 == 0
-		var full := third and enhanced()
+		var dakai := w.st("t_dakai") > 0.0                    # 大开大合·极：每第 2 下变 360° 横扫
+		var third := combo % (2 if dakai else 3) == 0
+		var full := third and (enhanced() or dakai)
 		var arc := TAU if full else float(def["arc"])
 		var dmg := p("damage") * (1.0 + ((ev(0.5, 0.7, 0.9) if enhanced() else 0.6) if third else 0.0))
 		w.fx_slash(w.player_pos, a, reach, minf(arc, 3.4), third, fxid("slash"))
@@ -293,13 +323,16 @@ class PanLong extends Base:
 		var r := p("radius")
 		w.area_hit_raw(w.player_pos, r, p("damage"), tags(), id, p("knock"), 0.0, false, true)
 		w.add_fx("ring", w.player_pos, 0.35, {"r0": 15.0, "r1": r, "color": Color("#bfe0f0")})
+		var ly := int(w.st("t_longying"))                        # 龙影追击：额外反击一次（60%/100%）
+		if ly > 0:
+			w.area_hit_raw(w.player_pos, r, p("damage") * (0.2 + 0.4 * float(ly)), tags(), id, p("knock"), 0.0, false, true)
 		w.panlong_blocks += 1
 
 	## 守势结束（龙腾九天）：格挡次数越多越重的一记重击
 	func finale() -> void:
 		if not enhanced() or w.panlong_blocks <= 0:
 			return
-		var r := p("radius") * 1.6
+		var r := p("radius") * 1.6 * (1.5 if w.st("t_longteng") > 0.0 else 1.0)
 		var mult := 1.0 + float(w.panlong_blocks) * ev(0.25, 0.35, 0.45)
 		w.area_hit_raw(w.player_pos, r, p("damage") * 1.5 * mult, tags(), id, 320.0, 0.0, false, true)
 		w.add_fx("ring", w.player_pos, 0.5, {"r0": 20.0, "r1": r, "color": Color("#ffd878")})
@@ -320,6 +353,11 @@ class Dagou extends Base:
 		var st := p("stun") * (ev(1.3, 1.5, 1.7) if enhanced() else 1.0) * (2.0 if empowered else 1.0)
 		w.fx_slash(w.player_pos, a, reach, float(def["arc"]), false, fxid("slash"))
 		fan_hit(w.player_pos, a, float(def["arc"]) * 0.5, reach, p("damage"), p("knock"), st, 0.2, false)
+		if int(w.st("t_dagouzhen")) > 0:                       # 打狗阵：身周一圈再绊一次
+			for e in w._query(w.player_pos, reach * 0.9):
+				if e.alive and not e.is_boss and e.pos.distance_to(w.player_pos) < reach * 0.9 + e.radius:
+					e.stun = maxf(e.stun, st * 0.7)
+			w.add_fx("ring", w.player_pos, 0.35, {"r0": 15.0, "r1": reach * 0.9, "color": Color("#9ad8a0")})
 		return true
 
 
@@ -344,14 +382,20 @@ class Fengmo extends Base:
 			if tick_t <= 0.0:
 				tick_t = float(def["tick"])
 				_spin_hit()
-			if spin_left <= 0.0 and enhanced():              # 魔音绕梁：旋转结束再震出一圈
-				var r := p("radius") * ev(1.4, 1.6, 1.8)
-				w.area_hit_raw(w.player_pos, r, p("damage") * ev(1.5, 2.0, 2.5), tags(), id, 260.0, 0.0, false, false)
+			if spin_left <= 0.0 and (enhanced() or int(w.st("t_moyin")) > 0):              # 魔音绕梁：旋转结束再震出一圈（魔音：+40%/80%）
+				var r := p("radius") * (ev(1.4, 1.6, 1.8) if enhanced() else 1.4)
+				w.area_hit_raw(w.player_pos, r, p("damage") * (ev(1.5, 2.0, 2.5) if enhanced() else 1.0) * (1.0 + 0.4 * w.st("t_moyin")), tags(), id, 260.0, 0.0, false, false)
 				w.add_fx("ring", w.player_pos, 0.4, {"r0": 15.0, "r1": r, "color": Color("#ffd878")})
 		super.tick(dt)
 
 	func _spin_hit() -> void:
 		var r := p("radius")
+		if int(w.st("t_fengmo")) > 0:                        # 风魔·极：把近身敌人向中心吸拢
+			for e0 in w._query(w.player_pos, r * 1.3):
+				if e0.alive and not e0.is_boss and not e0.is_prop:
+					var to0 := w.player_pos - e0.pos
+					if to0.length() > 30.0:
+						e0.pos += to0.normalized() * 36.0
 		var near := 0
 		for e in w._query(w.player_pos, r):
 			if e.alive and e.pos.distance_to(w.player_pos) < r + e.radius:
@@ -364,6 +408,14 @@ class Fengmo extends Base:
 
 ## 定海铁杖：蓄力重击，落点大范围冲击并击晕；身边近身敌人越多越痛
 class Xiangmo extends Base:
+	var _cdr := 0.0
+
+	func tick(dt: float) -> void:
+		if _cdr > 0.0:
+			cd = maxf(0.0, cd - _cdr)
+			_cdr = 0.0
+		super.tick(dt)
+
 	func fire() -> bool:
 		var t := w.nearest_enemy(p("reach"))
 		if t == null:
@@ -386,8 +438,13 @@ class Xiangmo extends Base:
 			w.area_hit_raw(center, rr, amt, tags(), id, p("knock"), 0.0, false, empowered)
 			if not vfx_at("fx_xiangmo", center, rr * 2.3, 0.0, 0.4 + 0.08 * i):
 				w.add_fx("ring", center, 0.35 + 0.08 * i, {"r0": 12.0, "r1": rr, "color": Color("#ffd878")})
+		var hit_n := 0
 		for e in w._query(center, r):                           # 击晕
 			if e.alive and not e.is_boss and e.pos.distance_to(center) < r + e.radius:
 				e.stun = maxf(e.stun, p("stun") * (2.0 if empowered else 1.0))
+			if e.alive and e.pos.distance_to(center) < r + e.radius:
+				hit_n += 1
+		if int(w.st("t_jingangz")) > 0:                         # 金刚震地·极：每命中一个敌人，下次冷却 −0.3 秒（最多 2 秒）
+			_cdr = minf(2.0, 0.3 * float(hit_n))
 		w.shake = maxf(w.shake, 9.0)
 		return true

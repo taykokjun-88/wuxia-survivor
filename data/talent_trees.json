@@ -2533,5 +2533,2539 @@
    "ling",
    "rou"
   ]
+ },
+ "blade": {
+  "gates": [
+   0,
+   4,
+   8,
+   12,
+   16,
+   20,
+   26,
+   36
+  ],
+  "ji": {
+   "id": "blade_ji",
+   "name": "极意·霸刀",
+   "max": 1,
+   "need": 99,
+   "stat": {
+    "ji_blade": 1.0
+   },
+   "desc": "刀客之极意：真·霸刀破岳持续 +5 秒、冷却减半；刀法耗血减半；刀魂增长 +50%；霸刀 / 破岳回复已损气血的比例翻倍"
+  },
+  "branches": {
+   "gang": {
+    "name": "刚",
+    "sub": "刀魂 · 霸刀破岳 · 重劈",
+    "starter": "wuhu_blade",
+    "cols": [
+     "五煞断岳刀",
+     "斩蛟沉海刀",
+     "幽微藏锋刀",
+     "刀魂"
+    ],
+    "col_skills": [
+     "wuhu_blade",
+     "tulong_art",
+     "xuanxu_blade"
+    ],
+    "nodes": [
+     {
+      "id": "bg_a_1",
+      "name": "断门",
+      "max": 3,
+      "tier": 1,
+      "col": 0,
+      "row": 1,
+      "stat": {
+       "skill:wuhu_blade:damage": 0.08
+      },
+      "desc": "五煞断岳刀伤害 +8%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bg_a_2",
+      "name": "虎啸",
+      "max": 3,
+      "tier": 3,
+      "col": 0,
+      "row": 3,
+      "stat": {
+       "skill:wuhu_blade:range": 0.08
+      },
+      "desc": "范围 +8%/级",
+      "req": [
+       [
+        "bg_a_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bg_a_3",
+      "name": "撕裂入骨",
+      "max": 2,
+      "tier": 5,
+      "col": 0,
+      "row": 5,
+      "stat": {
+       "t_sliegu": 1,
+       "bleed_pow": 0.1
+      },
+      "desc": "命中叠的撕裂层数 +1，撕裂伤害 +10%/20%",
+      "req": [
+       [
+        "bg_a_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bg_a_4",
+      "name": "猛虎下山·极",
+      "max": 1,
+      "tier": 7,
+      "col": 0,
+      "row": 7,
+      "stat": {
+       "t_menghu": 1
+      },
+      "desc": "终极：流血的敌人死亡时爆出刀气，对周围 100 范围造成 80% 伤害",
+      "req": [
+       [
+        "bg_a_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "bg_b_1",
+      "name": "斩蛟余威",
+      "max": 3,
+      "tier": 2,
+      "col": 1,
+      "row": 2,
+      "stat": {
+       "skill:tulong_art:range": 0.1
+      },
+      "desc": "斩蛟沉海刀范围 +10%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bg_b_2",
+      "name": "沉海",
+      "max": 3,
+      "tier": 4,
+      "col": 1,
+      "row": 4,
+      "stat": {
+       "skill:tulong_art:damage": 0.08
+      },
+      "desc": "伤害 +8%/级",
+      "req": [
+       [
+        "bg_b_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bg_b_3",
+      "name": "浪涌",
+      "max": 2,
+      "tier": 6,
+      "col": 1,
+      "row": 6,
+      "stat": {
+       "t_langyong": 1
+      },
+      "desc": "全场减速更强（−15%/30%）、更久（+0.5/1 秒）",
+      "req": [
+       [
+        "bg_b_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bg_b_4",
+      "name": "蛟龙出海",
+      "max": 1,
+      "tier": 7,
+      "col": 1,
+      "row": 7,
+      "stat": {
+       "t_jiaolong": 1
+      },
+      "desc": "终极：落地 1 秒后再涌起一道巨浪（伤害 50%）",
+      "req": [
+       [
+        "bg_b_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "bg_c_1",
+      "name": "裂地",
+      "max": 3,
+      "tier": 2,
+      "col": 2,
+      "row": 2,
+      "stat": {
+       "skill:xuanxu_blade:damage": 0.08
+      },
+      "desc": "幽微藏锋刀伤害 +8%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bg_c_2",
+      "name": "绵延",
+      "max": 3,
+      "tier": 4,
+      "col": 2,
+      "row": 4,
+      "stat": {
+       "skill:xuanxu_blade:range": 0.08
+      },
+      "desc": "范围 +8%/级",
+      "req": [
+       [
+        "bg_c_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bg_c_3",
+      "name": "处决",
+      "max": 2,
+      "tier": 6,
+      "col": 2,
+      "row": 6,
+      "stat": {
+       "t_chujue": 1
+      },
+      "desc": "对被震晕 / 定身的敌人额外伤害 +20%/40%",
+      "req": [
+       [
+        "bg_c_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bg_c_4",
+      "name": "开山·极",
+      "max": 1,
+      "tier": 7,
+      "col": 2,
+      "row": 7,
+      "stat": {
+       "t_kaishan": 1
+      },
+      "desc": "终极：裂地刀痕由 3 道变 5 道",
+      "req": [
+       [
+        "bg_c_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "bg_g_1",
+      "name": "刚劲",
+      "max": 3,
+      "tier": 1,
+      "col": 3,
+      "row": 1,
+      "stat": {
+       "damage_pct": 0.02
+      },
+      "desc": "招式伤害 +2%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bg_g_2",
+      "name": "聚魂",
+      "max": 3,
+      "tier": 2,
+      "col": 3,
+      "row": 2,
+      "stat": {
+       "soul_gain": 0.15
+      },
+      "desc": "刀魂增长 +15%/级",
+      "req": [
+       [
+        "bg_g_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bg_g_3",
+      "name": "魂火余烬",
+      "max": 3,
+      "tier": 3,
+      "col": 3,
+      "row": 3,
+      "stat": {
+       "t_hunhuo": 1
+      },
+      "desc": "霸刀破岳后保留 10%/级 的刀魂",
+      "req": [
+       [
+        "bg_g_2",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bg_g_4",
+      "name": "破岳·余震",
+      "max": 3,
+      "tier": 4,
+      "col": 3,
+      "row": 4,
+      "stat": {
+       "t_poyue": 1
+      },
+      "desc": "霸刀破岳 0.6 秒后再劈一次（30%/50%/70%）",
+      "req": [
+       [
+        "bg_g_3",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bg_g_5",
+      "name": "破军",
+      "max": 4,
+      "tier": 5,
+      "col": 3,
+      "row": 5,
+      "stat": {
+       "crit_mult": 0.1
+      },
+      "desc": "暴击伤害 +10%/级",
+      "req": [
+       [
+        "bg_g_4",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bg_g_6",
+      "name": "破盾",
+      "max": 3,
+      "tier": 6,
+      "col": 3,
+      "row": 6,
+      "stat": {
+       "t_podun": 1
+      },
+      "desc": "霸刀破岳击碎护盾 / 罡气时，晕眩敌人 1 秒/级",
+      "req": [
+       [
+        "bg_g_5",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bg_g_7",
+      "name": "魂爆",
+      "max": 2,
+      "tier": 7,
+      "col": 3,
+      "row": 7,
+      "stat": {
+       "t_hunbao": 1
+      },
+      "desc": "霸刀破岳后 3 秒内刀魂增长 ×1.5 / ×2",
+      "req": [
+       [
+        "bg_g_6",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bg_g_8",
+      "name": "霸刀无双",
+      "max": 1,
+      "tier": 7,
+      "col": 3,
+      "row": 8,
+      "stat": {
+       "t_bawu": 1
+      },
+      "desc": "终极：刀魂只需攒到 80 就触发霸刀破岳，破岳时范围 +30%",
+      "req": [
+       [
+        "bg_g_7",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "bg_peak",
+      "name": "狂刀喋血",
+      "max": 1,
+      "tier": 8,
+      "col": 1.5,
+      "row": 9,
+      "stat": {
+       "burst_yang": 1,
+       "ying_dmg": 0.1,
+       "lowhp_dmg": 0.03
+      },
+      "desc": "巅峰：阳性内力，盈境伤害 +10%；气血每降低 10%，全部伤害再 +3%",
+      "req": [],
+      "cap": false,
+      "peak": true
+     }
+    ]
+   },
+   "rou": {
+    "name": "柔",
+    "sub": "撕裂 · 耗血 · 回春",
+    "starter": "kuangfeng_blade",
+    "cols": [
+     "暴风卷沙刀",
+     "朱砂饮锋刀",
+     "错位双仪刀",
+     "血债"
+    ],
+    "col_skills": [
+     "kuangfeng_blade",
+     "xuedao",
+     "fanliangyi"
+    ],
+    "nodes": [
+     {
+      "id": "br_a_1",
+      "name": "暴风刀势",
+      "max": 3,
+      "tier": 1,
+      "col": 0,
+      "row": 1,
+      "stat": {
+       "skill:kuangfeng_blade:cooldown": 0.08
+      },
+      "desc": "暴风卷沙刀冷却 −8%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "br_a_2",
+      "name": "卷沙",
+      "max": 3,
+      "tier": 3,
+      "col": 0,
+      "row": 3,
+      "stat": {
+       "skill:kuangfeng_blade:damage": 0.08
+      },
+      "desc": "伤害 +8%/级",
+      "req": [
+       [
+        "br_a_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "br_a_3",
+      "name": "撕裂引爆",
+      "max": 2,
+      "tier": 5,
+      "col": 0,
+      "row": 5,
+      "stat": {
+       "t_liebao": 1
+      },
+      "desc": "每第 4 次出刀引爆撕裂的伤害 +30%/60%",
+      "req": [
+       [
+        "br_a_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "br_a_4",
+      "name": "风卷残云·极",
+      "max": 1,
+      "tier": 7,
+      "col": 0,
+      "row": 7,
+      "stat": {
+       "t_fengjuan": 1
+      },
+      "desc": "终极：引爆时，周围一圈敌人各叠 2 层撕裂",
+      "req": [
+       [
+        "br_a_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "br_b_1",
+      "name": "饮锋",
+      "max": 3,
+      "tier": 2,
+      "col": 1,
+      "row": 2,
+      "stat": {
+       "skill:xuedao:damage": 0.08
+      },
+      "desc": "朱砂饮锋刀伤害 +8%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "br_b_2",
+      "name": "血刃",
+      "max": 3,
+      "tier": 4,
+      "col": 1,
+      "row": 4,
+      "stat": {
+       "skill:xuedao:heal": 0.12
+      },
+      "desc": "吸回气血 +12%/级（受吸血上限限制）",
+      "req": [
+       [
+        "br_b_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "br_b_3",
+      "name": "血债",
+      "max": 2,
+      "tier": 6,
+      "col": 1,
+      "row": 6,
+      "stat": {
+       "t_xuezhai": 1
+      },
+      "desc": "朱砂饮锋刀耗血减少 25%/50%",
+      "req": [
+       [
+        "br_b_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "br_b_4",
+      "name": "血魔不死·极",
+      "max": 1,
+      "tier": 7,
+      "col": 1,
+      "row": 7,
+      "stat": {
+       "t_xuemo": 1
+      },
+      "desc": "终极：气血低于 50% 时，每击杀一个敌人回复 2% 气血",
+      "req": [
+       [
+        "br_b_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "br_c_1",
+      "name": "两仪化气",
+      "max": 3,
+      "tier": 2,
+      "col": 2,
+      "row": 2,
+      "stat": {
+       "skill:fanliangyi:range": 0.12
+      },
+      "desc": "错位双仪刀刀轮范围 +12%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "br_c_2",
+      "name": "阴阳轮转",
+      "max": 3,
+      "tier": 4,
+      "col": 2,
+      "row": 4,
+      "stat": {
+       "skill:fanliangyi:duration": 0.1
+      },
+      "desc": "刀轮持续 +10%/级",
+      "req": [
+       [
+        "br_c_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "br_c_3",
+      "name": "反刃",
+      "max": 2,
+      "tier": 6,
+      "col": 2,
+      "row": 6,
+      "stat": {
+       "t_fanren": 1
+      },
+      "desc": "刀轮期间受到的伤害，30%/60% 反弹给周围敌人",
+      "req": [
+       [
+        "br_c_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "br_c_4",
+      "name": "混沌初开",
+      "max": 1,
+      "tier": 7,
+      "col": 2,
+      "row": 7,
+      "stat": {
+       "t_hundun": 1
+      },
+      "desc": "终极：刀轮存续期间，每 0.5 秒向外放出一道刀气（伤害 40%）",
+      "req": [
+       [
+        "br_c_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "br_g_1",
+      "name": "调息",
+      "max": 3,
+      "tier": 1,
+      "col": 3,
+      "row": 1,
+      "stat": {
+       "hp_regen": 0.4
+      },
+      "desc": "气血回复 +0.4/秒每级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "br_g_2",
+      "name": "血契",
+      "max": 3,
+      "tier": 2,
+      "col": 3,
+      "row": 2,
+      "stat": {
+       "t_xueqi": 1
+      },
+      "desc": "耗血刀法耗血 −10%/级",
+      "req": [
+       [
+        "br_g_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "br_g_3",
+      "name": "以血养刀",
+      "max": 3,
+      "tier": 3,
+      "col": 3,
+      "row": 3,
+      "stat": {
+       "t_yangdao": 1
+      },
+      "desc": "每耗 1% 气血，2 秒内伤害 +2%/级",
+      "req": [
+       [
+        "br_g_2",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "br_g_4",
+      "name": "撕裂易伤",
+      "max": 3,
+      "tier": 4,
+      "col": 3,
+      "row": 4,
+      "stat": {
+       "t_liexi": 1
+      },
+      "desc": "撕裂 ≥5 层的敌人受到的伤害 +10%/级",
+      "req": [
+       [
+        "br_g_3",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "br_g_5",
+      "name": "绵里藏针",
+      "max": 4,
+      "tier": 5,
+      "col": 3,
+      "row": 5,
+      "stat": {
+       "armor": 0.4
+      },
+      "desc": "防御 +0.4/级",
+      "req": [
+       [
+        "br_g_4",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "br_g_6",
+      "name": "饮血",
+      "max": 3,
+      "tier": 6,
+      "col": 3,
+      "row": 6,
+      "stat": {
+       "t_yinxue": 1
+      },
+      "desc": "击杀回复 2%/级 气血",
+      "req": [
+       [
+        "br_g_5",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "br_g_7",
+      "name": "血雾",
+      "max": 2,
+      "tier": 7,
+      "col": 3,
+      "row": 7,
+      "stat": {
+       "t_xuewu": 1
+      },
+      "desc": "气血低于 50% 时，刀招额外叠 1 层撕裂",
+      "req": [
+       [
+        "br_g_6",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "br_g_8",
+      "name": "血魂归一",
+      "max": 1,
+      "tier": 7,
+      "col": 3,
+      "row": 8,
+      "stat": {
+       "t_xuehun": 1
+      },
+      "desc": "终极：自己耗的血转化为刀魂的比例 ×2",
+      "req": [
+       [
+        "br_g_7",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "br_peak",
+      "name": "阴柔回春",
+      "max": 1,
+      "tier": 8,
+      "col": 1.5,
+      "row": 9,
+      "stat": {
+       "burst_yin": 1
+      },
+      "desc": "巅峰：阴性内力：真气爆发时额外回血，并获得 8 秒攻速 +30%",
+      "req": [],
+      "cap": false,
+      "peak": true
+     }
+    ]
+   },
+   "ling": {
+    "name": "灵",
+    "sub": "飞刀 · 火海 · 绝境",
+    "starter": "hujia_blade",
+    "cols": [
+     "寒鸦落雪刀",
+     "烈焰焚林刀",
+     "双鲤戏浪刀",
+     "绝境"
+    ],
+    "col_skills": [
+     "hujia_blade",
+     "ranmu_blade",
+     "yuanyang_blade"
+    ],
+    "nodes": [
+     {
+      "id": "bl_a_1",
+      "name": "寒鸦",
+      "max": 3,
+      "tier": 1,
+      "col": 0,
+      "row": 1,
+      "stat": {
+       "skill:hujia_blade:damage": 0.08
+      },
+      "desc": "寒鸦落雪刀伤害 +8%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bl_a_2",
+      "name": "穿云",
+      "max": 3,
+      "tier": 3,
+      "col": 0,
+      "row": 3,
+      "stat": {
+       "skill:hujia_blade:targets": 1.0
+      },
+      "desc": "刀气贯穿 +1/级",
+      "req": [
+       [
+        "bl_a_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bl_a_3",
+      "name": "落单必杀",
+      "max": 2,
+      "tier": 5,
+      "col": 0,
+      "row": 5,
+      "stat": {
+       "t_luodan": 1
+      },
+      "desc": "近处 / 落单目标的额外伤害 +20%/40%",
+      "req": [
+       [
+        "bl_a_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bl_a_4",
+      "name": "八方藏刀·极",
+      "max": 1,
+      "tier": 7,
+      "col": 0,
+      "row": 7,
+      "stat": {
+       "t_bafang": 1
+      },
+      "desc": "终极：刀气飞到尽头折返一次（伤害 60%）",
+      "req": [
+       [
+        "bl_a_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "bl_b_1",
+      "name": "烈焰",
+      "max": 3,
+      "tier": 2,
+      "col": 1,
+      "row": 2,
+      "stat": {
+       "skill:ranmu_blade:damage": 0.08
+      },
+      "desc": "烈焰焚林刀伤害 +8%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bl_b_2",
+      "name": "火海",
+      "max": 3,
+      "tier": 4,
+      "col": 1,
+      "row": 4,
+      "stat": {
+       "skill:ranmu_blade:range": 0.1
+      },
+      "desc": "范围 +10%/级",
+      "req": [
+       [
+        "bl_b_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bl_b_3",
+      "name": "灼烧蔓延",
+      "max": 2,
+      "tier": 6,
+      "col": 1,
+      "row": 6,
+      "stat": {
+       "t_zhuoshao": 1
+      },
+      "desc": "被灼烧的敌人死亡时，在它脚下再生出一小片火海",
+      "req": [
+       [
+        "bl_b_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bl_b_4",
+      "name": "燎原",
+      "max": 1,
+      "tier": 7,
+      "col": 1,
+      "row": 7,
+      "stat": {
+       "t_liaoyuan": 1
+      },
+      "desc": "终极：火海持续时间 ×1.5，范围内敌人受到的灼烧伤害 +50%",
+      "req": [
+       [
+        "bl_b_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "bl_c_1",
+      "name": "双鲤连环",
+      "max": 3,
+      "tier": 2,
+      "col": 2,
+      "row": 2,
+      "stat": {
+       "skill:yuanyang_blade:targets": 1.0
+      },
+      "desc": "双鲤戏浪刀飞刀 +1 对/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bl_c_2",
+      "name": "戏浪",
+      "max": 3,
+      "tier": 4,
+      "col": 2,
+      "row": 4,
+      "stat": {
+       "skill:yuanyang_blade:damage": 0.08
+      },
+      "desc": "伤害 +8%/级",
+      "req": [
+       [
+        "bl_c_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bl_c_3",
+      "name": "逆流",
+      "max": 2,
+      "tier": 6,
+      "col": 2,
+      "row": 6,
+      "stat": {
+       "t_niliu": 1
+      },
+      "desc": "飞刀折返时伤害 +25%/50%",
+      "req": [
+       [
+        "bl_c_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bl_c_4",
+      "name": "仁义无双·极",
+      "max": 1,
+      "tier": 7,
+      "col": 2,
+      "row": 7,
+      "stat": {
+       "t_renyi": 1
+      },
+      "desc": "终极：被长刀减速又被短刀撕裂的敌人，易伤 +25% 并下一击必暴击",
+      "req": [
+       [
+        "bl_c_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "bl_g_1",
+      "name": "蓄势",
+      "max": 4,
+      "tier": 1,
+      "col": 3,
+      "row": 1,
+      "stat": {
+       "t_xushib": 1
+      },
+      "desc": "真·霸刀破岳持续 +1 秒/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bl_g_2",
+      "name": "绝境",
+      "max": 3,
+      "tier": 2,
+      "col": 3,
+      "row": 2,
+      "stat": {
+       "t_juejing": 1
+      },
+      "desc": "真·霸刀破岳的触发线从气血 20% 提高到 25% / 30% / 35%",
+      "req": [
+       [
+        "bl_g_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bl_g_3",
+      "name": "回复加深",
+      "max": 3,
+      "tier": 3,
+      "col": 3,
+      "row": 3,
+      "stat": {
+       "t_huifu": 1
+      },
+      "desc": "真·霸刀期间回复倍率 ×2 → ×2.3 / 2.6 / 3",
+      "req": [
+       [
+        "bl_g_2",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bl_g_4",
+      "name": "浴血",
+      "max": 3,
+      "tier": 4,
+      "col": 3,
+      "row": 4,
+      "stat": {
+       "t_yuxue": 1
+      },
+      "desc": "真·霸刀期间每击杀回复 1%/级 气血",
+      "req": [
+       [
+        "bl_g_3",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bl_g_5",
+      "name": "余威",
+      "max": 3,
+      "tier": 5,
+      "col": 3,
+      "row": 5,
+      "stat": {
+       "t_yuweib": 1
+      },
+      "desc": "真·霸刀结束后 5 秒内，全部伤害 +8%/级",
+      "req": [
+       [
+        "bl_g_4",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bl_g_6",
+      "name": "不灭",
+      "max": 3,
+      "tier": 6,
+      "col": 3,
+      "row": 6,
+      "stat": {
+       "t_bumie": 1
+      },
+      "desc": "真·霸刀期间受到的伤害 −10%/级",
+      "req": [
+       [
+        "bl_g_5",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bl_g_7",
+      "name": "重燃",
+      "max": 2,
+      "tier": 7,
+      "col": 3,
+      "row": 7,
+      "stat": {
+       "t_chongran": 1
+      },
+      "desc": "真·霸刀冷却 30 秒 → 24 / 18 秒",
+      "req": [
+       [
+        "bl_g_6",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "bl_g_8",
+      "name": "刀魂不灭",
+      "max": 1,
+      "tier": 7,
+      "col": 3,
+      "row": 8,
+      "stat": {
+       "t_hunbumie": 1
+      },
+      "desc": "终极：真·霸刀期间每一刀都附带 50% 的霸刀破岳效果",
+      "req": [
+       [
+        "bl_g_7",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "bl_peak",
+      "name": "刀皇霸体",
+      "max": 1,
+      "tier": 8,
+      "col": 1.5,
+      "row": 9,
+      "stat": {
+       "burst_harmony": 1,
+       "cd_reduce": 0.05,
+       "max_hp": 10
+      },
+      "desc": "巅峰：调和内力：真气爆发次数 ×2；招式冷却 −5%，气血上限 +10",
+      "req": [],
+      "cap": false,
+      "peak": true
+     }
+    ]
+   }
+  }
+ },
+ "spear": {
+  "gates": [
+   0,
+   4,
+   8,
+   12,
+   16,
+   20,
+   26,
+   36
+  ],
+  "ji": {
+   "id": "spear_ji",
+   "name": "极意·万军辟易",
+   "max": 1,
+   "need": 99,
+   "stat": {
+    "ji_spear": 1.0
+   },
+   "desc": "杨家将之极意：枪路——游龙突后只清一半枪势、枪尖区间扩大；棍路——横扫千军后立刻再攒 40 点棍势、格挡几率 +10%（格挡仍受上限）；格挡成功回复 3% 气血"
+  },
+  "branches": {
+   "gang": {
+    "name": "刚",
+    "sub": "棍势 · 横扫千军 · 重击",
+    "starter": "shaolin_staff",
+    "cols": [
+     "少林棍法",
+     "怒涛狂澜杖",
+     "定海铁杖",
+     "棍势"
+    ],
+    "col_skills": [
+     "shaolin_staff",
+     "fengmo_staff",
+     "xiangmo_staff"
+    ],
+    "nodes": [
+     {
+      "id": "pg_a_1",
+      "name": "力劈华山",
+      "max": 3,
+      "tier": 1,
+      "col": 0,
+      "row": 1,
+      "stat": {
+       "skill:shaolin_staff:damage": 0.08
+      },
+      "desc": "少林棍法伤害 +8%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pg_a_2",
+      "name": "横扫",
+      "max": 3,
+      "tier": 3,
+      "col": 0,
+      "row": 3,
+      "stat": {
+       "skill:shaolin_staff:range": 0.08
+      },
+      "desc": "范围 +8%/级",
+      "req": [
+       [
+        "pg_a_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pg_a_3",
+      "name": "棍势满溢",
+      "max": 2,
+      "tier": 5,
+      "col": 0,
+      "row": 5,
+      "stat": {
+       "t_gunshi": 1
+      },
+      "desc": "打出「横扫千军」后立刻再攒 15/30 点棍势",
+      "req": [
+       [
+        "pg_a_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pg_a_4",
+      "name": "大开大合·极",
+      "max": 1,
+      "tier": 7,
+      "col": 0,
+      "row": 7,
+      "stat": {
+       "t_dakai": 1
+      },
+      "desc": "终极：少林棍法每第 2 下（原本第 3 下）变成 360° 横扫",
+      "req": [
+       [
+        "pg_a_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "pg_b_1",
+      "name": "怒涛",
+      "max": 3,
+      "tier": 2,
+      "col": 1,
+      "row": 2,
+      "stat": {
+       "skill:fengmo_staff:damage": 0.08
+      },
+      "desc": "怒涛狂澜杖伤害 +8%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pg_b_2",
+      "name": "狂澜",
+      "max": 3,
+      "tier": 4,
+      "col": 1,
+      "row": 4,
+      "stat": {
+       "skill:fengmo_staff:duration": 0.1
+      },
+      "desc": "旋转持续 +10%/级",
+      "req": [
+       [
+        "pg_b_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pg_b_3",
+      "name": "魔音",
+      "max": 2,
+      "tier": 6,
+      "col": 1,
+      "row": 6,
+      "stat": {
+       "t_moyin": 1
+      },
+      "desc": "旋转结束的冲击波伤害 +40%/80%（不强化也会震出）",
+      "req": [
+       [
+        "pg_b_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pg_b_4",
+      "name": "风魔·极",
+      "max": 1,
+      "tier": 7,
+      "col": 1,
+      "row": 7,
+      "stat": {
+       "t_fengmo": 1
+      },
+      "desc": "终极：旋转时每 0.3 秒把近身敌人向中心吸拢",
+      "req": [
+       [
+        "pg_b_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "pg_c_1",
+      "name": "降魔怒目",
+      "max": 3,
+      "tier": 2,
+      "col": 2,
+      "row": 2,
+      "stat": {
+       "skill:xiangmo_staff:damage": 0.08
+      },
+      "desc": "定海铁杖伤害 +8%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pg_c_2",
+      "name": "镇海",
+      "max": 3,
+      "tier": 4,
+      "col": 2,
+      "row": 4,
+      "stat": {
+       "skill:xiangmo_staff:range": 0.08
+      },
+      "desc": "范围 +8%/级",
+      "req": [
+       [
+        "pg_c_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pg_c_3",
+      "name": "震慑",
+      "max": 2,
+      "tier": 6,
+      "col": 2,
+      "row": 6,
+      "stat": {
+       "skill:xiangmo_staff:duration": 0.3
+      },
+      "desc": "击晕时间 +30%/60%",
+      "req": [
+       [
+        "pg_c_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pg_c_4",
+      "name": "金刚震地·极",
+      "max": 1,
+      "tier": 7,
+      "col": 2,
+      "row": 7,
+      "stat": {
+       "t_jingangz": 1
+      },
+      "desc": "终极：冲击波每命中一个敌人，下一次出手冷却 −0.3 秒（最多 −2 秒）",
+      "req": [
+       [
+        "pg_c_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "pg_g_1",
+      "name": "刚劲",
+      "max": 3,
+      "tier": 1,
+      "col": 3,
+      "row": 1,
+      "stat": {
+       "damage_pct": 0.02
+      },
+      "desc": "招式伤害 +2%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pg_g_2",
+      "name": "聚势",
+      "max": 3,
+      "tier": 2,
+      "col": 3,
+      "row": 2,
+      "stat": {
+       "gs_gain": 0.15
+      },
+      "desc": "近身命中 / 格挡攒棍势 +15%/级",
+      "req": [
+       [
+        "pg_g_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pg_g_3",
+      "name": "横扫·余震",
+      "max": 3,
+      "tier": 3,
+      "col": 3,
+      "row": 3,
+      "stat": {
+       "t_hsyz": 1
+      },
+      "desc": "横扫千军 0.6 秒后再扫一次（30%/50%/70%）",
+      "req": [
+       [
+        "pg_g_2",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pg_g_4",
+      "name": "破阵棍",
+      "max": 3,
+      "tier": 4,
+      "col": 3,
+      "row": 4,
+      "stat": {
+       "t_pzg": 1
+      },
+      "desc": "横扫千军命中的敌人防御 −10%/级（3 秒）",
+      "req": [
+       [
+        "pg_g_3",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pg_g_5",
+      "name": "破军",
+      "max": 4,
+      "tier": 5,
+      "col": 3,
+      "row": 5,
+      "stat": {
+       "crit_mult": 0.1
+      },
+      "desc": "暴击伤害 +10%/级",
+      "req": [
+       [
+        "pg_g_4",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pg_g_6",
+      "name": "蓄势待扫",
+      "max": 3,
+      "tier": 6,
+      "col": 3,
+      "row": 6,
+      "stat": {
+       "t_xsds": 1
+      },
+      "desc": "棍势满时暴击率 +10%/级",
+      "req": [
+       [
+        "pg_g_5",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pg_g_7",
+      "name": "连扫",
+      "max": 2,
+      "tier": 7,
+      "col": 3,
+      "row": 7,
+      "stat": {
+       "t_liansao": 1
+      },
+      "desc": "横扫千军后有 12%/24% 几率保留一半棍势",
+      "req": [
+       [
+        "pg_g_6",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pg_g_8",
+      "name": "横扫天下",
+      "max": 1,
+      "tier": 7,
+      "col": 3,
+      "row": 8,
+      "stat": {
+       "t_hengsao_cap": 1
+      },
+      "desc": "终极：横扫千军范围 +40%，击退 ×2 并晕眩 1 秒",
+      "req": [
+       [
+        "pg_g_7",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "pg_peak",
+      "name": "金刚不坏",
+      "max": 1,
+      "tier": 8,
+      "col": 1.5,
+      "row": 9,
+      "stat": {
+       "block_chance": 0.05,
+       "crit_mult": 0.1
+      },
+      "desc": "巅峰：格挡几率 +5%，暴击伤害 +10%",
+      "req": [],
+      "cap": false,
+      "peak": true
+     }
+    ]
+   },
+   "rou": {
+    "name": "柔",
+    "sub": "格挡 · 守势 · 万法归宗",
+    "starter": "",
+    "cols": [
+     "蟠龙棍法",
+     "翠竹巧拨棒",
+     "无名枪法",
+     "守势"
+    ],
+    "col_skills": [
+     "panlong_staff",
+     "dagou_staff",
+     "wuming_spear"
+    ],
+    "nodes": [
+     {
+      "id": "pr_a_1",
+      "name": "蟠龙盘旋",
+      "max": 3,
+      "tier": 1,
+      "col": 0,
+      "row": 1,
+      "stat": {
+       "skill:panlong_staff:duration": 0.12
+      },
+      "desc": "蟠龙棍法守势时间 +12%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pr_a_2",
+      "name": "龙影",
+      "max": 3,
+      "tier": 3,
+      "col": 0,
+      "row": 3,
+      "stat": {
+       "skill:panlong_staff:damage": 0.08
+      },
+      "desc": "伤害 +8%/级",
+      "req": [
+       [
+        "pr_a_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pr_a_3",
+      "name": "龙影追击",
+      "max": 2,
+      "tier": 5,
+      "col": 0,
+      "row": 5,
+      "stat": {
+       "t_longying": 1
+      },
+      "desc": "每次成功格挡，龙影额外反击一次（60%/100%）",
+      "req": [
+       [
+        "pr_a_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pr_a_4",
+      "name": "龙腾九天·极",
+      "max": 1,
+      "tier": 7,
+      "col": 0,
+      "row": 7,
+      "stat": {
+       "t_longteng": 1
+      },
+      "desc": "终极：守势期间格挡几率再 +20%（仍受上限），守势结束的砸落范围 ×1.5",
+      "req": [
+       [
+        "pr_a_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "pr_b_1",
+      "name": "绊腿",
+      "max": 3,
+      "tier": 2,
+      "col": 1,
+      "row": 2,
+      "stat": {
+       "skill:dagou_staff:damage": 0.08
+      },
+      "desc": "翠竹巧拨棒伤害 +8%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pr_b_2",
+      "name": "天下无狗",
+      "max": 3,
+      "tier": 4,
+      "col": 1,
+      "row": 4,
+      "stat": {
+       "skill:dagou_staff:duration": 0.1
+      },
+      "desc": "绊倒时间 +10%/级",
+      "req": [
+       [
+        "pr_b_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pr_b_3",
+      "name": "露出破绽",
+      "max": 2,
+      "tier": 6,
+      "col": 1,
+      "row": 6,
+      "stat": {
+       "t_pozhan": 1
+      },
+      "desc": "被绊倒（定身）的敌人受到的伤害 +15%/30%",
+      "req": [
+       [
+        "pr_b_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pr_b_4",
+      "name": "打狗阵",
+      "max": 1,
+      "tier": 7,
+      "col": 1,
+      "row": 7,
+      "stat": {
+       "t_dagouzhen": 1
+      },
+      "desc": "终极：点地时在身周一圈再绊一次",
+      "req": [
+       [
+        "pr_b_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "pr_c_1",
+      "name": "无名之势",
+      "max": 3,
+      "tier": 2,
+      "col": 2,
+      "row": 2,
+      "stat": {
+       "skill:wuming_spear:crit": 0.05
+      },
+      "desc": "无名枪法暴击率 +5%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pr_c_2",
+      "name": "破防",
+      "max": 3,
+      "tier": 4,
+      "col": 2,
+      "row": 4,
+      "stat": {
+       "skill:wuming_spear:pierce_def": 0.1
+      },
+      "desc": "无视防御额外 +10%/级",
+      "req": [
+       [
+        "pr_c_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pr_c_3",
+      "name": "无名之名",
+      "max": 2,
+      "tier": 6,
+      "col": 2,
+      "row": 6,
+      "stat": {
+       "t_wmzm": 1
+      },
+      "desc": "击杀敌人后，下一次无名枪法伤害 +25%/50%",
+      "req": [
+       [
+        "pr_c_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pr_c_4",
+      "name": "返璞归真",
+      "max": 1,
+      "tier": 7,
+      "col": 2,
+      "row": 7,
+      "stat": {
+       "t_fanpu": 1
+      },
+      "desc": "终极：对 Boss 伤害 ×1.5，防御削弱从 5 秒延长到 8 秒",
+      "req": [
+       [
+        "pr_c_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "pr_g_1",
+      "name": "调息",
+      "max": 3,
+      "tier": 1,
+      "col": 3,
+      "row": 1,
+      "stat": {
+       "hp_regen": 0.3
+      },
+      "desc": "气血回复 +0.3/秒每级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pr_g_2",
+      "name": "卸力",
+      "max": 3,
+      "tier": 2,
+      "col": 3,
+      "row": 2,
+      "stat": {
+       "t_xieli_b": 1
+      },
+      "desc": "格挡成功的震退范围 +30%/级",
+      "req": [
+       [
+        "pr_g_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pr_g_3",
+      "name": "反击",
+      "max": 3,
+      "tier": 3,
+      "col": 3,
+      "row": 3,
+      "stat": {
+       "t_fanji": 1
+      },
+      "desc": "格挡成功自动反击周围一枪（50%/80%/110%）",
+      "req": [
+       [
+        "pr_g_2",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pr_g_4",
+      "name": "铁壁连环",
+      "max": 3,
+      "tier": 4,
+      "col": 3,
+      "row": 4,
+      "stat": {
+       "t_tiebi": 1
+      },
+      "desc": "格挡成功后 1 秒内格挡几率 +10%/级",
+      "req": [
+       [
+        "pr_g_3",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pr_g_5",
+      "name": "铁壁",
+      "max": 4,
+      "tier": 5,
+      "col": 3,
+      "row": 5,
+      "stat": {
+       "block_chance": 0.02
+      },
+      "desc": "格挡几率 +2%/级",
+      "req": [
+       [
+        "pr_g_4",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pr_g_6",
+      "name": "无懈可击",
+      "max": 3,
+      "tier": 6,
+      "col": 3,
+      "row": 6,
+      "stat": {
+       "t_wuxie": 1
+      },
+      "desc": "格挡几率上限 70% → 75% / 80% / 85%",
+      "req": [
+       [
+        "pr_g_5",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pr_g_7",
+      "name": "以守为攻",
+      "max": 2,
+      "tier": 7,
+      "col": 3,
+      "row": 7,
+      "stat": {
+       "t_yishou": 1
+      },
+      "desc": "每格挡 4/3 次，下一击伤害 ×1.5/×2",
+      "req": [
+       [
+        "pr_g_6",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pr_g_8",
+      "name": "万法归宗",
+      "max": 1,
+      "tier": 7,
+      "col": 3,
+      "row": 8,
+      "stat": {
+       "t_wanfa_gui": 1
+      },
+      "desc": "终极：任意招式的每次命中都同时攒枪势和棍势、计连击；「游龙突」「横扫千军」可由任意枪棍打出",
+      "req": [
+       [
+        "pr_g_7",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "pr_peak",
+      "name": "阴柔回春",
+      "max": 1,
+      "tier": 8,
+      "col": 1.5,
+      "row": 9,
+      "stat": {
+       "burst_yin": 1
+      },
+      "desc": "巅峰：阴性内力：真气爆发时额外回血，并获得 8 秒攻速 +30%",
+      "req": [],
+      "cap": false,
+      "peak": true
+     }
+    ]
+   },
+   "ling": {
+    "name": "灵",
+    "sub": "枪势 · 游龙突 · 连击枪影",
+    "starter": "yangjia_spear",
+    "cols": [
+     "杨家枪法",
+     "梅花枪法",
+     "白马银枪",
+     "枪势"
+    ],
+    "col_skills": [
+     "yangjia_spear",
+     "meihua_spear",
+     "baima_spear"
+    ],
+    "nodes": [
+     {
+      "id": "pl_a_1",
+      "name": "回马无双",
+      "max": 3,
+      "tier": 1,
+      "col": 0,
+      "row": 1,
+      "stat": {
+       "skill:yangjia_spear:range": 0.08
+      },
+      "desc": "杨家枪法射程 +8%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pl_a_2",
+      "name": "杨家",
+      "max": 3,
+      "tier": 3,
+      "col": 0,
+      "row": 3,
+      "stat": {
+       "skill:yangjia_spear:damage": 0.08
+      },
+      "desc": "伤害 +8%/级",
+      "req": [
+       [
+        "pl_a_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pl_a_3",
+      "name": "枪尖淬火",
+      "max": 2,
+      "tier": 5,
+      "col": 0,
+      "row": 5,
+      "stat": {
+       "tip_dmg": 0.1
+      },
+      "desc": "枪尖伤害 +10%/20%",
+      "req": [
+       [
+        "pl_a_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pl_a_4",
+      "name": "回马连环·极",
+      "max": 1,
+      "tier": 7,
+      "col": 0,
+      "row": 7,
+      "stat": {
+       "t_huima": 1
+      },
+      "desc": "终极：打出「游龙突」后 3 秒内，杨家枪法冷却 −50%",
+      "req": [
+       [
+        "pl_a_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "pl_b_1",
+      "name": "梅花点点",
+      "max": 3,
+      "tier": 2,
+      "col": 1,
+      "row": 2,
+      "stat": {
+       "skill:meihua_spear:targets": 1.0
+      },
+      "desc": "梅花枪法枪数 +1/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pl_b_2",
+      "name": "落梅",
+      "max": 3,
+      "tier": 4,
+      "col": 1,
+      "row": 4,
+      "stat": {
+       "skill:meihua_spear:damage": 0.08
+      },
+      "desc": "伤害 +8%/级",
+      "req": [
+       [
+        "pl_b_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pl_b_3",
+      "name": "五瓣连环",
+      "max": 2,
+      "tier": 6,
+      "col": 1,
+      "row": 6,
+      "stat": {
+       "t_wuban": 1
+      },
+      "desc": "梅花枪每次命中累计的连击 +1/+2",
+      "req": [
+       [
+        "pl_b_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pl_b_4",
+      "name": "梅花雨",
+      "max": 1,
+      "tier": 7,
+      "col": 1,
+      "row": 7,
+      "stat": {
+       "t_meihuayu": 1
+      },
+      "desc": "终极：每第 5 次出枪变成环绕一圈的梅花雨（枪数 ×2）",
+      "req": [
+       [
+        "pl_b_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "pl_c_1",
+      "name": "白马蹄疾",
+      "max": 3,
+      "tier": 2,
+      "col": 2,
+      "row": 2,
+      "stat": {
+       "skill:baima_spear:cooldown": 0.1
+      },
+      "desc": "白马银枪冷却 −10%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pl_c_2",
+      "name": "银龙",
+      "max": 3,
+      "tier": 4,
+      "col": 2,
+      "row": 4,
+      "stat": {
+       "skill:baima_spear:damage": 0.08
+      },
+      "desc": "伤害 +8%/级",
+      "req": [
+       [
+        "pl_c_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pl_c_3",
+      "name": "踏雪",
+      "max": 2,
+      "tier": 6,
+      "col": 2,
+      "row": 6,
+      "stat": {
+       "skill:baima_spear:range": 0.3
+      },
+      "desc": "冲刺距离 / 范围 +30%/60%",
+      "req": [
+       [
+        "pl_c_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pl_c_4",
+      "name": "一骑绝尘",
+      "max": 1,
+      "tier": 7,
+      "col": 2,
+      "row": 7,
+      "stat": {
+       "t_yiqi": 1
+      },
+      "desc": "终极：冲刺路径留下 2 秒枪痕，持续伤害路过的敌人",
+      "req": [
+       [
+        "pl_c_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "pl_g_1",
+      "name": "轻灵",
+      "max": 3,
+      "tier": 1,
+      "col": 3,
+      "row": 1,
+      "stat": {
+       "speed_pct": 0.015
+      },
+      "desc": "移速 +1.5%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pl_g_2",
+      "name": "点穴",
+      "max": 3,
+      "tier": 2,
+      "col": 3,
+      "row": 2,
+      "stat": {
+       "t_dianxue": 1
+      },
+      "desc": "枪尖命中后追击一枪（30%/50%/70%）",
+      "req": [
+       [
+        "pl_g_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pl_g_3",
+      "name": "游龙·余势",
+      "max": 3,
+      "tier": 3,
+      "col": 3,
+      "row": 3,
+      "stat": {
+       "t_youlong": 1
+      },
+      "desc": "游龙突的枪龙长度 +15%/级",
+      "req": [
+       [
+        "pl_g_2",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pl_g_4",
+      "name": "连击枪影",
+      "max": 3,
+      "tier": 4,
+      "col": 3,
+      "row": 4,
+      "stat": {
+       "t_yingying": 1
+      },
+      "desc": "枪影所需连击从 10 降到 8 / 6 / 5",
+      "req": [
+       [
+        "pl_g_3",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pl_g_5",
+      "name": "枪走游龙",
+      "max": 4,
+      "tier": 5,
+      "col": 3,
+      "row": 5,
+      "stat": {
+       "qs_gain": 0.15
+      },
+      "desc": "枪势攒速 +15%/级",
+      "req": [
+       [
+        "pl_g_4",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pl_g_6",
+      "name": "枪影·扩",
+      "max": 3,
+      "tier": 6,
+      "col": 3,
+      "row": 6,
+      "stat": {
+       "t_yingk": 1
+      },
+      "desc": "枪影追击目标 3 → 4 / 5 / 6",
+      "req": [
+       [
+        "pl_g_5",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pl_g_7",
+      "name": "乘胜",
+      "max": 2,
+      "tier": 7,
+      "col": 3,
+      "row": 7,
+      "stat": {
+       "t_chengsheng": 1
+      },
+      "desc": "连击 ≥10 时暴击率 +8%/16%",
+      "req": [
+       [
+        "pl_g_6",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "pl_g_8",
+      "name": "枪出如龙",
+      "max": 1,
+      "tier": 7,
+      "col": 3,
+      "row": 8,
+      "stat": {
+       "t_qiangchu": 1
+      },
+      "desc": "终极：每第 5 次枪路出手，游龙突无需攒势",
+      "req": [
+       [
+        "pl_g_7",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "pl_peak",
+      "name": "神枪合一",
+      "max": 1,
+      "tier": 8,
+      "col": 1.5,
+      "row": 9,
+      "stat": {
+       "burst_harmony": 1,
+       "qs_gain": 0.2,
+       "gs_gain": 0.2
+      },
+      "desc": "巅峰：调和内力：真气爆发次数 ×2；枪势 / 棍势攒速 +20%",
+      "req": [],
+      "cap": false,
+      "peak": true
+     }
+    ]
+   }
+  }
  }
 }

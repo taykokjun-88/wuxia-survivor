@@ -130,6 +130,8 @@ func lacks(id: String) -> String:
 
 
 func info_text(id: String) -> String:
+	if id != "" and not _all.has(id):
+		id = ""
 	if id == "":
 		return "把鼠标移到穴位上查看。左键加点，右键减点。每个节点要满足：①前置节点（≥1 点 / 点满，用连线表示：细线 ≥1 点、粗线 点满）；②本系其余节点已投入的点数达到该层门槛（框内横线上的数字）。三系容量共 150 点，满级最多 99 点，所以要取舍；点满 99 点后出现第 100 点「极意」。"
 	var n: Dictionary = _all[id]
@@ -172,7 +174,7 @@ func _draw() -> void:
 		draw_rect(rect, Color(col, 0.75), false, 2.5)
 		draw_string(bold, rect.position + Vector2(14, 34), str(bd["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(col.lightened(0.35), 1.0))
 		draw_string(font, rect.position + Vector2(54, 20), str(bd["sub"]), HORIZONTAL_ALIGNMENT_LEFT, rect.size.x - 160.0, 13, Color("#e8dfc5"))
-		draw_string(font, rect.position + Vector2(54, 38), "起手：" + str(Data.skills.get(bd["starter"], {}).get("name", "")), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(col.lightened(0.4), 0.9))
+		draw_string(font, rect.position + Vector2(54, 38), ("起手：" + str(Data.skills.get(bd["starter"], {}).get("name", ""))) if str(bd["starter"]) != "" else "无起手招式（秘籍武功）", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(col.lightened(0.4), 0.9))
 		draw_string(bold, rect.position + Vector2(rect.size.x - 112, 24), "%d / 50 点" % _branch_sum(b), HORIZONTAL_ALIGNMENT_RIGHT, 100.0, 17, Color("#fff6dc"))
 		draw_line(rect.position + Vector2(12, G_HEADER - 3), rect.position + Vector2(rect.size.x - 12, G_HEADER - 3), Color(col, 0.5), 1.5)
 		# 列名

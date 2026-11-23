@@ -14,7 +14,7 @@ func _ready() -> void:
 	Save.create_character(OS.get_environment("SHOT_SCHOOL") if OS.get_environment("SHOT_SCHOOL") != "" else "fist")
 	Save.store_meta(1900000, {})
 	main._enter_town()
-	main.hud.talents_work = {"sl_a_1": 3, "sl_a_2": 1, "sl_b_1": 4, "sl_d_1": 2, "sg_a_1": 3, "sr_g_1": 2}
+	main.hud.talents_work = {"sl_a_1": 3, (OS.get_environment("SHOT_HOVER") if OS.get_environment("SHOT_HOVER") != "" else "sl_a_2"): 1, "sl_b_1": 4, "sl_d_1": 2, "sg_a_1": 3, "sr_g_1": 2}
 	Save.set_meta_talents(main.hud.talents_work)
 	main._open_meta()
 	for i in 3:
@@ -22,8 +22,8 @@ func _ready() -> void:
 	main._open_talents()
 	for i in 4:
 		await get_tree().process_frame
-	main.hud.talents_tree.hover_id = "sl_a_2"
-	main.hud.talents_tree.hovered.emit("sl_a_2")
+	main.hud.talents_tree.hover_id = (OS.get_environment("SHOT_HOVER") if OS.get_environment("SHOT_HOVER") != "" else "sl_a_2")
+	main.hud.talents_tree.hovered.emit((OS.get_environment("SHOT_HOVER") if OS.get_environment("SHOT_HOVER") != "" else "sl_a_2"))
 	for i in 3:
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw

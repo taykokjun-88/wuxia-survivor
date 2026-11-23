@@ -31,12 +31,16 @@ class Base extends SkillBase:
 		if frac <= 0.0 or free_cast:
 			return
 		var max_hp := w.st("max_hp")
-		var paid := minf(max_hp * frac * (0.5 if w.st("ji_blade") > 0.0 else 1.0), maxf(0.0, w.hp - 1.0))
+		var cut := 1.0 - 0.1 * w.st("t_xueqi") - (0.25 * w.st("t_xuezhai") if id == "xuedao" else 0.0)       # 血契 / 血债：耗血减少
+		var paid := minf(max_hp * frac * (0.5 if w.st("ji_blade") > 0.0 else 1.0) * maxf(0.1, cut), maxf(0.0, w.hp - 1.0))
 		if paid <= 0.0:
 			return
 		if w.tb_t <= 0.0:                    # 真·霸刀破岳期间不真的扣血，刀魂照涨（按本该耗的血算）
 			w.hp -= paid
-		w.add_soul(minf(Data.T("blade_soul_hp_cap"), Data.T("blade_soul_hp") * paid / maxf(1.0, max_hp) * 100.0))
+		w.add_soul(minf(Data.T("blade_soul_hp_cap"), Data.T("blade_soul_hp") * paid / maxf(1.0, max_hp) * 100.0) * (2.0 if w.st("t_xuehun") > 0.0 else 1.0))
+		if w.st("t_yangdao") > 0.0:                                          # 以血养刀：每耗 1% 气血，2 秒内伤害 +2%/级
+			w.yd_t = 2.0
+			w.yd_v = minf(0.5, paid / maxf(1.0, max_hp) * 100.0 * 0.02 * w.st("t_yangdao"))
 		if w.tb_t <= 0.0:
 			w.add_fx("text", w.player_pos + Vector2(0, -34), 0.6, {"text": "-%d" % int(paid), "size": 16, "color": GameWorld.VERMILION})
 
@@ -105,7 +109,7 @@ class WuHu extends Base:
 		for ang in angs:
 			w.add_fx("slash", w.player_pos, 0.2, {"angle": ang, "r": reach, "arc": arc, "heavy": true, "vfx": fxid("slash"),
 				"size": reach * 1.4, "fwd": reach * 0.55, "yscale": 1.25})
-		cone(w.player_pos, a, arc * 0.5, reach, dmg, p("knock"), 1)
+		cone(w.player_pos, a, arc * 0.5, reach, dmg, p("knock"), 1 + int(w.st("t_sliegu")))
 		if empowered:
 			w.spawn_proj(self, a, {"speed": 480.0, "radius": 24.0, "life": 0.5, "pierce": 3, "knock": 80.0, "damage": p("damage") * 0.6, "bleed": 1.0})
 		w.shake = maxf(w.shake, 3.0)
@@ -127,10 +131,15 @@ class KuangFeng extends Base:
 		var hits := 0
 		volley += 1
 		burst_now = volley % 4 == 0
+		var bm := 1.0 + (0.3 * w.st("t_liebao") if burst_now else 0.0)         # 撕裂引爆：引爆那一下伤害 +30%/60%
 		for i in n:
 			var ang: float = angs[i]
 			w.fx_slash(w.player_pos, ang, reach, p("arc"), false, fxid("slash"))
-			hits += cone(w.player_pos, ang, p("arc") * 0.5, reach, p("damage"), p("knock"), 1)
+			hits += cone(w.player_pos, ang, p("arc") * 0.5, reach, p("damage") * bm, p("knock"), 1)
+		if burst_now and int(w.st("t_fengjuan")) > 0:                          # 风卷残云·极：周围一圈敌人各叠 2 层撕裂
+			for e in w._query(w.player_pos, reach):
+				if e.alive and not e.is_prop and e.pos.distance_to(w.player_pos) < reach + e.radius:
+					w.apply_bleed(e, 2, p("damage"))
 		burst_now = false
 		if enhanced() and hits > 0:
 			w.add_neili(minf(6.0, float(hits)))
@@ -140,7 +149,7 @@ class KuangFeng extends Base:
 ## 寒鸦落雪刀：弯月刀气，穿透多人；近处伤害更高并露出破绽。强化「八方藏刀式」：两侧分出次级刀气。
 class HuJia extends Base:
 	func hit_mult(e: Enemy) -> float:
-		return 1.35 if e.pos.distance_to(w.player_pos) < 100.0 else 1.0
+		return (1.35 + 0.2 * w.st("t_luodan")) if e.pos.distance_to(w.player_pos) < 100.0 else 1.0       # 落单必杀
 
 	func fire() -> bool:
 		var reach := p("speed") * p("life") * rmul()
@@ -149,7 +158,10 @@ class HuJia extends Base:
 			return false
 		var a := (t.pos - w.player_pos).angle()
 		var o := {"pierce": int(p("pierce")) + (3 if empowered else 0), "radius": p("radius") * (1.5 if empowered else 1.0), "vuln": 0.15}
-		w.spawn_proj(self, a, o)
+		var hp0 := w.spawn_proj(self, a, o)
+		if int(w.st("t_bafang")) > 0:                                        # 八方藏刀·极：刀气飞到尽头折返一次（60%）
+			hp0.boomerang = true
+			hp0.ret_mult = 0.6
 		if enhanced():
 			var n := int(ev(2, 3, 4))
 			for i in n:
@@ -169,8 +181,9 @@ class RanMu extends Base:
 		w.fx_slash(w.player_pos, a, reach, p("arc"), true, fxid("slash"))
 		cone(w.player_pos, a, p("arc") * 0.5, reach, p("damage"), p("knock"))
 		var r := p("zone_r") * (1.6 if empowered else 1.0)
+		var ly := int(w.st("t_liaoyuan")) > 0                                 # 燎原：火海持续 ×1.5，灼烧 +50%
 		var z := {"kind": "fire", "skill": self, "pos": w.player_pos + Vector2.from_angle(a) * reach * 0.7, "r": r,
-			"t": 0.0, "life": p("zone_life"), "tick": 0.0, "dmg": p("damage") * 0.35}
+			"t": 0.0, "life": p("zone_life") * (1.5 if ly else 1.0), "tick": 0.0, "dmg": p("damage") * 0.35 * (1.5 if ly else 1.0)}
 		if enhanced():
 			z["burst"] = true
 			z["burst_r"] = ev(70.0, 95.0, 120.0)
@@ -220,11 +233,17 @@ class FanLiangYi extends Base:
 	var wheel_acc := 0.0
 	var wheel_r := 0.0
 	var wheel_emp := false
+	var _hd := 0.0
 
 	func tick(dt: float) -> void:
 		if wheel_t > 0.0:
 			wheel_t -= dt
 			wheel_acc -= dt
+			if int(w.st("t_hundun")) > 0:                                      # 混沌初开：每 0.5 秒放出一道刀气
+				_hd -= dt
+				if _hd <= 0.0:
+					_hd = 0.5
+					w.spawn_proj(self, w.rng.randf() * TAU, {"speed": 460.0, "radius": 16.0, "life": 0.5, "pierce": 2, "knock": 50.0, "damage": p("damage") * 0.4, "pos": w.player_pos})
 			if wheel_acc <= 0.0 and wheel_t > 0.0:
 				wheel_acc = 0.3
 				_pulse(false)
@@ -265,6 +284,8 @@ class FanLiangYi extends Base:
 		return true
 
 	func on_hurt(amount: float) -> float:
+		if wheel_t > 0.0 and int(w.st("t_fanren")) > 0 and not enhanced():       # 反刃：刀轮期间受到的伤害 30%/60% 反弹
+			w.area_hit_raw(w.player_pos, wheel_r, amount * 0.3 * w.st("t_fanren"), [], id, 120.0)
 		if wheel_t <= 0.0 or not enhanced():
 			return amount
 		var dmg := amount * (1.0 - ev(0.25, 0.35, 0.45))
@@ -283,7 +304,7 @@ class XuanXu extends Base:
 		if t == null:
 			return false
 		var a := (t.pos - w.player_pos).angle()
-		var n := 5 if empowered else int(p("count"))
+		var n := 5 if (empowered or int(w.st("t_kaishan")) > 0) else int(p("count"))
 		for i in n:
 			w.spawn_proj(self, a + (float(i) - (n - 1) * 0.5) * 0.3, {"stun": p("stun")})
 		w.shake = maxf(w.shake, 4.0)
@@ -294,10 +315,13 @@ class XuanXu extends Base:
 ## 双鲤戏浪刀：一长一短两柄飞刀回旋。长刀减速，短刀撕裂。强化「仁义无双」：被两刀都命中过的敌人必暴击并受更多伤害。
 class YuanYang extends Base:
 	func hit_crit(e: Enemy) -> bool:
-		return enhanced() and e.slow_t > 0.0 and e.bleed_stacks > 0
+		return (enhanced() or int(w.st("t_renyi")) > 0) and e.slow_t > 0.0 and e.bleed_stacks > 0
 
 	func hit_mult(e: Enemy) -> float:
-		return ev(1.2, 1.4, 1.6) if (enhanced() and e.slow_t > 0.0 and e.bleed_stacks > 0) else 1.0
+		if e.slow_t > 0.0 and e.bleed_stacks > 0:
+			var base := ev(1.2, 1.4, 1.6) if enhanced() else 1.0
+			return maxf(base, 1.25 if int(w.st("t_renyi")) > 0 else 1.0)           # 仁义无双·极：易伤 +25%
+		return 1.0
 
 	func fire() -> bool:
 		var reach := p("speed") * p("life") * rmul()
@@ -308,8 +332,12 @@ class YuanYang extends Base:
 		var pairs := int(p("count"))
 		for k in pairs:
 			var base := a + (float(k) - (pairs - 1) * 0.5) * 0.5
-			w.spawn_proj(self, base + 0.9, {"boomerang": true, "slowv": 0.3})                  # 长刀：减速
-			w.spawn_proj(self, base - 0.9, {"boomerang": true, "bleed": 1.0, "radius": p("radius") * 0.85})   # 短刀：撕裂
+			var p1 := w.spawn_proj(self, base + 0.9, {"boomerang": true, "slowv": 0.3})                  # 长刀：减速
+			var p2 := w.spawn_proj(self, base - 0.9, {"boomerang": true, "bleed": 1.0, "radius": p("radius") * 0.85})   # 短刀：撕裂
+			var nl := int(w.st("t_niliu"))                                         # 逆流：折返时伤害 +25%/50%
+			if nl > 0:
+				p1.ret_mult = (1.6 + 0.3 * float(maxi(0, w.enhance_level - 1))) * (1.0 + 0.25 * float(nl))
+				p2.ret_mult = p1.ret_mult
 		w.add_fx("ring", w.player_pos, 0.5, {"r0": 40.0, "r1": 140.0, "color": Color("#f0c050"), "vfx": fxid("ring"), "size": 300.0 * (1.0 + float(mods["range"]))})
 		if empowered:                                       # 双宿双飞：两刀交汇时爆开刀花
 			w.add_zone({"kind": "impact", "skill": self, "pos": w.player_pos, "r": 120.0, "delay": 0.65, "dmg": p("damage") * 1.2, "stun": 0.0, "crack": false, "elv": 0})
@@ -327,9 +355,12 @@ class TuLong extends Base:
 		w.add_zone({"kind": "impact", "skill": self, "pos": w.player_pos, "r": r, "delay": d, "dmg": p("damage") * mult, "stun": 0.0, "crack": false, "elv": 0})
 		if emp:                                             # 莫敢不从：刀龙环绕，再清一次场
 			w.add_zone({"kind": "impact", "skill": self, "pos": w.player_pos, "r": r * 0.85, "delay": 1.1, "dmg": p("damage") * mult * 0.6, "stun": 0.0, "crack": false, "elv": 0})
+		var lyl := int(w.st("t_langyong"))                                   # 浪涌：减速更强更久
 		for e in w._query(w.player_pos, r):
 			if e.alive and not e.is_prop:
-				w.slow_enemy(e, float(def.get("slow", 0.7)), float(def.get("slow_t", 2.5)))
+				w.slow_enemy(e, maxf(0.2, float(def.get("slow", 0.7)) - 0.15 * float(lyl)), float(def.get("slow_t", 2.5)) + 0.5 * float(lyl))
+		if int(w.st("t_jiaolong")) > 0 and not free_cast and not emp:        # 蛟龙出海：1 秒后再涌一浪（50%）
+			w.add_zone({"kind": "impact", "skill": self, "pos": w.player_pos, "r": r, "delay": 1.0, "dmg": p("damage") * mult * 0.5, "stun": 0.0, "crack": false, "elv": 0})
 		w.shake = maxf(w.shake, 6.0)
 
 	func fire() -> bool:
