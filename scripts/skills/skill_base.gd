@@ -192,10 +192,17 @@ func tick(dt: float) -> void:
 	cd -= dt
 	if cd <= 0.0:
 		empowered = w.can_empower(empower_cost())
+		var yuan: bool = w.yuanman_ready and str(def.get("school", "")) == "fist"     # 天赋「盈而圆满」：这一次出手免费催动 + 必暴击
+		if yuan:
+			empowered = true
 		var bd := w.baodao_try(self)         # 刀魂满：这一次出手是「霸刀破岳」
 		if fire():
 			Sfx.play_skill(id)
-			if empowered:
+			if yuan:
+				w.yuanman_ready = false
+				w.yuanman_cd = [8.0, 6.0, 4.0][clampi(int(w.st("t_yuanman")), 1, 3) - 1]
+				w.force_crit_t = 0.3
+			elif empowered:
 				w.pay_empower(empower_cost())
 			cd = p("cooldown") * w.cd_mult()
 			cd_total = cd

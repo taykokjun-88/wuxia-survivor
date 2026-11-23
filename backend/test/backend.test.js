@@ -330,12 +330,12 @@ test('天赋：节点表与 game_data.json 一致；校验规则', (e) => {
   const base = { fg_a_1: 3, fg_g_1: 3, fg_g_2: 2 };               // 本系 8 点
   assert.ok(c(Object.assign({}, base, { fg_a_2: 1 })), '前置 ≥1 点 + 门槛满足');
   assert.strictEqual(c(Object.assign({}, base, { fg_a_2: 1, fg_a_3: 1 })), null, '前置「点满」：第 2 个节点没点满，不能点第 3 个');
-  const more = { fg_a_1: 3, fg_a_2: 3, fg_b_1: 3, fg_g_1: 3, fg_g_2: 3, fg_g_3: 4 };   // 19
+  const more = { fg_a_1: 3, fg_a_2: 3, fg_b_1: 3, fg_g_1: 3, fg_g_2: 3, fg_g_3: 3 };   // 19
   assert.ok(c(Object.assign({}, more, { fg_a_3: 1 })), '第 2 个点满后可点第 3 个');
   assert.strictEqual(c(Object.assign({}, more, { fg_a_3: 1, fg_a_4: 1 })), null, '终极需要前置点满（且本系 ≥26 点）');
   assert.strictEqual(c(Object.assign({}, more, { fg_peak: 1 })), null, '巅峰需要本系 ≥36 点且点过终极');
-  assert.ok(c({ fg_a_1: 3, fg_a_2: 3, fg_a_3: 2, fg_a_4: 1, fg_b_1: 3, fg_b_2: 3, fg_b_3: 2, fg_g_1: 3, fg_g_2: 3, fg_g_3: 4, fg_g_4: 3, fg_g_5: 1 }), '终极：前置点满 + 本系 ≥26 点');
-  const pk = { fg_a_1: 3, fg_a_2: 3, fg_a_3: 2, fg_a_4: 1, fg_b_1: 3, fg_b_2: 3, fg_b_3: 2, fg_g_1: 3, fg_g_2: 3, fg_g_3: 4, fg_g_4: 3, fg_g_5: 4, fg_g_6: 1, fg_c_1: 3, fg_c_2: 1 };   // 本系 ≥36
+  assert.ok(c({ fg_a_1: 3, fg_a_2: 3, fg_a_3: 2, fg_a_4: 1, fg_b_1: 3, fg_b_2: 3, fg_b_3: 2, fg_g_1: 3, fg_g_2: 3, fg_g_3: 3, fg_g_4: 3, fg_g_5: 1 }), '终极：前置点满 + 本系 ≥26 点');
+  const pk = { fg_a_1: 3, fg_a_2: 3, fg_a_3: 2, fg_a_4: 1, fg_b_1: 3, fg_b_2: 3, fg_b_3: 2, fg_g_1: 3, fg_g_2: 3, fg_g_3: 3, fg_g_4: 3, fg_g_5: 4, fg_g_6: 3, fg_c_1: 3, fg_c_2: 1 };   // 本系 ≥36
   assert.ok(c(Object.assign({}, pk, { fg_peak: 1 })), '巅峰：本系 ≥36 点且点过终极');
   assert.ok(c({ fg_a_1: 3 }, 1) === null && c({ fg_a_1: 2 }, 1), '每级 2 点的预算也适用于新树');
   // 每个组各自有预算：新树点满不占用旧树的点数

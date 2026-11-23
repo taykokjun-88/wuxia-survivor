@@ -13,6 +13,7 @@ func _ready() -> void:
 		_chest_flow_test()
 	if only == "fist":
 		_fist_talent_test()
+		_fist_sig_test()
 	if only == "" or only == "upgrade":
 		_upgrade_system_test()
 		_enhance_rework_test()
@@ -27,6 +28,7 @@ func _ready() -> void:
 		_talent_map_test()
 		_talent_skill_test()
 		_fist_talent_test()
+		_fist_sig_test()
 		_vfx_test()
 		_p2_test()
 		_synergy_test()
@@ -635,8 +637,8 @@ func _sword_talent_test() -> void:
 	_check(absf(float(ts.get("crit_mult", 0.0)) - 0.06) < 1e-6, "剑魔带一点点暴击伤害（+6%%）")
 	_check(absf(float(ts.get("skill:dugu:crit", 0.0)) - (0.08 + 0.06)) < 1e-6, "洞察 2 级（+8%%）+ 剑魔（+6%%）：无迹九变剑暴击率 +14%%")
 	_check(absf(float(ts.get("skill:dugu:damage", 0.0)) - 0.12) < 1e-6 and absf(float(ts.get("skill:dugu:cooldown", 0.0)) - 0.08) < 1e-6, "剑魔：无迹九变剑 伤害 +12%%、冷却 −8%%")
-	var tf := Talents.stats_for({"fg_g_3": 2}, "fist")
-	_check(float(tf.get("ying_dmg", 0.0)) > 0.0 and not tf.has("skill_range"), "武者的盈劲仍是盈境伤害")
+	var tf := Talents.stats_for({"fg_g_5": 2}, "fist")
+	_check(float(tf.get("crit_mult", 0.0)) > 0.0 and not tf.has("skill_range"), "武者的破军是暴击伤害")
 	# 进入局内：范围 / 减益并入招式
 	var w := GameWorld.new()
 	w.rng_seed = 4
@@ -1762,9 +1764,9 @@ func _enhance_rework_test() -> void:
 			for sid2 in Data.skills:
 				if str(Data.skills[sid2]["school"]) != sc:
 					_check(not str(nn["desc"]).contains(str(Data.skills[sid2]["name"])), "%s 流派天赋 %s 的说明提到了别的流派的招式 %s" % [sc, nid, str(Data.skills[sid2]["name"])])
-	_check(Talents.stats_for({"ling_step": 2}, "sword").has("skill:dugu:damage") and Talents.stats_for({"fl_g_1": 2}, "fist").has("speed_pct"), "剑侠的灵系左边强化无迹九变剑；武者的仍是移速")
+	_check(Talents.stats_for({"ling_step": 2}, "sword").has("skill:dugu:damage") and Talents.stats_for({"fl_g_1": 2}, "fist").has("t_xushi"), "剑侠的灵系左边强化无迹九变剑；武者的灵系第一格是蓄势待发")
 	_check(float(Talents.stats_for({"rou_regen": 3}, "blade")["hp_regen"]) > float(Talents.stats_for({"fr_g_1": 3}, "fist")["hp_regen"]), "刀客的气血回复天赋更强")
-	_check(float(Talents.stats_for({"fr_g_2": 3}, "fist")["neili_regen"]) > 0.0, "武者的养气带回内力")
+	_check(Talents.stats_for({"fr_g_6": 2}, "fist").has("med_regen"), "武者的入定归元加快入定回气")
 	# 吸血要克制（伤害高、血量低）：「增加治疗」最高 0.2% 伤害；每次命中最多回 0.6
 	var hv: Array = Data.directions["heal"]["values"]
 	_check(is_equal_approx(float(hv[1]), 0.1) and float(hv[3]) <= 0.2 + 1e-9, "增加治疗：特别档 0.1%%（实际 %s）" % str(hv))
@@ -4938,3 +4940,65 @@ func _fist_talent_test() -> void:
 	_check(fe.hp < hpb, "归元一气：拳气消失后汇聚成大爆炸（%.0f）" % (hpb - fe.hp))
 	_free_world(we)
 	print("  结构 / 20 个新机制  OK")
+
+
+func _fist_sig_test() -> void:
+	print("\n=== 武者招牌系统链：寸劲 / 气海 / 无敌 ===")
+	# 寸劲
+	var w := _ft_world({"fg_g_2": 3, "fg_g_3": 3, "fg_g_4": 3, "fg_g_6": 3, "fg_g_7": 2, "fg_g_8": 1}, "chain_fist", 720)
+	var foe := _ft_foe(w, Vector2(80, 0))
+	w.fist_qi = 70.0
+	var sk: SkillBase = w.skills["chain_fist"]
+	_check(absf(w.st("qi_gain") - 0.45) < 1e-6, "蓄劲 3 级：攒劲速度 +45%")
+	sk.cd = 0.0
+	foe.pos = w.player_pos + Vector2(80, 0)
+	w.step(1.0 / 60.0)
+	_check(w.cunjin_count >= 1, "寸劲无双：攒到 70 劲就能震爆")
+	_check(foe.def_down_t > 0.0 and absf(foe.def_down - 0.3) < 1e-6, "破阵劲：震爆命中降防 30%")
+	var has_after := false
+	for z in w.zones:
+		has_after = has_after or str(z["kind"]) == "impact"
+	_check(has_after, "余震劲：0.6 秒后再震一次")
+	_free_world(w)
+	# 气海
+	var w2 := _ft_world({"fr_g_3": 3, "fr_g_4": 1, "fr_g_8": 1}, "chain_fist", 721)
+	_check(absf(w2.ying_at() - 0.5) < 1e-6, "盈境绵长 3 级：盈境门槛 65% → 50%")
+	w2.neili = w2.st("max_neili")
+	for i in 240:
+		w2.step(1.0 / 60.0)
+	_check(w2.ying_hold >= 3.0 or w2.yuanman_ready or w2.yuanman_cd > 0.0, "盈而圆满：盈境持续满 3 秒（%.1f）" % w2.ying_hold)
+	_free_world(w2)
+	var w3 := _ft_world({"fr_g_4": 1, "fr_g_8": 1}, "chain_fist", 722)
+	var f3 := _ft_foe(w3, Vector2(300, 300), 1.0e7)
+	w3.neili = 5.0
+	w3.step(1.0 / 60.0)
+	w3.neili = w3.st("max_neili")
+	var hp0 := f3.hp
+	w3.qihai_cd = 0.0
+	f3.pos = w3.player_pos + Vector2(60, 0)
+	w3.step(1.0 / 60.0)
+	_check(f3.hp < hp0 and w3.qihai_cd > 0.0, "气海翻涌：升入盈境震出气浪")
+	_free_world(w3)
+	# 无敌
+	var w4 := _ft_world({"fl_g_1": 4, "fl_g_3": 3, "fl_g_7": 2, "fl_g_8": 1}, "chain_fist", 723)
+	w4._burst()
+	_check(absf(w4.fist_ult_t - 14.0) < 0.01 or absf(w4.fist_ult_t - Data.T("fist_ult_dur") - 4.0) < 0.01, "蓄势待发 4 级：无敌 +4 秒（%.1f）" % w4.fist_ult_t)
+	_check(w4.ult_keep > 0.0, "无敌金身：只消耗一半内力（返还 %.0f）" % w4.ult_keep)
+	var e4 := _ft_foe(w4, Vector2(60, 0))
+	w4.hit_enemy(e4, 100.0, [], Vector2.ZERO, "chain_fist", true)
+	_check(w4.ult_dmg > 0.0, "无敌期间累计伤害（破境余波用）")
+	w4.fist_ult_t = 0.05
+	w4.neili = 0.0
+	for i in 5:
+		w4.step(1.0 / 60.0)
+	_check(w4.neili >= w4.ult_keep and w4.neili > 0.0, "无敌结束：返还一半内力 + 气归丹田（%.0f）" % w4.neili)
+	_free_world(w4)
+	var w5 := _ft_world({"fl_g_4": 3}, "chain_fist", 724)
+	w5.burst_used = 2
+	w5.fist_ult_t = 5.0
+	for i in 15:
+		var ee: Enemy = w5._spawn_enemy("bandit", w5.player_pos + Vector2(300, 0))
+		w5._kill(ee)
+	_check(w5.burst_used == 1, "杀伐还元：无敌期间击杀 15 个，返还 1 次真气爆发（%d）" % w5.burst_used)
+	_free_world(w5)
+	print("  寸劲 / 气海 / 无敌  OK")

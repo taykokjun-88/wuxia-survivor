@@ -178,6 +178,19 @@ var tal_dr_v := 0.0
 var tal_spd_t := 0.0           # 天赋「太极圆转」：移速加成
 var tal_spd_v := 0.0
 var palm_stacks := 0           # 天赋「阳回雪归」：掌印击杀后，下一枚掌印的增伤层数
+var ying_hold := 0.0           # 天赋「盈而圆满」：盈境持续时间 / 圆满就绪 / 冷却
+var yuanman_ready := false
+var yuanman_cd := 0.0
+var force_crit_t := 0.0        # 圆满出手后的短暂必暴击窗口
+var low_seen := false          # 天赋「虚中生盈」：近期到过虚境
+var prev_realm := 1
+var qihai_cd := 0.0
+var was_med := false
+var ult_kills := 0             # 拳掌无敌期间的击杀数 / 总伤害 / 返还的内力 / 余威
+var ult_dmg := 0.0
+var ult_keep := 0.0
+var yuwei_t := 0.0
+var was_ult := false
 var shake := 0.0
 
 # ---- 世界状态 ----
@@ -672,6 +685,7 @@ func _update_player(dt: float) -> void:
 			elif st("ji_fist") > 0.0:                 # 极·天人合一：结束时回复 40% 内力
 				neili = st("max_neili") * 0.4
 		fist_qi_crit_t = maxf(0.0, fist_qi_crit_t - dt)
+		_fist_talent_tick(dt)
 		if realm() == Realm.YING:
 			fist_qi = minf(100.0, fist_qi + Data.T("fist_qi_ying") * dt * (1.0 + st("qi_gain") + (1.0 if st("ji_fist") > 0.0 else 0.0)))
 	if school_id == "blade":
@@ -711,7 +725,7 @@ func _update_player(dt: float) -> void:
 		if dash_t <= 0.0:
 			_end_dash()
 	else:
-		var spd_pct := st("speed_pct") + bagua_spd + (float(qg.get("buff_speed", 0.0)) if buff_t > 0.0 else 0.0) + (tal_spd_v if tal_spd_t > 0.0 else 0.0) + (0.25 if st("ji_sword") > 0.0 and time < ji_haste_until else 0.0)
+		var spd_pct := st("speed_pct") + bagua_spd + (float(qg.get("buff_speed", 0.0)) if buff_t > 0.0 else 0.0) + (tal_spd_v if tal_spd_t > 0.0 else 0.0) + (0.3 if (fist_ult_t > 0.0 and st("t_jinshen") > 0.0) else 0.0) + (0.25 if st("ji_sword") > 0.0 and time < ji_haste_until else 0.0)
 		player_pos += move * st("move_speed") * (1.0 + spd_pct) * (0.55 if player_slow_t > 0.0 else 1.0) * dt
 	if map_art != null and map_art.has_blockers:        # 残墙 / 石柱挡人（含冲刺、击退）
 		player_pos = map_art.push_out(player_pos, PLAYER_RADIUS)
@@ -729,7 +743,7 @@ func _update_player(dt: float) -> void:
 	else:
 		still_t = 0.0
 	if rl == Realm.XU:
-		regen *= Data.T("xu_regen")
+		regen *= Data.T("xu_regen") * (1.0 + 0.25 * st("t_xuhui"))
 	if meditating():
 		regen *= Data.T("meditate_regen") + st("med_regen")
 	if rl == Realm.YING:
@@ -840,6 +854,7 @@ func _burst() -> void:
 	var f := burst_power()
 	Sfx.play("burst_ult")
 	burst_used += 1
+	ult_keep = neili * 0.5 if (school_id == "fist" and st("t_jinshen") > 0.0) else 0.0      # 无敌金身：只消耗一半内力（无敌结束后返还）
 	neili = 0.0                                   # 消耗全部内力
 	if dugu_true():
 		_trigger_sword_break(0.15, 0.7 + 0.8 * f)
@@ -848,7 +863,9 @@ func _burst() -> void:
 	var radius := lerpf(Data.T("burst_radius_min"), Data.T("burst_radius_max"), f)
 	var dmg := Data.T("burst_damage") * (0.4 + 4.6 * f)
 	if school_id == "fist":                       # 武者：真气爆发 = 10 秒「拳掌无敌」
-		fist_ult_t = Data.T("fist_ult_dur") + (5.0 if st("ji_fist") > 0.0 else 0.0)
+		fist_ult_t = Data.T("fist_ult_dur") + st("t_xushi") + (5.0 if st("ji_fist") > 0.0 else 0.0)
+		ult_dmg = 0.0
+		ult_kills = 0
 		fist_ult_count += 1
 		invuln = maxf(invuln, 0.3)
 		for p in projs:
@@ -1431,6 +1448,12 @@ func _kill(e: Enemy) -> void:
 		_break_prop(e)
 		return
 	kills += 1
+	if fist_ult_t > 0.0 and st("t_shafa") > 0.0:                         # 杀伐还元：无敌期间击杀累计，返还真气爆发次数
+		ult_kills += 1
+		if ult_kills >= [30, 22, 15][clampi(int(st("t_shafa")), 1, 3) - 1]:
+			ult_kills = 0
+			burst_used = maxi(0, burst_used - 1)
+			add_fx("text", player_pos + Vector2(0, -80), 1.0, {"text": "真气爆发 +1", "size": 24, "color": JADE})
 	if e.stun > 0.0 and st("t_shuanghen") > 0.0:                       # 天赋「霜痕蔓延」：被定身的敌人死亡，炸出冰晶减速周围敌人
 		var sl := int(st("t_shuanghen"))
 		for nb in _query(e.pos, 120.0):
@@ -1568,7 +1591,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 		e.weak_fx = 0.8
 		Sfx.play("vuln_break")
 		add_fx("text", e.pos + Vector2(0, -e.radius - 14), 0.85, {"text": "破绽", "size": 22, "color": JADE})
-	var crit := force_crit or bd or (sk != null and sk.hit_crit(e)) or rng.randf() < crit_p
+	var crit := force_crit or force_crit_t > 0.0 or bd or (sk != null and sk.hit_crit(e)) or rng.randf() < crit_p
 	if crit:
 		m *= st("crit_mult") + (float(sk.mods["crit_dmg"]) if sk != null else 0.0)
 	var emp := (_emp_ctx == 1) if _emp_ctx >= 0 else (sk != null and sk.empowered)
@@ -1576,9 +1599,13 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 		m *= maxf(0.2, 1.0 + st("emp_power"))
 	if crit and st("crit_neili") > 0.0:
 		add_neili(st("crit_neili"))
+	if yuwei_t > 0.0:                                                # 无敌余威：拳掌无敌结束后 5 秒内全部伤害 +8%/级
+		m *= 1.0 + 0.08 * st("t_yuwei")
 	var amount := base * m
+	if fist_ult_t > 0.0 and school_id == "fist":
+		ult_dmg += amount
 	if fist_ult_t > 0.0 and school_id == "fist" and sk != null:          # 拳掌无敌：额外造成伤害量 30% 的真伤（无视防御 / 罡气 / 护盾）
-		var tdmg := amount * Data.T("fist_ult_true")
+		var tdmg := amount * (Data.T("fist_ult_true") + 0.05 * st("t_zhenshang"))
 		e.hp -= tdmg
 		add_fx("text", e.pos + Vector2(rng.randf_range(-10, 10), -e.radius - 12), 0.7, {"text": str(int(tdmg)), "size": 17, "color": Color("#5fe8d0")})
 		if e.hp <= 0.0 and e.alive:
@@ -1595,7 +1622,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 	if sid == "dugu" and sk is SwordSkills.Dugu:
 		(sk as SwordSkills.Dugu).note_hit(e)
 	if crit and school_id == "fist" and sk != null and not sk.free_cast and fist_qi_crit_t <= 0.0:       # 暴击多攒一点（每 0.3 秒最多一次）
-		fist_qi = minf(100.0, fist_qi + Data.T("fist_qi_crit") - Data.T("fist_qi_cast"))
+		fist_qi = minf(100.0, fist_qi + Data.T("fist_qi_crit") + st("t_xujin") - Data.T("fist_qi_cast"))
 		fist_qi_crit_t = 0.3
 	if school_id == "blade" and sk != null and not sk.free_cast:
 		add_soul(Data.T("blade_soul_crit") if crit else Data.T("blade_soul_hit"))
@@ -3173,13 +3200,75 @@ func heal_mult() -> float:
 	return Data.T("true_blade_heal_mult") if tb_t > 0.0 else 1.0
 
 
+## 武者天赋（气海 / 无敌两条招牌链）每帧的逻辑
+func _fist_talent_tick(dt: float) -> void:
+	force_crit_t = maxf(0.0, force_crit_t - dt)
+	yuwei_t = maxf(0.0, yuwei_t - dt)
+	yuanman_cd = maxf(0.0, yuanman_cd - dt)
+	qihai_cd = maxf(0.0, qihai_cd - dt)
+	var rl := realm()
+	# 盈而圆满：盈境持续满 3 秒 → 圆满就绪
+	if rl == Realm.YING and fist_ult_t <= 0.0:
+		ying_hold += dt
+		if st("t_yuanman") > 0.0 and ying_hold >= 3.0 and yuanman_cd <= 0.0 and not yuanman_ready:
+			yuanman_ready = true
+			add_fx("text", player_pos + Vector2(0, -70), 0.9, {"text": "圆满", "size": 26, "color": GOLD})
+	else:
+		ying_hold = 0.0
+	# 虚中生盈 / 气海翻涌：境界跃迁
+	if rl == Realm.XU:
+		low_seen = true
+	if rl == Realm.YING and prev_realm != Realm.YING and fist_ult_t <= 0.0:
+		var xl := int(st("t_xusheng"))
+		if xl > 0 and low_seen:
+			for sk: SkillBase in skills.values():
+				sk.cd *= 1.0 - 0.08 * float(xl)
+		low_seen = false
+		if st("t_qihai") > 0.0 and qihai_cd <= 0.0:
+			qihai_cd = 8.0
+			area_hit_raw(player_pos, 220.0, 80.0, [], "qihai", 300.0)
+			add_fx("ring", player_pos, 0.5, {"r0": 20.0, "r1": 220.0, "color": JADE, "vfx": "burst_gold", "size": 460.0})
+			for sk2: SkillBase in skills.values():
+				sk2.cd = maxf(0.0, sk2.cd - 1.0)
+	prev_realm = rl
+	# 入定归元：入定被打断时释放气浪
+	var med := meditating()
+	if was_med and not med and st("t_rudin") > 0.0:
+		area_hit_raw(player_pos, 150.0, 50.0 * st("t_rudin"), [], "rudin", 350.0)
+		add_fx("ring", player_pos, 0.4, {"r0": 10.0, "r1": 150.0, "color": JADE})
+	was_med = med
+	# 拳掌无敌结束：余波 / 气归丹田 / 余威 / 金身返还内力
+	if fist_ult_t > 0.0:
+		was_ult = true
+	elif was_ult:
+		was_ult = false
+		_fist_ult_end()
+
+
+func _fist_ult_end() -> void:
+	var pl := int(st("t_poju"))
+	if pl > 0 and ult_dmg > 0.0:
+		area_hit_raw(player_pos, 700.0, ult_dmg * 0.04 * float(pl), [], "poju", 300.0)
+		add_fx("ring", player_pos, 0.6, {"r0": 30.0, "r1": 600.0, "color": GOLD, "vfx": "burst_gold", "size": 1100.0})
+	if st("t_yuwei") > 0.0:
+		yuwei_t = 5.0
+	if st("t_jinshen") > 0.0 and ult_keep > 0.0:
+		neili = minf(st("max_neili"), neili + ult_keep)
+	var ql := int(st("t_qigui"))
+	if ql > 0:
+		neili = minf(st("max_neili"), neili + st("max_neili") * 0.1 * float(ql))
+	ult_dmg = 0.0
+	ult_kills = 0
+	ult_keep = 0.0
+
+
 ## 蓄劲：每次出手（不管打中几只）攒劲；满 100 后下一次出手打出「寸劲震爆」
 func fist_after_cast(s: SkillBase) -> void:
 	if school_id != "fist" or s.free_cast or str(s.def.get("school", "")) != "fist":
 		return
 	if fist_ult_t > 0.0:                          # 拳掌无敌：每一下出手都触发寸劲（不耗劲力）
 		_cunjin(s, true)
-	elif fist_qi >= 100.0:
+	elif fist_qi >= (70.0 if st("t_wushuang") > 0.0 else 100.0):
 		_cunjin(s)
 	else:
 		fist_qi = minf(100.0, fist_qi + Data.T("fist_qi_cast") * (1.0 + st("qi_gain") + (1.0 if st("ji_fist") > 0.0 else 0.0)))
@@ -3188,8 +3277,9 @@ func fist_after_cast(s: SkillBase) -> void:
 func _cunjin(s: SkillBase, free: bool = false) -> void:
 	var t := nearest_enemy(420.0)
 	var center := t.pos if t != null else player_pos + facing_dir() * 90.0
-	var r := Data.T("fist_qi_radius")
+	var r := Data.T("fist_qi_radius") * (1.3 if st("t_wushuang") > 0.0 else 1.0)
 	var base := s.p("damage") * Data.T("fist_qi_mult")
+	var pz := int(st("t_pozhen"))
 	for e in _query(center, r):
 		if not e.alive:
 			continue
@@ -3200,8 +3290,27 @@ func _cunjin(s: SkillBase, free: bool = false) -> void:
 		hit_enemy(e, base, s.tags(), out * Data.T("fist_qi_knock"), s.id)
 		if e.alive and not e.is_prop:
 			apply_vuln(e, Data.T("fist_qi_vuln"))
+			if pz > 0:                                    # 破阵劲：降防 / 削罡气
+				e.def_down = maxf(e.def_down, 0.1 * float(pz))
+				e.def_down_t = 3.0
+				if e.is_boss and e.guard > 0.0:
+					e.guard = maxf(0.0, e.guard - base * 0.1 * float(pz))
+	var yl := int(st("t_yuzhenjin"))                       # 余震劲：0.6 秒后再震一次
+	if yl > 0:
+		add_zone({"kind": "impact", "skill": s, "pos": center, "r": r, "delay": 0.6, "t": 0.0, "dmg": s.p("damage") * Data.T("fist_qi_mult") * (0.1 + 0.2 * float(yl)), "stun": 0.0, "crack": false, "elv": 0})
+	var tg := int(st("t_tougu"))                           # 透骨劲：目标背后炸开扇形冲击
+	if tg > 0:
+		var back := (center - player_pos).normalized() if center.distance_to(player_pos) > 1.0 else facing_dir()
+		area_hit_raw(center + back * (r + 30.0), 100.0, base * 0.15 * float(tg), s.tags(), s.id, 220.0)
+	var zl := int(st("t_lianzhu"))                         # 无敌·连珠：无敌期间每次震爆额外射出拳气
+	if zl > 0 and fist_ult_t > 0.0:
+		var a0 := (center - player_pos).angle()
+		for k in zl:
+			spawn_proj(s, a0 + (float(k) - float(zl - 1) * 0.5) * 0.4, {"speed": 720.0, "radius": 14.0, "life": 0.7, "pierce": 3, "knock": 80.0, "damage": s.p("damage") * 0.6})
 	if not free:
 		fist_qi = 0.0
+		if rng.randf() < 0.12 * st("t_lianhuan"):          # 连环劲：保留一半的劲
+			fist_qi = 50.0
 	cunjin_count += 1
 	add_fx("ring", center, 0.5, {"r0": 14.0, "r1": r, "color": Color("#5fe8d0"), "vfx": "burst_gold", "size": r * 2.2})
 	add_fx("ring", center, 0.3, {"r0": 6.0, "r1": r * 0.6, "color": GOLD})

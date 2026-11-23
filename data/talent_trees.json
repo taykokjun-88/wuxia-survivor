@@ -280,15 +280,16 @@
      },
      {
       "id": "fg_g_2",
-      "name": "破军",
+      "name": "蓄劲",
       "max": 3,
       "tier": 2,
       "col": 3,
       "row": 2,
       "stat": {
-       "crit_mult": 0.1
+       "qi_gain": 0.15,
+       "t_xujin": 1
       },
-      "desc": "暴击伤害 +10%/级",
+      "desc": "出拳掌攒劲速度 +15%/级；暴击时多攒 1 点劲/级",
       "req": [
        [
         "fg_g_1",
@@ -300,15 +301,15 @@
      },
      {
       "id": "fg_g_3",
-      "name": "盈劲",
-      "max": 4,
-      "tier": 4,
+      "name": "余震劲",
+      "max": 3,
+      "tier": 3,
       "col": 3,
-      "row": 4,
+      "row": 3,
       "stat": {
-       "ying_dmg": 0.06
+       "t_yuzhenjin": 1
       },
-      "desc": "盈境伤害 +6%/级",
+      "desc": "寸劲震爆 0.6 秒后原地再震一次（30%/50%/70%）",
       "req": [
        [
         "fg_g_2",
@@ -320,15 +321,15 @@
      },
      {
       "id": "fg_g_4",
-      "name": "灌注",
+      "name": "破阵劲",
       "max": 3,
-      "tier": 6,
+      "tier": 4,
       "col": 3,
-      "row": 6,
+      "row": 4,
       "stat": {
-       "empower_cut": 0.06
+       "t_pozhen": 1
       },
-      "desc": "催动消耗 −6%/级",
+      "desc": "震爆命中的敌人防御 −10%/级（3 秒），对 Boss 罡气额外 +10%/级",
       "req": [
        [
         "fg_g_3",
@@ -340,15 +341,15 @@
      },
      {
       "id": "fg_g_5",
-      "name": "霸体",
+      "name": "破军",
       "max": 4,
-      "tier": 7,
+      "tier": 5,
       "col": 3,
-      "row": 7,
+      "row": 5,
       "stat": {
-       "neili_regen": 1.5
+       "crit_mult": 0.1
       },
-      "desc": "回内力 +1.5/秒每级",
+      "desc": "暴击伤害 +10%/级",
       "req": [
        [
         "fg_g_4",
@@ -360,22 +361,62 @@
      },
      {
       "id": "fg_g_6",
-      "name": "无坚不摧",
-      "max": 5,
-      "tier": 7,
+      "name": "透骨劲",
+      "max": 3,
+      "tier": 6,
       "col": 3,
-      "row": 8,
+      "row": 6,
       "stat": {
-       "damage_pct": 0.03
+       "t_tougu": 1
       },
-      "desc": "招式伤害 +3%/级",
+      "desc": "震爆的冲击波穿体，在目标背后炸开扇形冲击（15%/级）",
       "req": [
        [
         "fg_g_5",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fg_g_7",
+      "name": "连环劲",
+      "max": 2,
+      "tier": 7,
+      "col": 3,
+      "row": 7,
+      "stat": {
+       "t_lianhuan": 1
+      },
+      "desc": "震爆后有 12%/24% 几率保留一半的劲",
+      "req": [
+       [
+        "fg_g_6",
         "full"
        ]
       ],
       "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fg_g_8",
+      "name": "寸劲无双",
+      "max": 1,
+      "tier": 7,
+      "col": 3,
+      "row": 8,
+      "stat": {
+       "t_wushuang": 1
+      },
+      "desc": "终极：震爆只需攒到 70 劲，范围 +30%",
+      "req": [
+       [
+        "fg_g_7",
+        "full"
+       ]
+      ],
+      "cap": true,
       "peak": false
      },
      {
@@ -653,16 +694,15 @@
      },
      {
       "id": "fr_g_2",
-      "name": "养气",
+      "name": "虚境回气",
       "max": 3,
       "tier": 2,
       "col": 3,
       "row": 2,
       "stat": {
-       "max_neili": 8,
-       "neili_regen": 0.4
+       "t_xuhui": 1
       },
-      "desc": "内力上限 +8、回内力 +0.4/秒每级",
+      "desc": "虚境（内力 <25%）回内力 +25%/级",
       "req": [
        [
         "fr_g_1",
@@ -674,15 +714,15 @@
      },
      {
       "id": "fr_g_3",
-      "name": "静心",
+      "name": "盈境绵长",
       "max": 3,
-      "tier": 4,
+      "tier": 3,
       "col": 3,
-      "row": 4,
+      "row": 3,
       "stat": {
-       "med_reduce": 0.04
+       "ying_shift": -0.05
       },
-      "desc": "入定减伤 +4%/级",
+      "desc": "盈境门槛从 65% 降到 60% / 55% / 50%",
       "req": [
        [
         "fr_g_2",
@@ -694,15 +734,15 @@
      },
      {
       "id": "fr_g_4",
-      "name": "回春",
+      "name": "盈而圆满",
       "max": 3,
-      "tier": 6,
+      "tier": 4,
       "col": 3,
-      "row": 6,
+      "row": 4,
       "stat": {
-       "pickup_heal": 0.3
+       "t_yuanman": 1
       },
-      "desc": "拾取回血 +0.3/级",
+      "desc": "盈境持续满 3 秒进入「圆满」：下一次出手必暴击并免费催动（冷却 8/6/4 秒）",
       "req": [
        [
         "fr_g_3",
@@ -714,15 +754,15 @@
      },
      {
       "id": "fr_g_5",
-      "name": "太和",
-      "max": 5,
-      "tier": 7,
+      "name": "绵里藏针",
+      "max": 4,
+      "tier": 5,
       "col": 3,
-      "row": 7,
+      "row": 5,
       "stat": {
-       "full_hp_regen": 0.6
+       "armor": 0.4
       },
-      "desc": "内力充盈时气血回复 +0.6/秒每级",
+      "desc": "防御 +0.4/级",
       "req": [
        [
         "fr_g_4",
@@ -734,22 +774,63 @@
      },
      {
       "id": "fr_g_6",
-      "name": "绵里藏针",
-      "max": 5,
-      "tier": 7,
+      "name": "入定归元",
+      "max": 3,
+      "tier": 6,
       "col": 3,
-      "row": 8,
+      "row": 6,
       "stat": {
-       "armor": 0.4
+       "t_rudin": 1,
+       "med_regen": 0.5
       },
-      "desc": "防御 +0.4/级",
+      "desc": "入定回内力更快；入定被打断时释放气浪击退周围敌人",
       "req": [
        [
         "fr_g_5",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fr_g_7",
+      "name": "虚中生盈",
+      "max": 2,
+      "tier": 7,
+      "col": 3,
+      "row": 7,
+      "stat": {
+       "t_xusheng": 1
+      },
+      "desc": "从虚境升到盈境时，立刻清零全部招式剩余冷却的 8%/16%",
+      "req": [
+       [
+        "fr_g_6",
         "full"
        ]
       ],
       "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fr_g_8",
+      "name": "气海翻涌",
+      "max": 1,
+      "tier": 7,
+      "col": 3,
+      "row": 8,
+      "stat": {
+       "t_qihai": 1
+      },
+      "desc": "终极：每次由平境升入盈境，震出一圈气浪（伤害 100%）并把全部招式冷却缩短 1 秒（每 8 秒一次）",
+      "req": [
+       [
+        "fr_g_7",
+        "full"
+       ]
+      ],
+      "cap": true,
       "peak": false
      },
      {
@@ -1013,30 +1094,30 @@
      },
      {
       "id": "fl_g_1",
-      "name": "轻灵",
-      "max": 3,
+      "name": "蓄势待发",
+      "max": 4,
       "tier": 1,
       "col": 3,
       "row": 1,
       "stat": {
-       "speed_pct": 0.015
+       "t_xushi": 1
       },
-      "desc": "移速 +1.5%/级",
+      "desc": "拳掌无敌持续 +1 秒/级（10 → 14 秒）",
       "req": [],
       "cap": false,
       "peak": false
      },
      {
       "id": "fl_g_2",
-      "name": "迅捷",
+      "name": "无敌·连珠",
       "max": 3,
       "tier": 2,
       "col": 3,
       "row": 2,
       "stat": {
-       "cd_reduce": 0.015
+       "t_lianzhu": 1
       },
-      "desc": "招式冷却 −1.5%/级",
+      "desc": "无敌期间每次震爆，额外射出 1 道拳气/级",
       "req": [
        [
         "fl_g_1",
@@ -1048,15 +1129,15 @@
      },
      {
       "id": "fl_g_3",
-      "name": "慧眼",
-      "max": 4,
-      "tier": 4,
+      "name": "真伤加深",
+      "max": 3,
+      "tier": 3,
       "col": 3,
-      "row": 4,
+      "row": 3,
       "stat": {
-       "crit_chance": 0.02
+       "t_zhenshang": 1
       },
-      "desc": "暴击率 +2%/级",
+      "desc": "无敌期间额外真伤比例 +5%/级（30% → 45%）",
       "req": [
        [
         "fl_g_2",
@@ -1068,15 +1149,15 @@
      },
      {
       "id": "fl_g_4",
-      "name": "天机",
+      "name": "杀伐还元",
       "max": 3,
-      "tier": 6,
+      "tier": 4,
       "col": 3,
-      "row": 6,
+      "row": 4,
       "stat": {
-       "luck": 0.05
+       "t_shafa": 1
       },
-      "desc": "高档升级率 +5%/级",
+      "desc": "无敌期间每击杀 30/22/15 个敌人，返还 1 次真气爆发次数",
       "req": [
        [
         "fl_g_3",
@@ -1088,15 +1169,15 @@
      },
      {
       "id": "fl_g_5",
-      "name": "灵犀一点",
-      "max": 4,
-      "tier": 7,
+      "name": "无敌余威",
+      "max": 3,
+      "tier": 5,
       "col": 3,
-      "row": 7,
+      "row": 5,
       "stat": {
-       "crit_mult": 0.08
+       "t_yuwei": 1
       },
-      "desc": "暴击伤害 +8%/级",
+      "desc": "无敌结束后 5 秒内，全部伤害 +8%/级",
       "req": [
        [
         "fl_g_4",
@@ -1108,22 +1189,62 @@
      },
      {
       "id": "fl_g_6",
-      "name": "凌波",
-      "max": 5,
-      "tier": 7,
+      "name": "破境余波",
+      "max": 3,
+      "tier": 6,
       "col": 3,
-      "row": 8,
+      "row": 6,
       "stat": {
-       "speed_pct": 0.015
+       "t_poju": 1
       },
-      "desc": "移速 +1.5%/级",
+      "desc": "无敌结束时震出全屏冲击，伤害 = 无敌期间总伤害的 4%/级",
       "req": [
        [
         "fl_g_5",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fl_g_7",
+      "name": "气归丹田",
+      "max": 2,
+      "tier": 7,
+      "col": 3,
+      "row": 7,
+      "stat": {
+       "t_qigui": 1
+      },
+      "desc": "无敌结束时回复 10%/20% 内力",
+      "req": [
+       [
+        "fl_g_6",
         "full"
        ]
       ],
       "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fl_g_8",
+      "name": "无敌金身",
+      "max": 1,
+      "tier": 7,
+      "col": 3,
+      "row": 8,
+      "stat": {
+       "t_jinshen": 1
+      },
+      "desc": "终极：真气爆发只消耗 50% 内力（无敌结束后返还），无敌期间移速 +30%",
+      "req": [
+       [
+        "fl_g_7",
+        "full"
+       ]
+      ],
+      "cap": true,
       "peak": false
      },
      {
