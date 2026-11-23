@@ -462,7 +462,7 @@ func recommend_status(map_id: String) -> Array:
 	var rec: Dictionary = Data.maps[map_id].get("recommend", {})
 	var out: Array = []
 	if rec.has("talent_points"):
-		var sp := Talents.spent(meta_talents())
+		var sp := Talents.spent(meta_talents(), school())
 		out.append({"label": "天赋点 %d / %d" % [sp, int(rec["talent_points"])], "ok": sp >= int(rec["talent_points"])})
 	if rec.has("gear_score"):
 		var gs := gear_score()

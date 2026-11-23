@@ -278,13 +278,18 @@ const saveSt = (e, who, state) => e.call({ action: 'saveState', nick: who.nick, 
 test('天赋：节点表与 game_data.json 一致；校验规则', (e) => {
   const d = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'game_data.json'), 'utf8'));
   const want = {};
-  for (const [b, bd] of Object.entries(d.talents.branches)) bd.rows.forEach((row, r) => row.forEach((n) => { want[n.id] = [b, r, n.max]; }));
-  want[d.talents.ji.id] = ['ji', 7, d.talents.ji.max];
+  for (const [b, bd] of Object.entries(d.talents.branches)) bd.rows.forEach((row, r) => row.forEach((n) => { want[n.id] = [b, r, n.max, 'legacy', 0, [], 0, 0]; }));
+  want[d.talents.ji.id] = ['ji', 7, d.talents.ji.max, 'legacy', 0, [], 0, 0];
+  const trees = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'talent_trees.json'), 'utf8'));
+  for (const [grp, tr] of Object.entries(trees)) {
+    for (const [b, bd] of Object.entries(tr.branches)) for (const n of bd.nodes) want[n.id] = [b, n.row, n.max, grp, tr.gates[n.tier - 1], n.req, n.cap ? 1 : 0, n.peak ? 1 : 0];
+    want[tr.ji.id] = ['ji', 10, tr.ji.max, grp, 0, [], 0, 0];
+  }
   assert.deepStrictEqual(JSON.parse(JSON.stringify(e.ctx.TALENTS)), want, '节点表不同步：运行 python3 tools/sync_talents.py');
   assert.strictEqual(e.ctx.TALENT_GATE, d.talents.row_gate);
   assert.strictEqual(e.ctx.TALENT_PER_LEVEL, d.talents.per_level, '每级点数与数据一致');
   assert.strictEqual(e.ctx.TALENT_JI_NEED, d.talents.ji.need, '「极」的开启点数与数据一致');
-  const full99 = {}; for (const [id, v] of Object.entries(e.ctx.TALENTS)) if (v[0] !== 'ji') full99[id] = v[2];
+  const full99 = {}; for (const [id, v] of Object.entries(e.ctx.TALENTS)) if (v[0] !== 'ji' && v[3] === 'legacy') full99[id] = v[2];
   const sum99 = Object.values(full99).reduce((a, b) => a + b, 0);
   assert.strictEqual(sum99, 99, '三系共 99 点');
   const withJi = Object.assign({}, full99, { [d.talents.ji.id]: 1 });
@@ -308,12 +313,39 @@ test('天赋：节点表与 game_data.json 一致；校验规则', (e) => {
   assert.strictEqual(ok1({ gang_peak: 1 }).err, 'bad_state', '第 6 层需要低层 18 点');
   assert.ok(ok1({ rou_regen: 2, ling_step: 2 }).ok, '三系可以同时加');
   // 总点数不超过等级：把三系前几层都加满试探
-  const big = {}; let n = 0; for (const [id, v] of Object.entries(e.ctx.TALENTS)) { if (v[1] <= 4) { big[id] = v[2]; n += v[2]; } }
+  const big = {}; let n = 0; for (const [id, v] of Object.entries(e.ctx.TALENTS)) { if (v[3] === 'legacy' && v[1] <= 4) { big[id] = v[2]; n += v[2]; } }
   assert.ok(n > lv * e.ctx.TALENT_PER_LEVEL, '测试前提：这组点数应超过可用点数 ' + n + ' vs ' + lv * e.ctx.TALENT_PER_LEVEL);
   assert.strictEqual(ok1(big).err, 'bad_state', '超过局外等级的总点数');
   assert.strictEqual(e.call({ action: 'login', nick: '天赋君', pin: '4815' }).talents.rou_regen, 2, '随登录返回');
   assert.ok(saveSt(e, e.call({ action: 'login', nick: '天赋君', pin: '4815' }), { school: 'fist' }).ok);
   assert.strictEqual(e.call({ action: 'login', nick: '天赋君', pin: '4815' }).talents.ling_step, 2, '只带 school 不抹掉天赋');
+  // ---- 武者新树（RO 式）：前置 / 层门槛 / 终极 / 巅峰 / 每组各自的预算
+  const T = e.ctx.TALENTS, c = (t, l) => e.ctx.cleanTalents(t, l == null ? 50 : l);
+  const fistIds = Object.keys(T).filter((id) => T[id][3] === 'fist' && T[id][0] !== 'ji');
+  for (const b of ['gang', 'rou', 'ling']) assert.strictEqual(fistIds.filter((id) => T[id][0] === b).reduce((a, id) => a + T[id][2], 0), 50, b + ' 系共 50 点');
+  assert.strictEqual(fistIds.reduce((a, id) => a + T[id][2], 0), 150, '武者三系总容量 150 点');
+  assert.ok(c({ fg_a_1: 3 }), '链首：层 1 无门槛');
+  assert.strictEqual(c({ fg_a_2: 1 }), null, '前置 ≥1 点：没点前一个节点不行');
+  assert.strictEqual(c({ fg_a_1: 1, fg_a_2: 1 }), null, '层门槛：本系其余节点 ≥8 点才能点层 3');
+  const base = { fg_a_1: 3, fg_g_1: 3, fg_g_2: 2 };               // 本系 8 点
+  assert.ok(c(Object.assign({}, base, { fg_a_2: 1 })), '前置 ≥1 点 + 门槛满足');
+  assert.strictEqual(c(Object.assign({}, base, { fg_a_2: 1, fg_a_3: 1 })), null, '前置「点满」：第 2 个节点没点满，不能点第 3 个');
+  const more = { fg_a_1: 3, fg_a_2: 3, fg_b_1: 3, fg_g_1: 3, fg_g_2: 3, fg_g_3: 4 };   // 19
+  assert.ok(c(Object.assign({}, more, { fg_a_3: 1 })), '第 2 个点满后可点第 3 个');
+  assert.strictEqual(c(Object.assign({}, more, { fg_a_3: 1, fg_a_4: 1 })), null, '终极需要前置点满（且本系 ≥26 点）');
+  assert.strictEqual(c(Object.assign({}, more, { fg_peak: 1 })), null, '巅峰需要本系 ≥36 点且点过终极');
+  assert.ok(c({ fg_a_1: 3, fg_a_2: 3, fg_a_3: 2, fg_a_4: 1, fg_b_1: 3, fg_b_2: 3, fg_b_3: 2, fg_g_1: 3, fg_g_2: 3, fg_g_3: 4, fg_g_4: 3, fg_g_5: 1 }), '终极：前置点满 + 本系 ≥26 点');
+  const pk = { fg_a_1: 3, fg_a_2: 3, fg_a_3: 2, fg_a_4: 1, fg_b_1: 3, fg_b_2: 3, fg_b_3: 2, fg_g_1: 3, fg_g_2: 3, fg_g_3: 4, fg_g_4: 3, fg_g_5: 4, fg_g_6: 1, fg_c_1: 3, fg_c_2: 1 };   // 本系 ≥36
+  assert.ok(c(Object.assign({}, pk, { fg_peak: 1 })), '巅峰：本系 ≥36 点且点过终极');
+  assert.ok(c({ fg_a_1: 3 }, 1) === null && c({ fg_a_1: 2 }, 1), '每级 2 点的预算也适用于新树');
+  // 每个组各自有预算：新树点满不占用旧树的点数
+  assert.ok(c({ fg_a_1: 3, gang_force: 2, gang_body: 2 }, 3), '武者新树和旧树（剑刀枪）各自计点数');
+  // 刚系 50 点全满 + 柔系 49 点（不含巅峰）= 99 点，再加极意 = 100 点
+  const g99 = {}; let tot = 0; for (const id of fistIds) { if (T[id][0] === 'gang' || (T[id][0] === 'rou' && !/peak/.test(id))) { g99[id] = T[id][2]; tot += T[id][2]; } }
+  assert.strictEqual(tot, 99, '99 点'); assert.ok(c(g99), '刚 50 + 柔 49 = 99 点合法');
+  assert.ok(c(Object.assign({}, g99, { fist_ji: 1 })), '满级 50：99 点 + 极意 = 100 点');
+  assert.strictEqual(c(Object.assign({}, g99, { fist_ji: 1 }), 49), null, '49 级只有 98 点');
+  assert.strictEqual(c({ fist_ji: 1 }), null, '没点满 99 点不能点极意');
 });
 
 test('装备：通关掉落（服务器发放）、穿戴 / 丢弃校验、不能伪造', (e) => {

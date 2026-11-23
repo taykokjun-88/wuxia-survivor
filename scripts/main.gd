@@ -722,7 +722,7 @@ func _talk(npc: Dictionary) -> void:
 		"master":
 			var mp := Meta.progress(Save.meta_exp())
 			var free_pts: int = Meta.points_total(int(mp["level"])) - Meta.points_used(Save.meta_alloc())
-			var free_t: int = Talents.total_points(int(mp["level"])) - Talents.spent(Save.meta_talents())
+			var free_t: int = Talents.total_points(int(mp["level"])) - Talents.spent(Save.meta_talents(), Save.school())
 			greet += "\n\n你现在是局外 Lv%d，未分配属性点 %d、天赋点 %d。" % [mp["level"], free_pts, free_t]
 			opts = [{"label": "属性与天赋（角色成长）", "action": "meta"}, {"label": "告辞", "action": "close"}]
 		"innkeeper":

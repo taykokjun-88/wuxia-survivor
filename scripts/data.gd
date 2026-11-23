@@ -12,7 +12,8 @@ var directions: Dictionary = {}   # 升级方向
 var tiers: Array = []             # 强化品质：普通（白）/ 特别（蓝）/ 优秀（紫）/ 传说（金），概率 50 / 25 / 18 / 7；每高一档强化量 +1 倍
 var max_upgrades := 10             # 每个技能最多强化次数（起始 1 层 → 最高 11 层）
 var enemies: Dictionary = {}
-var talents: Dictionary = {}      # 天赋树：{row_gate, branches}
+var talents: Dictionary = {}      # 天赋树：{row_gate, branches}（旧：剑 / 刀 / 枪仍用）
+var talent_trees: Dictionary = {} # 按流派的 RO 式天赋树（data/talent_trees.json；目前只有武者）
 var yinyang: Dictionary = {}      # 阴阳组合（调和体 / 纯阳体 / 纯阴体）
 var harmony: Array = []           # 合璧：两个特定心法同时修习的额外效果
 var town: Dictionary = {}         # 小镇：边界 / NPC / 建筑
@@ -43,6 +44,11 @@ func _ready() -> void:
 	max_upgrades = int(d["max_upgrades"])
 	enemies = d["enemies"]
 	talents = d["talents"]
+	var tf := FileAccess.open("res://data/talent_trees.json", FileAccess.READ)
+	if tf != null:
+		var tp: Variant = JSON.parse_string(tf.get_as_text())
+		if tp is Dictionary:
+			talent_trees = tp
 	gear = d["gear"]
 	shi = d.get("shi", [])
 	boss_skills = d.get("boss_skills", {})

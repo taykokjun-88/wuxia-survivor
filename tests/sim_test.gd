@@ -624,7 +624,7 @@ func _sword_talent_test() -> void:
 	var expect := {"gang_ying": "剑心", "gang_peak": "剑意凌霄", "rou_finger": "破绽洞察", "ling_qg": "劲柏不动", "ling_crit": "洞察", "ling_peak": "剑魔"}
 	for id in expect:
 		_check(str(sw[id]["name"]) == str(expect[id]), "剑侠节点名 %s" % id)
-	_check(str(base["gang_ying"]["name"]) == "盈劲" and str(Talents.nodes("fist")["gang_ying"]["name"]) == "盈劲", "武者流派的节点不变")
+	_check(str(base["gang_ying"]["name"]) == "盈劲" and Talents.has_tree("fist") and not Talents.has_tree("sword"), "武者用新树，剑侠仍用旧树")
 	var ts := Talents.stats_for({"gang_ying": 2, "gang_peak": 1, "ling_peak": 1, "ling_crit": 2}, "sword")
 	_check(absf(float(ts.get("skill_range", 0.0)) - 0.10) < 1e-6, "剑心 +5%%/级")
 	_check(absf(float(ts.get("ying_dmg", 0.0)) - 0.10) < 1e-6, "剑意凌霄 盈境伤害 +10%%")
@@ -632,7 +632,7 @@ func _sword_talent_test() -> void:
 	_check(absf(float(ts.get("crit_mult", 0.0)) - 0.06) < 1e-6, "剑魔带一点点暴击伤害（+6%%）")
 	_check(absf(float(ts.get("skill:dugu:crit", 0.0)) - (0.08 + 0.06)) < 1e-6, "洞察 2 级（+8%%）+ 剑魔（+6%%）：无迹九变剑暴击率 +14%%")
 	_check(absf(float(ts.get("skill:dugu:damage", 0.0)) - 0.12) < 1e-6 and absf(float(ts.get("skill:dugu:cooldown", 0.0)) - 0.08) < 1e-6, "剑魔：无迹九变剑 伤害 +12%%、冷却 −8%%")
-	var tf := Talents.stats_for({"gang_ying": 2}, "fist")
+	var tf := Talents.stats_for({"fg_g_3": 2}, "fist")
 	_check(float(tf.get("ying_dmg", 0.0)) > 0.0 and not tf.has("skill_range"), "武者的盈劲仍是盈境伤害")
 	# 进入局内：范围 / 减益并入招式
 	var w := GameWorld.new()
@@ -1741,7 +1741,7 @@ func _enhance_rework_test() -> void:
 	var ms := Meta.stats_for({"pow": 0, "agi": 0, "vit": 30, "int": 30, "luk": 0})
 	_check(float(ms["hp_regen"]) > 0.1 and float(ms["neili_regen"]) > 2.0, "根骨加气血回复、内息加内力回复（%.2f / %.2f）" % [ms["hp_regen"], ms["neili_regen"]])
 	var base_nodes: Dictionary = Talents.nodes()
-	for sc in ["fist", "sword", "blade"]:
+	for sc in ["sword", "blade"]:
 		var sn: Dictionary = Talents.nodes(sc)
 		var diff := 0
 		for nid in sn:
@@ -1759,9 +1759,9 @@ func _enhance_rework_test() -> void:
 			for sid2 in Data.skills:
 				if str(Data.skills[sid2]["school"]) != sc:
 					_check(not str(nn["desc"]).contains(str(Data.skills[sid2]["name"])), "%s 流派天赋 %s 的说明提到了别的流派的招式 %s" % [sc, nid, str(Data.skills[sid2]["name"])])
-	_check(Talents.stats_for({"ling_step": 2}, "sword").has("skill:dugu:damage") and Talents.stats_for({"ling_step": 2}, "fist").has("speed_pct"), "剑侠的灵系左边强化无迹九变剑；武者的仍是移速")
-	_check(float(Talents.stats_for({"rou_regen": 3}, "blade")["hp_regen"]) > float(Talents.stats_for({"rou_regen": 3}, "fist")["hp_regen"]), "刀客的气血回复天赋更强")
-	_check(float(Talents.stats_for({"rou_neili": 3}, "fist")["neili_regen"]) > 0.0, "武者的养气带回内力")
+	_check(Talents.stats_for({"ling_step": 2}, "sword").has("skill:dugu:damage") and Talents.stats_for({"fl_g_1": 2}, "fist").has("speed_pct"), "剑侠的灵系左边强化无迹九变剑；武者的仍是移速")
+	_check(float(Talents.stats_for({"rou_regen": 3}, "blade")["hp_regen"]) > float(Talents.stats_for({"fr_g_1": 3}, "fist")["hp_regen"]), "刀客的气血回复天赋更强")
+	_check(float(Talents.stats_for({"fr_g_2": 3}, "fist")["neili_regen"]) > 0.0, "武者的养气带回内力")
 	# 吸血要克制（伤害高、血量低）：「增加治疗」最高 0.2% 伤害；每次命中最多回 0.6
 	var hv: Array = Data.directions["heal"]["values"]
 	_check(is_equal_approx(float(hv[1]), 0.1) and float(hv[3]) <= 0.2 + 1e-9, "增加治疗：特别档 0.1%%（实际 %s）" % str(hv))
@@ -3485,7 +3485,7 @@ func _talent_skill_test() -> void:
 	for ranks in [0, 1, 2]:
 		var w := _new_world(102)
 		w.skills.clear()
-		Build.apply_to(w, {}, {"gang_force": 3, "gang_crit": 3, "ling_step": 3, "ling_cd": 3, "ling_palm": ranks} if ranks > 0 else {}, {}, "fist")
+		Build.apply_to(w, {}, {"fg_g_1": 3, "fl_a_1": ranks} if ranks > 0 else {}, {}, "fist")
 		w.add_skill("cloud_palm")
 		_check(int((w.skills["cloud_palm"] as SkillBase).p("count")) == 1 + ranks, "六阳初开 %d 级：初始 %d 个掌印" % [ranks, 1 + ranks])
 		_free_world(w)
@@ -3508,14 +3508,14 @@ func _talent_skill_test() -> void:
 	var w2 := _new_world(105)
 	w2.skills.clear()
 	var tl := {"gang_force": 3, "gang_crit": 3, "gang_dragon": 2, "gang_vajra": 0}
-	Build.apply_to(w2, {}, {"gang_force": 3, "gang_crit": 3, "gang_ying": 3, "gang_dragon": 2}, {}, "fist")
+	Build.apply_to(w2, {}, {"fg_g_1": 3, "fg_g_2": 3, "fl_b_1": 2}, {}, "fist")
 	w2.add_skill("yue_palm")
 	var y0 := float(Data.skills["yue_palm"]["pierce"])
 	_check(absf((w2.skills["yue_palm"] as SkillBase).p("pierce") - (y0 + 2.0)) < 1e-6, "龙吟九天 2 级：撼岳惊涛掌贯穿 +2")
 	_free_world(w2)
 	var w3 := _new_world(106)
 	w3.skills.clear()
-	Build.apply_to(w3, {}, {"ling_step": 3, "ling_cd": 3, "ling_crit": 3, "ling_cd2": 1, "ling_waste": 2}, {}, "fist")
+	Build.apply_to(w3, {}, {"fl_g_1": 3, "fl_g_2": 3, "fl_c_1": 2}, {}, "fist")
 	w3.add_skill("eight_waste")
 	var cd_base := float(Data.skills["eight_waste"]["cooldown"])
 	_check(absf((w3.skills["eight_waste"] as SkillBase).p("cooldown") - cd_base * 0.8) < 1e-6, "四野回响 2 级：冷却 −20%")
@@ -3734,7 +3734,7 @@ func _build_test() -> void:
 	_free_world(w)
 	# 天赋 + 装备 + 属性点合成
 	var w2 := _new_world(32)
-	Build.apply_to(w2, {"pow": 10}, {"gang_force": 3}, {}, "fist")
+	Build.apply_to(w2, {"pow": 10}, {"fg_g_1": 3}, {}, "fist")
 	_check(absf(float(w2.talent_stats["damage_pct"]) - (0.05 + 0.06)) < 1e-9, "属性点 + 天赋合并")
 	_free_world(w2)
 	# 存档：背包 / 穿戴；单机掉落；上限

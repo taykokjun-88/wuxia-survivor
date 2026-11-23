@@ -10,12 +10,19 @@ BEGIN, END = "// BEGIN GENERATED (tools/sync_talents.py)", "// END GENERATED"
 
 def block() -> str:
     d = json.loads((ROOT / "data" / "game_data.json").read_text(encoding="utf-8"))
+    # 节点表：id → [系, 层/行, 上限, 组, 层门槛, 前置[[id, "one"|"full"]], 终极?, 巅峰?]；组 legacy = 旧树（剑/刀/枪），其余 = 按流派的新树
     nodes = {}
     for b, bd in d["talents"]["branches"].items():
         for r, row in enumerate(bd["rows"]):
             for n in row:
-                nodes[n["id"]] = [b, r, n["max"]]
-    nodes[d["talents"]["ji"]["id"]] = ["ji", 7, d["talents"]["ji"]["max"]]
+                nodes[n["id"]] = [b, r, n["max"], "legacy", 0, [], 0, 0]
+    nodes[d["talents"]["ji"]["id"]] = ["ji", 7, d["talents"]["ji"]["max"], "legacy", 0, [], 0, 0]
+    trees = json.loads((ROOT / "data" / "talent_trees.json").read_text(encoding="utf-8"))
+    for grp, tr in trees.items():
+        for b, bd in tr["branches"].items():
+            for n in bd["nodes"]:
+                nodes[n["id"]] = [b, n["row"], n["max"], grp, tr["gates"][n["tier"] - 1], n["req"], int(n["cap"]), int(n["peak"])]
+        nodes[tr["ji"]["id"]] = ["ji", 10, tr["ji"]["max"], grp, 0, [], 0, 0]
     g = d["gear"]
     gear = {"slots": [s["id"] for s in g["slots"]], "weights": [r["weight"] for r in g["rarity"]],
             "invMax": g["inventory_max"], "mini": g["drops"]["mini"], "bossMin": g["drops"]["boss_min"], "bossExtra": g["drops"]["boss_extra_chance"],

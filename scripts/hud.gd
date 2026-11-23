@@ -1522,7 +1522,7 @@ func _build_meta() -> void:
 		meta_work = Meta.clean_alloc({})
 		_build_meta()
 		meta_panel.visible = true)
-	var tal := _button("天赋树（%d 点可用）" % maxi(0, Talents.total_points(level) - Talents.spent(Save.meta_talents())), Vector2(200, 46), 18)
+	var tal := _button("天赋树（%d 点可用）" % maxi(0, Talents.total_points(level) - Talents.spent(Save.meta_talents(), Save.school())), Vector2(200, 46), 18)
 	tal.pressed.connect(func(): talents_open_requested.emit())
 	var save := _button("保存", Vector2(160, 46), 22)
 	save.pressed.connect(func(): meta_saved.emit(meta_work.duplicate()))
@@ -1571,15 +1571,17 @@ func _build_talents() -> void:
 	top.add_child(_label("天赋树", 36))
 	talents_info_points = _label("", 18)
 	top.add_child(talents_info_points)
-	var tree := TalentTree.new()
+	var grid := Talents.has_tree(Save.school())        # 有按流派的 RO 式新树（武者）就用新树
+	var tree: TalentTree = TalentGrid.new() if grid else TalentTree.new()
+	var tsize: Vector2 = TalentGrid.grid_size() if grid else TalentTree.tree_size()
 	tree.work = talents_work
 	tree.level = level
 	tree.school = Save.school()
-	tree.custom_minimum_size = TalentTree.tree_size()
+	tree.custom_minimum_size = tsize
 	box.add_child(tree)
 	talents_tree = tree
 	talents_info_node = Label.new()
-	talents_info_node.custom_minimum_size = Vector2(TalentTree.tree_size().x, 50)
+	talents_info_node.custom_minimum_size = Vector2(tsize.x, 50)
 	talents_info_node.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	talents_info_node.add_theme_font_size_override("font_size", 16)
 	talents_info_node.add_theme_color_override("font_color", Color("#f3ead2"))
@@ -1620,8 +1622,12 @@ func _talents_refresh() -> void:
 		return
 	var work := talents_tree.work
 	var level := talents_tree.level
-	var free_pts := Talents.total_points(level) - Talents.spent(work)
-	talents_info_points.text = "可用天赋点 %d　（局外等级 %d × 每级 %d 点 = %d 点；三系各 33 点，点满 99 点后出现第 100 点「极」）" % [free_pts, level, int(Data.talents["per_level"]), Talents.total_points(level)]
+	var sc := Save.school()
+	var free_pts := Talents.total_points(level) - Talents.spent(work, sc)
+	if Talents.has_tree(sc):
+		talents_info_points.text = "可用天赋点 %d　（局外等级 %d × 每级 %d 点 = %d 点；三系共 150 点容量，满级最多 99 点，点满后出现第 100 点「极意」）" % [free_pts, level, int(Data.talents["per_level"]), Talents.total_points(level)]
+	else:
+		talents_info_points.text = "可用天赋点 %d　（局外等级 %d × 每级 %d 点 = %d 点；三系各 33 点，点满 99 点后出现第 100 点「极」）" % [free_pts, level, int(Data.talents["per_level"]), Talents.total_points(level)]
 	talents_info_points.add_theme_color_override("font_color", Color("#9ad0a0") if free_pts > 0 else Color("#cfc6ae"))
 	talents_info_node.text = talents_tree.info_text(talents_tree.hover_id)
 

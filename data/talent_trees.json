@@ -1,0 +1,1148 @@
+{
+ "fist": {
+  "gates": [
+   0,
+   4,
+   8,
+   12,
+   16,
+   20,
+   26,
+   36
+  ],
+  "ji": {
+   "id": "fist_ji",
+   "name": "极意·天人合一",
+   "max": 1,
+   "need": 99,
+   "stat": {
+    "ji_fist": 1.0
+   },
+   "desc": "武者之极意：拳掌无敌持续 +5 秒；蓄劲速度翻倍；多 1 次真气爆发；拳掌无敌结束时回复 40% 内力"
+  },
+  "branches": {
+   "gang": {
+    "name": "刚",
+    "sub": "近身重击 · 破防 · 击晕",
+    "starter": "chain_fist",
+    "cols": [
+     "连山贯日拳",
+     "沉岳铁拳",
+     "裂脉震拳",
+     "通用"
+    ],
+    "col_skills": [
+     "chain_fist",
+     "vajra_fist",
+     "quake_fist"
+    ],
+    "nodes": [
+     {
+      "id": "fg_a_1",
+      "name": "连山不绝",
+      "max": 3,
+      "tier": 1,
+      "col": 0,
+      "row": 1,
+      "stat": {
+       "t_lianshan": 1
+      },
+      "desc": "连山贯日拳连续命中同一敌人，每次叠 1 层「破绽」，该敌人受此招伤害 +5%/层；层数上限 3/4/5",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fg_a_2",
+      "name": "贯日之势",
+      "max": 3,
+      "tier": 3,
+      "col": 0,
+      "row": 3,
+      "stat": {
+       "t_guanri": 1
+      },
+      "desc": "第三拳击退 +20%/级；被击飞的敌人撞上其他敌人，对周围敌人造成此招 25%/级 的冲撞伤害",
+      "req": [
+       [
+        "fg_a_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fg_a_3",
+      "name": "横扫余劲",
+      "max": 2,
+      "tier": 5,
+      "col": 0,
+      "row": 5,
+      "stat": {
+       "t_hengsao": 1
+      },
+      "desc": "强化「横扫千军」后，第三拳追加一道余劲扇面，伤害 40%/70%",
+      "req": [
+       [
+        "fg_a_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fg_a_4",
+      "name": "贯日破天",
+      "max": 1,
+      "tier": 7,
+      "col": 0,
+      "row": 7,
+      "stat": {
+       "t_guanri_cap": 1
+      },
+      "desc": "终极：连山贯日拳第三拳变成贯穿直线的「贯日一击」，直线上所有敌人受 200% 伤害并防御 −30%（3 秒）",
+      "req": [
+       [
+        "fg_a_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "fg_b_1",
+      "name": "沉岳蓄势",
+      "max": 3,
+      "tier": 2,
+      "col": 1,
+      "row": 2,
+      "stat": {
+       "t_chenyue": 1
+      },
+      "desc": "沉岳铁拳「内力越满伤害越高」的上限 +10%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fg_b_2",
+      "name": "金刚震地",
+      "max": 3,
+      "tier": 4,
+      "col": 1,
+      "row": 4,
+      "stat": {
+       "t_jingang": 1
+      },
+      "desc": "沉岳铁拳命中后在目标处爆出冲击波，造成 20%/30%/40% 伤害（小范围）",
+      "req": [
+       [
+        "fg_b_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fg_b_3",
+      "name": "不坏金身",
+      "max": 2,
+      "tier": 6,
+      "col": 1,
+      "row": 6,
+      "stat": {
+       "t_bupo": 1
+      },
+      "desc": "沉岳铁拳出拳后 2 秒内受到伤害 −8%/−15%",
+      "req": [
+       [
+        "fg_b_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fg_b_4",
+      "name": "沉岳崩山",
+      "max": 1,
+      "tier": 7,
+      "col": 1,
+      "row": 7,
+      "stat": {
+       "t_chenyue_cap": 1
+      },
+      "desc": "终极：内力 ≥90% 时沉岳铁拳必暴击，并震晕周围敌人 1.2 秒",
+      "req": [
+       [
+        "fg_b_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "fg_c_1",
+      "name": "地脉绵延",
+      "max": 3,
+      "tier": 2,
+      "col": 2,
+      "row": 2,
+      "stat": {
+       "skill:quake_fist:range": 0.08,
+       "skill:quake_fist:duration": 0.1
+      },
+      "desc": "裂脉震拳范围 +8%/级，击晕时间 +10%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fg_c_2",
+      "name": "裂脉连震",
+      "max": 3,
+      "tier": 4,
+      "col": 2,
+      "row": 4,
+      "stat": {
+       "t_liemai": 1
+      },
+      "desc": "裂脉震拳落点 0.5 秒后再震一次，伤害 30%/45%/60%",
+      "req": [
+       [
+        "fg_c_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fg_c_3",
+      "name": "震断筋骨",
+      "max": 2,
+      "tier": 6,
+      "col": 2,
+      "row": 6,
+      "stat": {
+       "t_zhenduan": 1
+      },
+      "desc": "被击晕的敌人受到的所有伤害 +8%/级（易伤）",
+      "req": [
+       [
+        "fg_c_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fg_c_4",
+      "name": "裂脉断岳",
+      "max": 1,
+      "tier": 7,
+      "col": 2,
+      "row": 7,
+      "stat": {
+       "t_liemai_cap": 1
+      },
+      "desc": "终极：裂脉震拳落点留下裂缝区域 3 秒，区域内敌人持续受伤并减速 40%",
+      "req": [
+       [
+        "fg_c_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "fg_g_1",
+      "name": "刚劲",
+      "max": 3,
+      "tier": 1,
+      "col": 3,
+      "row": 1,
+      "stat": {
+       "damage_pct": 0.02
+      },
+      "desc": "招式伤害 +2%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fg_g_2",
+      "name": "破军",
+      "max": 3,
+      "tier": 2,
+      "col": 3,
+      "row": 2,
+      "stat": {
+       "crit_mult": 0.1
+      },
+      "desc": "暴击伤害 +10%/级",
+      "req": [
+       [
+        "fg_g_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fg_g_3",
+      "name": "盈劲",
+      "max": 4,
+      "tier": 4,
+      "col": 3,
+      "row": 4,
+      "stat": {
+       "ying_dmg": 0.06
+      },
+      "desc": "盈境伤害 +6%/级",
+      "req": [
+       [
+        "fg_g_2",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fg_g_4",
+      "name": "灌注",
+      "max": 3,
+      "tier": 6,
+      "col": 3,
+      "row": 6,
+      "stat": {
+       "empower_cut": 0.06
+      },
+      "desc": "催动消耗 −6%/级",
+      "req": [
+       [
+        "fg_g_3",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fg_g_5",
+      "name": "霸体",
+      "max": 4,
+      "tier": 7,
+      "col": 3,
+      "row": 7,
+      "stat": {
+       "neili_regen": 1.5
+      },
+      "desc": "回内力 +1.5/秒每级",
+      "req": [
+       [
+        "fg_g_4",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fg_g_6",
+      "name": "无坚不摧",
+      "max": 5,
+      "tier": 7,
+      "col": 3,
+      "row": 8,
+      "stat": {
+       "damage_pct": 0.03
+      },
+      "desc": "招式伤害 +3%/级",
+      "req": [
+       [
+        "fg_g_5",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fg_peak",
+      "name": "阳刚护体",
+      "max": 1,
+      "tier": 8,
+      "col": 1.5,
+      "row": 9,
+      "stat": {
+       "burst_yang": 1
+      },
+      "desc": "巅峰：阳性内力（双阳）：回内力 +50%；内力满时生成护盾（上限 50% 气血），护盾在时反弹所受伤害的 30%",
+      "req": [],
+      "cap": false,
+      "peak": true
+     }
+    ]
+   },
+   "rou": {
+    "name": "柔",
+    "sub": "控制 · 清场 · 化解反击",
+    "starter": "point_finger",
+    "cols": [
+     "凝霜点指",
+     "乱花拂柳掌",
+     "回澜卸力诀",
+     "通用"
+    ],
+    "col_skills": [
+     "point_finger",
+     "whirl_palm",
+     "taiji"
+    ],
+    "nodes": [
+     {
+      "id": "fr_a_1",
+      "name": "一阳连点",
+      "max": 3,
+      "tier": 1,
+      "col": 0,
+      "row": 1,
+      "stat": {
+       "skill:point_finger:targets": 1.0
+      },
+      "desc": "凝霜点指每次多射 1 道指劲（+1/级）",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fr_a_2",
+      "name": "寒霜入骨",
+      "max": 3,
+      "tier": 3,
+      "col": 0,
+      "row": 3,
+      "stat": {
+       "t_hanshuang": 1
+      },
+      "desc": "指劲每穿透一个目标的伤害衰减 −10%/级；命中定身几率 +5%/级",
+      "req": [
+       [
+        "fr_a_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fr_a_3",
+      "name": "霜痕蔓延",
+      "max": 2,
+      "tier": 5,
+      "col": 0,
+      "row": 5,
+      "stat": {
+       "t_shuanghen": 1
+      },
+      "desc": "被定身的敌人死亡时炸出冰晶，使 120 范围内敌人减速 30%/50%（2 秒）",
+      "req": [
+       [
+        "fr_a_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fr_a_4",
+      "name": "万籁俱寂",
+      "max": 1,
+      "tier": 7,
+      "col": 0,
+      "row": 7,
+      "stat": {
+       "t_wanlai": 1
+      },
+      "desc": "终极：被定身的敌人受到凝霜点指伤害 ×2，定身时间 +1 秒",
+      "req": [
+       [
+        "fr_a_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "fr_b_1",
+      "name": "落英缤纷",
+      "max": 3,
+      "tier": 2,
+      "col": 1,
+      "row": 2,
+      "stat": {
+       "skill:whirl_palm:range": 0.12
+      },
+      "desc": "乱花拂柳掌范围 +12%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fr_b_2",
+      "name": "花开不败",
+      "max": 3,
+      "tier": 4,
+      "col": 1,
+      "row": 4,
+      "stat": {
+       "t_huakai": 1
+      },
+      "desc": "乱花拂柳掌连发圈数上限 +1/级（3 → 6 圈）",
+      "req": [
+       [
+        "fr_b_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fr_b_3",
+      "name": "拂柳回气",
+      "max": 2,
+      "tier": 6,
+      "col": 1,
+      "row": 6,
+      "stat": {
+       "t_fuliu": 1
+      },
+      "desc": "乱花拂柳掌一圈命中 ≥3 个敌人时回内力 2/4 点（每秒最多一次）",
+      "req": [
+       [
+        "fr_b_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fr_b_4",
+      "name": "乱花漫天",
+      "max": 1,
+      "tier": 7,
+      "col": 1,
+      "row": 7,
+      "stat": {
+       "t_luanhua": 1
+      },
+      "desc": "终极：乱花拂柳掌三圈满时追加一圈全屏击退，并回复 5% 气血",
+      "req": [
+       [
+        "fr_b_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "fr_c_1",
+      "name": "卸力归元",
+      "max": 3,
+      "tier": 2,
+      "col": 2,
+      "row": 2,
+      "stat": {
+       "t_xieli": 1
+      },
+      "desc": "回澜卸力诀化解比例 +5%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fr_c_2",
+      "name": "回澜反震",
+      "max": 3,
+      "tier": 4,
+      "col": 2,
+      "row": 4,
+      "stat": {
+       "t_fanzhen": 1
+      },
+      "desc": "反击伤害 +20%/级，反击额外击退",
+      "req": [
+       [
+        "fr_c_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fr_c_3",
+      "name": "太极圆转",
+      "max": 2,
+      "tier": 6,
+      "col": 2,
+      "row": 6,
+      "stat": {
+       "t_yuanzhuan": 1
+      },
+      "desc": "化解伤害后 3 秒内移速 +10%/20%，并有 10%/20% 几率清零回澜卸力诀的冷却",
+      "req": [
+       [
+        "fr_c_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fr_c_4",
+      "name": "回澜归海",
+      "max": 1,
+      "tier": 7,
+      "col": 2,
+      "row": 7,
+      "stat": {
+       "t_huigui": 1
+      },
+      "desc": "终极：累计化解 100 点伤害后释放一次范围反震，伤害 = 已化解量的 150%",
+      "req": [
+       [
+        "fr_c_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "fr_g_1",
+      "name": "调息",
+      "max": 3,
+      "tier": 1,
+      "col": 3,
+      "row": 1,
+      "stat": {
+       "hp_regen": 0.3
+      },
+      "desc": "气血回复 +0.3/秒每级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fr_g_2",
+      "name": "养气",
+      "max": 3,
+      "tier": 2,
+      "col": 3,
+      "row": 2,
+      "stat": {
+       "max_neili": 8,
+       "neili_regen": 0.4
+      },
+      "desc": "内力上限 +8、回内力 +0.4/秒每级",
+      "req": [
+       [
+        "fr_g_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fr_g_3",
+      "name": "静心",
+      "max": 3,
+      "tier": 4,
+      "col": 3,
+      "row": 4,
+      "stat": {
+       "med_reduce": 0.04
+      },
+      "desc": "入定减伤 +4%/级",
+      "req": [
+       [
+        "fr_g_2",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fr_g_4",
+      "name": "回春",
+      "max": 3,
+      "tier": 6,
+      "col": 3,
+      "row": 6,
+      "stat": {
+       "pickup_heal": 0.3
+      },
+      "desc": "拾取回血 +0.3/级",
+      "req": [
+       [
+        "fr_g_3",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fr_g_5",
+      "name": "太和",
+      "max": 5,
+      "tier": 7,
+      "col": 3,
+      "row": 7,
+      "stat": {
+       "full_hp_regen": 0.6
+      },
+      "desc": "内力充盈时气血回复 +0.6/秒每级",
+      "req": [
+       [
+        "fr_g_4",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fr_g_6",
+      "name": "绵里藏针",
+      "max": 5,
+      "tier": 7,
+      "col": 3,
+      "row": 8,
+      "stat": {
+       "armor": 0.4
+      },
+      "desc": "防御 +0.4/级",
+      "req": [
+       [
+        "fr_g_5",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fr_peak",
+      "name": "阴柔回春",
+      "max": 1,
+      "tier": 8,
+      "col": 1.5,
+      "row": 9,
+      "stat": {
+       "burst_yin": 1
+      },
+      "desc": "巅峰：阴性内力（双阴）：真气爆发时额外回血，并获得 8 秒攻速 +30%",
+      "req": [],
+      "cap": false,
+      "peak": true
+     }
+    ]
+   },
+   "ling": {
+    "name": "灵",
+    "sub": "追踪 · 贯穿 · 多向",
+    "starter": "cloud_palm",
+    "cols": [
+     "朔雪融阳掌",
+     "撼岳惊涛掌",
+     "四野归元功",
+     "通用"
+    ],
+    "col_skills": [
+     "cloud_palm",
+     "yue_palm",
+     "eight_waste"
+    ],
+    "nodes": [
+     {
+      "id": "fl_a_1",
+      "name": "六阳初开",
+      "max": 2,
+      "tier": 1,
+      "col": 0,
+      "row": 1,
+      "stat": {
+       "skill:cloud_palm:targets": 1.0
+      },
+      "desc": "朔雪融阳掌初始掌印 +1/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fl_a_2",
+      "name": "融雪成阳",
+      "max": 3,
+      "tier": 3,
+      "col": 0,
+      "row": 3,
+      "stat": {
+       "skill:cloud_palm:range": 0.15,
+       "skill:cloud_palm:debuff": 0.1
+      },
+      "desc": "掌印溅射范围 +15%/级，减速效果 +10%/级",
+      "req": [
+       [
+        "fl_a_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fl_a_3",
+      "name": "阳回雪归",
+      "max": 3,
+      "tier": 5,
+      "col": 0,
+      "row": 5,
+      "stat": {
+       "t_yanghui": 1
+      },
+      "desc": "掌印击杀敌人后，下一枚掌印伤害 +30%/级（最多叠 3 层）",
+      "req": [
+       [
+        "fl_a_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fl_a_4",
+      "name": "阳极生阴",
+      "max": 1,
+      "tier": 7,
+      "col": 0,
+      "row": 7,
+      "stat": {
+       "t_yangji": 1
+      },
+      "desc": "终极：掌印齐备时每 5 秒融合成一枚巨掌印，穿透、范围、伤害各 ×2",
+      "req": [
+       [
+        "fl_a_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "fl_b_1",
+      "name": "龙吟九天",
+      "max": 3,
+      "tier": 2,
+      "col": 1,
+      "row": 2,
+      "stat": {
+       "skill:yue_palm:targets": 1.0
+      },
+      "desc": "撼岳惊涛掌贯穿 +1/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fl_b_2",
+      "name": "惊涛叠浪",
+      "max": 3,
+      "tier": 4,
+      "col": 1,
+      "row": 4,
+      "stat": {
+       "t_jingtao": 1
+      },
+      "desc": "撼岳惊涛掌飞到尽头时炸成一圈浪，造成 30%/50%/70% 伤害并击退",
+      "req": [
+       [
+        "fl_b_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fl_b_3",
+      "name": "撼岳之势",
+      "max": 2,
+      "tier": 6,
+      "col": 1,
+      "row": 6,
+      "stat": {
+       "t_hanyue": 1
+      },
+      "desc": "撼岳惊涛掌每穿透一个敌人，伤害反而 +5%/10%（递增而非衰减）",
+      "req": [
+       [
+        "fl_b_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fl_b_4",
+      "name": "惊涛骇浪",
+      "max": 1,
+      "tier": 7,
+      "col": 1,
+      "row": 7,
+      "stat": {
+       "t_jingtao_cap": 1
+      },
+      "desc": "终极：撼岳惊涛掌每第 5 掌改为并排 3 道巨浪",
+      "req": [
+       [
+        "fl_b_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "fl_c_1",
+      "name": "四野回响",
+      "max": 3,
+      "tier": 2,
+      "col": 2,
+      "row": 2,
+      "stat": {
+       "skill:eight_waste:cooldown": 0.1
+      },
+      "desc": "四野归元功冷却 −10%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fl_c_2",
+      "name": "八荒并进",
+      "max": 3,
+      "tier": 4,
+      "col": 2,
+      "row": 4,
+      "stat": {
+       "skill:eight_waste:targets": 2.0
+      },
+      "desc": "四野归元功拳气方向数 +2/级（8 → 14 个）",
+      "req": [
+       [
+        "fl_c_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fl_c_3",
+      "name": "归元返照",
+      "max": 2,
+      "tier": 6,
+      "col": 2,
+      "row": 6,
+      "stat": {
+       "t_guiyuan": 1
+      },
+      "desc": "四野归元功每道拳气命中敌人时回内力 0.3/0.6 点（每道一次）",
+      "req": [
+       [
+        "fl_c_2",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fl_c_4",
+      "name": "归元一气",
+      "max": 1,
+      "tier": 7,
+      "col": 2,
+      "row": 7,
+      "stat": {
+       "t_guiyuan_cap": 1
+      },
+      "desc": "终极：四野归元功的拳气飞到尽头后全部折返汇聚，在身前合成大爆炸（伤害 = 各道拳气总和的 50%）",
+      "req": [
+       [
+        "fl_c_3",
+        "full"
+       ]
+      ],
+      "cap": true,
+      "peak": false
+     },
+     {
+      "id": "fl_g_1",
+      "name": "轻灵",
+      "max": 3,
+      "tier": 1,
+      "col": 3,
+      "row": 1,
+      "stat": {
+       "speed_pct": 0.015
+      },
+      "desc": "移速 +1.5%/级",
+      "req": [],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fl_g_2",
+      "name": "迅捷",
+      "max": 3,
+      "tier": 2,
+      "col": 3,
+      "row": 2,
+      "stat": {
+       "cd_reduce": 0.015
+      },
+      "desc": "招式冷却 −1.5%/级",
+      "req": [
+       [
+        "fl_g_1",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fl_g_3",
+      "name": "慧眼",
+      "max": 4,
+      "tier": 4,
+      "col": 3,
+      "row": 4,
+      "stat": {
+       "crit_chance": 0.02
+      },
+      "desc": "暴击率 +2%/级",
+      "req": [
+       [
+        "fl_g_2",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fl_g_4",
+      "name": "天机",
+      "max": 3,
+      "tier": 6,
+      "col": 3,
+      "row": 6,
+      "stat": {
+       "luck": 0.05
+      },
+      "desc": "高档升级率 +5%/级",
+      "req": [
+       [
+        "fl_g_3",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fl_g_5",
+      "name": "灵犀一点",
+      "max": 4,
+      "tier": 7,
+      "col": 3,
+      "row": 7,
+      "stat": {
+       "crit_mult": 0.08
+      },
+      "desc": "暴击伤害 +8%/级",
+      "req": [
+       [
+        "fl_g_4",
+        "one"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fl_g_6",
+      "name": "凌波",
+      "max": 5,
+      "tier": 7,
+      "col": 3,
+      "row": 8,
+      "stat": {
+       "speed_pct": 0.015
+      },
+      "desc": "移速 +1.5%/级",
+      "req": [
+       [
+        "fl_g_5",
+        "full"
+       ]
+      ],
+      "cap": false,
+      "peak": false
+     },
+     {
+      "id": "fl_peak",
+      "name": "调和归元",
+      "max": 1,
+      "tier": 8,
+      "col": 1.5,
+      "row": 9,
+      "stat": {
+       "burst_harmony": 1
+      },
+      "desc": "巅峰：调和内力（一阴一阳）：真气爆发次数 ×2（本局可爆发 2 次）",
+      "req": [],
+      "cap": false,
+      "peak": true
+     }
+    ]
+   }
+  }
+ }
+}
