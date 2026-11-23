@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/dugu.png-f07353c1eb5b77fa5f6fc22ed315fab4.cte
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

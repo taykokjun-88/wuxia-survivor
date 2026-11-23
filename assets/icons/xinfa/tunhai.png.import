@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/tunhai.png-3f24863266a8e20887a4b33cf6b91102.c
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

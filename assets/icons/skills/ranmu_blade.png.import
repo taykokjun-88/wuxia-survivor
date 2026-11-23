@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/ranmu_blade.png-d1a64e7d0e7e55383afb5a00e3aa3
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

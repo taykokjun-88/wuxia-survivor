@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/wanjian.png-56703bd27d9298ba8c68999a9202a01e.
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

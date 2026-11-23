@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/zong.png-730facda616e61ce5b16c520a7928bd2.cte
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

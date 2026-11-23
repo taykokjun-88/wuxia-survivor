@@ -2,7 +2,7 @@
 用法: python3 tools/lossy_textures.py [质量0-1=0.85]   （改完需 godot --headless --import）"""
 import glob, re, sys
 q = sys.argv[1] if len(sys.argv) > 1 else "0.85"
-SKIP = ("assets/fonts/", "assets/source/", "assets/ui/")  # 文字/界面图保持无损
+SKIP = ("assets/fonts/", "assets/source/", "assets/ui/", "assets/icons/")  # 文字/界面图保持无损
 n = 0
 for f in glob.glob("assets/**/*.import", recursive=True):
     if any(s in f for s in SKIP): continue

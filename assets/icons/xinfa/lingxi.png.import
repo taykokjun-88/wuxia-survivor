@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/lingxi.png-f5fd9b97dc4d7a44f609aac7130b43f3.c
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

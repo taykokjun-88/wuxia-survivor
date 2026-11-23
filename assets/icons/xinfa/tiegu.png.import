@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/tiegu.png-0a827c671cea286c0ebef0258ae1e4e8.ct
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

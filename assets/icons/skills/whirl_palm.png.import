@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/whirl_palm.png-bf77353c9369c8a0ca49baefb55a86
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

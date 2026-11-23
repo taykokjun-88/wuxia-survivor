@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/wuxiang.png-560d9764e57b2101e7deba0ea29a1bda.
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

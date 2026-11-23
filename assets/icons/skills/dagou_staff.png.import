@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/dagou_staff.png-3d87727912f607676458c8d60b676
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

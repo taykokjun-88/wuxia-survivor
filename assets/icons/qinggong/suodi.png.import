@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/suodi.png-ec72cca6f18fe5b378e006cdf7ea111a.ct
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

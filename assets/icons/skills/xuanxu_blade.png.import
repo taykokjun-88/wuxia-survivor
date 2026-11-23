@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/xuanxu_blade.png-e303766cb51d9d63bd71c4f91090
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

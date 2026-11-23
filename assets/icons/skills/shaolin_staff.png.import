@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/shaolin_staff.png-0ab235cf0748c69fadf88848913
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

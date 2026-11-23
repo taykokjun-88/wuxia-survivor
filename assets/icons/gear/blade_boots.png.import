@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/blade_boots.png-8aed69df0346e3543f4dbba3bbe26
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

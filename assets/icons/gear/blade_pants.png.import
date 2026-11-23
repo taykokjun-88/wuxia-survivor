@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/blade_pants.png-93f23d480ccc41cee51c44ce8b9e9
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

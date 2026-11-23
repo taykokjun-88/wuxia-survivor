@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/sword_pants.png-de4d4c022469ffdeeeee2818d2f67
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

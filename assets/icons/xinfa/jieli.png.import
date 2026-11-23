@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/jieli.png-f3550b210dcfad5df6e2268aba4bb810.ct
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

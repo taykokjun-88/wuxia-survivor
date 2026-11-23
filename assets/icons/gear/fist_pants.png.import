@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/fist_pants.png-6bbeeb93367c7671d5979364a4d398
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

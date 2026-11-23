@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/lingshe.png-e4b2886c1ccdf543f7998e2c27bd7601.
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

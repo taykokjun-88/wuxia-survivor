@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/kuangfeng_blade.png-80ea235e103f862c3d01a88df
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

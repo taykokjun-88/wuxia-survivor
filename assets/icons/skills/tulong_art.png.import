@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/tulong_art.png-d3e1354a0b51ca130a16b5c268cd60
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

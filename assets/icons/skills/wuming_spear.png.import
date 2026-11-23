@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/wuming_spear.png-16a996a8c4448046a813f286235d
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1

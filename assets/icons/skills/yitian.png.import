@@ -15,7 +15,7 @@ dest_files=["res://.godot/imported/yitian.png-a8d8cc86f77796eb85b7fd0427f2dffc.c
 
 [params]
 
-compress/mode=1
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.85
 compress/hdr_compression=1
