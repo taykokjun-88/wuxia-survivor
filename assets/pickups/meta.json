@@ -1,32 +1,32 @@
 {
  "gem_low": {
   "file": "gem_low.png",
-  "w": 62,
+  "w": 48,
   "h": 64
  },
  "gem_high": {
   "file": "gem_high.png",
-  "w": 63,
+  "w": 46,
   "h": 64
  },
  "chest": {
   "file": "chest.png",
-  "w": 89,
+  "w": 73,
   "h": 72
  },
  "absorb": {
   "file": "absorb.png",
-  "w": 72,
+  "w": 81,
   "h": 72
  },
  "gourd": {
   "file": "gourd.png",
-  "w": 37,
+  "w": 44,
   "h": 64
  },
  "crate": {
   "file": "crate.png",
-  "w": 81,
+  "w": 76,
   "h": 84
  },
  "jar": {
@@ -36,7 +36,7 @@
  },
  "brazier": {
   "file": "brazier.png",
-  "w": 61,
+  "w": 71,
   "h": 92
  }
 }

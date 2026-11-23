@@ -3,21 +3,30 @@
   "file": "hero_down.png",
   "frames": 4,
   "fps": 8.0,
-  "w": 35,
-  "h": 64
+  "w": 192,
+  "h": 192,
+  "scale": 0.6324,
+  "foot": 12,
+  "fh": 60.0
  },
  "hero_side": {
   "file": "hero_side.png",
   "frames": 4,
   "fps": 8.0,
-  "w": 37,
-  "h": 64
+  "w": 192,
+  "h": 192,
+  "scale": 0.6299,
+  "foot": 12,
+  "fh": 60.0
  },
  "hero_up": {
   "file": "hero_up.png",
   "frames": 4,
   "fps": 8.0,
-  "w": 34,
-  "h": 64
+  "w": 192,
+  "h": 192,
+  "scale": 0.6299,
+  "foot": 12,
+  "fh": 60.0
  }
 }

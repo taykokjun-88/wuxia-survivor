@@ -1,11 +1,11 @@
 class_name MapArt
 extends RefCounted
 ## 地图美术：像素风地面瓦片 + 场景物件（树、石、旗、帐篷……），由 tools/process_art_grid.py 生成。
-## 目录结构：<dir>/ground_0..N.png（64×64 瓦片）、<dir>/props/*.png + meta.json。
+## 目录结构：<dir>/ground_0..N.png（128×128 瓦片）、<dir>/props/*.png + meta.json。
 ## 地面按低频噪声分成几种地貌；物件按格子哈希稳定地撒在地图上（只是装饰，不挡路）。
 ## 没有素材目录时 loaded == false，调用方画原来的占位背景。
 
-const TILE := 64
+const TILE := 128          # 地面瓦片的世界边长（高清瓦片 128×128）
 const PROP_CELL := 340.0
 
 var loaded := false

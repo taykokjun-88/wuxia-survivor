@@ -15,6 +15,7 @@ var moving := false
 var step_t := 0.0                # 脚步声计时
 var time := 0.0
 
+var _npc_meta: Dictionary = {}
 var npcs: Array = []                  # [{id, name, title, pos, tex, building}]
 var obstacles: Array[Rect2] = []      # 建筑 / 水井 / 摊位：不可穿过
 var bounds := Rect2()
@@ -27,12 +28,15 @@ var _school := ""
 
 
 func _ready() -> void:
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 	var b: Array = Data.town["bounds"]
 	bounds = Rect2(float(b[0]), float(b[1]), float(b[2]) - float(b[0]), float(b[3]) - float(b[1]))
 	map_art = MapArt.new()
 	if not map_art.load_dir("res://assets/maps/black_wind"):
 		map_art = null
 	_load_buildings()
+	var nmj: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://assets/town/npc/meta.json")) if FileAccess.file_exists("res://assets/town/npc/meta.json") else null
+	_npc_meta = nmj if nmj is Dictionary else {}
 	set_school("fist")
 	banner_font = Data.font_bold
 	for n in Data.town["npcs"]:
@@ -41,6 +45,10 @@ func _ready() -> void:
 		d["pos"] = Vector2(float(p[0]), float(p[1]))
 		var path := "res://assets/town/npc/%s.png" % str(d["sprite"])
 		d["tex"] = load(path) if ResourceLoader.exists(path) else null
+		var nm: Dictionary = _npc_meta.get(str(d["sprite"]), {})
+		if not nm.is_empty():
+			d["tw"] = float(nm["w"])        # 世界尺寸（贴图可以比它大，高清素材缩小显示）
+			d["th"] = float(nm["h"])
 		npcs.append(d)
 		_add_building_obstacle(d)
 	obstacles.append(Rect2(-40, -10, 80, 70))          # 水井
@@ -75,7 +83,7 @@ func _load_buildings() -> void:
 		var d: Dictionary = js[id]
 		var f := "res://assets/town/buildings/%s" % str(d["file"])
 		if ResourceLoader.exists(f):
-			building_art[str(id)] = {"tex": load(f), "w": int(d["w"]), "h": int(d["h"]), "sign": d.get("sign", [0, 0, 0])}
+			building_art[str(id)] = {"tex": load(f), "w": int(d["w"]), "h": int(d["h"]), "sign": d.get("sign", [0, 0, 0]), "plaque": bool(d.get("plaque", false))}
 
 
 ## 建筑素材：底边落在建筑矩形的底边，水平居中；木牌上写店名
@@ -90,13 +98,17 @@ func _draw_building_art(n: Dictionary, r: Rect2) -> bool:
 	var base_y := r.end.y + 10.0
 	var tl := Vector2(pos.x - w * 0.5, base_y - h)
 	draw_rect(Rect2(tl.x + w * 0.1, base_y - 10.0, w * 0.8, 14.0), Color(0, 0, 0, 0.18))
-	draw_texture(a["tex"], tl)
+	draw_texture_rect(a["tex"], Rect2(tl, Vector2(w, h)), false)
 	var sg: Array = a["sign"]
 	var sign_w := float(sg[2])
 	var sx := tl.x + float(sg[0])
 	var sy := tl.y + float(sg[1])
 	var txt := str((n["building"] as Dictionary)["sign"])
 	var fs := int(clampf(sign_w / maxf(2.0, float(txt.length())) * 0.9, 14.0, 24.0))
+	if bool(a.get("plaque", false)):         # 素材里没有现成的牌匾：画一块深色木牌托住店名
+		var pr := Rect2(sx - sign_w * 0.5 - 6.0, sy - fs * 0.5 - 4.0, sign_w + 12.0, fs + 12.0)
+		draw_rect(pr, Color("#3a2610", 0.92))
+		draw_rect(pr, Color("#c9a227", 0.9), false, 2.0)
 	draw_string_outline(banner_font, Vector2(sx - sign_w * 0.5, sy + fs * 0.35), txt, HORIZONTAL_ALIGNMENT_CENTER, sign_w, fs, 4, Color("#2a1a08"))
 	draw_string(banner_font, Vector2(sx - sign_w * 0.5, sy + fs * 0.35), txt, HORIZONTAL_ALIGNMENT_CENTER, sign_w, fs, Color("#f0c050"))
 	return true
@@ -396,7 +408,7 @@ func _draw_npc(n: Dictionary, near: bool) -> void:
 	var tex: Texture2D = n["tex"]
 	var top := pos.y - 62.0
 	if tex != null:
-		var sz := tex.get_size()
+		var sz := Vector2(float(n["tw"]), float(n["th"])) if n.has("tw") else tex.get_size()
 		# 呼吸：以脚底为支点，身体极轻微地胀缩，NPC 才不会像贴在地上的纸片
 		var breathe := 1.0 + 0.018 * sin(time * 2.2 + pos.x * 0.02)
 		draw_set_transform(pos + Vector2(0, 4), 0.0, Vector2((2.0 - breathe) * kk, breathe * kk / Depth.tilt))

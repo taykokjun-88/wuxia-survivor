@@ -212,6 +212,7 @@ var max_enemies := 800
 
 
 func _ready() -> void:
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR      # 高清（RO 式）素材缩小显示用线性过滤，避免锯齿
 	enemy_art = EnemyArt.new()
 	enemy_art.load_dir("res://assets/enemies")
 	vfx = Vfx.new()
