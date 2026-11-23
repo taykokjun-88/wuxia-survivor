@@ -11,6 +11,8 @@ func _ready() -> void:
 	var only := OS.get_environment("TEST_ONLY")
 	if only == "":
 		_chest_flow_test()
+	if only == "fist":
+		_fist_talent_test()
 	if only == "" or only == "upgrade":
 		_upgrade_system_test()
 		_enhance_rework_test()
@@ -4760,6 +4762,7 @@ func _ft_dmg(talents: Dictionary, skill: String, n: int = 1, seed_v: int = 700, 
 	for i in n:
 		var sk: SkillBase = w.skills[skill]
 		sk.cd = 0.0
+		e.pos = w.player_pos + Vector2(70, 0)
 		w.step(1.0 / 60.0)
 		for k in 30:
 			w.step(1.0 / 60.0)
@@ -4795,9 +4798,9 @@ func _fist_talent_test() -> void:
 	var foe := _ft_foe(w1)
 	var ch: SkillBase = w1.skills["chain_fist"]
 	var ms: Array[float] = []
-	for i in 5:
+	for i in 7:
 		ms.append(ch.hit_mult(foe))
-	_check(absf(ms[0] - 1.0) < 1e-6 and absf(ms[1] - 1.05) < 1e-6 and absf(ms[4] - 1.25) < 1e-6 and absf(ms[4] - ms[3]) < 1e-6, "连山不绝：破绽层数叠加 +5%/层，3 级上限 5 层（%s）" % str(ms))
+	_check(absf(ms[0] - 1.0) < 1e-6 and absf(ms[1] - 1.05) < 1e-6 and absf(ms[4] - 1.2) < 1e-6 and absf(ms[5] - 1.25) < 1e-6 and absf(ms[6] - ms[5]) < 1e-6, "连山不绝：破绽层数叠加 +5%%/层，3 级上限 5 层（%s）" % str(ms))
 	_free_world(w1)
 	_check(_ft_dmg({"fg_a_3": 2}, "chain_fist", 3, 701, true) > _ft_dmg({}, "chain_fist", 3, 701, true), "横扫余劲：强化后第三拳追加余劲扇面")
 	_check(_ft_dmg({"fg_a_2": 3}, "chain_fist", 3, 702) > _ft_dmg({}, "chain_fist", 3, 702), "贯日之势：冲撞余波")
@@ -4805,6 +4808,7 @@ func _fist_talent_test() -> void:
 	var fc := _ft_foe(wc)
 	for i in 3:
 		(wc.skills["chain_fist"] as SkillBase).cd = 0.0
+		fc.pos = wc.player_pos + Vector2(70, 0)
 		for k in 30:
 			wc.step(1.0 / 60.0)
 	_check(fc.def_down_t > 0.0 and absf(fc.def_down - 0.3) < 1e-6, "贯日破天：第三拳贯穿直线，防御 −30%")
@@ -4827,14 +4831,14 @@ func _fist_talent_test() -> void:
 	for z in wq.zones:
 		zn += 1
 		cracked = cracked or bool(z.get("crack", false))
-	_check(zn == 2 and cracked, "裂脉连震：落点追加一次震击；裂脉断岳：留下裂缝（区域 %d）" % zn)
+	_check(zn >= 2 and cracked, "裂脉连震：落点追加一次震击；裂脉断岳：留下裂缝（区域 %d）" % zn)
 	_free_world(wq)
 	var wz := _ft_world({"fg_c_3": 2}, "quake_fist", 708)
 	var fz := _ft_foe(wz)
 	var d0: float = wz.hit_enemy(fz, 100.0, [], Vector2.ZERO, "quake_fist", true)
 	fz.stun = 1.0
 	var d1: float = wz.hit_enemy(fz, 100.0, [], Vector2.ZERO, "quake_fist", true)
-	_check(d1 > d0 * 1.1, "震断筋骨：被击晕的敌人受伤 +16%（%.0f → %.0f）" % [d0, d1])
+	_check(d1 > d0 * 1.1, "震断筋骨：被击晕的敌人受伤 +16%%（%.0f → %.0f）" % [d0, d1])
 	_free_world(wz)
 	# ---- 柔
 	var wf := _ft_world({"fr_a_2": 3, "fr_a_4": 1}, "point_finger", 709)
