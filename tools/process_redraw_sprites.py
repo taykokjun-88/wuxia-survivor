@@ -45,9 +45,13 @@ def key_alpha(rgb: np.ndarray) -> np.ndarray:
     return a
 
 
-def process_cell(cell: np.ndarray) -> np.ndarray:
+def process_cell(cell: np.ndarray, rgba: np.ndarray = None) -> np.ndarray:
     rgb = cell.astype(float)
     a = key_alpha(rgb)
+    if rgba is not None:                       # 源图本身带透明通道（Gemini 已去底）：直接用它，不再按洋红抠
+        out = rgba.copy()
+        out, _rm = defragment(out, gap=5, ramp=22)
+        return out
     # 反推真实颜色
     c = (rgb - (1.0 - a)[..., None] * MAG) / np.maximum(a, 1e-3)[..., None]
     c = np.clip(c, 0, 255)
@@ -75,12 +79,15 @@ def main() -> None:
         anims = {}
         for f in sorted((SRC / sdir).glob("*.png")):
             name = f.stem
-            im = Image.open(f).convert("RGB")
+            src_im = Image.open(f).convert("RGBA")
+            has_alpha = (np.array(src_im)[..., 3] < 10).mean() > 0.05
+            im = src_im.convert("RGB")
             n = im.width // SRC_CELL
             arr = np.array(im)
+            arr_a = np.array(src_im)
             strip = Image.new("RGBA", (CELL * n, CELL), (0, 0, 0, 0))
             for i in range(n):
-                cell = process_cell(arr[:, i * SRC_CELL:(i + 1) * SRC_CELL])
+                cell = process_cell(arr[:, i * SRC_CELL:(i + 1) * SRC_CELL], arr_a[:, i * SRC_CELL:(i + 1) * SRC_CELL] if has_alpha else None)
                 pm = Image.fromarray(cell, "RGBA").convert("RGBa").resize((CELL, CELL), Image.LANCZOS).convert("RGBA")
                 strip.paste(pm, (i * CELL, 0))
             strip.save(OUT / odir / f"{name}.png")

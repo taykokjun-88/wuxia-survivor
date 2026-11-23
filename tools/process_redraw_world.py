@@ -122,6 +122,35 @@ def place_signs() -> None:
     p.write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
+def phase11(root: pathlib.Path) -> None:
+    """计划书 11：无缝地面瓦片（三张地图 + 小镇）与小镇装饰（树 / 灯笼柱 / 水井）。源：assets/source/redraw_11/"""
+    for m in ("black_wind", "guangming", "taohua"):
+        d = root / "maps" / m
+        if d.exists():
+            ground(d, AS / "maps" / m)
+    t = root / "town"
+    if not t.exists():
+        return
+    town_dir = AS / "maps" / "town"
+    town_dir.mkdir(parents=True, exist_ok=True)
+    for i in range(4):
+        f = t / f"town_ground_{i}.png"
+        if f.exists():
+            Image.open(f).convert("RGB").resize((128, 128), Image.LANCZOS).save(town_dir / f"ground_{i}.png")
+    deco = AS / "town" / "deco"
+    deco.mkdir(parents=True, exist_ok=True)
+    meta = {}
+    for id_, wh in (("tree_a", 104), ("tree_b", 104), ("tree_c", 104), ("lamp", 78), ("well", 104)):      # 世界高度（树 / 灯笼柱：脚底在 y 原点）
+        f = t / f"{id_}.png"
+        if not f.exists():
+            continue
+        im = trim(Image.open(f))
+        save_hi(im, deco / f"{id_}.png", 256)
+        meta[id_] = {"file": f"{id_}.png", "w": round(wh * im.width / im.height), "h": wh}
+        print(f"  {id_}: 世界 {meta[id_]['w']}×{wh}")
+    (deco / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
 def main(root: str) -> None:
     r = pathlib.Path(root)
     print("拾取物")
@@ -142,4 +171,7 @@ def main(root: str) -> None:
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "/tmp/claude-0/z")
+    if len(sys.argv) > 1 and sys.argv[1] == "phase11":
+        phase11(ROOT / "assets/source/redraw_11")
+    else:
+        main(sys.argv[1] if len(sys.argv) > 1 else "/tmp/claude-0/z")

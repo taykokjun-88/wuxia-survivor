@@ -190,8 +190,8 @@
   },
   "sw_zhongjian": {
    "file": "sw_zhongjian.png",
-   "frames": 4,
-   "fps": 14.0,
+   "frames": 6,
+   "fps": 21.0,
    "cell": 256,
    "loop": false,
    "world_size": 260.0,
@@ -742,7 +742,7 @@
   },
   "fx_fengmo": {
    "file": "fx_fengmo.png",
-   "frames": 4,
+   "frames": 6,
    "fps": 14.0,
    "cell": 256,
    "loop": true,
@@ -750,8 +750,8 @@
   },
   "fx_xiangmo": {
    "file": "fx_xiangmo.png",
-   "frames": 4,
-   "fps": 12.0,
+   "frames": 6,
+   "fps": 18.0,
    "cell": 256,
    "loop": false,
    "world_size": 300.0

@@ -1,0 +1,27 @@
+{
+ "tree_a": {
+  "file": "tree_a.png",
+  "w": 116,
+  "h": 104
+ },
+ "tree_b": {
+  "file": "tree_b.png",
+  "w": 96,
+  "h": 104
+ },
+ "tree_c": {
+  "file": "tree_c.png",
+  "w": 83,
+  "h": 104
+ },
+ "lamp": {
+  "file": "lamp.png",
+  "w": 28,
+  "h": 78
+ },
+ "well": {
+  "file": "well.png",
+  "w": 80,
+  "h": 104
+ }
+}

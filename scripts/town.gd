@@ -4,6 +4,7 @@ extends Node2D
 ## NPC 立绘来自 assets/town/npc/<sprite>.png，没有时画占位；建筑目前是程序绘制的像素风占位（等正式素材）。
 ## 本类只管「走动 / 碰撞 / 绘制 / 找最近的 NPC」；点开对话和各种界面由 main.gd 负责。
 
+const TILE_T := 128                # 小镇地面瓦片的世界边长
 const SPEED := 190.0
 const NPC_REACH := 86.0          # 离 NPC 多近可以交谈
 const PLAYER_R := 11.0
@@ -25,6 +26,7 @@ var hero_art: EnemyArt            # 村子专用的主角走路素材：hero_dow
 var banner_font: Font
 var building_art: Dictionary = {}    # 建筑 id → {tex, w, h, sign:[x, y, 宽]}（assets/town/buildings；没有素材的建筑用代码画）
 var _school := ""
+var _deco: Dictionary = {}           # 小镇装饰素材（树 / 灯笼柱 / 水井）：id → {tex, w, h}；没有素材时用代码画
 
 
 func _ready() -> void:
@@ -32,8 +34,10 @@ func _ready() -> void:
 	var b: Array = Data.town["bounds"]
 	bounds = Rect2(float(b[0]), float(b[1]), float(b[2]) - float(b[0]), float(b[3]) - float(b[1]))
 	map_art = MapArt.new()
-	if not map_art.load_dir("res://assets/maps/black_wind"):
-		map_art = null
+	if not map_art.load_dir("res://assets/maps/town"):
+		if not map_art.load_dir("res://assets/maps/black_wind"):
+			map_art = null
+	_load_deco()
 	_load_buildings()
 	var nmj: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://assets/town/npc/meta.json")) if FileAccess.file_exists("res://assets/town/npc/meta.json") else null
 	_npc_meta = nmj if nmj is Dictionary else {}
@@ -51,7 +55,7 @@ func _ready() -> void:
 			d["th"] = float(nm["h"])
 		npcs.append(d)
 		_add_building_obstacle(d)
-	obstacles.append(Rect2(-40, -10, 80, 70))          # 水井
+	obstacles.append(Rect2(-40, -150, 80, 70))          # 水井（挪到广场偏北，避开茶摊）
 	reset_player()
 
 
@@ -70,6 +74,27 @@ func set_school(school_id: String) -> void:
 	if hero_art.load_dir(str(sd.get("town_hero_dir", "res://assets/town/hero"))) == 0:
 		hero_art = null
 	queue_redraw()
+
+
+func _load_deco() -> void:
+	var path := "res://assets/town/deco/meta.json"
+	if not FileAccess.file_exists(path):
+		return
+	var js: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not js is Dictionary:
+		return
+	for id in js:
+		var f := "res://assets/town/deco/%s" % str((js[id] as Dictionary)["file"])
+		if ResourceLoader.exists(f):
+			_deco[str(id)] = {"tex": load(f), "w": float(js[id]["w"]), "h": float(js[id]["h"])}
+
+
+## 画一张装饰：脚底中心在 at，缩放 s
+func _draw_deco(id: String, at: Vector2, s: float = 1.0) -> void:
+	var d: Dictionary = _deco[id]
+	var w := float(d["w"]) * s
+	var h := float(d["h"]) * s
+	draw_texture_rect(d["tex"], Rect2(at.x - w * 0.5, at.y - h + 4.0, w, h), false)
 
 
 func _load_buildings() -> void:
@@ -133,6 +158,16 @@ func building_rect(npc: Dictionary) -> Rect2:
 
 func _add_building_obstacle(npc: Dictionary) -> void:
 	var r := building_rect(npc)
+	var akey := str((npc["building"] as Dictionary).get("art", ""))
+	if building_art.has(akey):
+		# 按素材实际绘制的范围做碰撞：底边与绘制一致（见 _draw_building_art），占下半部分（屋檐以上可以走到后面去）
+		var a: Dictionary = building_art[akey]
+		var bw := float(a["w"])
+		var bh := float(a["h"])
+		var base_y := r.end.y + 10.0
+		var pos0: Vector2 = npc["pos"]
+		obstacles.append(Rect2(pos0.x - bw * 0.46, base_y - bh * 0.42, bw * 0.92, bh * 0.42))
+		return
 	if str((npc["building"] as Dictionary).get("kind", "")) == "stall":
 		obstacles.append(r)
 	else:
@@ -216,35 +251,35 @@ func _draw() -> void:
 
 
 func _tile_kind(cx: int, cy: int) -> int:
-	## 0 泥地 / 1 草地 / 3 石板路与广场
-	var c := Vector2(cx * 64 + 32, cy * 64 + 32)
+	## 小镇地面瓦片（assets/maps/town）：0 夯土 / 1 石板路 / 2 泥地杂草 / 3 青石广场
+	var c := Vector2(cx * TILE_T + TILE_T / 2, cy * TILE_T + TILE_T / 2)
 	if absf(c.x) < 80.0 or absf(c.y + 130.0) < 60.0 or absf(c.y - 190.0) < 60.0:
 		if absf(c.y) < 520.0:
-			return 3
+			return 1                 # 石板路
 	if (c - Vector2(0, 40)).length() < 170.0:
-		return 3
-	if map_art != null and map_art.noise(cx * 0.16, cy * 0.16, 5) > 0.66:
-		return 1
-	return 0
+		return 3                     # 青石广场
+	if map_art != null and map_art.noise(cx * 0.12, cy * 0.12, 5) > 0.72:
+		return 0                     # 夯土（少量斑块）
+	return 2                         # 泥地 + 杂草（大面积基底）
 
 
 func _draw_ground() -> void:
 	if map_art == null:
 		draw_rect(Rect2(player_pos - Vector2(900, 600 / Depth.tilt), Vector2(1800, 1200 / Depth.tilt)), Color("#6a5a3a"))
 		return
-	var x0 := int(floorf((player_pos.x - 700.0) / 64.0))
-	var x1 := int(floorf((player_pos.x + 700.0) / 64.0))
-	var y0 := int(floorf((player_pos.y - 420.0 / Depth.tilt) / 64.0))
-	var y1 := int(floorf((player_pos.y + 420.0 / Depth.tilt) / 64.0))
+	var x0 := int(floorf((player_pos.x - 700.0) / TILE_T))
+	var x1 := int(floorf((player_pos.x + 700.0) / TILE_T))
+	var y0 := int(floorf((player_pos.y - 420.0 / Depth.tilt) / TILE_T))
+	var y1 := int(floorf((player_pos.y + 420.0 / Depth.tilt) / TILE_T))
 	for cy in range(y0, y1 + 1):
 		for cx in range(x0, x1 + 1):
-			var c := Vector2(cx * 64 + 32, cy * 64 + 32)
+			var c := Vector2(cx * TILE_T + TILE_T / 2, cy * TILE_T + TILE_T / 2)
 			if not bounds.grow(70.0).has_point(c):
-				draw_rect(Rect2(cx * 64, cy * 64, 64, 64), Color("#2a3a22"))      # 镇外：深绿
+				draw_rect(Rect2(cx * TILE_T, cy * TILE_T, TILE_T, TILE_T), Color("#2a3a22"))      # 镇外：深绿
 				continue
 			var k := _tile_kind(cx, cy)
 			var o := map_art._h(cx, cy, 77) & 7
-			draw_texture_rect(map_art.ground_var[mini(k, map_art.ground_var.size() - 1)][o], Rect2(cx * 64, cy * 64, 64, 64), false)
+			draw_texture_rect(map_art.ground_var[mini(k, map_art.ground_var.size() - 1)][o], Rect2(cx * TILE_T, cy * TILE_T, TILE_T, TILE_T), false)
 	# 镇边的栅栏
 	var edge := Color("#5a3f22")
 	for sx in [bounds.position.x - 6.0, bounds.end.x - 2.0]:
@@ -265,8 +300,13 @@ func _px_circle(c: Vector2, r: float, col: Color, step: float = 4.0) -> void:
 
 
 func _draw_well() -> void:
-	var c := Vector2(0, 30)
+	var c := Vector2(0, -105)
 	if not _vis(c):
+		return
+	if _deco.has("well"):
+		Depth.upright(self, c)
+		_draw_deco("well", c + Vector2(0, 36), 1.0)
+		Depth.flat(self)
 		return
 	_px_circle(c + Vector2(0, 8), 38.0, Color(0, 0, 0, 0.22))
 	_px_circle(c, 32.0, Color("#6e6a62"))
@@ -300,6 +340,13 @@ func _draw_decor() -> void:
 
 
 func _draw_lamp(at: Vector2) -> void:
+	if _deco.has("lamp"):
+		Depth.upright(self, at)
+		var glow0 := 0.16 + 0.06 * sin(time * 3.0 + at.x)
+		_px_circle(at + Vector2(0, -50), 26.0, Color("#ffb040", glow0))
+		_draw_deco("lamp", at, 1.0)
+		Depth.flat(self)
+		return
 	Depth.upright(self, at)
 	draw_rect(Rect2(at.x - 3, at.y - 58, 6, 58), Color("#4a3320"))
 	draw_rect(Rect2(at.x - 12, at.y - 62, 24, 8), Color("#3a2a18"))
@@ -313,6 +360,13 @@ func _draw_lamp(at: Vector2) -> void:
 
 
 func _draw_tree(at: Vector2, s: float) -> void:
+	if _deco.has("tree_a"):
+		Depth.upright(self, at)
+		var variants := ["tree_a", "tree_b", "tree_c"]
+		var vid: String = variants[absi(int(at.x * 0.37 + at.y * 0.91)) % 3]
+		_draw_deco(vid if _deco.has(vid) else "tree_a", at, s * 0.9)
+		Depth.flat(self)
+		return
 	Depth.upright(self, at)
 	_px_circle(at + Vector2(0, 4), 16.0 * s, Color(0, 0, 0, 0.2))
 	draw_rect(Rect2(at.x - 5 * s, at.y - 22 * s, 10 * s, 26 * s), Color("#4a3320"))
