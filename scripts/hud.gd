@@ -2268,7 +2268,7 @@ func toggle_hud() -> void:
 	canvas.queue_redraw()
 
 
-## 小地图：以主角为中心，显示 Boss / 精英 / 秘籍 / 还丹 / 吸星大法；超出范围的重要目标贴在边缘当指示
+## 小地图：以主角为中心，显示 Boss / 精英 / 秘籍 / 还丹 / 海纳百川；超出范围的重要目标贴在边缘当指示
 func _draw_minimap(pos: Vector2, size: float) -> void:
 	var w := world
 	var half := 900.0                           # 小地图覆盖的世界半径
@@ -2315,7 +2315,7 @@ func _draw_minimap(pos: Vector2, size: float) -> void:
 	canvas.draw_circle(center, 3.5, Color("#f3ead2"))
 	canvas.draw_line(center, center + w.facing * 9.0, Color("#f3ead2"), 2.0)
 	if w.vacuum_t > 0.0:
-		canvas.draw_string(ThemeDB.fallback_font, pos + Vector2(0, size + 14.0), "吸星大法 %.1fs" % w.vacuum_t, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#b98cff"))
+		canvas.draw_string(ThemeDB.fallback_font, pos + Vector2(0, size + 14.0), "海纳百川 %.1fs" % w.vacuum_t, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#b98cff"))
 
 
 func _plate(r: Rect2) -> void:
@@ -2394,8 +2394,8 @@ func _draw_hud() -> void:
 		var bars: Array = []
 		if w.has_route("spear"):
 			bars.append(["枪势 %d / 100　（移动攒势）" % int(w.spear_qs) if w.spear_qs < 100.0 else "游龙突！下一枪向前冲出贯穿", w.spear_qs, Color("#dfe8f5"), Color("#ffd878")])
-		if w.has_route("staff"):
-			bars.append(["棍势 %d / 100　（近身命中 / 格挡攒势）" % int(w.spear_gs) if w.spear_gs < 100.0 else "横扫千军！下一棍超大范围必暴击", w.spear_gs, Color("#c89a52"), Color("#ffd878")])
+		if w.has_route("staff") or w.has_route("spear"):
+			bars.append(["棍势 %d / 100　（近身命中 / 格挡攒势）" % int(w.spear_gs) if w.spear_gs < 100.0 else "横扫千军！下一击超大范围必暴击", w.spear_gs, Color("#c89a52"), Color("#ffd878")])
 		var by3 := canvas.size.y - 72.0
 		for bi in bars.size():
 			var bar: Array = bars[bi]

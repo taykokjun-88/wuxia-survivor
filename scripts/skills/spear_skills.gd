@@ -77,9 +77,10 @@ class Base extends SkillBase:
 		w.shake = maxf(w.shake, 5.0)
 		return true
 
-	## 棍势满：下一棍变「横扫千军」——半径 ×2、伤害 ×2.5、必暴击、强击退，之后 0.5 秒格挡几率 +50%
+	## 棍势满：下一击（棍或枪）变「横扫千军」——半径 ×2、伤害 ×2.5、必暴击、强击退，之后 0.5 秒格挡几率 +50%
+	## 枪路也能打出：棍势靠近身命中 / 格挡 / 被近身攻击攒（不需要学棍法）
 	func wide_sweep() -> bool:
-		if free_cast or str(def.get("route", "")) != "staff" or w.spear_gs < 100.0:
+		if free_cast or w.spear_gs < 100.0:
 			return false
 		w.spear_gs = 40.0 if w.st("ji_spear") > 0.0 else 0.0
 		var r := (p("reach") if def.has("reach") else p("radius")) * 2.0 * (1.0 + w.st("sweep_r"))
@@ -120,7 +121,7 @@ class Yangjia extends Base:
 		if t == null:
 			return false
 		var dir := (t.pos - w.player_pos).normalized()
-		if breakthrough(dir):
+		if breakthrough(dir) or wide_sweep():
 			return true
 		var origin := w.player_pos
 		beam_fx("fx_yangjia_thrust", origin, origin + dir * reach, 26.0, Color("#dfe8f5"))
@@ -140,7 +141,7 @@ class Meihua extends Base:
 		if t == null:
 			return false
 		var dir := (t.pos - w.player_pos).normalized()
-		if breakthrough(dir):
+		if breakthrough(dir) or wide_sweep():
 			return true
 		var n := int(p("count")) + (2 if enhanced() else 0)
 		var dmg := p("damage") * (1.0 + (ev(0.1, 0.2, 0.3) if enhanced() else 0.0))
@@ -160,7 +161,7 @@ class Baima extends Base:
 		if t == null:
 			return false
 		var dir := (t.pos - w.player_pos).normalized()
-		if breakthrough(dir):
+		if breakthrough(dir) or wide_sweep():
 			return true
 		var dist := clampf(w.player_pos.distance_to(t.pos) + 70.0, 120.0, reach)
 		var start := w.player_pos

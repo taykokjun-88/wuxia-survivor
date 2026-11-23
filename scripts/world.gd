@@ -14,7 +14,7 @@ const PLAYER_RADIUS := 12.0
 const SPAWN_DIST := 780.0
 const RELOCATE_DIST := 1300.0
 const MAX_GEMS := 400
-const VACUUM_SPEED := 1100.0       # 吸星大法：道具飞向主角的速度
+const VACUUM_SPEED := 1100.0       # 海纳百川：道具飞向主角的速度
 const MAX_EFFECTS := 160
 const CELL := 64.0
 const MAX_SKILLS := 4
@@ -34,9 +34,9 @@ var input_dash := false
 var input_ult := false
 var burst_used := 0                # 本局已用的真气爆发次数
 var atk_buff_t := 0.0              # 阴性爆发：攻速提升的剩余时间
-var absorb_items: Array = []         # 「吸星大法」道具：[{pos, age}]（同时最多一个）
-var vacuum_t := 0.0                 # 吸星大法生效的剩余时间：期间所有宝石 / 还丹飞向主角
-var absorb_gap := 0.0               # 距离上次掉落吸星大法的时间
+var absorb_items: Array = []         # 「海纳百川」道具：[{pos, age}]（同时最多一个）
+var vacuum_t := 0.0                 # 海纳百川生效的剩余时间：期间所有宝石 / 还丹飞向主角
+var absorb_gap := 0.0               # 距离上次掉落海纳百川的时间
 var pills: Array = []              # 掉落的还丹：[{pos, kind: small|large, age}]
 var god := false
 var rng_seed := 0
@@ -1362,7 +1362,7 @@ func _hurt(amount: float) -> void:
 		add_fx("text", player_pos + Vector2(0, -24), 0.6, {"text": "挡", "size": 24, "color": JADE})
 		_on_block()
 		return
-	if school_id == "spear" and has_route("staff"):
+	if school_id == "spear":
 		add_gs(5.0)                                                    # 被近身攻击命中也攒棍势
 	var dmg := amount * (0.6 if bagua_def else 1.0)             # 休门：减伤 40%
 	for s: SkillBase in skills.values():
@@ -1980,14 +1980,14 @@ func _update_pills(dt: float) -> void:
 		i += 1
 
 
-## 吸星大法：普通击杀 1% 几率掉落（同时只会有一个，且两次掉落至少隔 25 秒）。捡到后 3 秒内全场宝石 / 还丹飞向主角。
+## 海纳百川：普通击杀 1% 几率掉落（同时只会有一个，且两次掉落至少隔 25 秒）。捡到后 3 秒内全场宝石 / 还丹飞向主角。
 func _maybe_drop_absorb(at: Vector2) -> void:
 	if not absorb_items.is_empty() or absorb_gap < Data.T("absorb_min_gap"):
 		return
 	if rng.randf() < Data.T("absorb_chance"):
 		absorb_items.append({"pos": at, "age": 0.0})
 		absorb_gap = 0.0
-		add_fx("text", at + Vector2(0, -30), 1.6, {"text": "吸星大法现世！", "size": 24, "color": Color("#b98cff")})
+		add_fx("text", at + Vector2(0, -30), 1.6, {"text": "海纳百川现世！", "size": 24, "color": Color("#b98cff")})
 
 
 func _update_absorb(dt: float) -> void:
@@ -2000,7 +2000,7 @@ func _update_absorb(dt: float) -> void:
 		if (it["pos"] as Vector2).distance_to(player_pos) < 26.0:
 			vacuum_t = Data.T("absorb_vacuum_time")
 			absorb_items.remove_at(i)
-			add_fx("text", player_pos + Vector2(0, -60), 1.6, {"text": "吸星大法！", "size": 30, "color": Color("#b98cff")})
+			add_fx("text", player_pos + Vector2(0, -60), 1.6, {"text": "海纳百川！", "size": 30, "color": Color("#b98cff")})
 			add_fx("ring", player_pos, 0.6, {"r0": 20.0, "r1": 420.0, "color": Color("#b98cff")})
 			shake = maxf(shake, 5.0)
 			continue
@@ -2036,7 +2036,7 @@ func _update_gems(dt: float) -> void:
 			continue
 		gem_age[i] += dt
 		if vacuum_t > 0.0:
-			gem_pos[i] += (player_pos - gem_pos[i]).normalized() * VACUUM_SPEED * dt      # 吸星大法：全场飞来
+			gem_pos[i] += (player_pos - gem_pos[i]).normalized() * VACUUM_SPEED * dt      # 海纳百川：全场飞来
 		elif d < pull:
 			gem_pos[i] += (player_pos - gem_pos[i]).normalized() * 420.0 * dt            # 只有走进拾取范围才会被吸过来
 		i += 1
@@ -2341,8 +2341,7 @@ func _on_block() -> void:
 	block_count += 1
 	if school_id != "spear":
 		return
-	if has_route("staff"):
-		add_gs(10.0)
+	add_gs(10.0)                                           # 枪路 / 棍路都攒棍势
 	if st("ji_spear") > 0.0:                               # 极·万军辟易：格挡回复气血
 		hp = minf(st("max_hp"), hp + st("max_hp") * 0.03 * heal_mult())
 	for e in _query(player_pos, 110.0):
@@ -2392,8 +2391,8 @@ func _spear_on_hit(sk: SkillBase, e: Enemy) -> void:
 		spear_combo_t = 2.0
 		if spear_combo % 10 == 0:
 			_spear_shadow(sk, e)
-	elif e.pos.distance_to(player_pos) < 120.0:
-		add_gs(2.0)
+	if e.pos.distance_to(player_pos) < 120.0:
+		add_gs(2.0)                                        # 近身命中攒棍势（枪路也算）
 
 
 ## 枪影：对周围最多 3 个目标各追加一枪（半伤）
@@ -2555,7 +2554,7 @@ func _draw() -> void:
 	_draw_effects()
 
 
-## 吸星大法：旋转的紫青色星旋，比还丹大得多，远处也看得见
+## 海纳百川：旋转的紫青色星旋，比还丹大得多，远处也看得见
 func _draw_absorb(it: Dictionary) -> void:
 	var c: Vector2 = it["pos"]
 	var t := time * 3.0

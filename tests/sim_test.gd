@@ -48,6 +48,7 @@ func _ready() -> void:
 		_stage2_boss_test()
 		_map_collision_test()
 		_spear_test()
+		_spear_sweep_test()
 		_bagua_test()
 		_map_spawn_test()
 		await _touch_test()
@@ -87,6 +88,7 @@ func _ready() -> void:
 		_dugu_report()
 	if only == "spear":
 		_spear_test()
+		_spear_sweep_test()
 	if only == "bagua":
 		_bagua_test()
 	if only == "touch":
@@ -2535,7 +2537,7 @@ func _town_test() -> void:
 	var near0 := t.near_npc()
 	_check(near0.is_empty(), "出生点附近没有 NPC")
 	# 走到驿卒面前
-	t.player_pos = Vector2(0, -190)
+	t.player_pos = Vector2(0, -290)
 	var clerk := t.near_npc()
 	_check(not clerk.is_empty() and clerk["id"] == "clerk", "靠近驿卒能交谈")
 	# 边界与碰撞：往一个方向使劲走，不会出界也不会穿墙
@@ -2887,7 +2889,7 @@ func _starter_trait_test() -> void:
 
 
 func _absorb_test() -> void:
-	print("\n=== 经验珠不自动飞来 / 吸星大法 / 移速 ===")
+	print("\n=== 经验珠不自动飞来 / 海纳百川 / 移速 ===")
 	_check(is_equal_approx(float(Data.player_base["move_speed"]), 140.0), "主角基础移速 140（原 200 的 70%）")
 	# 经验珠：远处的珠子放很久也不会自己飞过来
 	var w := _new_world(111)
@@ -2910,7 +2912,7 @@ func _absorb_test() -> void:
 		w.input_move = Vector2.ZERO
 	_check(w.exp_total > exp0, "拾取范围内的经验珠会被吸过来")
 	_free_world(w)
-	# 吸星大法：1% 几率、同时只有一个、间隔限制
+	# 海纳百川：1% 几率、同时只有一个、间隔限制
 	var wa := _new_world(112)
 	wa.skills.clear()
 	var drops := 0
@@ -2949,7 +2951,7 @@ func _absorb_test() -> void:
 	for i in int(2.5 / DT):
 		wv.step(DT)
 		wv.input_move = Vector2.ZERO
-	_check(wv.absorb_items.is_empty() and wv.gem_pos.size() == 0, "捡到吸星大法后全场宝石都飞来并被收走（剩 %d）" % wv.gem_pos.size())
+	_check(wv.absorb_items.is_empty() and wv.gem_pos.size() == 0, "捡到海纳百川后全场宝石都飞来并被收走（剩 %d）" % wv.gem_pos.size())
 	_check(wv.pills.is_empty() and wv.hp > hp_before, "还丹也飞来了并回血")
 	_check(wv.exp_total > got0 + 40, "宝石经验到账")
 	_free_world(wv)
@@ -4236,6 +4238,27 @@ func _full_run(cfg: Dictionary) -> void:
 
 
 ## 杨家将（长兵）：9 个招式冒烟、枪势 / 棍势 / 格挡 / 隐藏武功 / 无名枪法的规则
+func _spear_sweep_test() -> void:
+	print("\n=== 杨家将：只学枪法也能打出「横扫千军」 ===")
+	var w := _new_world(91, "yangjia_spear")
+	_check(w.has_route("spear") and not w.has_route("staff"), "只有枪路，没学棍法")
+	w.god = true
+	w._on_block()
+	_check(w.spear_gs >= 10.0, "格挡给枪路也攒棍势（%.0f）" % w.spear_gs)
+	w.spear_gs = 100.0
+	var e: Enemy = w._spawn_enemy("bandit", w.player_pos + Vector2(60, 0))
+	e.speed = 0.0
+	var hp0 := e.hp
+	w.step(1.0 / 30.0)
+	for i in 120:
+		w._rebuild_grid()
+		w.step(1.0 / 60.0)
+		if w.spear_gs < 100.0:
+			break
+	_check(w.spear_gs < 100.0, "枪路出招消耗满棍势（横扫千军触发）")
+	w.queue_free()
+
+
 func _spear_test() -> void:
 	print("\n=== 杨家将：招式冒烟与机制 ===")
 	var all_ids := ["yangjia_spear", "meihua_spear", "baima_spear", "wuming_spear", "shaolin_staff", "panlong_staff", "dagou_staff", "fengmo_staff", "xiangmo_staff"]
