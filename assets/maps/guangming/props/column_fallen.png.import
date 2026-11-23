@@ -15,9 +15,9 @@ dest_files=["res://.godot/imported/column_fallen.png-04653124f3a3bd19db019c3d74f
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.85
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0

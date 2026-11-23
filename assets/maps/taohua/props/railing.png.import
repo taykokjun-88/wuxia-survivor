@@ -15,9 +15,9 @@ dest_files=["res://.godot/imported/railing.png-101e769fc3e06d3f32f79e5a5305496f.
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.85
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0

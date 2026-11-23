@@ -15,9 +15,9 @@ dest_files=["res://.godot/imported/ground_snow.jpg-a0d38a6074fc5b0969bab546c7fc0
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.85
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0

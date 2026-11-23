@@ -15,9 +15,9 @@ dest_files=["res://.godot/imported/herbalist.png-b8d56419e32a16b7702b7ab5255eeb0
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.85
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0

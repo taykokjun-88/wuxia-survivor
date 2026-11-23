@@ -15,9 +15,9 @@ dest_files=["res://.godot/imported/vajra_fist.png-0a39ee3902f77f7d6d2fe0a49fb1bb
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.85
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
