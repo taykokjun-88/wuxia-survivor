@@ -222,8 +222,35 @@ func _after_fire() -> void:
 		w.play_anim(str(def["anim"]), 0.3)
 	if float(mods["buff"]) > 0.0:
 		w.add_neili(float(mods["buff"]))
-	if float(mods["hits"]) > 0.0 and w.rng.randf() < float(mods["hits"]):
+	var hc := float(mods["hits"])
+	var melee := tags().has("近战")
+	if melee:
+		hc += 0.1 * w.st("t_liandan")                       # 通用机制「连段」：近战招式有几率多打一段
+	if hc > 0.0 and w.rng.randf() < hc:
 		echo_t = ECHO_DELAY
+	_generic_talents(melee)
+
+
+## 通用天赋机制（按招式标签生效，各职业共用）：隔山打牛（近战）/ 剑气外放（近战）/ 余震（范围）
+func _generic_talents(melee: bool) -> void:
+	var gl := int(w.st("t_geshan"))
+	var jl := int(w.st("t_jianqi"))
+	var yl := int(w.st("t_yuzhen"))
+	if melee and (gl > 0 or jl > 0) and def.has("reach"):
+		var t := w.nearest_enemy(float(def["reach"]) + 60.0)
+		if t != null:
+			var dir := (t.pos - w.player_pos).normalized()
+			if gl > 0:
+				var at := t.pos + dir * 70.0
+				w.area_hit(self, at, 65.0, p("damage") * 0.12 * float(gl), 150.0)
+				w.add_fx("ring", at, 0.25, {"r0": 8.0, "r1": 65.0, "color": GameWorld.INK})
+			if jl > 0:
+				w.spawn_proj(self, dir.angle(), {"speed": 520.0, "radius": 16.0, "life": 0.55, "pierce": 2, "knock": 60.0, "damage": p("damage") * 0.3 * float(jl)})
+	if yl > 0 and tags().has("范围"):
+		var t2 := w.nearest_enemy(float(def.get("reach", def.get("radius", 120.0))) + 80.0)
+		var at2 := t2.pos if t2 != null else w.player_pos
+		w.add_zone({"kind": "impact", "skill": self, "pos": at2, "r": maxf(70.0, float(def.get("radius", def.get("reach", 100.0))) * 0.9), "delay": 0.6, "t": 0.0,
+			"dmg": p("damage") * (0.05 + 0.15 * float(yl)), "stun": 0.0, "crack": false, "elv": 0})
 
 
 ## 返回 true 表示成功出手（进入冷却）；false 表示条件不满足（稍后重试）

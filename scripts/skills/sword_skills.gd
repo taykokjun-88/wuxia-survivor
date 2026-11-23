@@ -33,14 +33,21 @@ class KuangFeng extends SkillBase:
 			return false
 		var a := (t.pos - w.player_pos).angle()
 		combo += 1
+		if int(w.st("t_jifeng")) > 0 and combo % 8 == 0:        # 疾风骤雨：每第 8 剑变成 360° 风暴
+			w.fx_slash(w.player_pos, a, reach, TAU * 0.5, true, fxid("slash"))
+			w.area_hit(self, w.player_pos, reach * 1.15, p("damage") * 2.5, 200.0)
+			w.add_fx("ring", w.player_pos, 0.4, {"r0": 15.0, "r1": reach * 1.15, "color": SwordSkills.SWORD_BLUE, "vfx": "burst_wind"})
+			return true
 		w.fx_slash(w.player_pos, a, reach, p("arc"), false, fxid("slash"))
 		w.cone_hit(self, w.player_pos, a, p("arc") * 0.5, reach, p("damage"), 90.0, false)
 		if empowered:
 			w.cone_hit(self, w.player_pos, a, p("arc") * 0.5, reach, p("damage") * 0.8, 60.0, false)
 		if combo % 4 == 0:
+			var sl := int(w.st("t_sijian"))                       # 四剑成风：剑风多 1/2 道，伤害 +30%/60%
 			var o := {"speed": 460.0, "radius": 22.0, "life": 0.55, "knock": 140.0,
-				"pierce": int(ev(3, 4, 5)) if enhanced() else 1, "damage": p("damage") * (1.6 + 0.2 * elv())}
-			w.spawn_proj(self, a, o)
+				"pierce": int(ev(3, 4, 5)) if enhanced() else 1, "damage": p("damage") * (1.6 + 0.2 * elv()) * (1.0 + 0.3 * float(sl))}
+			for k in 1 + sl:
+				w.spawn_proj(self, a + (float(k) - float(sl) * 0.5) * 0.28, o)
 			if enhanced():
 				w.hp = minf(w.st("max_hp"), w.hp + ev(1.0, 1.5, 2.0))
 		return true
@@ -60,10 +67,17 @@ class QingSong extends SkillBase:
 		for e in w._query(w.player_pos, reach):
 			if e.alive and not e.is_prop and e.pos.distance_to(w.player_pos) < reach + e.radius and absf(wrapf((e.pos - w.player_pos).angle() - a, -PI, PI)) <= p("arc") * 0.5 + 0.15:
 				crowd += 1
-		var wave := crowd >= 2 or empowered
+		combo += 1
+		var jb := int(w.st("t_jinbo"))                            # 劲柏不折：每第 3 次刺击必暴击，剑锋加长
+		var third := jb > 0 and combo % 3 == 0
+		if third:
+			reach *= 1.0 + 0.15 * float(jb)
+		var sl := int(w.st("t_songtao")) > 0                      # 松涛万籁：不再需要 ≥2 个敌人，人越多越凶
+		var wave := crowd >= 2 or empowered or sl
 		var arc := p("arc") * (2.2 if wave else 1.0)
 		w.fx_slash(w.player_pos, a, reach, arc * (1.0 if fxid("slash") == "" else 1.0), wave, "sw_qingsong_wave" if (wave and w.vfx.has("sw_qingsong_wave")) else fxid("slash"))
-		w.cone_hit(self, w.player_pos, a, arc * 0.5, reach, p("damage") * (1.7 if wave else 1.0), p("knock") * (1.6 if wave else 1.0), false)
+		var dm := p("damage") * (1.7 if wave else 1.0) * (1.0 + (0.1 * float(mini(8, crowd)) if sl else 0.0))
+		w.cone_hit(self, w.player_pos, a, arc * 0.5, reach, dm, p("knock") * (1.6 if wave else 1.0), third)
 		if wave and enhanced():
 			var n := int(ev(3, 4, 5))
 			for i in n:
@@ -74,14 +88,25 @@ class QingSong extends SkillBase:
 
 ## 沉渊重剑：缓慢而沉重。强化「无锋大巧」：落地冲击波并击晕。
 class ZhongJian extends SkillBase:
+	var _n := 0
+
 	func fire() -> bool:
 		var reach := p("reach")
 		var t := w.nearest_enemy(reach + 30.0)
 		if t == null:
 			return false
 		var a := (t.pos - w.player_pos).angle()
+		_n += 1
+		var crush := int(w.st("t_chenyuan")) > 0 and _n % 3 == 0         # 沉渊·崩：每第 3 次重击 ×1.8 并击晕周围
 		w.fx_slash(w.player_pos, a, reach, p("arc"), true, fxid("slash"))
-		w.cone_hit(self, w.player_pos, a, p("arc") * 0.5, reach, p("damage"), p("knock"), empowered)
+		w.cone_hit(self, w.player_pos, a, p("arc") * 0.5, reach, p("damage") * (1.8 if crush else 1.0), p("knock"), empowered)
+		if crush:
+			for e in w._query(w.player_pos, reach + 60.0):
+				if e.alive and e.pos.distance_to(w.player_pos) < reach + 60.0 + e.radius:
+					w.stun_enemy(e, 1.5)
+		var zl := int(w.st("t_zhendi"))                                # 震地余波：落地后追加冲击波
+		if zl > 0:
+			w.area_hit(self, w.player_pos + Vector2.from_angle(a) * reach * 0.6, 120.0, p("damage") * (0.1 + 0.2 * float(zl)), 200.0)
 		w.shake = maxf(w.shake, 4.0)
 		if enhanced():
 			var sr := ev(110.0, 140.0, 170.0)
@@ -92,6 +117,8 @@ class ZhongJian extends SkillBase:
 
 ## 圆转绵剑：周身圆弧，把敌方弹幕原路打回。强化「四两拨千斤」：每打回一枚弹幕，这一剑伤害提高。
 class TaijiSword extends SkillBase:
+	var _reflected := 0
+
 	func _hostile_near(r: float) -> Array[Projectile]:
 		var out: Array[Projectile] = []
 		for pr in w.projs:
@@ -111,7 +138,7 @@ class TaijiSword extends SkillBase:
 			pr.vel = -pr.vel
 			pr.speed = pr.vel.length()
 			pr.angle = pr.vel.angle()
-			pr.damage = p("damage") * 0.6
+			pr.damage = p("damage") * 0.6 * (1.0 + 0.5 * w.st("t_huijing"))
 			pr.pierce = 2
 			pr.life = 1.5
 			pr.skill_id = id
@@ -120,6 +147,12 @@ class TaijiSword extends SkillBase:
 				pr.vfx_id = "proj_taiji_reflect"
 			if w.vfx.has("sw_taiji_reflect") and w.effects.size() < GameWorld.MAX_EFFECTS:
 				w.add_fx("ring", pr.pos, 0.35, {"r0": 10.0, "r1": 10.0, "color": Color.WHITE, "vfx": "sw_taiji_reflect", "size": 160.0})
+		if int(w.st("t_taijiwu")) > 0:                           # 太极无极：每打回 5 发弹幕，释放一圈全屏反震
+			_reflected += hostile.size()
+			if _reflected >= 5:
+				_reflected = 0
+				w.area_hit(self, w.player_pos, 600.0, p("damage") * 1.5, 300.0)
+				w.add_fx("ring", w.player_pos, 0.5, {"r0": 20.0, "r1": 600.0, "color": GameWorld.JADE, "vfx": "ring_taiji", "size": 1100.0})
 		var mult := 1.0 + (minf(1.5, hostile.size() * ev(0.1, 0.15, 0.2)) if enhanced() else 0.0)
 		w.area_hit(self, w.player_pos, r, p("damage") * mult, p("knock"))
 		w.add_fx("ring", w.player_pos, 0.35, {"r0": 15.0, "r1": r, "color": GameWorld.JADE, "vfx": fxid("ring") if fxid("ring") != "" else "ring_taiji"})
@@ -141,7 +174,10 @@ class WanJian extends SkillBase:
 			var o := {}
 			if enhanced():
 				o["split"] = 2
-			w.spawn_proj(self, base + (i - (n - 1) * 0.5) * 0.22, o)
+			var pr := w.spawn_proj(self, base + (i - (n - 1) * 0.5) * 0.22, o)
+			if int(w.st("t_wanjian_gui")) > 0:                # 万剑归宗：飞到尽头折返，再射一次（50%）
+				pr.boomerang = true
+				pr.ret_mult = 0.5
 		return true
 
 
@@ -163,6 +199,13 @@ class YuNv extends SkillBase:
 		var n := _ring(r, p("damage"))
 		if enhanced():
 			n += _ring(r * ev(1.3, 1.45, 1.6), p("damage") * 0.8)
+		var sy := int(w.st("t_shuangying"))                      # 双影叠舞：追加第二圈（40%/70%）
+		if sy > 0:
+			n += _ring(r * 1.15, p("damage") * (0.1 + 0.3 * float(sy)))
+		if int(w.st("t_lanxi")) > 0:                             # 兰溪长流：清除身周弹幕，3 秒移速 +20%
+			w.cut_hostile_projs(w.player_pos, r * 1.3)
+			w.tal_spd_t = 3.0
+			w.tal_spd_v = 0.2
 		var heal := minf(10.0, n * float(def.get("heal_hit", 1.0)) * (2.0 if empowered else 1.0))
 		w.hp = minf(w.st("max_hp"), w.hp + heal)
 		return true
@@ -191,6 +234,12 @@ class PiXie extends SkillBase:
 			var sr := ev(90.0, 120.0, 150.0)
 			w.area_hit(self, w.player_pos, sr, p("damage") * 0.8, 200.0)
 			w.add_fx("ring", w.player_pos, 0.3, {"r0": 10.0, "r1": sr, "color": GameWorld.VERMILION})
+		var yl := int(w.st("t_yingsui"))                         # 影随身动：2 秒内下一次攻击增伤
+		if yl > 0:
+			w.ys_buff = 0.2 * float(yl)
+			w.ys_t = 2.0
+		if int(w.st("t_yulian")) > 0:                            # 欲练神功·极：残影 1 秒后再刺一次
+			w.add_zone({"kind": "impact", "skill": self, "pos": w.player_pos, "r": p("reach") * 1.1, "delay": 1.0, "t": 0.0, "dmg": p("damage"), "stun": 0.0, "crack": false, "elv": 0})
 		return true
 
 
@@ -216,7 +265,20 @@ class YiTian extends SkillBase:
 			return false
 		var a := (t.pos - w.player_pos).angle()
 		w.fx_slash(w.player_pos, a, reach, p("arc"), true, fxid("slash"))
+		var yk := int(w.st("t_yunkai"))
+		var zy := int(w.st("t_zhanyun")) > 0
+		var inside: Array[Enemy] = []
+		if yk > 0 or zy:
+			for e in w._query(w.player_pos, reach + 40.0):
+				if e.alive and e.pos.distance_to(w.player_pos) < reach + e.radius and absf(wrapf((e.pos - w.player_pos).angle() - a, -PI, PI)) <= p("arc") * 0.5 + 0.15:
+					inside.append(e)
 		w.cone_hit(self, w.player_pos, a, p("arc") * 0.5, reach, p("damage"), p("knock"), false)
+		for e in inside:
+			if yk > 0 and e.alive:                              # 云开见日：防御 −15%/−25%
+				e.def_down = 0.15 if yk == 1 else 0.25
+				e.def_down_t = 3.0
+			if zy and not e.alive:                              # 斩云·极：击杀处再斩出追击剑气
+				w.spawn_proj(self, a, {"pos": e.pos, "speed": 520.0, "radius": 20.0, "life": 0.5, "pierce": 3, "knock": 100.0, "damage": p("damage") * 0.6})
 		if enhanced():
 			w.spawn_proj(self, a, {"speed": 540.0, "radius": 30.0, "life": ev(0.6, 0.75, 0.9), "pierce": 5, "knock": 160.0,
 				"damage": p("damage") * ev(1.0, 1.3, 1.6)})
@@ -240,6 +302,7 @@ class Dugu extends SkillBase:
 	var sb_idx := 0
 	var sb_mult := 1.0
 	var sb_strikes := 0              # 统计：累计闪现次数（测试用）
+	var _fire_n := 0                 # 天赋「万剑朝宗」：出剑计数
 	var sb_seen: Dictionary = {}
 	var _base_dmg := -1.0
 	var _base_crit := 0.0
@@ -278,6 +341,11 @@ class Dugu extends SkillBase:
 			w.add_neili(Data.T("dugu_wb_neili") + w.st("dugu_wb"))
 			cd = maxf(0.0, cd * (1.0 - Data.T("dugu_wb_cut") - 0.05 * w.st("dugu_wb")))
 			w.add_fx("text", w.player_pos + Vector2(0, -44), 0.6, {"text": "破兵微步", "size": 16, "color": Color("#bfe8ff")})
+			var pb := int(w.st("t_pobing"))                      # 破兵微步·强：2 秒移速 + 命中的敌人易伤
+			if pb > 0:
+				w.tal_spd_t = 2.0
+				w.tal_spd_v = 0.1 * float(pb)
+				w.apply_vuln(e, [0.04, 0.07, 0.10][clampi(pb, 1, 3) - 1], false)
 
 	## 落矢变 / 万法皆破：近战斩击把范围内的敌方普通投射物全部斩落
 	func _cut_in(center: Vector2, radius: float) -> void:
@@ -324,12 +392,16 @@ class Dugu extends SkillBase:
 		o["speed"] = p("speed") * (1.0 + 0.04 * L("po_jian") + 0.05 * lv_qiang)
 		o["life"] = p("life") * (1.0 + 0.05 * lv_qiang)
 		o["damage"] = p("damage") * dmg_mult * (1.0 + 0.03 * lv_qiang)
+		var zf := int(w.st("t_zhefeng"))                             # 折锋连环：弹射次数 +1/2/3，弹射后伤害不再衰减
 		if L("po_bian") > 0:
-			o["bounce"] = ceili(L("po_bian") / 3.0)
-			o["bounce_dmg"] = 0.4 + 0.03 * L("po_bian")
+			o["bounce"] = ceili(L("po_bian") / 3.0) + zf
+			o["bounce_dmg"] = 1.0 if zf > 0 else 0.4 + 0.03 * L("po_bian")
 		if L("po_suo") > 0:
 			o["stun"] = 0.8
-			o["stun_chance"] = (0.08 + 0.02 * L("po_suo")) * vuln_scale()
+			o["stun_chance"] = (0.08 + 0.02 * L("po_suo") + 0.1 * w.st("t_zhibu")) * vuln_scale()    # 滞步冰封：定身几率 +10%/20%
+		var lk := int(w.st("t_lvekong"))
+		if lk > 0:
+			o["far_gain"] = 0.3 * float(lk)                          # 掠空疾电：飞行越远伤害越高
 		if L("po_zhang") > 0:
 			o["splash"] = 50.0 + 4.0 * L("po_zhang")
 			o["splash_frac"] = 0.35 + 0.03 * L("po_zhang")
@@ -348,9 +420,23 @@ class Dugu extends SkillBase:
 		wb_hits.clear()
 		var n := 1 + L("po_jian") / 3
 		var base := (t.pos - w.player_pos).angle()
-		var o := _opts(1.0)
+		var gy := 1.5 if w.guiyi_ready else 1.0                      # 九变归一：领悟后的下一次出剑 +50%
+		w.guiyi_ready = false
+		var o := _opts(gy)
+		_fire_n += 1
 		for i in n:
-			w.spawn_proj(self, base + (i - (n - 1) * 0.5) * 0.16, o)
+			var pr := w.spawn_proj(self, base + (i - (n - 1) * 0.5) * 0.16, o)
+			pr.far_gain = float(o.get("far_gain", 0.0))
+		if int(w.st("t_fujian")) > 0 and w.rng.randf() < 0.08 * w.st("t_fujian"):     # 复剑：同样的剑气再发一次（60%）
+			var o2 := _opts(0.6 * gy)
+			for i in n:
+				var pr2 := w.spawn_proj(self, base + (i - (n - 1) * 0.5) * 0.16 + 0.05, o2)
+				pr2.far_gain = float(o2.get("far_gain", 0.0))
+		if int(w.st("t_wanjian_cap")) > 0 and _fire_n % 9 == 0:        # 万剑朝宗：每第 9 次出剑，向周围一圈射出 9 道剑气（50%）
+			var o3 := _opts(0.5)
+			for i in 9:
+				w.spawn_proj(self, TAU * float(i) / 9.0, o3)
+			w.add_fx("ring", w.player_pos, 0.4, {"r0": 20.0, "r1": 160.0, "color": SwordSkills.SWORD_BLUE})
 		return true
 
 	# ---------------- 真·无迹九变剑 ----------------
@@ -462,6 +548,8 @@ class Dugu extends SkillBase:
 			combo_total = 2
 		else:
 			combo_total = 1
+		if int(w.st("t_fujian")) > 0 and w.rng.randf() < 0.08 * w.st("t_fujian"):        # 复剑：真形态多斩一轮
+			combo_total += 1
 		combo_idx = 0
 		combo_left = combo_total - 1
 		combo_t = 0.09

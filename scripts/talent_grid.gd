@@ -43,13 +43,31 @@ func _bi(branch: String) -> int:
 	return ["gang", "rou", "ling"].find(branch)
 
 
+## 每个框的列数（武者 / 刀客 / 杨家将都是 4 列；剑客「灵」系 6 列）；框宽按列数分配
+func _ncols(bi: int) -> int:
+	var b: String = ["gang", "rou", "ling"][bi]
+	return int((_tree["branches"][b]["cols"] as Array).size())
+
+
 func g_box(bi: int) -> Rect2:
-	return Rect2(Vector2(bi * (G_BOX_W + GAP), 0.0), Vector2(G_BOX_W, grid_h()))
+	var total := 0
+	for k in 3:
+		total += _ncols(k)
+	var avail := grid_size().x - GAP * 2.0
+	var x := 0.0
+	for k in bi:
+		x += avail * float(_ncols(k)) / float(total) + GAP
+	return Rect2(Vector2(x, 0.0), Vector2(avail * float(_ncols(bi)) / float(total), grid_h()))
+
+
+func g_colw(bi: int) -> float:
+	return g_box(bi).size.x / float(_ncols(bi))
 
 
 func g_pos(n: Dictionary) -> Vector2:
-	var r := g_box(_bi(str(n["branch"])))
-	return Vector2(r.position.x + G_BOX_W * (float(n["col"]) + 0.5) / 4.0, G_HEADER + G_ROW * (float(n["row"]) - 0.5) - 3.0)
+	var bi := _bi(str(n["branch"]))
+	var r := g_box(bi)
+	return Vector2(r.position.x + g_colw(bi) * (float(n["col"]) + 0.5), G_HEADER + G_ROW * (float(n["row"]) - 0.5) - 3.0)
 
 
 func g_ji_pos() -> Vector2:
@@ -64,7 +82,7 @@ func node_at(p: Vector2) -> String:
 		if n["branch"] == "ji":
 			continue
 		var c := g_pos(n)
-		if absf(p.x - c.x) < 50.0 and p.y > c.y - G_ICON * 0.5 - 4.0 and p.y < c.y + G_ICON * 0.5 + 16.0:
+		if absf(p.x - c.x) < minf(50.0, g_colw(_bi(str(n["branch"]))) * 0.5) and p.y > c.y - G_ICON * 0.5 - 4.0 and p.y < c.y + G_ICON * 0.5 + 16.0:
 			return id
 	return ""
 
@@ -148,14 +166,15 @@ func _draw() -> void:
 		_draw_bg(rect, b, col, bi)
 		draw_rect(rect, Color(col, 0.75), false, 2.5)
 		draw_string(bold, rect.position + Vector2(14, 34), str(bd["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(col.lightened(0.35), 1.0))
-		draw_string(font, rect.position + Vector2(54, 20), str(bd["sub"]), HORIZONTAL_ALIGNMENT_LEFT, G_BOX_W - 160.0, 13, Color("#e8dfc5"))
+		draw_string(font, rect.position + Vector2(54, 20), str(bd["sub"]), HORIZONTAL_ALIGNMENT_LEFT, rect.size.x - 160.0, 13, Color("#e8dfc5"))
 		draw_string(font, rect.position + Vector2(54, 38), "起手：" + str(Data.skills.get(bd["starter"], {}).get("name", "")), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(col.lightened(0.4), 0.9))
-		draw_string(bold, rect.position + Vector2(G_BOX_W - 112, 24), "%d / 50 点" % _branch_sum(b), HORIZONTAL_ALIGNMENT_RIGHT, 100.0, 17, Color("#fff6dc"))
-		draw_line(rect.position + Vector2(12, G_HEADER - 3), rect.position + Vector2(G_BOX_W - 12, G_HEADER - 3), Color(col, 0.5), 1.5)
+		draw_string(bold, rect.position + Vector2(rect.size.x - 112, 24), "%d / 50 点" % _branch_sum(b), HORIZONTAL_ALIGNMENT_RIGHT, 100.0, 17, Color("#fff6dc"))
+		draw_line(rect.position + Vector2(12, G_HEADER - 3), rect.position + Vector2(rect.size.x - 12, G_HEADER - 3), Color(col, 0.5), 1.5)
 		# 列名
-		for ci in 4:
-			var cx := rect.position.x + G_BOX_W * (ci + 0.5) / 4.0
-			draw_string(font, Vector2(cx - 50, G_HEADER + 2), str(bd["cols"][ci]), HORIZONTAL_ALIGNMENT_CENTER, 100.0, 10, Color(col.lightened(0.3), 0.55))
+		for ci in (bd["cols"] as Array).size():
+			var cw := g_colw(bi)
+			var cx := rect.position.x + cw * (ci + 0.5)
+			draw_string(font, Vector2(cx - cw * 0.5, G_HEADER + 2), str(bd["cols"][ci]), HORIZONTAL_ALIGNMENT_CENTER, cw, 10, Color(col.lightened(0.3), 0.55))
 		# 层门槛线：行 r（2~7、9）上方；该行所在层的门槛
 		for r in [2, 3, 4, 5, 6, 7, 9]:
 			var tier: int = r if r < 9 else 8
@@ -201,18 +220,21 @@ func _draw_gnode(id: String, col: Color, font: Font, bd: Dictionary) -> void:
 	var ring := gold if (cap or peak) else col
 	var rr := G_ICON * 0.5 * (1.2 if peak else 1.0)
 	if id == hover_id:
-		draw_rect(Rect2(c - Vector2(48, G_ICON * 0.5 + 4.0), Vector2(96, G_ICON + 24.0)), Color(1, 1, 1, 0.08))
+		draw_rect(Rect2(c - Vector2(minf(48.0, g_colw(_bi(str(n["branch"]))) * 0.5), G_ICON * 0.5 + 4.0), Vector2(minf(96.0, g_colw(_bi(str(n["branch"])))), G_ICON + 24.0)), Color(1, 1, 1, 0.08))
 	draw_circle(c, rr, Color(0.08, 0.07, 0.07, 0.92))
 	# 招式链节点用该招式的图标，通用链 / 巅峰用文字徽章
 	var tex: Texture2D = null
-	if int(n["col"]) <= 2 and not peak:
-		tex = Data.icon("skills", str(bd["col_skills"][int(n["col"])]))
+	var cs: Array = bd["col_skills"]
+	var ci := int(n["col"])
+	var sk_id: String = str(cs[ci]) if (not peak and ci < cs.size()) else ""
+	if sk_id != "":
+		tex = Data.icon("skills", sk_id)
 	var dim := 1.0 if st != "locked" else 0.35
 	if tex != null:
 		var s := rr * 1.7
 		draw_texture_rect(tex, Rect2(c - Vector2(s, s) * 0.5, Vector2(s, s)), false, Color(1, 1, 1, dim))
 	else:
-		draw_string(font, c + Vector2(-rr, 5), "巅" if peak else ("通" if int(n["col"]) == 3 else ""), HORIZONTAL_ALIGNMENT_CENTER, rr * 2.0, 15, Color(gold if peak else col, dim))
+		draw_string(font, c + Vector2(-rr, 5), "巅" if peak else ("通" if sk_id == "" else ""), HORIZONTAL_ALIGNMENT_CENTER, rr * 2.0, 15, Color(gold if peak else col, dim))
 	match st:
 		"locked":
 			draw_arc(c, rr, 0.0, TAU, 28, Color(0.45, 0.42, 0.38, 0.7), 2.0)
@@ -228,7 +250,8 @@ func _draw_gnode(id: String, col: Color, font: Font, bd: Dictionary) -> void:
 		var d := c + Vector2(rr * 0.85, -rr * 0.85)
 		draw_colored_polygon(PackedVector2Array([d + Vector2(0, -5), d + Vector2(5, 0), d + Vector2(0, 5), d + Vector2(-5, 0)]), gold)
 	var name_col := Color("#fff6dc") if st == "ranked" or st == "maxed" else (Color("#e8dfc5") if st == "open" else Color("#8d8670"))
-	draw_string(font, c + Vector2(-50, G_ICON * 0.5 + 11.0), str(n["name"]), HORIZONTAL_ALIGNMENT_CENTER, 100.0, 12, name_col)
+	var lw := minf(100.0, g_colw(_bi(str(n["branch"]))))
+	draw_string(font, c + Vector2(-lw * 0.5, G_ICON * 0.5 + 11.0), str(n["name"]), HORIZONTAL_ALIGNMENT_CENTER, lw, 12, name_col)
 	draw_string(font, c + Vector2(rr - 8.0, rr + 1.0), "%d/%d" % [rank, mx] if mx > 1 else ("●" if rank > 0 else ""), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#fff6dc") if rank > 0 else Color(0.8, 0.77, 0.7, 0.7))
 	if id == hover_id:
 		draw_arc(c, rr + 6.0, 0.0, TAU, 28, Color("#fff6dc", 0.95), 2.0)

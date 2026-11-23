@@ -2500,7 +2500,7 @@ func _draw_hud() -> void:
 				Color("#a0521d") if bool(sy2["harmony"]) else Color("#1f6f6a"))
 			cx += 18.0
 		if w.skills.has("dugu"):
-			canvas.draw_string(font, Vector2(16, ry + (30.0 if not w.xinfa.is_empty() else 0.0) + 14.0), "变 %d/%d　%s" % [w.shi_total(), int(Data.T("shi_stage3")), _stage_name()],
+			canvas.draw_string(font, Vector2(16, ry + (30.0 if not w.xinfa.is_empty() else 0.0) + 14.0), "变 %d/%d　%s" % [w.shi_total(), w.shi_th(3), _stage_name()],
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 13, GameWorld.VERMILION)
 		canvas.draw_string(font, Vector2(16, plate_h + 22.0 - 6.0), ("点「详」展开详情" if touch_mode else "[Tab] 展开详情"), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color("#7a6a3a"))
 	else:
@@ -2520,7 +2520,7 @@ func _draw_hud() -> void:
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 14, GameWorld.VERMILION if star != "" else Color("#6a5a3a"))
 			y += ICON + 14.0
 		if w.skills.has("dugu"):
-			canvas.draw_string(font, Vector2(16, y + 8.0), "变 总层 %d（≥%d 破兵微步 · ≥%d 万法皆破 · ≥%d 真·无迹九变剑）" % [w.shi_total(), int(Data.T("shi_stage1")), int(Data.T("shi_stage2")), int(Data.T("shi_stage3"))],
+			canvas.draw_string(font, Vector2(16, y + 8.0), "变 总层 %d（≥%d 破兵微步 · ≥%d 万法皆破 · ≥%d 真·无迹九变剑）" % [w.shi_total(), w.shi_th(1), w.shi_th(2), w.shi_th(3)],
 				HORIZONTAL_ALIGNMENT_LEFT, -1, 12, GameWorld.VERMILION)
 			y += 28.0
 			for sid in w.shi:

@@ -191,6 +191,11 @@ var ult_dmg := 0.0
 var ult_keep := 0.0
 var yuwei_t := 0.0
 var was_ult := false
+var ys_buff := 0.0             # 天赋「影随身动」：闪现后下一次攻击增伤
+var ys_t := 0.0
+var zhenbian_cd := 0.0         # 天赋「真·九变」：觉醒后真气爆发改为冷却型
+var guiyi_ready := false       # 天赋「九变归一」：下一次出剑增伤
+var fenfeng_hits: Dictionary = {}   # 天赋「分锋合流」：敌人 uid → [同一次出手内的命中数, 时间]
 var shake := 0.0
 
 # ---- 世界状态 ----
@@ -416,6 +421,8 @@ func add_skill(id: String) -> void:
 	if sch == "spear":
 		s.mods["range"] = float(s.mods["range"]) + 0.10            # 杨家将通用被动：招式射程 +10%
 	skills[id] = s
+	if id == "dugu" and float(talent_stats.get("t_chuwu", 0.0)) > 0.0 and shi.is_empty():        # 初悟：开局自带「总纲变」
+		add_shi("zong", int(talent_stats["t_chuwu"]))
 	if sch == "spear":
 		recalc()
 
@@ -675,6 +682,8 @@ func _update_player(dt: float) -> void:
 	stealth_t = maxf(0.0, stealth_t - dt)
 	buff_t = maxf(0.0, buff_t - dt)
 	tal_dr_t = maxf(0.0, tal_dr_t - dt)
+	ys_t = maxf(0.0, ys_t - dt)
+	zhenbian_cd = maxf(0.0, zhenbian_cd - dt)
 	tal_spd_t = maxf(0.0, tal_spd_t - dt)
 	if school_id == "fist":                        # 蓄劲：盈境下自然蓄劲
 		if fist_ult_t > 0.0:                      # 拳掌无敌：无敌，内力清零且不恢复
@@ -822,6 +831,8 @@ func burst_max() -> int:
 
 
 func burst_left() -> int:
+	if st("t_zhenbian") > 0.0 and dugu_true():             # 天赋「真·九变」：觉醒后真气爆发改为冷却型（每 30 秒一次）
+		return 1 if zhenbian_cd <= 0.0 else 0
 	return maxi(0, burst_max() - burst_used)
 
 
@@ -854,6 +865,9 @@ func _burst() -> void:
 	var f := burst_power()
 	Sfx.play("burst_ult")
 	burst_used += 1
+	if st("t_zhenbian") > 0.0 and dugu_true():
+		zhenbian_cd = 30.0
+		burst_used = maxi(0, burst_used - 1)
 	ult_keep = neili * 0.5 if (school_id == "fist" and st("t_jinshen") > 0.0) else 0.0      # 无敌金身：只消耗一半内力（无敌结束后返还）
 	neili = 0.0                                   # 消耗全部内力
 	if dugu_true():
@@ -1477,7 +1491,7 @@ func _kill(e: Enemy) -> void:
 		area_hit_raw(e.pos, e.burn_burst, e.burn_dmg, ["范围"], "ranmu_blade", 140.0)
 		add_fx("ring", e.pos, 0.35, {"r0": 10.0, "r1": e.burn_burst, "color": Color("#ff8a30")})
 	if e.poison_burst > 0.0 and e.poison_dps > 0.0:
-		area_hit_raw(e.pos, e.poison_burst, e.poison_dps * 3.0, ["控制", "范围"], "jinshe")
+		area_hit_raw(e.pos, e.poison_burst, e.poison_dps * 3.0 * e.poison_burst_f, ["控制", "范围"], "jinshe")
 		add_fx("ring", e.pos, 0.4, {"r0": 8.0, "r1": e.poison_burst, "color": Color("#5a8a2a")})
 	if e.chain:
 		_chain_explode(e)
@@ -1566,6 +1580,22 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 			m *= 1.0 + float(sk.link_flags["ying"])
 	if e.vuln_t > 0.0:
 		m *= 1.0 + e.vuln
+	if ys_buff > 0.0 and ys_t > 0.0 and sid != "pixie":               # 影随身动：闪现后的下一次攻击增伤
+		m *= 1.0 + ys_buff
+		ys_buff = 0.0
+	if sid == "dugu":
+		if st("t_zhibu") > 0.0 and e.stun > 0.0:                      # 滞步冰封：被定身的敌人受九变剑伤害 +15%/30%
+			m *= 1.0 + 0.15 * st("t_zhibu")
+		if st("t_fenfeng") > 0.0:                                     # 分锋合流：同一次出手的多柄剑命中同一敌人，每柄再叠伤害
+			var fh: Array = fenfeng_hits.get(e.uid, [0, -9.0])
+			if time - float(fh[1]) > 0.3:
+				fh[0] = 0
+			m *= 1.0 + 0.12 * st("t_fenfeng") * float(fh[0])
+			fh[0] = int(fh[0]) + 1
+			fh[1] = time
+			fenfeng_hits[e.uid] = fh
+			if fenfeng_hits.size() > 200:
+				fenfeng_hits.clear()
 	if e.stun > 0.0 and st("t_zhenduan") > 0.0:                      # 天赋「震断筋骨」：被击晕的敌人受到的所有伤害 +8%/级
 		m *= 1.0 + 0.08 * st("t_zhenduan")
 	if sid == "dugu":
@@ -1575,6 +1605,8 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 				m *= 1.0 + 0.1 * qi
 			add_neili(0.3 * qi)
 	var crit_p := st("crit_chance") + (float(sk.mods["crit"]) if sk != null else 0.0)
+	if (e.stun > 0.0 or e.slow_t > 0.0) and st("t_kongchang") > 0.0:       # 控场易伤：攻击被定身 / 减速的敌人，暴击率 +15%/级
+		crit_p += 0.15 * st("t_kongchang")
 	# 破绽联动：被定身 / 减速的敌人，特定标签的招式有额外效果
 	var weak_hit := false
 	if e.stun > 0.0:
@@ -1739,6 +1771,7 @@ func spawn_proj(s: SkillBase, angle: float, o: Dictionary = {}) -> Projectile:
 	pr.damage = float(o.get("damage", s.p("damage")))
 	pr.pierce = int(o.get("pierce", s.p("pierce")))
 	pr.life = float(o.get("life", s.p("life")))
+	pr.life0 = pr.life
 	pr.knock = float(o.get("knock", s.p("knock")))
 	pr.homing = bool(o.get("homing", false))
 	pr.turn = float(o.get("turn", 0.0))
@@ -1819,7 +1852,7 @@ func _update_projectiles(dt: float) -> void:
 			p.life = 3.0
 			p.hit.clear()
 			p.pierce = maxi(p.pierce, 2 + enhance_level)
-			p.damage *= 1.6 + 0.3 * (enhance_level - 1)
+			p.damage *= p.ret_mult if p.ret_mult >= 0.0 else (1.6 + 0.3 * (enhance_level - 1))
 		if p.returning:
 			var back := player_pos - p.pos
 			if back.length() < 22.0:
@@ -1836,6 +1869,7 @@ func _update_projectiles(dt: float) -> void:
 				p.vel = p.vel.rotated(rot)
 				p.angle = p.vel.angle()
 		p.pos += p.vel * dt
+		p.trav += p.vel.length() * dt
 		if not p.hostile and p.skill_id == "dugu" and dugu_can_cut():
 			cut_hostile_projs(p.pos, p.radius + Data.T("dugu_cut_base") + Data.T("dugu_cut_lv") * float(shi.get("po_arrow", 0)))
 		var keep := p.life > 0.0
@@ -1856,7 +1890,11 @@ func _update_projectiles(dt: float) -> void:
 							apply_vuln(e, p.vuln, true)
 						_emp_ctx = 1 if p.empowered else 0
 						baodao_ctx = p.baodao
-						hit_enemy(e, p.damage, p.tags, p.vel.normalized() * p.knock, p.skill_id)
+						var pdmg := p.damage * (1.0 + p.far_gain * clampf(p.trav / maxf(1.0, p.speed * p.life0), 0.0, 1.0))      # 掠空疾电：飞得越远伤害越高
+						hit_enemy(e, pdmg, p.tags, p.vel.normalized() * p.knock, p.skill_id)
+						if p.skill_id == "dugu" and st("t_guanjia") > 0.0 and e.alive:        # 贯甲破甲
+							e.def_down = minf(0.5, (e.def_down if e.def_down_t > 0.0 else 0.0) + 0.07 * st("t_guanjia") + 0.01)
+							e.def_down_t = 3.0
 						baodao_ctx = false
 						_emp_ctx = -1
 						if p.neili_hit > 0.0:                      # 天赋「归元返照」：每道拳气首次命中回内力
@@ -1918,6 +1956,9 @@ func _proj_gone(p: Projectile) -> void:
 
 ## 小范围溅射：命中点周围的其他敌人受到一部分伤害（掌）
 func _splash(center_e: Enemy, p: Projectile) -> void:
+	if p.skill_id == "dugu" and st("t_zhenlang") > 0.0 and skills.has("dugu"):    # 震浪叠浪：0.4 秒后再爆一次
+		add_zone({"kind": "impact", "skill": skills["dugu"], "pos": center_e.pos, "r": p.splash, "delay": 0.4, "t": 0.0,
+			"dmg": p.damage * p.splash_frac * (0.1 + 0.3 * st("t_zhenlang")), "stun": 0.0, "crack": false, "elv": 0})
 	for nb in _query(center_e.pos, p.splash):
 		if nb == center_e or not nb.alive:
 			continue
@@ -1933,7 +1974,7 @@ func _split(p: Projectile) -> void:
 	for i in n:
 		var child := spawn_proj(s, p.angle + (i - (n - 1) * 0.5) * 0.5, {
 			"pos": p.pos, "damage": p.damage * (0.7 + 0.1 * enhance_level), "radius": p.radius * 0.7,
-			"pierce": 3, "life": 0.65, "speed": p.speed * 0.9, "knock": p.knock * 0.5})
+			"pierce": 3, "life": 0.65 * (1.0 + 0.3 * st("t_jianzhen")), "speed": p.speed * 0.9, "knock": p.knock * 0.5})
 		child.hit = p.hit.duplicate()
 
 
@@ -3387,8 +3428,19 @@ func poison_enemy(e: Enemy, dps: float, sid: String) -> void:
 	var mult := 2.0 if (sk != null and sk.empowered) else 1.0
 	e.poison_dps = minf(dps * 6.0 * mult, e.poison_dps + dps * mult)
 	e.poison_t = 4.0
+	var dw := st("t_duwu")
 	if sk != null and sk.enhanced():
-		e.poison_burst = sk.ev(80.0, 100.0, 120.0)
+		e.poison_burst = sk.ev(80.0, 100.0, 120.0) * (1.0 + 0.3 * dw)
+		e.poison_burst_f = 1.0
+	elif dw > 0.0:                                         # 毒雾弥漫：不强化也会爆（50% 伤害）
+		e.poison_burst = 70.0 * (1.0 + 0.3 * dw)
+		e.poison_burst_f = 0.5
+	if st("t_wandu") > 0.0 and e.alive and e.poison_dps >= dps * mult * 4.9:           # 万毒归心：毒层 ≥5 立刻引爆（已积毒伤 ×2）
+		var boom := e.poison_dps * 4.0 * 2.0
+		e.poison_dps = 0.0
+		e.poison_t = 0.0
+		hit_enemy(e, boom, ["控制"], Vector2.ZERO, "jinshe")
+		add_fx("ring", e.pos, 0.4, {"r0": 8.0, "r1": 80.0, "color": Color("#5a8a2a")})
 
 
 ## 某一式实际生效的层数 = 层数 + 品质加成（取整）；门槛只看 shi_total()，不含品质加成
@@ -3403,19 +3455,28 @@ func shi_total() -> int:
 	return t
 
 
+## 九变的层数门槛（第 k 档，k = 1 / 2 / 3）。天赋「悟性」：门槛 9 / 18 / 27 → 11 / 22 / 33，同时可领悟的「变」种类 +2
+func shi_th(k: int) -> int:
+	return int(Data.T("shi_stage%d" % k)) + (2 * k if st("t_wuxing") > 0.0 else 0)
+
+
+func shi_kinds() -> int:
+	return int(Data.T("shi_kinds")) + (2 if st("t_wuxing") > 0.0 else 0)
+
+
 ## 无迹九变剑形态：0 = 没走九变路线；1 = 起手（≥9 另有「破兵微步」）；2 = 万法皆破（总层 ≥ 18）；3 = 真·无迹九变剑（总层 ≥ 27）
 func dugu_stage() -> int:
 	if not skills.has("dugu"):
 		return 0
 	var t := shi_total()
-	if t >= int(Data.T("shi_stage3")):
+	if t >= shi_th(3):
 		return 3
-	return 2 if t >= int(Data.T("shi_stage2")) else 1
+	return 2 if t >= shi_th(2) else 1
 
 
 ## 总层 ≥ 9：「破兵微步」
 func dugu_micro() -> bool:
-	return skills.has("dugu") and shi_total() >= int(Data.T("shi_stage1"))
+	return skills.has("dugu") and shi_total() >= shi_th(1)
 
 
 ## 能否斩落敌方普通投射物（万法皆破起；或学了落矢变）
@@ -3428,10 +3489,25 @@ func cut_hostile_projs(center: Vector2, radius: float) -> int:
 	var n := 0
 	for h in projs:
 		if h.hostile and h.cuttable and h.life > 0.0 and h.pos.distance_to(center) < radius + h.radius:
+			if st("t_luoshi") > 0.0 and rng.randf() < 0.5 * st("t_luoshi"):      # 落矢反射：斩落的弹幕反射回去
+				h.hostile = false
+				h.cuttable = false
+				h.hit.clear()
+				h.vel = -h.vel
+				h.speed = h.vel.length()
+				h.angle = h.vel.angle()
+				h.damage = maxf(h.damage, 20.0)
+				h.pierce = 1
+				h.life = 1.2
+				h.skill_id = "dugu"
+				h.tags = ["远程"]
+				continue
 			h.life = 0.0
 			n += 1
 			if effects.size() < MAX_EFFECTS:
 				add_fx("ring", h.pos, 0.2, {"r0": 3.0, "r1": 18.0, "color": Color("#bfe8ff")})
+	if n > 0 and st("t_wanfa") > 0.0:                      # 万法皆破·强：斩落的弹幕回内力
+		add_neili(0.5 * st("t_wanfa") * float(n))
 	if n > 0:
 		cut_count += n
 		Sfx.play("hit_crit", 0.06, -6.0)
@@ -3457,12 +3533,15 @@ func shi_name(id: String) -> String:
 ## 领悟 / 提升一式；返回实际增加的层数
 func add_shi(id: String, n: int) -> int:
 	var cap := int(Data.T("shi_lv_max"))
-	if not shi.has(id) and shi.size() >= int(Data.T("shi_kinds")):
+	if not shi.has(id) and shi.size() >= shi_kinds():
 		return 0
 	var old_stage := dugu_stage()
 	var old_micro := dugu_micro()
 	var old := int(shi.get(id, 0))
 	shi[id] = mini(cap, old + n)
+	if st("t_guiyi") > 0.0 and int(shi[id]) > old and skills.has("dugu"):    # 九变归一：领悟 / 提升后，下一次出剑增伤并重置冷却
+		guiyi_ready = true
+		skills["dugu"].cd = 0.0
 	var stage := dugu_stage()
 	if dugu_micro() and not old_micro:
 		add_fx("text", player_pos + Vector2(0, -60), 1.8, {"text": "破兵微步", "size": 26, "color": Color("#bfe8ff")})
@@ -3504,7 +3583,7 @@ func shi_cards(n: int, gain: int, src: String) -> Array:
 				pool.append({"kind": "shi_up", "id": id, "gain": g, "tier": tier, "bonus": bonus, "tag": qn, "color": col, "src": src,
 					"title": ("%s Lv%d→%d" % [d["name"], lv, mini(cap, lv + g)]) if g > 0 else ("%s 品质加成" % d["name"]),
 					"desc": _shi_card_text(d, g, bonus)})
-		elif shi.size() < int(Data.T("shi_kinds")):
+		elif shi.size() < shi_kinds():
 			var g2 := maxi(1, gain)
 			pool.append({"kind": "shi_new", "id": id, "gain": g2, "tier": tier, "bonus": bonus, "tag": qn, "color": col, "src": src,
 				"title": "领悟：%s" % d["name"], "desc": _shi_card_text(d, g2, bonus)})

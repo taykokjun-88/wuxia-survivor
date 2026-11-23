@@ -40,6 +40,7 @@ var burn_burst := 0.0
 var burn_dmg := 0.0
 var poison_acc := 0.0
 var poison_burst := 0.0  # >0：死亡时毒雾爆开的半径
+var poison_burst_f := 1.0  # 毒雾伤害系数（不强化的毒雾弥漫只有 50%）
 var weak_fx := 0.0       # 「破绽」提示的冷却（避免飘字刷屏）
 
 # 精英 / Boss
