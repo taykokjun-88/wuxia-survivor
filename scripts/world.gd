@@ -173,6 +173,11 @@ var dash_hit := {}
 var stealth_t := 0.0
 var stealth_pos := Vector2.ZERO
 var buff_t := 0.0
+var tal_dr_t := 0.0            # 天赋「不坏金身」：受伤减免（剩余秒数 / 比例）
+var tal_dr_v := 0.0
+var tal_spd_t := 0.0           # 天赋「太极圆转」：移速加成
+var tal_spd_v := 0.0
+var palm_stacks := 0           # 天赋「阳回雪归」：掌印击杀后，下一枚掌印的增伤层数
 var shake := 0.0
 
 # ---- 世界状态 ----
@@ -656,6 +661,8 @@ func _update_player(dt: float) -> void:
 	since_hit += dt
 	stealth_t = maxf(0.0, stealth_t - dt)
 	buff_t = maxf(0.0, buff_t - dt)
+	tal_dr_t = maxf(0.0, tal_dr_t - dt)
+	tal_spd_t = maxf(0.0, tal_spd_t - dt)
 	if school_id == "fist":                        # 蓄劲：盈境下自然蓄劲
 		if fist_ult_t > 0.0:                      # 拳掌无敌：无敌，内力清零且不恢复
 			fist_ult_t = maxf(0.0, fist_ult_t - dt)
@@ -704,7 +711,7 @@ func _update_player(dt: float) -> void:
 		if dash_t <= 0.0:
 			_end_dash()
 	else:
-		var spd_pct := st("speed_pct") + bagua_spd + (float(qg.get("buff_speed", 0.0)) if buff_t > 0.0 else 0.0) + (0.25 if st("ji_sword") > 0.0 and time < ji_haste_until else 0.0)
+		var spd_pct := st("speed_pct") + bagua_spd + (float(qg.get("buff_speed", 0.0)) if buff_t > 0.0 else 0.0) + (tal_spd_v if tal_spd_t > 0.0 else 0.0) + (0.25 if st("ji_sword") > 0.0 and time < ji_haste_until else 0.0)
 		player_pos += move * st("move_speed") * (1.0 + spd_pct) * (0.55 if player_slow_t > 0.0 else 1.0) * dt
 	if map_art != null and map_art.has_blockers:        # 残墙 / 石柱挡人（含冲刺、击退）
 		player_pos = map_art.push_out(player_pos, PLAYER_RADIUS)
@@ -1368,6 +1375,8 @@ func _hurt(amount: float) -> void:
 	for s: SkillBase in skills.values():
 		dmg = s.on_hurt(dmg)
 	dmg = maxf(maxf(1.0, dmg * 0.25), dmg - st("armor"))
+	if tal_dr_t > 0.0:
+		dmg *= 1.0 - tal_dr_v
 	if meditating():
 		dmg *= 1.0 - minf(0.6, Data.T("meditate_reduce") + st("med_reduce"))
 	since_hit = 0.0
@@ -1422,6 +1431,12 @@ func _kill(e: Enemy) -> void:
 		_break_prop(e)
 		return
 	kills += 1
+	if e.stun > 0.0 and st("t_shuanghen") > 0.0:                       # 天赋「霜痕蔓延」：被定身的敌人死亡，炸出冰晶减速周围敌人
+		var sl := int(st("t_shuanghen"))
+		for nb in _query(e.pos, 120.0):
+			if nb.alive and nb != e and nb.pos.distance_to(e.pos) < 120.0 + nb.radius:
+				slow_enemy(nb, 0.7 if sl <= 1 else 0.5, 2.0)
+		add_fx("ring", e.pos, 0.4, {"r0": 10.0, "r1": 120.0, "color": Color("#9ad8ff"), "vfx": "burst_break"})
 	add_neili(st("kill_neili"))
 	if st("kill_hp") > 0.0:
 		hp = minf(st("max_hp"), hp + st("kill_hp") * heal_mult())
@@ -1528,6 +1543,8 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 			m *= 1.0 + float(sk.link_flags["ying"])
 	if e.vuln_t > 0.0:
 		m *= 1.0 + e.vuln
+	if e.stun > 0.0 and st("t_zhenduan") > 0.0:                      # 天赋「震断筋骨」：被击晕的敌人受到的所有伤害 +8%/级
+		m *= 1.0 + 0.08 * st("t_zhenduan")
 	if sid == "dugu":
 		var qi := shi_lv("po_qi")
 		if qi > 0:
@@ -1815,6 +1832,11 @@ func _update_projectiles(dt: float) -> void:
 						hit_enemy(e, p.damage, p.tags, p.vel.normalized() * p.knock, p.skill_id)
 						baodao_ctx = false
 						_emp_ctx = -1
+						if p.neili_hit > 0.0:                      # 天赋「归元返照」：每道拳气首次命中回内力
+							add_neili(p.neili_hit)
+							p.neili_hit = 0.0
+						if not e.alive and p.skill_id == "cloud_palm" and st("t_yanghui") > 0.0:     # 天赋「阳回雪归」：掌印击杀 → 下一枚掌印增伤（最多叠 3 层）
+							palm_stacks = mini(3, palm_stacks + 1)
 						if p.bleed > 0.0:
 							apply_bleed(e, int(p.bleed), p.damage)
 						if p.slowv > 0.0:
@@ -1851,7 +1873,20 @@ func _update_projectiles(dt: float) -> void:
 		if keep:
 			projs[j] = p
 			j += 1
+		elif not p.hostile:
+			_proj_gone(p)
 	projs.resize(j)
+
+
+## 弹体消失时的天赋钩子：惊涛叠浪（飞到尽头炸成一圈浪）/ 归元一气（拳气汇聚）
+func _proj_gone(p: Projectile) -> void:
+	if p.end_burst_dmg > 0.0 and p.life <= 0.0:
+		area_hit_raw(p.pos, 95.0, p.end_burst_dmg, p.tags, p.skill_id, 260.0)
+		add_fx("ring", p.pos, 0.35, {"r0": 10.0, "r1": 95.0, "color": Color("#9ad8ff"), "vfx": "fist_yue" if vfx.has("fist_yue") else "burst_wind", "size": 210.0})
+	if p.conv:
+		var s: SkillBase = skills.get("eight_waste")
+		if s is FistSkills.EightWaste:
+			(s as FistSkills.EightWaste).conv_gone()
 
 
 ## 小范围溅射：命中点周围的其他敌人受到一部分伤害（掌）

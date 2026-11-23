@@ -43,3 +43,6 @@ var empowered := false   # 催动版出手的弹体（对 Boss 罡气 ×3）
 var baodao := false       # 霸刀破岳出手的弹体（命中时按破岳结算）
 var bleed := 0.0         # 命中叠加的撕裂层数
 var slowv := 0.0         # 命中减速比例
+var end_burst_dmg := 0.0   # 天赋「惊涛叠浪」：飞到尽头时炸成一圈浪的伤害（0 = 没有）
+var neili_hit := 0.0       # 天赋「归元返照」：首次命中时回内力
+var conv := false          # 天赋「归元一气」：拳气消失时通知四野归元功汇聚

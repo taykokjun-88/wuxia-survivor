@@ -24,6 +24,7 @@ func _ready() -> void:
 		_build_test()
 		_talent_map_test()
 		_talent_skill_test()
+		_fist_talent_test()
 		_vfx_test()
 		_p2_test()
 		_synergy_test()
@@ -4728,3 +4729,208 @@ func _map_spawn_test() -> void:
 	w2.start_run("chain_fist", "tashue", "black_wind")
 	_check(w2._ring_type() == "bandit" and not w2._map_has_table(), "黑风寨的合围圈仍是山贼")
 	_free_world(w2)
+
+
+## 武者新天赋树：结构 + 20 个新机制各自生效
+func _ft_world(talents: Dictionary, skill: String, seed_v: int = 700) -> GameWorld:
+	var w := _new_world(seed_v)
+	w.skills.clear()
+	Build.apply_to(w, {}, talents, {}, "fist")
+	w.add_skill(skill)
+	w.recalc()
+	w.neili = w.st("max_neili")
+	return w
+
+
+func _ft_foe(w: GameWorld, off: Vector2 = Vector2(70, 0), hp: float = 1.0e7) -> Enemy:
+	var e: Enemy = w._spawn_enemy("bandit", w.player_pos + off)
+	e.hp = hp
+	e.speed = 0.0
+	w._rebuild_grid()
+	return e
+
+
+## 让招式连续出手 n 次（每次先清冷却），返回敌人损失的气血
+func _ft_dmg(talents: Dictionary, skill: String, n: int = 1, seed_v: int = 700, enhance: bool = false) -> float:
+	var w := _ft_world(talents, skill, seed_v)
+	if enhance:
+		w.enhance_id = skill
+		w.enhance_level = 1
+	var e := _ft_foe(w)
+	for i in n:
+		var sk: SkillBase = w.skills[skill]
+		sk.cd = 0.0
+		w.step(1.0 / 60.0)
+		for k in 30:
+			w.step(1.0 / 60.0)
+	var lost := 1.0e7 - e.hp
+	_free_world(w)
+	return lost
+
+
+func _fist_talent_test() -> void:
+	print("\n=== 武者新天赋树：结构 / 20 个新机制 ===")
+	var tr: Dictionary = Talents.tree("fist")
+	var nodes := Talents.nodes("fist")
+	var covered := {}
+	for b in ["gang", "rou", "ling"]:
+		var tot := 0
+		for n in tr["branches"][b]["nodes"]:
+			tot += int(n["max"])
+			for rq in n["req"]:
+				_check(nodes.has(rq[0]), "前置节点存在：" + str(rq[0]))
+		_check(tot == 50, "%s 系共 50 点（%d）" % [b, tot])
+		for sk in tr["branches"][b]["col_skills"]:
+			covered[sk] = true
+	_check(covered.size() == 9 and covered.keys().all(func(k): return str(Data.skills[k]["school"]) == "fist"), "三系各管 3 个招式，共 9 个武者招式")
+	var src := ""
+	for f in ["res://scripts/skills/fist_skills.gd", "res://scripts/world.gd"]:
+		src += FileAccess.get_file_as_string(f)
+	for id in nodes:
+		for k in nodes[id].get("stat", {}):
+			if str(k).begins_with("t_"):
+				_check(src.contains('"%s"' % str(k)), "新机制节点 %s 的属性 %s 在代码里有实现" % [id, k])
+	# ---- 刚
+	var w1 := _ft_world({"fg_a_1": 3}, "chain_fist")
+	var foe := _ft_foe(w1)
+	var ch: SkillBase = w1.skills["chain_fist"]
+	var ms: Array[float] = []
+	for i in 5:
+		ms.append(ch.hit_mult(foe))
+	_check(absf(ms[0] - 1.0) < 1e-6 and absf(ms[1] - 1.05) < 1e-6 and absf(ms[4] - 1.25) < 1e-6 and absf(ms[4] - ms[3]) < 1e-6, "连山不绝：破绽层数叠加 +5%/层，3 级上限 5 层（%s）" % str(ms))
+	_free_world(w1)
+	_check(_ft_dmg({"fg_a_3": 2}, "chain_fist", 3, 701, true) > _ft_dmg({}, "chain_fist", 3, 701, true), "横扫余劲：强化后第三拳追加余劲扇面")
+	_check(_ft_dmg({"fg_a_2": 3}, "chain_fist", 3, 702) > _ft_dmg({}, "chain_fist", 3, 702), "贯日之势：冲撞余波")
+	var wc := _ft_world({"fg_a_4": 1}, "chain_fist", 703)
+	var fc := _ft_foe(wc)
+	for i in 3:
+		(wc.skills["chain_fist"] as SkillBase).cd = 0.0
+		for k in 30:
+			wc.step(1.0 / 60.0)
+	_check(fc.def_down_t > 0.0 and absf(fc.def_down - 0.3) < 1e-6, "贯日破天：第三拳贯穿直线，防御 −30%")
+	_free_world(wc)
+	_check(_ft_dmg({"fg_b_1": 3}, "vajra_fist", 1, 704) > _ft_dmg({}, "vajra_fist", 1, 704), "沉岳蓄势：满内力伤害更高")
+	_check(_ft_dmg({"fg_b_2": 3}, "vajra_fist", 1, 705) > _ft_dmg({}, "vajra_fist", 1, 705), "金刚震地：命中后冲击波")
+	var wb := _ft_world({"fg_b_3": 2, "fg_b_4": 1}, "vajra_fist", 706)
+	var fb := _ft_foe(wb)
+	(wb.skills["vajra_fist"] as SkillBase).cd = 0.0
+	wb.step(1.0 / 60.0)
+	_check(wb.tal_dr_t > 0.0 and absf(wb.tal_dr_v - 0.15) < 1e-6, "不坏金身：出拳后受伤减免 15%")
+	_check(fb.stun > 0.0, "沉岳崩山：内力 ≥90% 震晕周围")
+	_free_world(wb)
+	var wq := _ft_world({"fg_c_2": 3, "fg_c_4": 1}, "quake_fist", 707)
+	_ft_foe(wq, Vector2(150, 0))
+	(wq.skills["quake_fist"] as SkillBase).cd = 0.0
+	wq.step(1.0 / 60.0)
+	var zn := 0
+	var cracked := false
+	for z in wq.zones:
+		zn += 1
+		cracked = cracked or bool(z.get("crack", false))
+	_check(zn == 2 and cracked, "裂脉连震：落点追加一次震击；裂脉断岳：留下裂缝（区域 %d）" % zn)
+	_free_world(wq)
+	var wz := _ft_world({"fg_c_3": 2}, "quake_fist", 708)
+	var fz := _ft_foe(wz)
+	var d0: float = wz.hit_enemy(fz, 100.0, [], Vector2.ZERO, "quake_fist", true)
+	fz.stun = 1.0
+	var d1: float = wz.hit_enemy(fz, 100.0, [], Vector2.ZERO, "quake_fist", true)
+	_check(d1 > d0 * 1.1, "震断筋骨：被击晕的敌人受伤 +16%（%.0f → %.0f）" % [d0, d1])
+	_free_world(wz)
+	# ---- 柔
+	var wf := _ft_world({"fr_a_2": 3, "fr_a_4": 1}, "point_finger", 709)
+	var ft := _ft_foe(wf, Vector2(300, 0))
+	var pf: SkillBase = wf.skills["point_finger"]
+	pf.cd = 0.0
+	wf.step(1.0 / 60.0)
+	_check(wf.projs.size() > 0 and wf.projs[0].falloff > float(Data.skills["point_finger"]["falloff"]) and wf.projs[0].stun > float(Data.skills["point_finger"]["stun"]), "寒霜入骨 / 万籁俱寂：衰减降低，定身 +1 秒")
+	ft.stun = 1.0
+	_check(absf(pf.hit_mult(ft) - 2.0) < 1e-6, "万籁俱寂：被定身的敌人受到凝霜点指伤害 ×2")
+	_free_world(wf)
+	var ws := _ft_world({"fr_a_3": 2}, "point_finger", 710)
+	var s1 := _ft_foe(ws, Vector2(200, 0), 5.0)
+	var s2 := _ft_foe(ws, Vector2(240, 30))
+	s1.stun = 2.0
+	ws._kill(s1)
+	_check(s2.slow_t > 0.0 and absf(s2.slow_mult - 0.5) < 1e-6, "霜痕蔓延：被定身的敌人死亡，周围敌人减速 50%")
+	_free_world(ws)
+	_check(_ft_dmg({"fr_b_2": 3}, "whirl_palm", 1, 711) > _ft_dmg({}, "whirl_palm", 1, 711), "花开不败：满内力时圈数增加")
+	var wl := _ft_world({"fr_b_4": 1}, "whirl_palm", 712)
+	var fl := _ft_foe(wl, Vector2(40, 0), 1.0e7)
+	var hp_before := wl.hp
+	wl.hp = wl.st("max_hp") * 0.5
+	hp_before = wl.hp
+	(wl.skills["whirl_palm"] as SkillBase).cd = 0.0
+	wl.step(1.0 / 60.0)
+	_check(wl.hp > hp_before and (1.0e7 - fl.hp) > 0.0, "乱花漫天：三圈满追加全屏一圈并回复气血")
+	_free_world(wl)
+	var wf2 := _ft_world({"fr_b_3": 2}, "whirl_palm", 713)
+	for k in 3:
+		_ft_foe(wf2, Vector2(40 + k * 12, k * 10 - 10))
+	wf2.neili = 10.0
+	(wf2.skills["whirl_palm"] as SkillBase).cd = 0.0
+	var n_before := wf2.neili
+	wf2.step(1.0 / 60.0)
+	_check(wf2.neili > n_before - 1.0 or wf2.neili >= n_before, "拂柳回气：一圈命中 ≥3 个敌人回内力（%.1f → %.1f）" % [n_before, wf2.neili])
+	_free_world(wf2)
+	var wt := _ft_world({"fr_c_1": 3, "fr_c_2": 3, "fr_c_3": 2, "fr_c_4": 1}, "taiji", 714)
+	_ft_foe(wt, Vector2(50, 0))
+	var tj: SkillBase = wt.skills["taiji"]
+	tj.guard_cd = 0.0
+	var left := tj.on_hurt(100.0)
+	var wt0 := _ft_world({}, "taiji", 714)
+	_ft_foe(wt0, Vector2(50, 0))
+	var left0 := (wt0.skills["taiji"] as SkillBase).on_hurt(100.0)
+	_check(left < left0, "卸力归元：化解比例提高（%.1f < %.1f）" % [left, left0])
+	_check(wt.tal_spd_t > 0.0 and absf(wt.tal_spd_v - 0.2) < 1e-6, "太极圆转：化解后移速 +20%")
+	_free_world(wt)
+	_free_world(wt0)
+	var wh := _ft_world({"fr_c_4": 1}, "taiji", 715)
+	var fh := _ft_foe(wh, Vector2(50, 0))
+	var th: SkillBase = wh.skills["taiji"]
+	var hp0 := fh.hp
+	for i in 12:
+		th.guard_cd = 0.0
+		th.on_hurt(100.0)
+	_check(fh.hp < hp0, "回澜归海：累计化解 100 点后范围反震")
+	_free_world(wh)
+	# ---- 灵
+	var wp := _ft_world({"fl_a_4": 1, "fl_a_3": 3}, "cloud_palm", 716)
+	wp.skills["cloud_palm"].mods["targets"] = 2.0
+	_ft_foe(wp, Vector2(300, 0))
+	wp.palm_stacks = 2
+	var cp: SkillBase = wp.skills["cloud_palm"]
+	cp.cd = 0.0
+	wp.step(1.0 / 60.0)
+	var maxr := 0.0
+	var maxd := 0.0
+	for pr in wp.projs:
+		maxr = maxf(maxr, pr.radius)
+		maxd = maxf(maxd, pr.damage)
+	_check(wp.palm_stacks == 0 and maxr >= cp.p("radius") * 1.9, "阳极生阴：掌印齐备时融合成巨掌印；阳回雪归层数被消耗（半径 %.0f）" % maxr)
+	_free_world(wp)
+	var wy := _ft_world({"fl_b_2": 3, "fl_b_3": 2, "fl_b_4": 1}, "yue_palm", 717)
+	_ft_foe(wy, Vector2(250, 0))
+	var yp: SkillBase = wy.skills["yue_palm"]
+	yp.cd = 0.0
+	wy.step(1.0 / 60.0)
+	_check(wy.projs.size() == 1 and wy.projs[0].end_burst_dmg > 0.0 and absf(wy.projs[0].falloff - 1.10) < 1e-6, "惊涛叠浪（尽头炸浪）/ 撼岳之势（穿透递增）")
+	for i in 4:
+		yp.cd = 0.0
+		wy.projs.clear()
+		yp.fire()
+	_check(wy.projs.size() == 3, "惊涛骇浪：每第 5 掌 3 道并排巨浪（%d）" % wy.projs.size())
+	_free_world(wy)
+	var we := _ft_world({"fl_c_3": 2, "fl_c_4": 1}, "eight_waste", 718)
+	_ft_foe(we, Vector2(200, 0))
+	var ew: SkillBase = we.skills["eight_waste"]
+	ew.cd = 0.0
+	we.step(1.0 / 60.0)
+	_check(we.projs.size() >= 8 and we.projs[0].neili_hit > 0.0 and we.projs[0].conv, "归元返照 / 归元一气：拳气带回内力与汇聚标记")
+	var hpb := 1.0e7
+	var fe := _ft_foe(we, Vector2(30, 0))
+	hpb = fe.hp
+	for i in 90:
+		we.step(1.0 / 60.0)
+	_check(fe.hp < hpb, "归元一气：拳气消失后汇聚成大爆炸（%.0f）" % (hpb - fe.hp))
+	_free_world(we)
+	print("  结构 / 20 个新机制  OK")
