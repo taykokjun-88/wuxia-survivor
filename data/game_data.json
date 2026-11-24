@@ -58,11 +58,13 @@
     "ji_spear": 0
   },
   "tuning": {
-    "spawn_base": 1.0,
+    "spawn_base": 0.55,
+    "spawn_peak": 7.0,
+    "spawn_pow": 1.6,
     "spawn_slope": 0.02,
     "hp_scale_t": 200,
     "dmg_scale_t": 350,
-    "max_enemies": 800,
+    "max_enemies": 220,
     "burst_interval": 45,
     "elite_first": 100,
     "elite_interval": 60,

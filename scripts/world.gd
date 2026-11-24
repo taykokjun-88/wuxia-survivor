@@ -943,7 +943,10 @@ func set_difficulty(d: Dictionary) -> void:
 
 
 func _spawn(dt: float) -> void:
-	var rate := (Data.T("spawn_base") + time * Data.T("spawn_slope")) * float(difficulty["count"])
+	# 刷怪速度：开局很慢，随时间按曲线提高，到大 Boss 现身时达到 spawn_peak；同屏总数另有上限（max_enemies）
+	var span := maxf(60.0, float(_timeline()["final"]["t"]))
+	var prog := clampf(time / span, 0.0, 1.3)
+	var rate := (Data.T("spawn_base") + (Data.T("spawn_peak") - Data.T("spawn_base")) * pow(prog, Data.T("spawn_pow"))) * float(difficulty["count"])
 	if boss_spawned:
 		rate = 0.0                          # 大 Boss 现身后不再刷小怪（只有 Boss 自己召唤的）
 	elif _boss_alive():

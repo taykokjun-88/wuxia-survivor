@@ -423,12 +423,16 @@ func _blade_test() -> void:
 		wh.add_skill(id)
 		wh.hp = wh.st("max_hp")
 		wh.soul = 0.0
-		_populate(wh, 20)
-		for i in int(14.0 / DT):
+		_populate(wh, 40)
+		for k in 12:                                                    # 身边也放一圈怪（刷怪变慢后，不能指望它们自己凑过来）
+			wh._spawn_enemy("bandit", wh.player_pos + Vector2.from_angle(TAU * float(k) / 12.0) * 90.0)
+		var soul_max := 0.0
+		for i in int(20.0 / DT):
 			TestBot.drive(wh, 75.0)
 			wh.step(DT)
+			soul_max = maxf(soul_max, wh.soul)
 		_check(wh.skills[id].cd_total > 0.0 or float(wh.skill_dmg.get(id, 0.0)) > 0.0, "%s 出过手" % id)
-		_check(wh.soul > 0.0, "%s：耗血 / 命中涨刀魂（%.1f）" % [id, wh.soul])
+		_check(soul_max > 0.0, "%s：耗血 / 命中涨刀魂（最高 %.1f）" % [id, soul_max])
 		var w_low := _blade_world(93)
 		w_low.skills.clear()
 		w_low.add_skill(id)

@@ -55,7 +55,8 @@ func draw_fast(ci: CanvasItem, id: String, t: float, feet: Vector2, flip: bool, 
 	if flip and d["tex_f"] != null:
 		tex = d["tex_f"]
 		f = frames - 1 - f
-	ci.draw_texture_rect_region(tex, Rect2(feet.x - w * sc * 0.5, feet.y - h * sc + ft * sc, w * sc, h * sc), Rect2(f * w, 0, w, h), tint)
+	var ky := 1.0 / Depth.tilt                                # 和完整画法一致：世界在竖直方向压缩了 tilt，站立的东西要反向拉伸（否则怪一多就切到快速画法，所有怪会突然缩小一圈）
+	ci.draw_texture_rect_region(tex, Rect2(feet.x - w * sc * 0.5, feet.y + (-h * sc + ft * sc) * ky, w * sc, h * sc * ky), Rect2(f * w, 0, w, h), tint)
 
 
 ## feet：脚底中心（世界坐标）；flip：朝左
@@ -87,7 +88,8 @@ func draw_frame(ci: CanvasItem, id: String, frame: int, feet: Vector2, flip: boo
 		if flip and d["tex_f"] != null:
 			tex = d["tex_f"]
 			f = frames - 1 - f
-		ci.draw_texture_rect_region(tex, Rect2(feet.x - w * sc * 0.5, feet.y - h * sc + ft * sc, w * sc, h * sc), Rect2(f * w, 0, w, h), tint)
+		var ky := 1.0 / Depth.tilt
+		ci.draw_texture_rect_region(tex, Rect2(feet.x - w * sc * 0.5, feet.y + (-h * sc + ft * sc) * ky, w * sc, h * sc * ky), Rect2(f * w, 0, w, h), tint)
 		return
 	ci.draw_set_transform(feet, rot, Depth.scale_of(squash, flip, 1.0, feet.y))
 	ci.draw_texture_rect_region(d["tex"], Rect2(-w * sc * 0.5, -h * sc + ft * sc, w * sc, h * sc), Rect2(f * w, 0, w, h), tint)
