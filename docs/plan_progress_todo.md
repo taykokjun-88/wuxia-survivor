@@ -46,7 +46,7 @@
 |---|---|---|
 | 部署最新 `Code.gs` | 已升至 `v0.9-fix-1`（含 `minWin`、清榜清 `mapBests`、流派/天赋校验、读表优化），**请重新部署新版本**并访问 `?action=ping` 核对 `rev` | 你 |
 | 集中真机试玩 + 5 项决策 | 按一页模板 `docs/playtest_feedback_template.md` 一次性复测：赤焰巅 6 分钟、八卦阵新规则与彩蛋、天赋页、抽卡提示、海棠屿通关上传、iPad 画质、音效 v2 试听，并拍板 5 个决策 | 你 |
-| B 线美术走查 | 已生成 5 张对照图在 `docs/redraw/audit/` 并附初审清单（已发现杨家将 `walk`/小镇不一致、剑客 `true_idle` 不一致、4 个旧意象心法/轻功图标）；待你复核后派单 `redraw_19`；同时把 `redraw_18.md` 交给 Gemini | 你 + Gemini |
+| B 线美术走查 | `redraw_18.md`（武者缺刘海 4 帧 + 小镇三向配色统一）**已直接由 Gemini 完成重画并接入验收**；另已生成 7 张对照图在 `docs/redraw/audit/` 并预整理 `docs/redraw/redraw_19.md` 草稿，待你复核确认后即可直接派 Gemini 生成 | 你复核 `redraw_19` |
 
 ## 四、待办（按线）
 ### A 线：强度平衡（V0.95 之前）
@@ -58,7 +58,7 @@
 ### B 线：美术检查
 | 项 | 说明 | 谁 |
 |---|---|---|
-| **逐个职业检查 sprite** | 武者已整理 `docs/redraw/redraw_18.md`（待发 Gemini）；剑客 / 刀客 / 杨家将逐帧图已生成于 `docs/redraw/audit/`，初审问题已预整理为草稿 **`docs/redraw/redraw_19.md`** | 你复核 → Gemini 重画 |
+| **逐个职业检查 sprite** | **武者 `docs/redraw/redraw_18.md` 已完成重画并接入**（`idle` f2 / `dash` f2 / `ult` f2–f3 补齐中分刘海且其余帧 0 字节改动；小镇 `hero_down/side/up` 全部统一黑发+金绿冠+青绿衫裤+红腰带+白缠手裹腿+深褐布鞋）；剑客 / 刀客 / 杨家将逐帧图已生成于 `docs/redraw/audit/`，初审草稿在 **`docs/redraw/redraw_19.md`** | 武者 ✅ / 你复核 `redraw_19` |
 | 重画计划书核对 | **已核对完毕**：`redraw_14` / `15` / `16` / `17` **均已接入**，已同步 `docs/redraw/README.md` | ✅ 完成 |
 | **武器与装备图标接入** | **已修复接入全部 36 个此前未接线的图标**（拳套 10 + 剑 10 + 分流派防具/配饰 16），并清理无引用旧图 `assets/ui/meridian_bg.jpg` | ✅ 完成 |
 | 资产对照表 | **已生成全部 7 张对照图**（`docs/redraw/audit/`：3 职业逐帧 + 心法/轻功/九式 + 怪物/Boss + 40 武器/装备部位 + 立绘/封面/横幅/结算图）；IP 画面与文本全量扫描通过（0 原作词残留），4 张旧意象图标已写入 `redraw_19.md` | 你复核 |
@@ -93,8 +93,8 @@
 | 刀客「断脉爆血 + 霸刀破岳」指数连环炸（1.84 亿 DPS） | **已修**（提交 `86fbd2a`）+ 回归测试 |
 | 网页版推荐/已穿 `✔`/`✘` 缺字 | **已修**（0 缺字） |
 | 36 个已画好武器/分流派装备图标未接线 | **已修**（全部接入） |
-| 武者部分帧缺刘海、小镇武者配色不一致 | 已整理 `docs/redraw/redraw_18.md`，待发 Gemini |
-| 杨家将 `walk`/小镇、剑客 `true_idle`、4 张旧意象图标 | 已预整理 `docs/redraw/redraw_19.md` 草稿，待你确认发 Gemini |
+| 武者部分帧缺刘海、小镇武者配色不一致 | **已修**（按 `docs/redraw/redraw_18.md` 完成 Gemini 重画、逐帧拼接与验收接入） |
+| 杨家将 `walk`/小镇、剑客 `true_idle`、4 张旧意象图标 | 已预整理 `docs/redraw/redraw_19.md` 草稿，待你确认后即可直接派 Gemini 重画接入 |
 
 ## 六、V1.0 之后（已决定推迟）
 Steam 上架、商标查重、免费 Demo + 0.99 美元正式版、新仓库（不带提交历史）、docs 旧名批量替换、华山论剑 / 第 4~6 关、药师职业、跨类型连携天赋、「选起手自带连携副技能」。
@@ -102,4 +102,4 @@ Steam 上架、商标查重、免费 Demo + 0.99 美元正式版、新仓库（�
 ## 七、下一步（等你抽空时只需做这 3 件事）
 1. **按 `docs/deploy_checklist_v1.0.md` 部署最新 `backend/Code.gs`**（确认 `?action=ping` 返回 `v0.9-fix-1`）。
 2. **填一页表 `docs/playtest_feedback_template.md`**（含 6 个决策 + 复测项 + 音效 v2 挑刺），把表发给我即可进入 A 线正式调参 + `r4` 复测与 C1 换曲。
-3. **美术派单**：把 `docs/redraw/redraw_18.md` 发给 Gemini，并核对 `docs/redraw/redraw_19.md` 草稿（对照 `docs/redraw/audit/` 7 张图）确认后一并派单。
+3. **核对 `docs/redraw/redraw_19.md` 草稿**（对照 `docs/redraw/audit/` 7 张图）：你确认清单后，我可以直接继续用 Gemini 帮你画完并接入。
