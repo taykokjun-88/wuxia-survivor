@@ -28,6 +28,7 @@ test('setup：建表、表头、可重复运行', (e) => {
 
 test('ping / 未知请求 / 坏 JSON', (e) => {
   assert.ok(e.get({ action: 'ping' }).ok);
+  assert.ok(e.get({ action: 'ping' }).rev, 'ping 返回代码版本，用来确认部署的是最新版');
   assert.strictEqual(e.call({ action: 'nope' }).err, 'bad_action');
   const r = JSON.parse(e.ctx.doPost({ postData: { contents: '{坏的' } }).text);
   assert.strictEqual(r.err, 'server');
@@ -326,6 +327,9 @@ test('天赋：节点表与 game_data.json 一致；校验规则', (e) => {
   assert.strictEqual(fistIds.reduce((a, id) => a + T[id][2], 0), 150, '武者三系总容量 150 点');
   assert.ok(c({ fg_a_1: 3 }), '链首：层 1 无门槛');
   assert.strictEqual(c({ fg_a_2: 1 }), null, '前置 ≥1 点：没点前一个节点不行');
+  assert.ok(/前置/.test(e.ctx.TALENT_WHY), '失败时给出原因：' + e.ctx.TALENT_WHY);
+  c({ not_a_node: 1 });
+  assert.ok(/不认识节点/.test(e.ctx.TALENT_WHY), '未知节点提示后端代码可能过旧');
   assert.strictEqual(c({ fg_a_1: 1, fg_a_2: 1 }), null, '层门槛：本系其余节点 ≥8 点才能点层 3');
   const base = { fg_a_1: 3, fg_g_1: 3, fg_g_2: 2 };               // 本系 8 点
   assert.ok(c(Object.assign({}, base, { fg_a_2: 1 })), '前置 ≥1 点 + 门槛满足');

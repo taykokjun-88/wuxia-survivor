@@ -12,6 +12,7 @@
  * 部署步骤见 backend/README.md。
  */
 
+var CODE_REV = 'v0.9-talents-2';   // 部署后访问 <网址>?action=ping 能看到这个值，用来确认部署的是最新代码
 var VERSION = 1;
 
 var SHEETS = {
@@ -140,7 +141,7 @@ function doGet(e) {
   var p = (e && e.parameter) || {};
   var res;
   try {
-    if (p.action === 'ping') res = ok({ v: VERSION, time: iso(), schools: SCHOOLS });
+    if (p.action === 'ping') res = ok({ v: VERSION, rev: CODE_REV, time: iso(), schools: SCHOOLS });
     else if (p.action === 'board') res = board(p);
     else res = fail('bad_action', '未知请求');
   } catch (err) { res = serverError(err, 'doGet'); }
@@ -163,7 +164,7 @@ function serverError(err, where) {
 
 function dispatch(req) {
   var a = req.action;
-  if (a === 'ping') return ok({ v: VERSION, time: iso(), schools: SCHOOLS });
+  if (a === 'ping') return ok({ v: VERSION, rev: CODE_REV, time: iso(), schools: SCHOOLS });
   if (a === 'board') return board(req);
   var lock = LockService.getScriptLock();
   lock.waitLock(15000);
@@ -540,21 +541,26 @@ function cleanAlloc(a, level) {
  *  旧树：本系「更低层」投入合计 ≥ 层号 × TALENT_GATE；
  *  新树：本系其余节点投入 ≥ 层门槛，前置节点（one=≥1 点 / full=点满）满足，巅峰需要本系至少一个终极。
  *  节点表项：[系, 层/行, 上限, 组, 层门槛, 前置, 终极?, 巅峰?] */
+var TALENT_WHY = '';
+function tfail(msg) { TALENT_WHY = msg; return null; }
+
 function cleanTalents(t, level) {
-  if (typeof t !== 'object' || t === null || Array.isArray(t)) return null;
+  TALENT_WHY = '';
+  if (typeof t !== 'object' || t === null || Array.isArray(t)) return tfail('格式不对');
   var out = {}, ids = Object.keys(t), i;
   for (i = 0; i < ids.length; i++) {
     var id = ids[i], n = TALENTS[id], v = Number(t[id]);
-    if (!n || !(v >= 0 && v <= n[2]) || Math.floor(v) !== v) return null;
+    if (!n) return tfail('服务器不认识节点 ' + id + '（后端代码是否已更新到最新版？）');
+    if (!(v >= 0 && v <= n[2]) || Math.floor(v) !== v) return tfail('节点 ' + id + ' 点数超过上限');
     if (v > 0) out[id] = v;
   }
   var all = Object.keys(out), totals = {};
   for (i = 0; i < all.length; i++) { var g0 = TALENTS[all[i]][3]; totals[g0] = (totals[g0] || 0) + out[all[i]]; }
-  for (var g in totals) if (totals[g] > level * TALENT_PER_LEVEL) return null;
+  for (var g in totals) if (totals[g] > level * TALENT_PER_LEVEL) return tfail('「' + g + '」组共 ' + totals[g] + ' 点，超过可用点数 ' + level * TALENT_PER_LEVEL + '（服务器记录的局外等级是 ' + level + '）');
   for (var a = 0; a < all.length; a++) {
     var na = TALENTS[all[a]], grp = na[3], bsum = 0, lower = 0, hasCap = false;
     if (na[0] === 'ji') {                       // 极意：本组其余节点共 TALENT_JI_NEED 点才出现
-      if (totals[grp] - out[all[a]] < TALENT_JI_NEED) return null;
+      if (totals[grp] - out[all[a]] < TALENT_JI_NEED) return tfail('极意需要本组其余节点共 ' + TALENT_JI_NEED + ' 点');
       continue;
     }
     for (var b = 0; b < all.length; b++) {
@@ -565,14 +571,14 @@ function cleanTalents(t, level) {
       if (nb[6] && out[all[b]] > 0) hasCap = true;
     }
     if (grp === 'legacy') {
-      if (lower < na[1] * TALENT_GATE) return null;
+      if (lower < na[1] * TALENT_GATE) return tfail('节点 ' + all[a] + ' 的层数还没解锁');
     } else {
-      if (bsum < na[4]) return null;
+      if (bsum < na[4]) return tfail('节点 ' + all[a] + ' 需要本系其余节点已投入 ' + na[4] + ' 点');
       for (var r = 0; r < na[5].length; r++) {
         var rq = na[5][r], have = out[rq[0]] || 0;
-        if (have < (rq[1] === 'full' ? TALENTS[rq[0]][2] : 1)) return null;
+        if (have < (rq[1] === 'full' ? TALENTS[rq[0]][2] : 1)) return tfail('节点 ' + all[a] + ' 的前置 ' + rq[0] + ' 没满足');
       }
-      if (na[7] && !hasCap) return null;
+      if (na[7] && !hasCap) return tfail('巅峰需要本系至少一个终极');
     }
   }
   return out;
@@ -817,7 +823,7 @@ function saveState(req) {
   }
   if (st.talents !== undefined) {
     var tl = cleanTalents(st.talents, lv);
-    if (!tl) return fail('bad_state', '天赋加点不合法');
+    if (!tl) return fail('bad_state', '天赋加点不合法：' + TALENT_WHY);
     old.talents = tl;
   }
   // 背包只能由服务器发放（通关掉落）；客户端只能「丢弃」和「穿戴」自己背包里已有的装备

@@ -7,3 +7,5 @@ node backend/test/backend.test.js
 echo; echo "== 游戏（Godot 无头）=="
 godot --headless --path . --import > /dev/null 2>&1 || true
 godot --headless --path . res://tests/sim_test.tscn
+echo; echo "== 天赋：客户端合法的加点方案，后端也必须认 =="
+godot --headless --path . res://tests/talent_dump.tscn 2>/dev/null | grep "^TALENT_CASE " | sed 's/^TALENT_CASE //' | node backend/test/talent_cross.js
