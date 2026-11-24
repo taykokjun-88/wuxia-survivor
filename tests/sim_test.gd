@@ -4542,6 +4542,42 @@ func _bagua_test() -> void:
 	w.bagua_t = 9.99
 	w.step(DT * 5.0)
 	_check(w.bagua_active and not w.bagua_break, "新阵法出现时破阵 buff 结束")
+	# ---- 小 Boss 在凶门里只吃一半的掉血
+	var bidx: int = target_gate["shang"] if target_gate.has("shang") else 0
+	var gid_now := ""
+	var spot_bad := Vector2.ZERO
+	for k in 8:
+		if str(w.bagua_gates[k]) == "shang":
+			spot_bad = w.bagua_center + Vector2.from_angle(ang_of.call(k)) * R * 0.5
+			gid_now = "shang"
+			break
+	w.god = true
+	var mb := w._spawn_enemy("th_jiguan", spot_bad)
+	var mn := w._spawn_enemy("th_jiguan", spot_bad + Vector2(30, 0))
+	mb.is_boss = true
+	mb.speed = 0.0
+	mn.speed = 0.0
+	mb.max_hp = 10000.0
+	mb.hp = 10000.0
+	mn.max_hp = 10000.0
+	mn.hp = 10000.0
+	for i in 60:
+		w.bagua_t = 1.0
+		mb.pos = spot_bad
+		mn.pos = spot_bad + Vector2(30, 0)
+		w.player_pos = w.bagua_center
+		w.step(DT)
+	var lost_boss := 10000.0 - mb.hp
+	var lost_norm := 10000.0 - mn.hp
+	_check(lost_norm > 0.0 and absf(lost_boss / lost_norm - 0.5) < 0.1, "小 Boss 在凶门（%s）里的掉血是普通怪的一半（%.0f vs %.0f）" % [gid_now, lost_boss, lost_norm])
+	# ---- 大 Boss 现身后不再生成（正在生效的也收掉）
+	w.boss_spawned = true
+	w.step(DT)
+	_check(not w.bagua_active and w.bagua_gates.is_empty(), "大 Boss 现身后八卦阵收掉")
+	var sp0 := w.bagua_shuffles
+	w.bagua_t = 30.0
+	w.step(DT * 5.0)
+	_check(w.bagua_shuffles == sp0 and not w.bagua_active, "大 Boss 现身后不再生成八卦阵")
 	_free_world(w)
 	_taohua_boss_test()
 

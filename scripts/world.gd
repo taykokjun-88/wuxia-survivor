@@ -2455,7 +2455,10 @@ func _tick_bagua(dt: float) -> void:
 	var on_len := float(bagua_cfg.get("on", 10.0))
 	var off_len := float(bagua_cfg.get("off", 10.0))
 	var R := float(bagua_cfg.get("radius", 860.0))
-	if not bagua_active:
+	if boss_spawned:                                          # 大 Boss 现身后不再生成八卦阵（正在生效的也立刻收掉）
+		if bagua_active:
+			_bagua_end()
+	elif not bagua_active:
 		if bagua_t >= (float(bagua_cfg.get("first", 8.0)) if bagua_shuffles == 0 else off_len):
 			_bagua_spawn()
 	else:
@@ -2522,7 +2525,7 @@ func _tick_bagua(dt: float) -> void:
 		"du":                                      # 耗内力、封住催动
 			neili = maxf(0.0, neili - maxn * 0.04 * dt)
 			bagua_noemp = true
-	# 对怪物同样生效（每 0.1 秒结算一次；Boss 吃百分比掉血的 1/4；没有内力 / 冷却机制的效果不适用）
+	# 对怪物同样生效（每 0.1 秒结算一次；小 Boss 吃百分比掉血的一半；没有内力 / 冷却机制的效果不适用）
 	bagua_enemy_t += dt
 	if bagua_enemy_t >= 0.1:
 		var dt2 := bagua_enemy_t
@@ -2538,7 +2541,7 @@ func _tick_bagua(dt: float) -> void:
 				e.gate_spd = 1.0
 				e.gate_def = 1.0
 				e.gate_dmg = 1.0
-				var bf := 0.25 if e.is_boss else 1.0
+				var bf := 0.5 if e.is_boss else 1.0                 # 小 Boss 在凶门里只吃一半的百分比掉血
 				match gid:
 					"sheng": e.hp = minf(e.max_hp, e.hp + e.max_hp * 0.01 * dt2)
 					"kai": e.gate_spd = 1.25
