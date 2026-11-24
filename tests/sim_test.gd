@@ -4439,75 +4439,109 @@ func _spear_test() -> void:
 
 ## 海棠屿·八卦迷阵：八门轮换与吉凶效果
 func _bagua_test() -> void:
-	print("\n=== 海棠屿·八门 ===")
+	print("\n=== 海棠屿·八卦阵 ===")
 	var w := GameWorld.new()
 	w.rng_seed = 21
 	add_child(w)
 	w.start_run("chain_fist", "tashue", "taohua")
-	_check(w.bagua_on and w.bagua_gates.is_empty(), "海棠屿开启八门，开局前几秒还没有盘面")
+	_check(w.bagua_on and not w.bagua_active and w.bagua_gates.is_empty(), "海棠屿开启八卦阵，开局前几秒还没有盘面")
 	for i in int(9.0 / DT):
 		w.step(DT)
-	_check(w.bagua_gates.size() == 8 and w.bagua_shuffles == 1, "8 秒后八门出现（%d 个门）" % w.bagua_gates.size())
+	_check(w.bagua_active and w.bagua_gates.size() == 8 and w.bagua_shuffles == 1, "8 秒后阵法生成（%d 个门）" % w.bagua_gates.size())
 	var uniq := {}
 	for g in w.bagua_gates:
 		uniq[g] = true
 	_check(uniq.size() == 8, "八个门各不相同")
-	# 把玩家挪进指定的门里测试效果
 	var target_gate := {}
 	for i in 8:
 		target_gate[str(w.bagua_gates[i])] = i
 	var R := float(w.bagua_cfg["radius"])
-	for gid in ["sheng", "shang", "si", "du", "kai", "jingv"]:
+	_check(absf(R - 860.0) < 1e-6, "阵法半径 860（原来的 2 倍）")
+	var ang_of := func(idx: int) -> float:
+		return -PI / 8.0 + float(idx) * PI / 4.0 + PI / 8.0
+	# ---- 玩家站进每个门的效果
+	for gid in ["sheng", "shang", "si", "du", "kai", "jingv", "xiu", "jings"]:
 		var idx: int = target_gate[gid]
-		var ang := -PI / 8.0 + float(idx) * PI / 4.0 + PI / 8.0
+		var ang: float = ang_of.call(idx)
 		w.god = false
 		w.hp = w.st("max_hp") * 0.5
-		w.neili = w.st("max_neili")
+		w.neili = w.st("max_neili") * 0.5
 		w.invuln = 0.0
-		w.player_pos = w.bagua_center + Vector2.from_angle(ang) * R * 0.6
-		w.spear_last_pos = w.player_pos
 		var hp0 := w.hp
 		var ne0 := w.neili
-		w.bagua_t = 1.0                          # 不要在测试中途洗牌
 		for i in 60:
-			w.player_pos = w.bagua_center + Vector2.from_angle(ang) * R * 0.6
-			w.bagua_t = 1.0
+			w.player_pos = w.bagua_center + Vector2.from_angle(ang) * R * 0.5
+			w.spear_last_pos = w.player_pos
+			w.bagua_t = 1.0                          # 不要在测试中途洗牌 / 结束
+			w.bagua_inside_t = 0.0
 			w.step(DT)
 		_check(w.bagua_here == gid, "玩家站进了 %s（实际 %s）" % [gid, w.bagua_here])
 		match gid:
-			"sheng": _check(w.hp > hp0 + 1.0, "生门：回血（%.1f → %.1f）" % [hp0, w.hp])
-			"shang": _check(w.hp < hp0 - 1.0, "伤门：掉血")
-			"si": _check(w.hp < hp0 - 2.0 and w.player_slow_t > 0.0, "死门：重伤 + 减速")
-			"du": _check(w.neili < ne0 - 3.0, "杜门：耗内力（%.1f → %.1f）" % [ne0, w.neili])
-			"kai": _check(absf(w.bagua_spd - 0.45) < 1e-9 and absf(w.bagua_cd - 0.35) < 1e-9, "开门：移速 +45% / 冷却 −35%")
-			"jingv": _check(absf(w.bagua_dmg - 1.5) < 1e-9 and absf(w.bagua_crit - 0.2) < 1e-9, "景门：伤害 +50%、暴击率 +20%")
-	# 休门：减伤
-	var xi: int = target_gate["xiu"]
-	var ang2 := -PI / 8.0 + float(xi) * PI / 4.0 + PI / 8.0
-	w.player_pos = w.bagua_center + Vector2.from_angle(ang2) * R * 0.6
-	w.bagua_t = 1.0
-	w.step(DT)
-	_check(w.bagua_def, "休门：减伤标记")
-	# 凶门里的敌人掉血
-	var bad_idx: int = target_gate["shang"]
-	var angb := -PI / 8.0 + float(bad_idx) * PI / 4.0 + PI / 8.0
-	var en := w._spawn_enemy("th_jiguan", w.bagua_center + Vector2.from_angle(angb) * R * 0.6)
-	en.speed = 0.0
-	var hp_e := en.hp
-	w.player_pos = w.bagua_center + Vector2.from_angle(ang2) * R * 0.6
+			"sheng": _check(w.hp > hp0 and w.neili > ne0, "生门：回血 + 回内力（%.1f → %.1f / %.1f → %.1f）" % [hp0, w.hp, ne0, w.neili])
+			"shang": _check(w.hp < hp0 - 1.0, "伤门：每秒掉血 5%%")
+			"si": _check(w.hp < hp0 - 2.0 and absf(w.bagua_slow - 0.3) < 1e-9 and w.dash_sealed(), "死门：重伤 + 减速 30%% + 轻功封印")
+			"du":
+				w.neili = 70.0
+				w._tick_bagua(0.5)
+				_check(absf(w.neili - (70.0 - w.st("max_neili") * 0.04 * 0.5)) < 0.01 and w.bagua_noemp and not w.can_empower(1.0), "杜门：每秒耗内力 4%%、不能催动（%.2f）" % w.neili)
+			"kai": _check(absf(w.bagua_spd - 0.25) < 1e-9 and absf(w.bagua_cd - 0.25) < 1e-9, "开门：移速 +25%% / 冷却 −25%%")
+			"jingv": _check(absf(w.bagua_dmg - 1.2) < 1e-9 and absf(w.bagua_crit - 0.2) < 1e-9, "景门：伤害 +20%%、暴击率 +20%%")
+			"xiu": _check(w.bagua_def and absf(w.bagua_taken - 0.7) < 1e-9, "休门：受伤 −30%%、不被击退")
+			"jings": _check(absf(w.bagua_slow - 0.2) < 1e-9 and absf(w.bagua_cd + 0.6) < 1e-9, "惊门：减速 20%%、招式冷却 +60%%")
+	# ---- 怪物同样受影响
+	var spots := {}
+	for gid in ["shang", "kai", "xiu", "jingv"]:
+		spots[gid] = w.bagua_center + Vector2.from_angle(ang_of.call(int(target_gate[gid]))) * R * 0.5
+	w.player_pos = w.bagua_center + Vector2.from_angle(ang_of.call(int(target_gate["sheng"]))) * R * 0.5
+	w.god = true
+	var en_bad := w._spawn_enemy("th_jiguan", spots["shang"])
+	var en_kai := w._spawn_enemy("th_jiguan", spots["kai"])
+	var en_xiu := w._spawn_enemy("th_jiguan", spots["xiu"])
+	var en_jing := w._spawn_enemy("th_jiguan", spots["jingv"])
+	for e in [en_bad, en_kai, en_xiu, en_jing]:
+		e.speed = 0.0
+	var hp_e := en_bad.hp
 	for i in 90:
 		w.bagua_t = 1.0
-		en.pos = w.bagua_center + Vector2.from_angle(angb) * R * 0.6
+		w.player_pos = w.bagua_center + Vector2.from_angle(ang_of.call(int(target_gate["sheng"]))) * R * 0.5
+		for e in [en_bad, en_kai, en_xiu, en_jing]:
+			e.pos = spots[["shang", "kai", "xiu", "jingv"][[en_bad, en_kai, en_xiu, en_jing].find(e)]]
 		w.step(DT)
-	_check(en.hp < hp_e, "凶门里的敌人掉血（%.0f → %.0f）" % [hp_e, en.hp])
-	# 洗牌：20 秒后重排并预警
-	w.bagua_t = 17.5
+	_check(en_bad.hp < hp_e, "伤门里的怪物掉血（%.0f → %.0f）" % [hp_e, en_bad.hp])
+	_check(absf(en_kai.gate_spd - 1.25) < 1e-9 and absf(en_xiu.gate_def - 0.7) < 1e-9 and absf(en_jing.gate_dmg - 1.2) < 1e-9, "开门怪 +25%% 速度、休门怪少受 30%% 伤害、景门怪伤害 +20%%")
+	# ---- 时间线：第 3 / 6 / 8 秒重排、10 秒结束、再过 10 秒重新生成
+	w.bagua_t = 2.95
+	w.step(DT * 10.0)
+	_check(w.bagua_reshuffles == 1, "第 3 秒随机重排所有门")
+	w.bagua_t = 5.95
+	w.step(DT * 10.0)
+	w.bagua_t = 7.95
+	w.step(DT * 10.0)
+	_check(w.bagua_reshuffles == 3, "第 6、8 秒各再重排一次（共 %d 次）" % w.bagua_reshuffles)
+	w.bagua_t = 9.99
+	w.step(DT * 5.0)
+	_check(not w.bagua_active and w.bagua_gates.is_empty() and w.bagua_here == "", "10 秒后阵法消失（冷却中）")
+	w.bagua_t = 9.99
+	w.step(DT * 5.0)
+	_check(w.bagua_active and w.bagua_shuffles == 2, "冷却 10 秒后重新生成（第 %d 次）" % w.bagua_shuffles)
+	# ---- 唯我破阵：在阵内待满 8 秒
+	w.god = false
+	w.player_pos = w.bagua_center
+	w.bagua_inside_t = 7.95
+	w.bagua_t = 1.0
+	w.step(DT * 10.0)
+	_check(w.bagua_break, "阵内待满 8 秒：阴阳八卦，唯我破阵")
+	w.bagua_t = 1.0
+	w.player_pos = w.bagua_center + Vector2(R * 3.0, 0.0)           # 走出阵外，破阵 buff 仍在
 	w.step(DT)
-	_check(w.bagua_warn and w.bagua_next.size() == 8, "洗牌前 3 秒预警新排布")
-	var before: Array = w.bagua_gates.duplicate()
-	w.bagua_t = 20.0
+	_check(w.bagua_here == "" and absf(w.bagua_spd - 0.125) < 1e-9 and absf(w.bagua_taken - 0.85) < 1e-9 and absf(w.bagua_dmg - 1.1) < 1e-9, "破阵：所有益处 buff 的 50%%（移速 +12.5%% / 受伤 −15%% / 伤害 +10%%），不用站在门里")
+	w.bagua_t = 9.99
+	w.step(DT * 5.0)                                                 # 阵法结束，破阵 buff 保留到下次阵法出现
 	w.step(DT)
-	_check(w.bagua_shuffles == 2 and w.bagua_center.distance_to(w.player_pos) < 50.0, "20 秒后重排，盘面以玩家所在处为中心")
+	_check(w.bagua_break and absf(w.bagua_spd - 0.125) < 1e-9, "阵法消失后破阵 buff 仍在（直到下次阵法出现）")
+	w.bagua_t = 9.99
+	w.step(DT * 5.0)
+	_check(w.bagua_active and not w.bagua_break, "新阵法出现时破阵 buff 结束")
 	_free_world(w)
 	_taohua_boss_test()
 
@@ -4555,7 +4589,8 @@ func _taohua_boss_test() -> void:
 	var hb: Enemy = w.bosses[w.bosses.size() - 1]
 	hb.speed = 0.0
 	_check(hb.skills.has("xiao_wave") and hb.skills2.has("gate_shift") and hb.phase_hp > 0.0, "千机仙子：乐音环 + 奇门易位（二阶段）")
-	var n0 := w.bagua_shuffles
+	w._bagua_spawn()
+	var n0 := w.bagua_reshuffles
 	BossAI._start(w, hb, "gate_shift", Vector2.RIGHT)
 	_check(w.bagua_warn and w.bagua_next.size() == 8, "奇门易位：施法预警期间亮出新排布")
 	var prev: Array = w.bagua_gates.duplicate()
@@ -4563,7 +4598,7 @@ func _taohua_boss_test() -> void:
 		if hb.cast_id == "":
 			break
 		BossAI._cast(w, hb, DT, Vector2.RIGHT)
-	_check(w.bagua_shuffles == n0 + 1, "奇门易位：施放后八门立刻重排一次（%d → %d）" % [n0, w.bagua_shuffles])
+	_check(w.bagua_reshuffles == n0 + 1, "奇门易位：施放后八门立刻重排一次（%d → %d）" % [n0, w.bagua_reshuffles])
 	_free_world(w)
 
 

@@ -5123,9 +5123,11 @@
         15
       ],
       "bagua": {
-        "period": 20.0,
-        "warn": 3.0,
+        "on": 10.0,
+        "off": 10.0,
         "first": 8.0,
+        "shuffles": [3.0, 6.0, 8.0],
+        "stay": 8.0,
         "radius": 860.0
       },
       "requires_clear": "guangming"

@@ -120,14 +120,14 @@ var _spear_aura_t := 0.0
 
 # 奇门遁甲（海棠屿）：八门——地面八卦盘，周期洗牌；吉门有益、凶门有害（玩家和敌人都受影响）
 const BAGUA_GATES := {
-	"sheng": {"name": "生门", "good": true, "col": "#6fdc6f", "tip": "每秒回血 6%，并回复内力"},
-	"kai": {"name": "开门", "good": true, "col": "#9ad8ff", "tip": "移速 +45%、冷却 −35%"},
-	"xiu": {"name": "休门", "good": true, "col": "#6f9ae8", "tip": "受伤 −60%、护体不被击退"},
-	"jingv": {"name": "景门", "good": true, "col": "#f0b429", "tip": "伤害 +50%、暴击率 +20%"},
-	"shang": {"name": "伤门", "good": false, "col": "#d86a4a", "tip": "每秒掉血 5%（敌人也掉血）"},
-	"si": {"name": "死门", "good": false, "col": "#8a2a4a", "tip": "每秒掉血 9%，并重度减速"},
-	"jings": {"name": "惊门", "good": false, "col": "#c06ad8", "tip": "减速，且招式冷却 +60%"},
-	"du": {"name": "杜门", "good": false, "col": "#5a5a6a", "tip": "每秒耗内力 45、不能催动"},
+	"sheng": {"name": "生门", "ch": "生", "good": true, "col": "#f0b429"},
+	"kai": {"name": "开门", "ch": "开", "good": true, "col": "#4cc464"},
+	"xiu": {"name": "休门", "ch": "休", "good": true, "col": "#4cc464"},
+	"jingv": {"name": "景门", "ch": "景", "good": true, "col": "#4cc464"},
+	"shang": {"name": "伤门", "ch": "伤", "good": false, "col": "#8a1626"},
+	"si": {"name": "死门", "ch": "死", "good": false, "col": "#8a1626"},
+	"jings": {"name": "惊门", "ch": "惊", "good": false, "col": "#8a1626"},
+	"du": {"name": "杜门", "ch": "杜", "good": false, "col": "#8a1626"},
 }
 var bagua_cfg: Dictionary = {}
 var bagua_on := false
@@ -141,6 +141,14 @@ var bagua_spd := 0.0
 var bagua_cd := 0.0
 var bagua_dmg := 1.0
 var bagua_def := false
+var bagua_active := false          # 阵法是否正在生效（生成后 10 秒，冷却 10 秒）
+var bagua_si := 0                  # 本轮已经洗过几次牌（3 / 6 / 8 秒各一次）
+var bagua_inside_t := 0.0          # 玩家连续待在阵内的时间
+var bagua_break := false           # 「唯我破阵」：所有益处 buff 的 50% 持续到下次阵法出现
+var bagua_slow := 0.0
+var bagua_reshuffles := 0
+var bagua_taken := 1.0             # 受到的伤害倍率
+var bagua_acc := 0.0
 var bagua_crit := 0.0              # 景门：暴击率加成
 var bagua_noemp := false           # 杜门：封住催动
 var bagua_enemy_t := 0.0
@@ -345,6 +353,14 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	bagua_dmg = 1.0
 	bagua_def = false
 	bagua_shuffles = 0
+	bagua_reshuffles = 0
+	bagua_active = false
+	bagua_si = 0
+	bagua_inside_t = 0.0
+	bagua_break = false
+	bagua_slow = 0.0
+	bagua_taken = 1.0
+	bagua_acc = 0.0
 	spear_qs = 0.0
 	spear_gs = 0.0
 	spear_combo = 0
@@ -757,7 +773,7 @@ func _update_player(dt: float) -> void:
 			_end_dash()
 	else:
 		var spd_pct := st("speed_pct") + bagua_spd + (float(qg.get("buff_speed", 0.0)) if buff_t > 0.0 else 0.0) + (tal_spd_v if tal_spd_t > 0.0 else 0.0) + (0.3 if (fist_ult_t > 0.0 and st("t_jinshen") > 0.0) else 0.0) + (0.25 if st("ji_sword") > 0.0 and time < ji_haste_until else 0.0)
-		player_pos += move * st("move_speed") * (1.0 + spd_pct) * (0.55 if player_slow_t > 0.0 else 1.0) * dt
+		player_pos += move * st("move_speed") * (1.0 + spd_pct) * (0.55 if player_slow_t > 0.0 else 1.0) * (1.0 - bagua_slow) * dt
 	if map_art != null and map_art.has_blockers:        # 残墙 / 石柱挡人（含冲刺、击退）
 		player_pos = map_art.push_out(player_pos, PLAYER_RADIUS)
 
@@ -1269,6 +1285,7 @@ func _update_enemies(dt: float) -> void:
 		if e.is_prop:
 			continue
 		e.slow_t = maxf(0.0, e.slow_t - dt)
+		e.gate_t = maxf(0.0, e.gate_t - dt)
 		e.weak_fx = maxf(0.0, e.weak_fx - dt)
 		e.vuln_t = maxf(0.0, e.vuln_t - dt)
 		e.def_down_t = maxf(0.0, e.def_down_t - dt)
@@ -1336,7 +1353,7 @@ func _update_enemies(dt: float) -> void:
 			vel = BossAI.minion(self, e, dt, dir, d) * (e.slow_mult if e.slow_t > 0.0 else 1.0)
 			vel += _separation(e) * 60.0
 		else:
-			var spd := e.speed * (e.slow_mult if e.slow_t > 0.0 else 1.0)
+			var spd := e.speed * (e.slow_mult if e.slow_t > 0.0 else 1.0) * (e.gate_spd if e.gate_t > 0.0 else 1.0)
 			if stealth_t > 0.0:
 				# 轻功隐匿：敌人只会慢慢走向玩家消失的位置
 				var tp := stealth_pos - e.pos
@@ -1355,7 +1372,7 @@ func _update_enemies(dt: float) -> void:
 		if e.stun <= 0.0 and d < e.radius + PLAYER_RADIUS and invuln <= 0.0:
 			if e.melee_t <= 0.0:
 				e.melee_t = MELEE_ANIM
-			_hurt(e.damage * e.atk_mul())
+			_hurt(e.damage * e.atk_mul() * (e.gate_dmg if e.gate_t > 0.0 else 1.0))
 			if e.touch_slow > 0.0:
 				player_slow_t = maxf(player_slow_t, e.touch_slow)
 				add_fx("ring", player_pos, 0.35, {"r0": 6.0, "r1": 20.0, "color": Color("#9ad8ff"), "vfx": "fx_minion_frost", "size": 64.0})
@@ -1427,7 +1444,7 @@ func _hurt(amount: float) -> void:
 		return
 	if school_id == "spear":
 		add_gs(5.0)                                                    # 被近身攻击命中也攒棍势
-	var dmg := amount * (0.4 if bagua_def else 1.0)             # 休门：减伤 60%
+	var dmg := amount * bagua_taken                             # 休门减伤 30%、破阵再减 15%
 	for s: SkillBase in skills.values():
 		dmg = s.on_hurt(dmg)
 	dmg = maxf(maxf(1.0, dmg * 0.25), dmg - st("armor"))
@@ -1768,6 +1785,8 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 				add_fx("text", e.pos + Vector2(0, -e.radius - 62), 1.6, {"text": "兵刃震脱！", "size": 26, "color": Color("#ffb030")})
 			add_fx("ring", e.pos, 0.5, {"r0": 20.0, "r1": 140.0, "color": Color("#9ae8ff"), "vfx": "boss_shield_break" if vfx.has("boss_shield_break") else "burst_break", "size": maxf(e.radius * 4.0, 150.0)})
 			shake = maxf(shake, 7.0)
+	if e.gate_t > 0.0:
+		amount *= e.gate_def                                    # 休门里的怪少受 30% 伤害
 	damage_enemy(e, amount, knock_vec, crit)
 	Sfx.play("hit_crit" if crit else ("hit_blade" if school_id == "blade" else ("hit_sword" if (school_id == "sword" or school_id == "spear") else "hit_fist")))
 	return amount
@@ -2427,65 +2446,111 @@ func _hidden_card(reroll: bool) -> Dictionary:
 		"title": "领悟：%s（隐藏武功）" % def["name"], "desc": "%s　【%s】" % [def["desc"], Data.tags_text("wuming_spear")]}
 
 
-## 八门：每 period 秒洗牌一次（洗牌前 warn 秒预警新排布），盘面以洗牌时玩家所在处为中心
+## 八卦阵：生成后持续 on 秒（第 3 / 6 / 8 秒随机重排所有门），然后冷却 off 秒再生成。盘面以生成时玩家所在处为中心，对玩家和怪物都生效。
+## 玩家连续待在阵内超过 stay 秒：「阴阳八卦，唯我破阵」——获得所有益处 buff 的 50%，持续到下次阵法出现
 func _tick_bagua(dt: float) -> void:
 	if not bagua_on:
 		return
 	bagua_t += dt
-	var period := float(bagua_cfg.get("period", 20.0))
-	var warn := float(bagua_cfg.get("warn", 3.0))
-	if bagua_gates.is_empty():
-		if bagua_t >= float(bagua_cfg.get("first", 8.0)):
-			_bagua_shuffle()
-		return
-	if not bagua_warn and bagua_t >= period - warn:
-		bagua_warn = true
-		bagua_next = _bagua_order()
-	if bagua_t >= period:
-		_bagua_shuffle()
+	var on_len := float(bagua_cfg.get("on", 10.0))
+	var off_len := float(bagua_cfg.get("off", 10.0))
+	var R := float(bagua_cfg.get("radius", 860.0))
+	if not bagua_active:
+		if bagua_t >= (float(bagua_cfg.get("first", 8.0)) if bagua_shuffles == 0 else off_len):
+			_bagua_spawn()
+	else:
+		var times: Array = bagua_cfg.get("shuffles", [3.0, 6.0, 8.0])
+		while bagua_si < times.size() and bagua_t >= float(times[bagua_si]):
+			bagua_si += 1
+			_bagua_reshuffle()
+		if bagua_t >= on_len:
+			_bagua_end()
 	bagua_spd = 0.0
 	bagua_cd = 0.0
 	bagua_dmg = 1.0
 	bagua_def = false
+	bagua_taken = 1.0
 	bagua_crit = 0.0
 	bagua_noemp = false
-	bagua_here = _bagua_gate_at(player_pos)
+	bagua_slow = 0.0
+	bagua_here = ""
+	var maxhp := st("max_hp")
+	var maxn := st("max_neili")
+	if bagua_active:
+		bagua_here = _bagua_gate_at(player_pos)
+		if player_pos.distance_to(bagua_center) <= R:
+			bagua_inside_t += dt
+			if bagua_inside_t >= float(bagua_cfg.get("stay", 8.0)) and not bagua_break:
+				bagua_break = true
+				add_fx("text", player_pos + Vector2(0, -110), 2.4, {"text": "阴阳八卦，唯我破阵", "size": 34, "color": Color("#f0b429")})
+				add_fx("ring", player_pos, 0.8, {"r0": 20.0, "r1": 320.0, "color": Color("#f0b429")})
+				shake = maxf(shake, 6.0)
+		else:
+			bagua_inside_t = 0.0
+	if bagua_break:                                           # 唯我破阵：所有益处 buff 的 50%（跟着玩家，不用站在门里）
+		bagua_spd += 0.125
+		bagua_cd += 0.125
+		bagua_taken *= 0.85
+		bagua_dmg *= 1.10
+		bagua_crit += 0.10
+		hp = minf(maxhp, hp + maxhp * 0.005 * dt)
+		add_neili(maxn * 0.01 * dt)
 	match bagua_here:
 		"sheng":                                   # 回血 + 回内力
-			hp = minf(st("max_hp"), hp + st("max_hp") * 0.06 * dt)
-			add_neili(10.0 * dt)
-		"kai":                                     # 快：移速 / 冷却
-			bagua_spd = 0.45
-			bagua_cd = 0.35
-		"xiu":                                     # 稳：大幅减伤 + 不被击退
+			hp = minf(maxhp, hp + maxhp * 0.01 * dt)
+			add_neili(maxn * 0.02 * dt)
+		"kai":                                     # 快
+			bagua_spd += 0.25
+			bagua_cd += 0.25
+		"xiu":                                     # 稳
 			bagua_def = true
+			bagua_taken *= 0.7
 			player_knock = Vector2.ZERO
-		"jingv":                                   # 凶：增伤 + 暴击
-			bagua_dmg = 1.5
-			bagua_crit = 0.2
-		"shang":                                   # 持续掉血
+		"jingv":                                   # 凶
+			bagua_dmg *= 1.2
+			bagua_crit += 0.2
+		"shang":
 			Sfx.play("bagua_bad", 0.05, -4.0)
-			_bagua_hurt(st("max_hp") * 0.05 * dt)
-		"si":                                      # 重伤 + 重度减速
+			_bagua_hurt(maxhp * 0.05 * dt)
+		"si":                                      # 重伤、重度减速、轻功封印
 			Sfx.play("bagua_bad", 0.05, -4.0)
-			_bagua_hurt(st("max_hp") * 0.09 * dt)
-			player_slow_t = maxf(player_slow_t, 0.4)
-		"jings":                                   # 减速 + 招式变慢
-			player_slow_t = maxf(player_slow_t, 0.4)
-			bagua_cd = -0.6
-		"du":                                      # 耗内力 + 封住催动
-			neili = maxf(0.0, neili - 45.0 * dt)
+			_bagua_hurt(maxhp * 0.08 * dt)
+			bagua_slow = 0.3
+		"jings":                                   # 减速、招式变慢
+			bagua_slow = 0.2
+			bagua_cd -= 0.6
+		"du":                                      # 耗内力、封住催动
+			neili = maxf(0.0, neili - maxn * 0.04 * dt)
 			bagua_noemp = true
-	bagua_enemy_t += dt                                          # 凶门里的敌人也掉血（每 0.5 秒结算一次，Boss 不吃）
-	if bagua_enemy_t >= 0.5:
+	# 对怪物同样生效（每 0.1 秒结算一次；Boss 吃百分比掉血的 1/4；没有内力 / 冷却机制的效果不适用）
+	bagua_enemy_t += dt
+	if bagua_enemy_t >= 0.1:
 		var dt2 := bagua_enemy_t
 		bagua_enemy_t = 0.0
-		for e in _query(bagua_center, float(bagua_cfg.get("radius", 430.0))):
-			if not e.alive or e.is_boss or e.is_prop:
-				continue
-			var gid := _bagua_gate_at(e.pos)
-			if gid != "" and not bool(BAGUA_GATES[gid]["good"]):
-				damage_enemy(e, e.max_hp * 0.04 * dt2, Vector2.ZERO)
+		if bagua_active:
+			for e in _query(bagua_center, R):
+				if not e.alive or e.is_prop:
+					continue
+				var gid := _bagua_gate_at(e.pos)
+				if gid == "":
+					continue
+				e.gate_t = 0.25
+				e.gate_spd = 1.0
+				e.gate_def = 1.0
+				e.gate_dmg = 1.0
+				var bf := 0.25 if e.is_boss else 1.0
+				match gid:
+					"sheng": e.hp = minf(e.max_hp, e.hp + e.max_hp * 0.01 * dt2)
+					"kai": e.gate_spd = 1.25
+					"xiu":
+						e.gate_def = 0.7
+						e.knock = Vector2.ZERO
+					"jingv": e.gate_dmg = 1.2
+					"shang": damage_enemy(e, e.max_hp * 0.05 * dt2 * bf, Vector2.ZERO)
+					"si":
+						damage_enemy(e, e.max_hp * 0.08 * dt2 * bf, Vector2.ZERO)
+						slow_enemy(e, 0.7, 0.3)
+					"jings": slow_enemy(e, 0.8, 0.3)
 
 
 func _bagua_order() -> Array:
@@ -2494,23 +2559,51 @@ func _bagua_order() -> Array:
 	return ids
 
 
-func _bagua_shuffle() -> void:
+## 阵法生成：以玩家所在处为中心
+func _bagua_spawn() -> void:
 	bagua_gates = bagua_next.duplicate() if not bagua_next.is_empty() else _bagua_order()
 	bagua_next = []
 	bagua_warn = false
+	bagua_active = true
 	bagua_t = 0.0
+	bagua_si = 0
+	bagua_inside_t = 0.0
+	bagua_break = false                                       # 上一轮的破阵 buff 在新阵法出现时结束
 	bagua_center = player_pos
 	bagua_shuffles += 1
 	Sfx.play("bagua_shift")
-	add_fx("text", player_pos + Vector2(0, -90), 1.6, {"text": "八门重排", "size": 30, "color": Color("#f0b429")})
-	add_fx("ring", player_pos, 0.8, {"r0": 20.0, "r1": float(bagua_cfg.get("radius", 430.0)), "color": Color("#f0b429")})
+	add_fx("text", player_pos + Vector2(0, -90), 1.6, {"text": "八卦阵现", "size": 30, "color": Color("#f0b429")})
+	add_fx("ring", player_pos, 0.8, {"r0": 20.0, "r1": float(bagua_cfg.get("radius", 860.0)), "color": Color("#f0b429")})
+
+
+## 阵法生效期间随机重排所有门（第 3 / 6 / 8 秒；Boss 的「奇门易位」也走这里）
+func _bagua_reshuffle() -> void:
+	if not bagua_active:
+		return
+	bagua_gates = bagua_next.duplicate() if not bagua_next.is_empty() else _bagua_order()
+	bagua_next = []
+	bagua_warn = false
+	bagua_reshuffles += 1
+	Sfx.play("bagua_shift")
+	add_fx("text", bagua_center + Vector2(0, -60), 1.0, {"text": "八门易位", "size": 28, "color": Color("#f0b429")})
+
+
+func _bagua_shuffle() -> void:
+	_bagua_reshuffle()
+
+
+func _bagua_end() -> void:
+	bagua_active = false
+	bagua_gates = []
+	bagua_t = 0.0
+	bagua_inside_t = 0.0
 
 
 func _bagua_gate_at(pos: Vector2) -> String:
 	if bagua_gates.is_empty():
 		return ""
 	var d := pos - bagua_center
-	if d.length() > float(bagua_cfg.get("radius", 430.0)):
+	if d.length() > float(bagua_cfg.get("radius", 860.0)):
 		return ""
 	var idx := int(floor(wrapf(d.angle() + PI / 8.0, 0.0, TAU) / (PI / 4.0))) % 8
 	return str(bagua_gates[idx])
@@ -3643,7 +3736,7 @@ func dugu_true() -> bool:
 
 ## 真·无迹九变剑封印轻功
 func dash_sealed() -> bool:
-	return dugu_true()
+	return dugu_true() or bagua_here == "si"          # 死门封印轻功
 
 
 func shi_name(id: String) -> String:
@@ -3871,33 +3964,33 @@ func hurt_dot(amount: float) -> void:
 func _draw_bagua() -> void:
 	if not bagua_on or bagua_gates.is_empty():
 		return
-	var R := float(bagua_cfg.get("radius", 430.0))
-	var font := ThemeDB.fallback_font
-	var flash := 0.5 + 0.5 * sin(time * 14.0)
+	var R := float(bagua_cfg.get("radius", 860.0))
+	var font: Font = Data.font_bold if Data.font_bold != null else ThemeDB.fallback_font
+	var flash := 0.5 + 0.5 * sin(time * 10.0)
+	var left := maxf(0.0, float(bagua_cfg.get("on", 10.0)) - bagua_t)
 	for i in 8:
-		var g: Dictionary = BAGUA_GATES[str(bagua_gates[i])]
+		var gid := str(bagua_gates[i])
+		var g: Dictionary = BAGUA_GATES[gid]
 		var a0 := -PI / 8.0 + float(i) * PI / 4.0
 		var pts := PackedVector2Array([bagua_center])
 		for k in 13:
 			pts.append(bagua_center + Vector2.from_angle(a0 + PI / 4.0 * float(k) / 12.0) * R)
 		var col := Color(str(g["col"]))
-		var here := str(bagua_gates[i]) == bagua_here
-		draw_colored_polygon(pts, Color(col, 0.10 + (0.12 if here else 0.0) + (0.10 * flash if bagua_warn else 0.0)))
-		draw_polyline(pts, Color(col, 0.55), 2.0)
-		var mid := bagua_center + Vector2.from_angle(a0 + PI / 8.0) * R * 0.68
+		var here := gid == bagua_here
+		draw_colored_polygon(pts, Color(col, 0.14 + (0.14 if here else 0.0) + (0.08 * flash if left < 1.5 else 0.0)))
+		draw_polyline(pts, Color(col, 0.7), 3.0)
+		# 大字徽章：金色 = 生门，绿色 = 益处，黑红 = 四凶门；不写效果说明
+		var mid := bagua_center + Vector2.from_angle(a0 + PI / 8.0) * R * 0.46
 		Depth.upright(self, mid)
-		draw_string(font, mid + Vector2(-28, -6), str(g["name"]), HORIZONTAL_ALIGNMENT_CENTER, 56, 22, Color(col, 0.95))
-		draw_string(font, mid + Vector2(-40, 18), str(g["tip"]), HORIZONTAL_ALIGNMENT_CENTER, 80, 14, Color(1, 1, 1, 0.6))
+		var rad := 52.0 + (6.0 if here else 0.0)
+		draw_circle(mid, rad + 5.0, Color(0, 0, 0, 0.55))
+		draw_circle(mid, rad, Color(col.darkened(0.55), 0.92))
+		draw_arc(mid, rad, 0.0, TAU, 40, Color(col.lightened(0.25) if bool(g["good"]) else Color("#d63a4a"), 0.95), 5.0)
+		draw_string(font, mid + Vector2(-rad, rad * 0.36), str(g["ch"]), HORIZONTAL_ALIGNMENT_CENTER, rad * 2.0, 72, Color("#fff6dc") if bool(g["good"]) else Color("#ffb0b8"), TextServer.JUSTIFICATION_NONE)
 		Depth.flat(self)
-		if bagua_warn and not bagua_next.is_empty():            # 预警：新排布的门名画在外圈
-			var ng: Dictionary = BAGUA_GATES[str(bagua_next[i])]
-			var out := bagua_center + Vector2.from_angle(a0 + PI / 8.0) * (R + 34.0)
-			Depth.upright(self, out)
-			draw_string(font, out + Vector2(-22, 6), "→" + str(ng["name"]), HORIZONTAL_ALIGNMENT_CENTER, 52, 16, Color(Color(str(ng["col"])), 0.5 + 0.5 * flash))
-			Depth.flat(self)
-	draw_arc(bagua_center, R, 0.0, TAU, 64, Color("#f0b429", 0.6), 3.0)
-	if vfx.has("bagua_gate_glow"):        # 八卦环贴花：盖在阵眼外圈，预警时更亮
-		vfx.draw(self, "bagua_gate_glow", vfx.frame_loop("bagua_gate_glow", time), bagua_center, R * 2.0, 0.0, Color(1, 1, 1, 0.16 + (0.14 * flash if bagua_warn else 0.0)))
+	draw_arc(bagua_center, R, 0.0, TAU, 96, Color("#f0b429", 0.7), 4.0)
+	if vfx.has("bagua_gate_glow"):        # 八卦环贴花：盖在阵眼外圈
+		vfx.draw(self, "bagua_gate_glow", vfx.frame_loop("bagua_gate_glow", time), bagua_center, R * 2.0, 0.0, Color(1, 1, 1, 0.16))
 
 
 func _draw_hzones() -> void:
