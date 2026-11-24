@@ -106,7 +106,9 @@ func _measure(school: String, talents: Dictionary, cfg: Dictionary) -> float:
 	for xf in cfg.get("xinfa", []):
 		w.xinfa[str(xf)] = 2
 	if bool(cfg.get("dugu27", false)):
-		w.shi = {"zong": 7, "po_jian": 7, "po_dao": 7, "po_qiang": 6}
+		var need := w.shi_th(3)
+		var per := int(ceili(float(need) / 4.0))
+		w.shi = {"zong": per, "po_jian": per, "po_dao": per, "po_qiang": maxi(1, need - per * 3)}
 	w.recalc()
 	w.hp = w.st("max_hp") * 0.6      # 留出回血 / 低血增伤测试空间
 	w.neili = w.st("max_neili")

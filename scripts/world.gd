@@ -1821,7 +1821,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 			var bn := int(bv) + (1 if rng.randf() < bv - floorf(bv) else 0)
 			if bn > 0:
 				apply_bleed(e, bn, amount)
-	if bd:
+	if bd and sid != "bleed":
 		apply_bleed(e, int(Data.T("blade_break_stacks")), amount)
 	if school_id == "blade" and sk != null and st("t_xuewu") > 0.0 and hp < st("max_hp") * 0.5 and not e.is_prop:     # 血雾：气血 <50% 时额外叠 1 层撕裂
 		apply_bleed(e, 1, amount)
@@ -3740,8 +3740,16 @@ func bleed_burst(e: Enemy, partial: bool = false) -> void:
 	e.bleed_stacks = 0
 	e.bleed_dps = 0.0
 	e.bleed_t = 0.0
-	area_hit_raw(e.pos, Data.T("bleed_burst_r"), dmg, [], "bleed", 60.0)
-	add_fx("ring", e.pos, 0.4, {"r0": 10.0, "r1": Data.T("bleed_burst_r"), "color": Color("#d84a3a"), "vfx": "fx_blade_bleed_pop" if (partial and vfx.has("fx_blade_bleed_pop")) else "", "size": 200.0})
+	var r := Data.T("bleed_burst_r")
+	for e2 in _query(e.pos, r):
+		if not e2.alive:
+			continue
+		var d := e2.pos.distance_to(e.pos)
+		if d < r + e2.radius:
+			var out := (e2.pos - e.pos) / d if d > 0.01 else Vector2.from_angle(rng.randf() * TAU)
+			skill_dmg["bleed"] = float(skill_dmg.get("bleed", 0.0)) + dmg
+			damage_enemy(e2, dmg, out * 60.0, false)
+	add_fx("ring", e.pos, 0.4, {"r0": 10.0, "r1": r, "color": Color("#d84a3a"), "vfx": "fx_blade_bleed_pop" if (partial and vfx.has("fx_blade_bleed_pop")) else "", "size": 200.0})
 	add_fx("text", e.pos + Vector2(0, -e.radius - 22), 0.9, {"text": "断脉爆血", "size": 24, "color": Color("#ff5a40")})
 	Sfx.play("hit_crit")
 

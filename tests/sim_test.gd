@@ -5525,6 +5525,25 @@ func _reset_state_test() -> void:
 	_check(gt.state_of("sg_a_1") == "open", "天赋页：setup 切换流派后缓存刷新")
 	remove_child(gt)
 	gt.free()
+	# 刀客断脉爆血防指数级连环炸（baodao 期间连劈多名流血怪，单次爆血不能二次叠流血或二次吃倍率）
+	w.start_run("wuhu_blade", "tashue", "black_wind")
+	w.baodao = true
+	var cluster: Array[Enemy] = []
+	for k in 8:
+		var ce: Enemy = w._spawn_enemy("bandit", Vector2(70.0 + float(k) * 4.0, 0.0))
+		ce.max_hp = 1.0e8
+		ce.hp = 1.0e8
+		ce.bleed_stacks = 5
+		ce.bleed_dps = 20.0
+		ce.bleed_t = 3.0
+		cluster.append(ce)
+	w._rebuild_grid()
+	var wh: SkillBase = w.skills["wuhu_blade"]
+	wh.fire()
+	var max_lost := 0.0
+	for ce in cluster:
+		max_lost = maxf(max_lost, 1.0e8 - ce.hp)
+	_check(max_lost < 50000.0, "刀客霸刀+断脉爆血不触发指数连环炸（最大单怪失血 %.1f）" % max_lost)
 	_free_world(w)
-	print("  跨局状态重置  OK")
+	print("  跨局状态重置 & 刀客爆血防连环炸  OK")
 
