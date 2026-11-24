@@ -142,7 +142,7 @@ python3 tools/process_sprites.py strip $S/hurt.jpg  hurt  --frames 2 --fps 10 --
 
 ## 美术与音频素材
 
-- 立绘 / 封面 / 结算图 / 小镇 / 地图 / 敌人 / 图标 / 特效：AI 绘图工具制作后用 `tools/process_*.py` 处理（去洋红底、切帧、统一缩放）。需求文档在 `docs/art_prompts.md`、`docs/art_spec*.md`；没有素材的部分自动用程序画的占位图。
+- 立绘 / 封面 / 结算图 / 小镇 / 地图 / 敌人 / 图标 / 特效：AI 绘图工具制作后用 `tools/process_*.py` 处理（去洋红底、切帧、统一缩放）。绘图需求文档在 `docs/redraw/`（按批次的重画计划书）；没有素材的部分自动用程序画的占位图。
 - **天赋树**每个框的背景：`assets/ui/talent_bg/<流派>_<系>.jpg`（9 张）；**选人界面**角色全身像：`assets/char_select/<流派>.png`。
 - **音效**：真实采样（CC0 / CC-BY）经 `tools/build_sfx_real.py` 裁切 / 变调 / 叠加 / 统一响度；命中 / 受击等有 3 个变体随机轮换。**背景音乐**按场景切换（登录 / 小镇 / 黑风寨 / 小 Boss / 大 Boss），暂停菜单可分别开关音乐和音效。来源与署名见 [`docs/credits.md`](docs/credits.md)。
 

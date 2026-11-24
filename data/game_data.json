@@ -4789,7 +4789,7 @@
           "mini": 5.0,
           "final": 6.0
         },
-        "min_win": 603
+        "min_win": 601
       },
       "recommend": {},
       "art": {
@@ -4851,7 +4851,7 @@
           "mini": 3.5,
           "final": 2.4
         },
-        "min_win": 783,
+        "min_win": 781,
         "hp_scale_t": 111.43
       },
       "monsters": [
@@ -5006,7 +5006,7 @@
           "mini": 3.5,
           "final": 2.4
         },
-        "min_win": 843,
+        "min_win": 841,
         "hp_scale_t": 105.0
       },
       "monsters": [
