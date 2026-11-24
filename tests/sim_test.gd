@@ -4479,8 +4479,8 @@ func _bagua_test() -> void:
 			"shang": _check(w.hp < hp0 - 1.0, "伤门：掉血")
 			"si": _check(w.hp < hp0 - 2.0 and w.player_slow_t > 0.0, "死门：重伤 + 减速")
 			"du": _check(w.neili < ne0 - 3.0, "杜门：耗内力（%.1f → %.1f）" % [ne0, w.neili])
-			"kai": _check(absf(w.bagua_spd - 0.25) < 1e-9 and absf(w.bagua_cd - 0.2) < 1e-9, "开门：移速 +25% / 冷却 −20%")
-			"jingv": _check(absf(w.bagua_dmg - 1.25) < 1e-9, "景门：伤害 +25%")
+			"kai": _check(absf(w.bagua_spd - 0.45) < 1e-9 and absf(w.bagua_cd - 0.35) < 1e-9, "开门：移速 +45% / 冷却 −35%")
+			"jingv": _check(absf(w.bagua_dmg - 1.5) < 1e-9 and absf(w.bagua_crit - 0.2) < 1e-9, "景门：伤害 +50%、暴击率 +20%")
 	# 休门：减伤
 	var xi: int = target_gate["xiu"]
 	var ang2 := -PI / 8.0 + float(xi) * PI / 4.0 + PI / 8.0
@@ -5358,4 +5358,15 @@ func _single_chain_test() -> void:
 	var hint := Talents.skill_hint("fist", {"fg_a_1": 2, "fg_a_2": 1}, "chain_fist")
 	_check(hint.contains("连山不绝 2/3") and hint.contains("贯日之势 1/3"), "局内抽卡提示：天赋树强化该招式（%s）" % hint)
 	_check(Talents.skill_hint("fist", {"fg_a_1": 2}, "quake_fist") == "" and Talents.skill_hint("fist", {}, "chain_fist") == "", "没点相关节点就不提示")
+	# 天赋页性能：节点状态缓存，加点后能刷新
+	var gt := TalentGrid.new()
+	gt.school = "fist"
+	gt.level = 50
+	add_child(gt)
+	_check(gt.state_of("fg_a_2") == "locked" and gt.state_of("fg_a_1") == "open", "天赋页：初始状态（缓存）")
+	gt.work["fg_a_1"] = 3
+	gt.changed.emit()
+	_check(gt.state_of("fg_a_2") == "open" and gt.state_of("fg_a_1") == "maxed", "天赋页：加点后缓存刷新")
+	remove_child(gt)
+	gt.free()
 	print("  %d 条链都能单点点满  OK" % cnt)

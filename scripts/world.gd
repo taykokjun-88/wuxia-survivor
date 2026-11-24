@@ -120,14 +120,14 @@ var _spear_aura_t := 0.0
 
 # 奇门遁甲（海棠屿）：八门——地面八卦盘，周期洗牌；吉门有益、凶门有害（玩家和敌人都受影响）
 const BAGUA_GATES := {
-	"sheng": {"name": "生门", "good": true, "col": "#6fdc6f", "tip": "回血"},
-	"kai": {"name": "开门", "good": true, "col": "#9ad8ff", "tip": "移速 / 冷却"},
-	"xiu": {"name": "休门", "good": true, "col": "#6f9ae8", "tip": "减伤"},
-	"jingv": {"name": "景门", "good": true, "col": "#f0b429", "tip": "伤害 +25%"},
-	"shang": {"name": "伤门", "good": false, "col": "#d86a4a", "tip": "掉血"},
-	"si": {"name": "死门", "good": false, "col": "#8a2a4a", "tip": "重伤减速"},
-	"jings": {"name": "惊门", "good": false, "col": "#c06ad8", "tip": "惊慌减速"},
-	"du": {"name": "杜门", "good": false, "col": "#5a5a6a", "tip": "耗内力"},
+	"sheng": {"name": "生门", "good": true, "col": "#6fdc6f", "tip": "每秒回血 6%，并回复内力"},
+	"kai": {"name": "开门", "good": true, "col": "#9ad8ff", "tip": "移速 +45%、冷却 −35%"},
+	"xiu": {"name": "休门", "good": true, "col": "#6f9ae8", "tip": "受伤 −60%、护体不被击退"},
+	"jingv": {"name": "景门", "good": true, "col": "#f0b429", "tip": "伤害 +50%、暴击率 +20%"},
+	"shang": {"name": "伤门", "good": false, "col": "#d86a4a", "tip": "每秒掉血 5%（敌人也掉血）"},
+	"si": {"name": "死门", "good": false, "col": "#8a2a4a", "tip": "每秒掉血 9%，并重度减速"},
+	"jings": {"name": "惊门", "good": false, "col": "#c06ad8", "tip": "减速，且招式冷却 +60%"},
+	"du": {"name": "杜门", "good": false, "col": "#5a5a6a", "tip": "每秒耗内力 45、不能催动"},
 }
 var bagua_cfg: Dictionary = {}
 var bagua_on := false
@@ -141,6 +141,8 @@ var bagua_spd := 0.0
 var bagua_cd := 0.0
 var bagua_dmg := 1.0
 var bagua_def := false
+var bagua_crit := 0.0              # 景门：暴击率加成
+var bagua_noemp := false           # 杜门：封住催动
 var bagua_enemy_t := 0.0
 var bagua_shuffles := 0
 var hp := 100.0
@@ -635,7 +637,7 @@ func meditating() -> bool:
 
 ## 催动：处于盈境且内力够用时，招式出手会消耗内力并打出灌注版
 func can_empower(cost: float) -> bool:
-	return realm() == Realm.YING and neili >= cost
+	return realm() == Realm.YING and neili >= cost and not bagua_noemp
 
 
 func pay_empower(cost: float) -> void:
@@ -1425,7 +1427,7 @@ func _hurt(amount: float) -> void:
 		return
 	if school_id == "spear":
 		add_gs(5.0)                                                    # 被近身攻击命中也攒棍势
-	var dmg := amount * (0.6 if bagua_def else 1.0)             # 休门：减伤 40%
+	var dmg := amount * (0.4 if bagua_def else 1.0)             # 休门：减伤 60%
 	for s: SkillBase in skills.values():
 		dmg = s.on_hurt(dmg)
 	dmg = maxf(maxf(1.0, dmg * 0.25), dmg - st("armor"))
@@ -1668,6 +1670,7 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 			crit_p += 0.1 * st("t_xsds")
 		if spear_combo >= 10 and st("t_chengsheng") > 0.0:                   # 乘胜：连击 ≥10 暴击率 +8%/16%
 			crit_p += 0.08 * st("t_chengsheng")
+	crit_p += bagua_crit                                                       # 景门
 	if (e.stun > 0.0 or e.slow_t > 0.0) and st("t_kongchang") > 0.0:       # 控场易伤：攻击被定身 / 减速的敌人，暴击率 +15%/级
 		crit_p += 0.15 * st("t_kongchang")
 	# 破绽联动：被定身 / 减速的敌人，特定标签的招式有额外效果
@@ -2444,28 +2447,35 @@ func _tick_bagua(dt: float) -> void:
 	bagua_cd = 0.0
 	bagua_dmg = 1.0
 	bagua_def = false
+	bagua_crit = 0.0
+	bagua_noemp = false
 	bagua_here = _bagua_gate_at(player_pos)
 	match bagua_here:
-		"sheng":
-			hp = minf(st("max_hp"), hp + st("max_hp") * 0.03 * dt)
-		"kai":
-			bagua_spd = 0.25
-			bagua_cd = 0.2
-		"xiu":
+		"sheng":                                   # 回血 + 回内力
+			hp = minf(st("max_hp"), hp + st("max_hp") * 0.06 * dt)
+			add_neili(10.0 * dt)
+		"kai":                                     # 快：移速 / 冷却
+			bagua_spd = 0.45
+			bagua_cd = 0.35
+		"xiu":                                     # 稳：大幅减伤 + 不被击退
 			bagua_def = true
-		"jingv":
-			bagua_dmg = 1.25
-		"shang":
-			Sfx.play("bagua_bad", 0.05, -4.0)
-			_bagua_hurt(st("max_hp") * 0.03 * dt)
-		"si":
+			player_knock = Vector2.ZERO
+		"jingv":                                   # 凶：增伤 + 暴击
+			bagua_dmg = 1.5
+			bagua_crit = 0.2
+		"shang":                                   # 持续掉血
 			Sfx.play("bagua_bad", 0.05, -4.0)
 			_bagua_hurt(st("max_hp") * 0.05 * dt)
-			player_slow_t = maxf(player_slow_t, 0.25)
-		"jings":
-			player_slow_t = maxf(player_slow_t, 0.25)
-		"du":
-			neili = maxf(0.0, neili - 25.0 * dt)
+		"si":                                      # 重伤 + 重度减速
+			Sfx.play("bagua_bad", 0.05, -4.0)
+			_bagua_hurt(st("max_hp") * 0.09 * dt)
+			player_slow_t = maxf(player_slow_t, 0.4)
+		"jings":                                   # 减速 + 招式变慢
+			player_slow_t = maxf(player_slow_t, 0.4)
+			bagua_cd = -0.6
+		"du":                                      # 耗内力 + 封住催动
+			neili = maxf(0.0, neili - 45.0 * dt)
+			bagua_noemp = true
 	bagua_enemy_t += dt                                          # 凶门里的敌人也掉血（每 0.5 秒结算一次，Boss 不吃）
 	if bagua_enemy_t >= 0.5:
 		var dt2 := bagua_enemy_t
@@ -2475,7 +2485,7 @@ func _tick_bagua(dt: float) -> void:
 				continue
 			var gid := _bagua_gate_at(e.pos)
 			if gid != "" and not bool(BAGUA_GATES[gid]["good"]):
-				damage_enemy(e, e.max_hp * 0.02 * dt2 / 0.5 * 0.5, Vector2.ZERO)
+				damage_enemy(e, e.max_hp * 0.04 * dt2, Vector2.ZERO)
 
 
 func _bagua_order() -> Array:

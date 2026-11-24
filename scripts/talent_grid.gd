@@ -16,9 +16,25 @@ var _ji_id := ""
 var _gate_nodes: Dictionary = {}
 
 
+var _states: Dictionary = {}     # 节点状态缓存：判断「能不能点」要把整套加点重新校验一遍，很贵，只在加点变化时重算（原来每帧每个节点都算，天赋页会卡、音乐也被拖得不流畅）
+var _dirty := true
+var _redraw_acc := 0.0
+
+
 func _ready() -> void:
 	super._ready()
 	custom_minimum_size = grid_size()
+	changed.connect(func() -> void: _dirty = true)
+
+
+## 动画只有穴位的呼吸光圈：每 0.1 秒重画一次就够，不必每帧
+func _process(dt: float) -> void:
+	if visible:
+		time_acc += dt
+		_redraw_acc += dt
+		if _redraw_acc >= 0.1:
+			_redraw_acc = 0.0
+			queue_redraw()
 
 
 func setup(school_id: String) -> void:
@@ -152,13 +168,22 @@ func info_text(id: String) -> String:
 
 
 func state_of(id: String) -> String:
+	if _dirty:
+		_states.clear()
+		_dirty = false
+	if _states.has(id):
+		return str(_states[id])
 	var r := int(work.get(id, 0))
 	var mx := int(_all[id]["max"])
+	var st := "locked"
 	if r >= mx:
-		return "maxed"
-	if r > 0:
-		return "ranked"
-	return "open" if Talents.can_add(work, id, level) else "locked"
+		st = "maxed"
+	elif r > 0:
+		st = "ranked"
+	elif Talents.can_add(work, id, level):
+		st = "open"
+	_states[id] = st
+	return st
 
 
 func _draw() -> void:
