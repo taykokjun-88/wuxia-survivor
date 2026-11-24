@@ -688,11 +688,11 @@ func _build_stage_info(left: VBoxContainer) -> void:
 	var logo := _load_tex("res://assets/maps/%s/title_logo.png" % loadout_map)
 	if logo != null:
 		var lg := TextureRect.new()
+		lg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE          # 必须先设置：否则贴图的原始尺寸（1326×378）会把控件撑得铺满整张横幅
+		lg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
 		lg.texture = logo
 		lg.custom_minimum_size = Vector2(250, 62)
 		lg.size = Vector2(250, 62)
-		lg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		lg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT
 		lg.position = Vector2(12, 4)
 		banner.add_child(lg)
 	else:
@@ -2156,7 +2156,10 @@ func show_choices(choices: Array, title: String, rerolls: int = -1) -> void:
 		var b := choice_buttons[i]
 		if i < choices.size():
 			var c: Dictionary = choices[i]
-			b.text = "[%d] 【%s】%s\n%s" % [i + 1, c["tag"], c["title"], c["desc"]]
+			var hint := ""
+			if ["new_skill", "up_skill", "enhance"].has(str(c.get("kind", ""))):       # 天赋树里有强化这个招式的节点（已点的）就在卡上提示
+				hint = Talents.skill_hint(Save.school(), Save.meta_talents(), str(c.get("id", "")))
+			b.text = "[%d] 【%s】%s\n%s%s" % [i + 1, c["tag"], c["title"], c["desc"], ("\n【" + hint + "】") if hint != "" else ""]
 			b.icon = _choice_icon(c)
 			if c.has("color"):                  # 强化卡：框和字都用品质色（白 / 蓝 / 紫 / 金）
 				var col := Color(str(c["color"]))

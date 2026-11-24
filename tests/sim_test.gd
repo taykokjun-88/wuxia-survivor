@@ -5355,4 +5355,7 @@ func _single_chain_test() -> void:
 					full = full and int(t.get(id, 0)) == int(nodes[id]["max"])
 			_check(full and cap_blocked, "%s %s 单点一整条链能点到终极前一格，终极要别的链凑够点数（%d 点）" % [sc, key, Talents.spent(t)])
 			cnt += 1
+	var hint := Talents.skill_hint("fist", {"fg_a_1": 2, "fg_a_2": 1}, "chain_fist")
+	_check(hint.contains("连山不绝 2/3") and hint.contains("贯日之势 1/3"), "局内抽卡提示：天赋树强化该招式（%s）" % hint)
+	_check(Talents.skill_hint("fist", {"fg_a_1": 2}, "quake_fist") == "" and Talents.skill_hint("fist", {}, "chain_fist") == "", "没点相关节点就不提示")
 	print("  %d 条链都能单点点满  OK" % cnt)

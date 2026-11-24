@@ -290,3 +290,19 @@ static func split_skill_mods(stats: Dictionary) -> Array:
 		else:
 			plain[key] = stats[k]
 	return [plain, skill_mods]
+
+
+## 局内抽到某个招式（学新招 / 强化）时，提示天赋树里已点的、强化它的节点；没有就返回空串
+static func skill_hint(school_id: String, t: Dictionary, skill_id: String) -> String:
+	if not has_tree(school_id):
+		return ""
+	var nodes := nodes(school_id)
+	var parts: Array[String] = []
+	for id in nodes:
+		var n: Dictionary = nodes[id]
+		if str(n.get("skill", "")) == skill_id and int(t.get(id, 0)) > 0:
+			parts.append("%s %d/%d" % [n["name"], int(t[id]), int(n["max"])])
+	if parts.is_empty():
+		return ""
+	var shown := parts.slice(0, 3)
+	return "天赋树强化：" + "、".join(shown) + (" 等 %d 项" % parts.size() if parts.size() > 3 else "")

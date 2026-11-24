@@ -51,7 +51,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "chain_fist"
      },
      {
       "id": "fg_a_2",
@@ -72,7 +73,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "chain_fist"
      },
      {
       "id": "fg_a_3",
@@ -93,7 +95,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "chain_fist"
      },
      {
       "id": "fg_a_4",
@@ -114,7 +117,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "chain_fist"
      },
      {
       "id": "fg_b_1",
@@ -130,7 +134,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "vajra_fist"
      },
      {
       "id": "fg_b_2",
@@ -151,7 +156,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "vajra_fist"
      },
      {
       "id": "fg_b_3",
@@ -172,7 +178,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "vajra_fist"
      },
      {
       "id": "fg_b_4",
@@ -193,7 +200,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "vajra_fist"
      },
      {
       "id": "fg_c_1",
@@ -210,7 +218,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "quake_fist"
      },
      {
       "id": "fg_c_2",
@@ -231,7 +240,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "quake_fist"
      },
      {
       "id": "fg_c_3",
@@ -252,7 +262,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "quake_fist"
      },
      {
       "id": "fg_c_4",
@@ -273,7 +284,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "quake_fist"
      },
      {
       "id": "fg_g_1",
@@ -487,7 +499,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "point_finger"
      },
      {
       "id": "fr_a_2",
@@ -508,7 +521,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "point_finger"
      },
      {
       "id": "fr_a_3",
@@ -529,7 +543,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "point_finger"
      },
      {
       "id": "fr_a_4",
@@ -550,7 +565,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "point_finger"
      },
      {
       "id": "fr_b_1",
@@ -566,7 +582,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "whirl_palm"
      },
      {
       "id": "fr_b_2",
@@ -587,7 +604,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "whirl_palm"
      },
      {
       "id": "fr_b_3",
@@ -608,7 +626,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "whirl_palm"
      },
      {
       "id": "fr_b_4",
@@ -629,7 +648,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "whirl_palm"
      },
      {
       "id": "fr_c_1",
@@ -645,7 +665,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "taiji"
      },
      {
       "id": "fr_c_2",
@@ -666,7 +687,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "taiji"
      },
      {
       "id": "fr_c_3",
@@ -687,7 +709,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "taiji"
      },
      {
       "id": "fr_c_4",
@@ -708,7 +731,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "taiji"
      },
      {
       "id": "fr_g_1",
@@ -922,7 +946,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "cloud_palm"
      },
      {
       "id": "fl_a_2",
@@ -944,7 +969,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 2
+      "gate": 2,
+      "skill": "cloud_palm"
      },
      {
       "id": "fl_a_3",
@@ -965,7 +991,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 5
+      "gate": 5,
+      "skill": "cloud_palm"
      },
      {
       "id": "fl_a_4",
@@ -986,7 +1013,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "cloud_palm"
      },
      {
       "id": "fl_b_1",
@@ -1002,7 +1030,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "yue_palm"
      },
      {
       "id": "fl_b_2",
@@ -1023,7 +1052,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "yue_palm"
      },
      {
       "id": "fl_b_3",
@@ -1044,7 +1074,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "yue_palm"
      },
      {
       "id": "fl_b_4",
@@ -1065,7 +1096,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "yue_palm"
      },
      {
       "id": "fl_c_1",
@@ -1081,7 +1113,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "eight_waste"
      },
      {
       "id": "fl_c_2",
@@ -1102,7 +1135,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "eight_waste"
      },
      {
       "id": "fl_c_3",
@@ -1123,7 +1157,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "eight_waste"
      },
      {
       "id": "fl_c_4",
@@ -1144,7 +1179,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "eight_waste"
      },
      {
       "id": "fl_g_1",
@@ -1381,7 +1417,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "qingsong"
      },
      {
       "id": "sg_a_2",
@@ -1403,7 +1440,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "qingsong"
      },
      {
       "id": "sg_a_3",
@@ -1424,7 +1462,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "qingsong"
      },
      {
       "id": "sg_a_4",
@@ -1445,7 +1484,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "qingsong"
      },
      {
       "id": "sg_b_1",
@@ -1461,7 +1501,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "zhongjian"
      },
      {
       "id": "sg_b_2",
@@ -1482,7 +1523,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "zhongjian"
      },
      {
       "id": "sg_b_3",
@@ -1503,7 +1545,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "zhongjian"
      },
      {
       "id": "sg_b_4",
@@ -1524,7 +1567,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "zhongjian"
      },
      {
       "id": "sg_c_1",
@@ -1540,7 +1584,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "yitian"
      },
      {
       "id": "sg_c_2",
@@ -1561,7 +1606,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "yitian"
      },
      {
       "id": "sg_c_3",
@@ -1582,7 +1628,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "yitian"
      },
      {
       "id": "sg_c_4",
@@ -1603,7 +1650,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "yitian"
      },
      {
       "id": "sg_g_1",
@@ -1775,7 +1823,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "kuang_feng"
      },
      {
       "id": "sr_a_2",
@@ -1796,7 +1845,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "kuang_feng"
      },
      {
       "id": "sr_a_3",
@@ -1817,7 +1867,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "kuang_feng"
      },
      {
       "id": "sr_a_4",
@@ -1838,7 +1889,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "kuang_feng"
      },
      {
       "id": "sr_b_1",
@@ -1854,7 +1906,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "taiji_sword"
      },
      {
       "id": "sr_b_2",
@@ -1875,7 +1928,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "taiji_sword"
      },
      {
       "id": "sr_b_3",
@@ -1896,7 +1950,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "taiji_sword"
      },
      {
       "id": "sr_b_4",
@@ -1917,7 +1972,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "taiji_sword"
      },
      {
       "id": "sr_c_1",
@@ -1933,7 +1989,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "yunv"
      },
      {
       "id": "sr_c_2",
@@ -1954,7 +2011,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "yunv"
      },
      {
       "id": "sr_c_3",
@@ -1975,7 +2033,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "yunv"
      },
      {
       "id": "sr_c_4",
@@ -1996,7 +2055,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "yunv"
      },
      {
       "id": "sr_g_1",
@@ -2172,7 +2232,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "dugu"
      },
      {
       "id": "sl_a_2",
@@ -2193,7 +2254,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "dugu"
      },
      {
       "id": "sl_a_3",
@@ -2214,7 +2276,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 4
+      "gate": 4,
+      "skill": "dugu"
      },
      {
       "id": "sl_a_4",
@@ -2235,7 +2298,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 7
+      "gate": 7,
+      "skill": "dugu"
      },
      {
       "id": "sl_a_5",
@@ -2256,7 +2320,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "dugu"
      },
      {
       "id": "sl_b_1",
@@ -2272,7 +2337,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "dugu"
      },
      {
       "id": "sl_b_2",
@@ -2293,7 +2359,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "dugu"
      },
      {
       "id": "sl_b_3",
@@ -2314,7 +2381,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "dugu"
      },
      {
       "id": "sl_b_4",
@@ -2335,7 +2403,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 8
+      "gate": 8,
+      "skill": "dugu"
      },
      {
       "id": "sl_b_5",
@@ -2356,7 +2425,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "dugu"
      },
      {
       "id": "sl_c_1",
@@ -2372,7 +2442,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "dugu"
      },
      {
       "id": "sl_c_2",
@@ -2393,7 +2464,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "dugu"
      },
      {
       "id": "sl_c_3",
@@ -2414,7 +2486,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 5
+      "gate": 5,
+      "skill": "dugu"
      },
      {
       "id": "sl_c_4",
@@ -2435,7 +2508,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 7
+      "gate": 7,
+      "skill": "dugu"
      },
      {
       "id": "sl_c_5",
@@ -2456,7 +2530,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "dugu"
      },
      {
       "id": "sl_d_1",
@@ -2472,7 +2547,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "pixie"
      },
      {
       "id": "sl_d_2",
@@ -2493,7 +2569,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "pixie"
      },
      {
       "id": "sl_d_3",
@@ -2514,7 +2591,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "pixie"
      },
      {
       "id": "sl_e_1",
@@ -2530,7 +2608,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "wanjian"
      },
      {
       "id": "sl_e_2",
@@ -2551,7 +2630,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "wanjian"
      },
      {
       "id": "sl_e_3",
@@ -2572,7 +2652,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "wanjian"
      },
      {
       "id": "sl_f_1",
@@ -2588,7 +2669,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "jinshe"
      },
      {
       "id": "sl_f_2",
@@ -2609,7 +2691,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "jinshe"
      },
      {
       "id": "sl_f_3",
@@ -2630,7 +2713,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "jinshe"
      },
      {
       "id": "sl_peak",
@@ -2712,7 +2796,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "wuhu_blade"
      },
      {
       "id": "bg_a_2",
@@ -2733,7 +2818,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "wuhu_blade"
      },
      {
       "id": "bg_a_3",
@@ -2755,7 +2841,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "wuhu_blade"
      },
      {
       "id": "bg_a_4",
@@ -2776,7 +2863,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "wuhu_blade"
      },
      {
       "id": "bg_b_1",
@@ -2792,7 +2880,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "tulong_art"
      },
      {
       "id": "bg_b_2",
@@ -2813,7 +2902,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "tulong_art"
      },
      {
       "id": "bg_b_3",
@@ -2834,7 +2924,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "tulong_art"
      },
      {
       "id": "bg_b_4",
@@ -2855,7 +2946,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "tulong_art"
      },
      {
       "id": "bg_c_1",
@@ -2871,7 +2963,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "xuanxu_blade"
      },
      {
       "id": "bg_c_2",
@@ -2892,7 +2985,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "xuanxu_blade"
      },
      {
       "id": "bg_c_3",
@@ -2913,7 +3007,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "xuanxu_blade"
      },
      {
       "id": "bg_c_4",
@@ -2934,7 +3029,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "xuanxu_blade"
      },
      {
       "id": "bg_g_1",
@@ -3149,7 +3245,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "kuangfeng_blade"
      },
      {
       "id": "br_a_2",
@@ -3170,7 +3267,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "kuangfeng_blade"
      },
      {
       "id": "br_a_3",
@@ -3191,7 +3289,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "kuangfeng_blade"
      },
      {
       "id": "br_a_4",
@@ -3212,7 +3311,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "kuangfeng_blade"
      },
      {
       "id": "br_b_1",
@@ -3228,7 +3328,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "xuedao"
      },
      {
       "id": "br_b_2",
@@ -3249,7 +3350,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "xuedao"
      },
      {
       "id": "br_b_3",
@@ -3270,7 +3372,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "xuedao"
      },
      {
       "id": "br_b_4",
@@ -3291,7 +3394,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "xuedao"
      },
      {
       "id": "br_c_1",
@@ -3307,7 +3411,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "fanliangyi"
      },
      {
       "id": "br_c_2",
@@ -3328,7 +3433,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "fanliangyi"
      },
      {
       "id": "br_c_3",
@@ -3349,7 +3455,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "fanliangyi"
      },
      {
       "id": "br_c_4",
@@ -3370,7 +3477,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "fanliangyi"
      },
      {
       "id": "br_g_1",
@@ -3583,7 +3691,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "hujia_blade"
      },
      {
       "id": "bl_a_2",
@@ -3604,7 +3713,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "hujia_blade"
      },
      {
       "id": "bl_a_3",
@@ -3625,7 +3735,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "hujia_blade"
      },
      {
       "id": "bl_a_4",
@@ -3646,7 +3757,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "hujia_blade"
      },
      {
       "id": "bl_b_1",
@@ -3662,7 +3774,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "ranmu_blade"
      },
      {
       "id": "bl_b_2",
@@ -3683,7 +3796,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "ranmu_blade"
      },
      {
       "id": "bl_b_3",
@@ -3704,7 +3818,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "ranmu_blade"
      },
      {
       "id": "bl_b_4",
@@ -3725,7 +3840,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "ranmu_blade"
      },
      {
       "id": "bl_c_1",
@@ -3741,7 +3857,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "yuanyang_blade"
      },
      {
       "id": "bl_c_2",
@@ -3762,7 +3879,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "yuanyang_blade"
      },
      {
       "id": "bl_c_3",
@@ -3783,7 +3901,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "yuanyang_blade"
      },
      {
       "id": "bl_c_4",
@@ -3804,7 +3923,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "yuanyang_blade"
      },
      {
       "id": "bl_g_1",
@@ -4043,7 +4163,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "shaolin_staff"
      },
      {
       "id": "pg_a_2",
@@ -4064,7 +4185,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "shaolin_staff"
      },
      {
       "id": "pg_a_3",
@@ -4085,7 +4207,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "shaolin_staff"
      },
      {
       "id": "pg_a_4",
@@ -4106,7 +4229,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "shaolin_staff"
      },
      {
       "id": "pg_b_1",
@@ -4122,7 +4246,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "fengmo_staff"
      },
      {
       "id": "pg_b_2",
@@ -4143,7 +4268,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "fengmo_staff"
      },
      {
       "id": "pg_b_3",
@@ -4164,7 +4290,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "fengmo_staff"
      },
      {
       "id": "pg_b_4",
@@ -4185,7 +4312,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "fengmo_staff"
      },
      {
       "id": "pg_c_1",
@@ -4201,7 +4329,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "xiangmo_staff"
      },
      {
       "id": "pg_c_2",
@@ -4222,7 +4351,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "xiangmo_staff"
      },
      {
       "id": "pg_c_3",
@@ -4243,7 +4373,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "xiangmo_staff"
      },
      {
       "id": "pg_c_4",
@@ -4264,7 +4395,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "xiangmo_staff"
      },
      {
       "id": "pg_g_1",
@@ -4478,7 +4610,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "panlong_staff"
      },
      {
       "id": "pr_a_2",
@@ -4499,7 +4632,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "panlong_staff"
      },
      {
       "id": "pr_a_3",
@@ -4520,7 +4654,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "panlong_staff"
      },
      {
       "id": "pr_a_4",
@@ -4541,7 +4676,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "panlong_staff"
      },
      {
       "id": "pr_b_1",
@@ -4557,7 +4693,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "dagou_staff"
      },
      {
       "id": "pr_b_2",
@@ -4578,7 +4715,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "dagou_staff"
      },
      {
       "id": "pr_b_3",
@@ -4599,7 +4737,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "dagou_staff"
      },
      {
       "id": "pr_b_4",
@@ -4620,7 +4759,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "dagou_staff"
      },
      {
       "id": "pr_c_1",
@@ -4636,7 +4776,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "wuming_spear"
      },
      {
       "id": "pr_c_2",
@@ -4657,7 +4798,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "wuming_spear"
      },
      {
       "id": "pr_c_3",
@@ -4678,7 +4820,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "wuming_spear"
      },
      {
       "id": "pr_c_4",
@@ -4699,7 +4842,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "wuming_spear"
      },
      {
       "id": "pr_g_1",
@@ -4912,7 +5056,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "yangjia_spear"
      },
      {
       "id": "pl_a_2",
@@ -4933,7 +5078,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "yangjia_spear"
      },
      {
       "id": "pl_a_3",
@@ -4954,7 +5100,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "yangjia_spear"
      },
      {
       "id": "pl_a_4",
@@ -4975,7 +5122,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "yangjia_spear"
      },
      {
       "id": "pl_b_1",
@@ -4991,7 +5139,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "meihua_spear"
      },
      {
       "id": "pl_b_2",
@@ -5012,7 +5161,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "meihua_spear"
      },
      {
       "id": "pl_b_3",
@@ -5033,7 +5183,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "meihua_spear"
      },
      {
       "id": "pl_b_4",
@@ -5054,7 +5205,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "meihua_spear"
      },
      {
       "id": "pl_c_1",
@@ -5070,7 +5222,8 @@
       "req": [],
       "cap": false,
       "peak": false,
-      "gate": 0
+      "gate": 0,
+      "skill": "baima_spear"
      },
      {
       "id": "pl_c_2",
@@ -5091,7 +5244,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 3
+      "gate": 3,
+      "skill": "baima_spear"
      },
      {
       "id": "pl_c_3",
@@ -5112,7 +5266,8 @@
       ],
       "cap": false,
       "peak": false,
-      "gate": 6
+      "gate": 6,
+      "skill": "baima_spear"
      },
      {
       "id": "pl_c_4",
@@ -5133,7 +5288,8 @@
       ],
       "cap": true,
       "peak": false,
-      "gate": 25
+      "gate": 25,
+      "skill": "baima_spear"
      },
      {
       "id": "pl_g_1",

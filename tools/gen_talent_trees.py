@@ -414,6 +414,10 @@ def assign_gates(nodes):
 def build(ji, branches):
     for _b, (_n, _s, _st, _c, _cs, nodes) in branches.items():
         assign_gates(nodes)
+        for n in nodes:                                    # 该节点强化的招式（局内抽卡时提示用）；通用链 / 巅峰没有
+            ci = n["col"]
+            if not n["peak"] and float(ci) == int(ci) and int(ci) < len(_cs) and _cs[int(ci)] != "":
+                n["skill"] = _cs[int(ci)]
     out = {"gates": GATES, "ji": ji, "branches": {}}
     for b, (name, sub_, starter, cols, col_skills, nodes) in branches.items():
         out["branches"][b] = {"name": name, "sub": sub_, "starter": starter, "cols": cols, "col_skills": col_skills, "nodes": nodes}
