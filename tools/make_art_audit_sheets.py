@@ -218,6 +218,129 @@ def build_enemies_sheet(gd: dict):
     print(f"生成 {out_p.relative_to(ROOT)} ({w}x{total_h})")
 
 
+def build_gear_weapons_sheet(gd: dict):
+    ibs = gd["gear"]["slots"][0]["items_by_school"]
+    sname = {k: v["name"] for k, v in gd["schools"].items()}
+    cols = 10
+    cell_w, cell_h = 124, 128
+    margin = 16
+    sec_h = 34
+    # 4 weapon rows (10 each) + 1 gear row (20 icons = 2 rows of 10)
+    total_h = 60 + 4 * (sec_h + cell_h + 10) + sec_h + 2 * cell_h + 24
+    w = margin * 2 + cols * cell_w
+    img = Image.new("RGBA", (w, total_h), (24, 22, 20, 255))
+    dr = ImageDraw.Draw(img)
+    dr.text((margin, 14), "4 职业武器图标（40 件）与部位图标对照表（B1 美术走查）", fill=(240, 210, 120, 255), font=font(22, True))
+
+    y = 58
+    for sc in ["fist", "sword", "blade", "spear"]:
+        dr.text((margin, y + 6), f"{sname[sc]} 武器（assets/icons/{sc}_weapons/w1~w10）", fill=(154, 216, 255, 255), font=font(17, True))
+        y += sec_h
+        items = ibs[sc]
+        for idx, it in enumerate(items):
+            x = margin + idx * cell_w
+            dr.rectangle([x + 3, y + 3, x + cell_w - 5, y + cell_h - 5], fill=(36, 33, 29, 255), outline=(85, 76, 62, 255))
+            # Prefer wired icon, else inspect w{idx+1}.png directly
+            wired = it.get("icon") or ""
+            p = ROOT / "assets" / "icons" / f"{sc}_weapons" / f"w{idx + 1}.png"
+            if p.exists():
+                fit_paste(img, Image.open(p), (x + 24, y + 8, 74, 74))
+            dr.text((x + 8, y + 86), f"w{idx+1} {it['name'][:5]}", fill=(243, 234, 210, 255), font=font(13, True))
+            tag = "已接入" if wired.startswith(f"{sc}_weapons/") else ("旧图" if wired else "未接入")
+            tcol = (140, 220, 140, 255) if tag == "已接入" else (240, 170, 90, 255)
+            dr.text((x + 8, y + 105), f"{tag}", fill=tcol, font=font(12))
+        y += cell_h + 10
+
+    dr.text((margin, y + 6), "分流派装备部位图标（assets/icons/gear/）", fill=(240, 180, 90, 255), font=font(17, True))
+    y += sec_h
+    gear_files = [
+        ("通用武器", "weapon.png"), ("通用上衣", "coat.png"), ("通用下身", "pants.png"), ("通用鞋子", "boots.png"), ("通用配饰", "charm.png"),
+        ("武者上衣", "fist_coat.png"), ("武者下身", "fist_pants.png"), ("武者鞋子", "fist_boots.png"), ("武者配饰", "fist_charm.png"), ("剑客上衣", "sword_coat.png"),
+        ("剑客下身", "sword_pants.png"), ("剑客鞋子", "sword_boots.png"), ("剑客配饰", "sword_charm.png"), ("刀客上衣", "blade_coat.png"), ("刀客下身", "blade_pants.png"),
+        ("刀客鞋子", "blade_boots.png"), ("刀客配饰", "blade_charm.png"), ("杨家上衣", "spear_coat.png"), ("杨家下身", "spear_pants.png"), ("杨家鞋子", "spear_boots.png"),
+    ]
+    for idx, (lbl, fn) in enumerate(gear_files):
+        r, c = divmod(idx, cols)
+        x = margin + c * cell_w
+        cy = y + r * cell_h
+        dr.rectangle([x + 3, cy + 3, x + cell_w - 5, cy + cell_h - 5], fill=(36, 33, 29, 255), outline=(85, 76, 62, 255))
+        p = ROOT / "assets" / "icons" / "gear" / fn
+        if p.exists():
+            fit_paste(img, Image.open(p), (x + 24, cy + 10, 74, 74))
+        dr.text((x + 8, cy + 92), lbl, fill=(243, 234, 210, 255), font=font(13, True))
+
+    out_p = OUT / "assets_gear_weapons.png"
+    img.convert("RGB").save(out_p, quality=92, optimize=True)
+    print(f"生成 {out_p.relative_to(ROOT)} ({w}x{total_h})")
+
+
+def build_portraits_ui_sheet():
+    groups = [
+        ("职业立绘 & 选人全身像", [
+            ("武者立绘", "assets/portraits/fist_hero.jpg"),
+            ("剑客立绘", "assets/portraits/sword_hero.jpg"),
+            ("刀客立绘", "assets/portraits/blade_hero.jpg"),
+            ("杨家将立绘", "assets/portraits/spear_hero.jpg"),
+            ("选人 · 武者", "assets/char_select/fist.png"),
+            ("选人 · 剑客", "assets/char_select/sword.png"),
+            ("选人 · 刀客", "assets/char_select/blade.png"),
+            ("选人 · 杨家将", "assets/char_select/spear.png"),
+        ]),
+        ("登录封面 / 选关横幅 / 标题字（IP 文字核查）", [
+            ("登录封面", "assets/ui/screens/title_cover.jpg"),
+            ("登录 Logo", "assets/ui/login/logo.png"),
+            ("黑风寨横幅", "assets/maps/black_wind/stage_banner.jpg"),
+            ("赤焰巅横幅", "assets/maps/guangming/stage_banner.jpg"),
+            ("赤焰巅标题字", "assets/maps/guangming/title_logo.png"),
+            ("海棠屿横幅", "assets/maps/taohua/stage_banner.jpg"),
+        ]),
+        ("胜负结算插画", [
+            ("武者胜", "assets/ui/screens/victory_fist.jpg"),
+            ("剑客胜", "assets/ui/screens/victory_sword.jpg"),
+            ("刀客胜", "assets/ui/screens/victory_blade.jpg"),
+            ("杨家将胜", "assets/ui/screens/victory_spear.jpg"),
+            ("赤焰巅胜", "assets/ui/screens/victory_guangming.jpg"),
+            ("武者败", "assets/ui/screens/defeat_fist.jpg"),
+            ("剑客败", "assets/ui/screens/defeat_sword.jpg"),
+            ("刀客败", "assets/ui/screens/defeat_blade.jpg"),
+            ("杨家将败", "assets/ui/screens/defeat_spear.jpg"),
+            ("赤焰巅败", "assets/ui/screens/defeat_guangming.jpg"),
+        ]),
+    ]
+    cols = 4
+    cell_w, cell_h = 310, 210
+    margin = 18
+    sec_h = 38
+    total_h = 62
+    for _, items in groups:
+        nrows = (len(items) + cols - 1) // cols
+        total_h += sec_h + nrows * cell_h + 14
+    w = margin * 2 + cols * cell_w
+    img = Image.new("RGBA", (w, total_h), (24, 22, 20, 255))
+    dr = ImageDraw.Draw(img)
+    dr.text((margin, 14), "立绘 / 选人 / 封面 / 横幅 / 结算插画总览（B1 / B5 画面与 IP 文字走查）", fill=(240, 210, 120, 255), font=font(22, True))
+
+    y = 60
+    for gtitle, items in groups:
+        dr.text((margin, y + 6), gtitle, fill=(154, 216, 255, 255), font=font(18, True))
+        y += sec_h
+        for idx, (lbl, rel) in enumerate(items):
+            r, c = divmod(idx, cols)
+            x = margin + c * cell_w
+            cy = y + r * cell_h
+            dr.rectangle([x + 4, cy + 4, x + cell_w - 8, cy + cell_h - 8], fill=(36, 33, 29, 255), outline=(85, 76, 62, 255))
+            p = ROOT / rel
+            if p.exists():
+                fit_paste(img, Image.open(p), (x + 10, cy + 10, cell_w - 24, cell_h - 46))
+            dr.text((x + 12, cy + cell_h - 30), lbl, fill=(243, 234, 210, 255), font=font(15, True))
+        nrows = (len(items) + cols - 1) // cols
+        y += nrows * cell_h + 14
+
+    out_p = OUT / "assets_portraits_ui.png"
+    img.convert("RGB").save(out_p, quality=90, optimize=True)
+    print(f"生成 {out_p.relative_to(ROOT)} ({w}x{total_h})")
+
+
 def main():
     gd = json.loads((ROOT / "data" / "game_data.json").read_text(encoding="utf-8"))
     build_sprite_sheet("sword", "剑客", "assets/sprites/sword", "assets/town/hero_sword", "sprite_sword.png")
@@ -225,6 +348,8 @@ def main():
     build_sprite_sheet("spear", "杨家将", "assets/sprites/spear", "assets/town/hero_spear", "sprite_spear.png")
     build_icons_sheet(gd)
     build_enemies_sheet(gd)
+    build_gear_weapons_sheet(gd)
+    build_portraits_ui_sheet()
 
 
 if __name__ == "__main__":

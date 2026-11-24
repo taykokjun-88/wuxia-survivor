@@ -1,0 +1,23 @@
+# A2 新天赋树专项 DPS 审计（手动触发）：在 Godot 4.4.1 无头模式下测算各职业 99 点刚/柔/灵 DPS 比例与全部终极/极意边际贡献。
+name: Talent DPS Audit (A2)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.4.1
+    steps:
+      - uses: actions/checkout@v4
+      - name: 运行 A2 新天赋树 DPS 审计
+        run: |
+          godot --headless --path . --import > /dev/null 2>&1 || true
+          godot --headless --path . res://tests/talent_dps_audit.tscn 2>/dev/null | grep -E "^(BUILD|ULT|DUGU)\|" | tee talent_dps_audit.txt
+          test -s talent_dps_audit.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: talent-dps-audit
+          path: talent_dps_audit.txt
+          retention-days: 7

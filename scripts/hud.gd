@@ -1696,6 +1696,8 @@ func _slot_icon(bt: Button, slot: String, icon_id: String = "") -> void:
 	if icon_id != "":                                   # 武器按具体那一件配图（assets/icons/<目录>/<名>.png）
 		var parts := icon_id.split("/")
 		ic = Data.icon(parts[0], parts[1])
+	if ic == null and Save.school() != "":              # 防具 / 配饰优先用本流派专属部位图标
+		ic = Data.icon("gear", "%s_%s" % [Save.school(), slot])
 	if ic == null:
 		ic = Data.icon("gear", slot)
 	if ic != null:

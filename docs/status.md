@@ -1,6 +1,15 @@
-# 开发状态（2026-11-19 收工）
+# 开发状态（当前版本：V0.9，2026-11-24 更新）
 
-## 已完成
+> **最新进度总览请优先看 [`docs/plan_progress_todo.md`](plan_progress_todo.md)**。
+> - **当前线上**：四个职业（武者 / 剑侠 / 刀客 / 杨家将）、三张地图（黑风寨 / 赤焰巅 / 海棠屿·八卦迷阵）、RO 式 150 点天赋树、36 件武器/防具专属图标、116 个 Gemini SFX v2（CC BY-NC 音效已清零）、全套 CI 测试门禁已启用并全部绿灯通过。
+> - **近期产出报告**：A1 198 局平衡基线 [`docs/balance_report_r3.md`](balance_report_r3.md)、A2/A3/A5 专项审计 [`docs/balance_audit_a2_a3_a5.md`](balance_audit_a2_a3_a5.md)、B 线美术对照与初审 [`docs/redraw/audit/README.md`](redraw/audit/README.md)、C 线音频审计 [`docs/audio_audit_report.md`](audio_audit_report.md) 与 BGM 替换清单 [`docs/bgm_replacement_spec.md`](bgm_replacement_spec.md)、D5 部署清单 [`docs/deploy_checklist_v1.0.md`](deploy_checklist_v1.0.md)。
+> - 下文保留 2026-11-19 起的开发演变流水记录（历史归档）。
+
+---
+
+## 历史记录（2026-11-19 收工）
+
+### 已完成
 - **核心玩法**：黑风寨地图、怪物 / 精英 / 3 个小 Boss / 大 Boss、技能升级（方向 × 档位）、心法、阴阳 / 合璧、气海三境、催动、真气爆发、还丹、吸星大法、难度滑条（影响经验 / 修为 / 稀有度）。
 - **三个流派**：武者（9 个技能）、剑侠（9 个技能 + 独孤九剑路线：九「式」叠加、万法皆破、真·独孤九剑「剑破天下」）；刀客（立绘 / 结算图已纳入，玩法待做）。
 - **局外成长**：修为 / 等级 / 属性点 / 天赋（经脉图，剑侠有专属覆盖）/ 装备 / 银两 / 铁匠强化。
