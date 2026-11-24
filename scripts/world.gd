@@ -347,6 +347,7 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	rerolls_used = 0
 	bagua_cfg = Data.maps[map_id].get("bagua", {})
 	bagua_on = not bagua_cfg.is_empty()
+	bagua_center = Vector2.ZERO
 	bagua_gates = []
 	bagua_next = []
 	bagua_t = 0.0
@@ -356,6 +357,9 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	bagua_cd = 0.0
 	bagua_dmg = 1.0
 	bagua_def = false
+	bagua_crit = 0.0
+	bagua_noemp = false
+	bagua_enemy_t = 0.0
 	bagua_shuffles = 0
 	bagua_reshuffles = 0
 	bagua_broke_count = 0
@@ -380,6 +384,8 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	spear_last_pos = player_pos
 	hidden_seen = false
 	block_count = 0
+	_spear_ctx = false
+	_spear_aura_t = 0.0
 	dash_end_t = -99.0
 	atk_buff_t = 0.0
 	pills.clear()
@@ -388,6 +394,13 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	absorb_gap = 0.0
 	shield = 0.0
 	player_pos = Vector2.ZERO
+	facing = Vector2.RIGHT
+	player_knock = Vector2.ZERO
+	player_slow_t = 0.0
+	burn_t = 0.0
+	prop_t = 3.0
+	_lite = false
+	shake = 0.0
 	exp_now = 0
 	exp_next = _exp_for(1)
 	pending_levels = 0
@@ -395,10 +408,50 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	invuln = 0.0
 	since_hit = 99.0
 	dash_t = 0.0
+	dash_dir = Vector2.RIGHT
 	dash_charges = int(qg.get("charges", 1))
 	dash_recharge = 0.0
+	dash_hit.clear()
 	stealth_t = 0.0
+	stealth_pos = Vector2.ZERO
 	buff_t = 0.0
+	# 新天赋树局内状态全部清零，避免多局复用同一 GameWorld 时串局
+	tal_dr_t = 0.0
+	tal_dr_v = 0.0
+	tal_spd_t = 0.0
+	tal_spd_v = 0.0
+	palm_stacks = 0
+	ying_hold = 0.0
+	yuanman_ready = false
+	yuanman_cd = 0.0
+	force_crit_t = 0.0
+	low_seen = false
+	prev_realm = Realm.PING
+	qihai_cd = 0.0
+	was_med = false
+	ult_kills = 0
+	ult_dmg = 0.0
+	ult_keep = 0.0
+	yuwei_t = 0.0
+	was_ult = false
+	ys_buff = 0.0
+	ys_t = 0.0
+	zhenbian_cd = 0.0
+	guiyi_ready = false
+	yd_t = 0.0
+	yd_v = 0.0
+	tbw_t = 0.0
+	hunbao_t = 0.0
+	hunbao_v = 0.0
+	baodao_skill = null
+	tiebi_t = 0.0
+	yishou_n = 0
+	yishou_buff = 1.0
+	spear_fire_n = 0
+	huima_t = 0.0
+	spear_since_shadow = 0
+	wm_boost = 0.0
+	fenfeng_hits.clear()
 	time = 0.0
 	kills = 0
 	exp_total = 0
@@ -416,8 +469,13 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	bosses.clear()
 	skill_dmg.clear()
 	boss_log.clear()
+	grid.clear()
+	next_uid = 1
+	chain_depth = 0
 	anim_clock = 0.0
+	anim_ovr = ""
 	anim_ovr_t = 0.0
+	anim_ovr_len = 0.0
 	death_t = 0.0
 	dash_count = 0
 	spawn_acc = 0.0

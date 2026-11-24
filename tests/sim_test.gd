@@ -67,6 +67,7 @@ func _ready() -> void:
 		_spear_sweep_test()
 		_wuming_test()
 		_bagua_test()
+		_reset_state_test()
 		_map_spawn_test()
 		await _touch_test()
 		await _town_test()
@@ -5481,3 +5482,49 @@ func _single_chain_test() -> void:
 	remove_child(gt)
 	gt.free()
 	print("  %d 条链都能单点点满  OK" % cnt)
+
+
+## 跨局状态重置：复用同一 GameWorld 连续开局时，八卦阵与新天赋树状态不能串局
+func _reset_state_test() -> void:
+	print("\n=== 跨局状态重置 ===")
+	var w := GameWorld.new()
+	w.rng_seed = 777
+	add_child(w)
+	w.start_run("chain_fist", "tashue", "taohua")
+	# 模拟上一局残留的八卦 / 天赋 / 受击状态
+	w.bagua_crit = 0.2
+	w.bagua_noemp = true
+	w.bagua_enemy_t = 0.4
+	w.palm_stacks = 3
+	w.yishou_buff = 2.0
+	w.wm_boost = 0.5
+	w.tal_dr_t = 5.0
+	w.tal_spd_t = 5.0
+	w.yuanman_ready = true
+	w.guiyi_ready = true
+	w.baodao_skill = w.skills["chain_fist"]
+	w.fenfeng_hits[1] = [2, 1.0]
+	w.player_knock = Vector2(100, 0)
+	w.player_slow_t = 3.0
+	w.shake = 8.0
+	w.dash_hit[1] = true
+	# 切到黑风寨（无八卦）重开一局
+	w.start_run("chain_fist", "tashue", "black_wind")
+	_check(w.bagua_crit == 0.0 and not w.bagua_noemp and w.bagua_enemy_t == 0.0, "八卦状态已清零（不带入非八卦图）")
+	_check(w.palm_stacks == 0 and w.yishou_buff == 1.0 and w.wm_boost == 0.0, "天赋叠加层数已清零")
+	_check(w.tal_dr_t == 0.0 and w.tal_spd_t == 0.0 and not w.yuanman_ready and not w.guiyi_ready, "天赋触发窗口已清零")
+	_check(w.baodao_skill == null and w.fenfeng_hits.is_empty() and w.dash_hit.is_empty(), "上一局引用与字典已清空")
+	_check(w.player_knock == Vector2.ZERO and w.player_slow_t == 0.0 and w.shake == 0.0, "受击击退 / 减速 / 震屏已清零")
+	# TalentGrid.setup 切换流派时缓存必须失效
+	var gt := TalentGrid.new()
+	gt.school = "fist"
+	gt.level = 50
+	add_child(gt)
+	_check(gt.state_of("fg_a_1") == "open", "天赋页：武者节点初始状态")
+	gt.setup("sword")
+	_check(gt.state_of("sg_a_1") == "open", "天赋页：setup 切换流派后缓存刷新")
+	remove_child(gt)
+	gt.free()
+	_free_world(w)
+	print("  跨局状态重置  OK")
+

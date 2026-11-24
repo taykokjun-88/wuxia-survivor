@@ -42,6 +42,8 @@ func setup(school_id: String) -> void:
 	_tree = Talents.tree(school_id)
 	_all = Talents.nodes(school_id)
 	_ji_id = str(_tree.get("ji", {}).get("id", ""))
+	_states.clear()
+	_dirty = true
 	bgs.clear()
 	for b in _tree.get("branches", {}):
 		bgs[b] = _load_bg(b)

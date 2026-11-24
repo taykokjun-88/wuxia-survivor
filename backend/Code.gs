@@ -12,7 +12,7 @@
  * 部署步骤见 backend/README.md。
  */
 
-var CODE_REV = 'v0.9-talents-2';   // 部署后访问 <网址>?action=ping 能看到这个值，用来确认部署的是最新代码
+var CODE_REV = 'v0.9-fix-1';   // 部署后访问 <网址>?action=ping 能看到这个值，用来确认部署的是最新代码
 var VERSION = 1;
 
 var SHEETS = {
@@ -544,13 +544,14 @@ function cleanAlloc(a, level) {
 var TALENT_WHY = '';
 function tfail(msg) { TALENT_WHY = msg; return null; }
 
-function cleanTalents(t, level) {
+function cleanTalents(t, level, school) {
   TALENT_WHY = '';
   if (typeof t !== 'object' || t === null || Array.isArray(t)) return tfail('格式不对');
   var out = {}, ids = Object.keys(t), i;
   for (i = 0; i < ids.length; i++) {
     var id = ids[i], n = TALENTS[id], v = Number(t[id]);
     if (!n) return tfail('服务器不认识节点 ' + id + '（后端代码是否已更新到最新版？）');
+    if (school && n[3] !== 'legacy' && n[3] !== school) return tfail('节点 ' + id + ' 不属于当前流派');
     if (!(v >= 0 && v <= n[2]) || Math.floor(v) !== v) return tfail('节点 ' + id + ' 点数超过上限');
     if (v > 0) out[id] = v;
   }
@@ -739,11 +740,7 @@ function submitScore(req) {
   row[P.lastSubmit] = iso();
   savePlayer(f);
 
-  var ranks = {
-    score: rankOf(row[P.cid], 'score'),
-    speed: rankOf(row[P.cid], 'speed'),
-    level: rankOf(row[P.cid], 'level')
-  };
+  var ranks = ranksOf(row[P.cid]);
   var pr = profile(a.account.row, f);
   return ok({ score: score, best: best, ranks: ranks, bests: pr.bests, gained: gained, capped: gained < gained0, exp: pr.exp, level: pr.level, levelUp: pr.level > oldLevel, drops: drops, comp: comp, silverGained: silverGained, silver: pr.silver, cleared: pr.cleared });
 }
@@ -785,6 +782,24 @@ function rankOf(id, kind) {
   return 0;
 }
 
+/** 一次读表同时算 score / speed / level 三个名次，避免 submitScore 里连续全表读 3 遍 */
+function ranksOf(id) {
+  var cl = loadChars();
+  var banned = {};
+  loadPlayers().rows.forEach(function (r) { if (truthy(r[P.banned])) banned[String(r[P.nick]).toLowerCase()] = true; });
+  var valid = cl.rows.filter(function (r) { return !banned[String(r[P.nick]).toLowerCase()]; });
+  var sid = String(id), out = {};
+  Object.keys(BOARD).forEach(function (k) {
+    var spec = BOARD[k], list = [];
+    valid.forEach(function (r) { var v = Number(r[spec.col]) || 0; if (v > 0) list.push({ id: String(r[P.cid]), v: v }); });
+    list.sort(function (x, y) { return spec.asc ? x.v - y.v : y.v - x.v; });
+    var rk = 0;
+    for (var i = 0; i < list.length; i++) if (list[i].id === sid) { rk = i + 1; break; }
+    out[k] = rk;
+  });
+  return out;
+}
+
 function board(req) {
   var kind = String(req.kind || 'score');
   if (!BOARD[kind]) return fail('bad_kind', '未知的榜单');
@@ -810,10 +825,13 @@ function saveState(req) {
   if (JSON.stringify(st).length > CFG.STATE_MAX) return fail('bad_state', '存档太大');
   var row = a.found.row, old = readState(row);
   var lv = metaLevel(Number(row[P.xp]) || 0);
-  var school = row[P.school];
+  var curSchool = String(row[P.school] || '');
+  var school = curSchool;
   if (st.school !== undefined) {
     school = String(st.school || '');
-    if (school !== '' && !/^[a-z_]{1,16}$/.test(school)) return fail('bad_state', '存档格式不对');
+    if (school !== '' && SCHOOLS.indexOf(school) < 0) return fail('bad_state', '存档格式不对');
+    if (curSchool !== '' && school !== '' && school !== curSchool) return fail('bad_state', '已创建的角色不能更换流派');
+    if (curSchool !== '' && school === '') school = curSchool;
     old.school = school;
   }
   if (st.alloc !== undefined) {
@@ -822,7 +840,7 @@ function saveState(req) {
     old.alloc = clean;
   }
   if (st.talents !== undefined) {
-    var tl = cleanTalents(st.talents, lv);
+    var tl = cleanTalents(st.talents, lv, school);
     if (!tl) return fail('bad_state', '天赋加点不合法：' + TALENT_WHY);
     old.talents = tl;
   }
@@ -1014,6 +1032,8 @@ function adminClearScores() {
   [loadPlayers(), loadChars()].forEach(function (tbl) {
     tbl.rows.forEach(function (row, i) {
       row[P.runs] = 0; row[P.wins] = 0; row[P.bestScore] = 0; row[P.bestWin] = 0; row[P.bestLevel] = 0; row[P.kills] = 0;
+      var st = readState(row);
+      if (st.mapBests) { delete st.mapBests; row[P.state] = JSON.stringify(st); }
       tbl.sheet.getRange(i + 2, 1, 1, row.length).setValues([row]);
     });
   });

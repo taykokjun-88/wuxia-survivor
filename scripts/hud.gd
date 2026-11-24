@@ -711,7 +711,7 @@ func _build_stage_info(left: VBoxContainer) -> void:
 	banner.add_child(desc)
 	var rec_y := 206.0
 	for r in Save.recommend_status(loadout_map):
-		var rl := _label("%s 推荐 %s" % ["✔" if bool(r["ok"]) else "✘", r["label"]], 15, Color("#9ad0a0") if bool(r["ok"]) else Color("#f0c050"))
+		var rl := _label("%s 推荐 %s" % ["●" if bool(r["ok"]) else "×", r["label"]], 15, Color("#9ad0a0") if bool(r["ok"]) else Color("#f0c050"))
 		rl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		rl.position = Vector2(20, rec_y)
 		banner.add_child(rl)
@@ -1859,7 +1859,7 @@ func show_smith(msg: String = "") -> void:
 		bt.focus_mode = Control.FOCUS_NONE
 		bt.add_theme_font_size_override("font_size", 13)
 		bt.clip_text = true
-		var head := "%s【%s】%s（%s）" % ["✔ " if worn.values().has(code) else "", it["rarity_name"], it["name"], it["slot_name"]]
+		var head := "%s【%s】%s（%s）" % ["[已穿] " if worn.values().has(code) else "", it["rarity_name"], it["name"], it["slot_name"]]
 		var next := ""
 		if lv >= Gear.enhance_max():
 			next = "已强化到顶"

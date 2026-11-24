@@ -196,6 +196,8 @@ func _build_all_streams() -> void:
 					break
 		if not vs.is_empty():
 			_variants[id] = vs
+			_streams[id] = vs[0]
+			continue
 		var ogg := "res://assets/sfx/%s.ogg" % id
 		var wav := "res://assets/sfx/%s.wav" % id
 		if ResourceLoader.exists(ogg):

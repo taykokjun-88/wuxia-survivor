@@ -46,7 +46,7 @@ func _ready() -> void:
 			w.start_run(str(st), ["tashue", "feiyan", "yufeng", "lingshe"][sd % 4], map_id)
 			var pick_rng := RandomNumberGenerator.new()
 			pick_rng.seed = sd
-			for i in int(1000.0 / DT):
+			for i in int(1050.0 / DT):
 				TestBot.drive(w, TestBot.engage_for(w))
 				w.step(DT)
 				TestBot.resolve_choices(w, pick_rng, true)
@@ -93,8 +93,10 @@ func _talents(school: String, plan: String, lv: int) -> Dictionary:
 	return t
 
 
-## 装备分：普通 5 / 特别 10 / 稀有 20 / 传说 40；20 分 = 两件特别（武器 + 上衣），50 分 = 五件特别
+## 装备分：普通 5 / 特别 10 / 稀有 20 / 传说 40；20 分 = 两件特别（武器 + 上衣），50 分 = 五件特别，70+ 分 = 五件稀有
 func _equip(score: int) -> Dictionary:
+	if score >= 70:
+		return {"weapon": "weapon.2.111", "coat": "coat.2.222", "pants": "pants.2.333", "boots": "boots.2.444", "charm": "charm.2.555"}
 	if score >= 50:
 		return {"weapon": "weapon.1.111", "coat": "coat.1.222", "pants": "pants.1.333", "boots": "boots.1.444", "charm": "charm.1.555"}
 	if score >= 20:

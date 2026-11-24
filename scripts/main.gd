@@ -784,7 +784,7 @@ func _on_dialog_option(i: int) -> void:
 				else:
 					var rec := ""
 					for r in Save.recommend_status(str(id)):
-						rec += "　%s %s" % ["✔" if bool(r["ok"]) else "✘", r["label"]]
+						rec += "　%s %s" % ["●" if bool(r["ok"]) else "×", r["label"]]
 					opts.append({"label": "%s　%s　%s　【%s】%s" % [m["name"], stars, m["desc"], m.get("suggest", ""), ("\n推荐：" + rec) if rec != "" else ""], "action": "map:" + str(id)})
 			opts.append({"label": "返回", "action": "talk"})
 			_dlg(dialog_npc, "想去哪儿历练？", opts)

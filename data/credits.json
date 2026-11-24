@@ -14,11 +14,8 @@
   {
     "title": "音效",
     "lines": [
-      "采样来自 freesound.org 与 kenney.nl；多数为 CC0，下列需署名：",
-      "Sword Slash Attack：Copyright 2013 Iwan Gabovitch (qubodup)，CC-BY3；Blood and gore FX performance 1：Copyright 2012 Slave2theLight，CC-BY3。",
-      "CastIronCarousel、Vrymaa (Paul Couture)、Jagadamba、LiamG_SFX：部分采样为 CC BY / CC BY-NC，谨此署名致谢。",
-      "CC0：qubodup（Free Whoosh Sound Pack）、Qvantor、Kenney、GammaGool、Bertsz、Kinoton、nanliu_music、Sadiquecat、michorvath、steprock、JohnBuhr、AardsReal、Kane53126、courtneyeck 等。",
-      "杨家将与海棠屿的新增音效由 Gemini 生成。"
+      "脚步声与翻页音效：Kenney — RPG Audio (kenney.nl)，CC0。",
+      "战斗、招式、界面与环境音效（116 个）：由项目作者使用 AI 工具生成（Google Gemini）并经裁尾与响度处理。"
     ]
   },
   {

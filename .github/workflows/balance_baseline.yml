@@ -1,0 +1,40 @@
+# A1 强度平衡基线矩阵（手动触发）：4 职业 × 3 地图 × 3 天赋流派（刚 / 柔 / 灵），并行跑完并上传原始结果。
+name: Balance Baseline (A1)
+
+on:
+  workflow_dispatch:
+    inputs:
+      seeds:
+        description: "每个起手招式跑几个种子"
+        required: false
+        default: "2"
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:4.4.1
+    strategy:
+      fail-fast: false
+      matrix:
+        school: [fist, sword, blade, spear]
+        map:
+          - { id: black_wind, lv: 10, gear: 20 }
+          - { id: guangming, lv: 20, gear: 50 }
+          - { id: taohua, lv: 30, gear: 70 }
+    steps:
+      - uses: actions/checkout@v4
+      - name: 跑 ${{ matrix.school }} × ${{ matrix.map.id }}（刚 / 柔 / 灵）
+        run: |
+          godot --headless --path . --import > /dev/null 2>&1 || true
+          OUT="res_${{ matrix.school }}_${{ matrix.map.id }}.txt"
+          : > "$OUT"
+          for TAL in gang rou ling; do
+            SCHOOL="${{ matrix.school }}" MAP="${{ matrix.map.id }}" LV="${{ matrix.map.lv }}" ALLOC="bal" GEAR="${{ matrix.map.gear }}" TAL="$TAL" SEEDS="${{ inputs.seeds || '2' }}" \
+              godot --headless --path . res://tests/balance_test.tscn 2>/dev/null | grep "^RES|" | tee -a "$OUT"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: balance-${{ matrix.school }}-${{ matrix.map.id }}
+          path: res_${{ matrix.school }}_${{ matrix.map.id }}.txt
+          retention-days: 7

@@ -658,13 +658,26 @@ test('后台：新建邀请码 / 重设 PIN / 封禁 / 清空排行榜', (e) => 
   assert.strictEqual(e.call({ action: 'resume', nick: '捣蛋鬼', token: b.token }).err, 'bad_token');
   e.ui.queue.push('捣蛋鬼'); e.ctx.adminToggleBan();
   assert.ok(e.call({ action: 'login', nick: '捣蛋鬼', pin: '4815' }).ok, '解封后可登录');
-  // 清空排行榜
+  // 清空排行榜（含分地图榜 mapBests）
   const s = reg(e, '选手Z'); submit(e, s, RUN());
   assert.ok(e.sheetRows('scores').length > 1);
+  assert.strictEqual(e.get({ action: 'board', kind: 'score', map: 'black_wind' }).total, 1, '清空前黑风寨榜有成绩');
   e.ctx.adminClearScores();
   assert.strictEqual(e.sheetRows('scores').length, 1);
   assert.strictEqual(e.get({ action: 'board', kind: 'score' }).total, 0);
+  assert.strictEqual(e.get({ action: 'board', kind: 'score', map: 'black_wind' }).total, 0, '清空后分地图榜也必须清零');
   assert.ok(e.call({ action: 'login', nick: '选手Z', pin: '4815' }).ok, '账号保留');
+});
+
+test('安全校验：不能篡改角色流派，也不能点其他流派的天赋', (e) => {
+  const me = reg(e, '校验君');
+  const c1 = e.call({ action: 'createChar', nick: me.nick, token: me.token, name: '拳师甲', school: 'fist' });
+  assert.ok(c1.ok);
+  assert.strictEqual(e.call({ action: 'saveState', nick: me.nick, token: me.token, char: c1.charId, state: { school: 'sword' } }).err, 'bad_state', '已创建角色不能改流派');
+  assert.strictEqual(e.call({ action: 'saveState', nick: me.nick, token: me.token, char: c1.charId, state: { school: 'mage' } }).err, 'bad_state', '非法流派名');
+  assert.strictEqual(e.call({ action: 'saveState', nick: me.nick, token: me.token, char: c1.charId, state: { talents: { sg_a_1: 1 } } }).err, 'bad_state', '武者不能点剑客天赋');
+  assert.ok(e.call({ action: 'saveState', nick: me.nick, token: me.token, char: c1.charId, state: { talents: { fg_a_1: 1 } } }).ok, '本流派天赋允许');
+  assert.ok(e.get({ action: 'ping' }).rev && e.get({ action: 'ping' }).rev !== 'v0.9-talents-2', 'CODE_REV 已更新');
 });
 
 let failed = 0;
