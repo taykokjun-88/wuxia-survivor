@@ -147,6 +147,10 @@ var bagua_inside_t := 0.0          # 玩家连续待在阵内的时间
 var bagua_break := false           # 「唯我破阵」：所有益处 buff 的 50% 持续到下次阵法出现
 var bagua_slow := 0.0
 var bagua_reshuffles := 0
+var bagua_broke_count := 0           # 本局有几轮阵法被「唯我破阵」
+var bagua_true_t := 0.0              # 「真·唯我破阵」剩余时间（非杨家将：大 Boss 现身时触发 60 秒）
+var bagua_finale_done := false
+var _finale_q: Array = []            # 大 Boss 现身的特殊剧情台词（延时出字）
 var bagua_taken := 1.0             # 受到的伤害倍率
 var bagua_acc := 0.0
 var bagua_crit := 0.0              # 景门：暴击率加成
@@ -354,6 +358,10 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	bagua_def = false
 	bagua_shuffles = 0
 	bagua_reshuffles = 0
+	bagua_broke_count = 0
+	bagua_true_t = 0.0
+	bagua_finale_done = false
+	_finale_q.clear()
 	bagua_active = false
 	bagua_si = 0
 	bagua_inside_t = 0.0
@@ -1000,6 +1008,7 @@ func _spawn(dt: float) -> void:
 		boss_spawned = true
 		_clear_for_final()
 		_spawn_boss(str(fin["id"]), true)
+		_bagua_finale()
 
 
 ## 当前地图的时间轴（小 Boss 时间 / 大 Boss 现身时间与限时 / 血量倍数）
@@ -2449,8 +2458,17 @@ func _hidden_card(reroll: bool) -> Dictionary:
 ## 八卦阵：生成后持续 on 秒（第 3 / 6 / 8 秒随机重排所有门），然后冷却 off 秒再生成。盘面以生成时玩家所在处为中心，对玩家和怪物都生效。
 ## 玩家连续待在阵内超过 stay 秒：「阴阳八卦，唯我破阵」——获得所有益处 buff 的 50%，持续到下次阵法出现
 func _tick_bagua(dt: float) -> void:
+	if not _finale_q.is_empty():
+		for q in _finale_q:
+			q["t"] = float(q["t"]) - dt
+		while not _finale_q.is_empty() and float(_finale_q[0]["t"]) <= 0.0:
+			var ln: Dictionary = _finale_q.pop_front()
+			add_fx("text", player_pos + Vector2(0, float(ln.get("dy", -120.0))), float(ln.get("life", 3.0)), {"text": str(ln["text"]), "size": int(ln["size"]), "color": ln["color"]})
+			if bool(ln.get("shake", false)):
+				shake = maxf(shake, 8.0)
 	if not bagua_on:
 		return
+	bagua_true_t = maxf(0.0, bagua_true_t - dt)
 	bagua_t += dt
 	var on_len := float(bagua_cfg.get("on", 10.0))
 	var off_len := float(bagua_cfg.get("off", 10.0))
@@ -2485,12 +2503,13 @@ func _tick_bagua(dt: float) -> void:
 			bagua_inside_t += dt
 			if bagua_inside_t >= float(bagua_cfg.get("stay", 8.0)) and not bagua_break:
 				bagua_break = true
+				bagua_broke_count += 1
 				add_fx("text", player_pos + Vector2(0, -110), 2.4, {"text": "阴阳八卦，唯我破阵", "size": 34, "color": Color("#f0b429")})
 				add_fx("ring", player_pos, 0.8, {"r0": 20.0, "r1": 320.0, "color": Color("#f0b429")})
 				shake = maxf(shake, 6.0)
 		else:
 			bagua_inside_t = 0.0
-	if bagua_break:                                           # 唯我破阵：所有益处 buff 的 50%（跟着玩家，不用站在门里）
+	if bagua_break or bagua_true_t > 0.0:                     # 唯我破阵 / 真·唯我破阵：所有益处 buff 的 50%（跟着玩家，不用站在门里）
 		bagua_spd += 0.125
 		bagua_cd += 0.125
 		bagua_taken *= 0.85
@@ -2554,6 +2573,33 @@ func _tick_bagua(dt: float) -> void:
 						damage_enemy(e, e.max_hp * 0.08 * dt2 * bf, Vector2.ZERO)
 						slow_enemy(e, 0.7, 0.3)
 					"jings": slow_enemy(e, 0.8, 0.3)
+
+
+## 整局的八卦阵都触发了「唯我破阵」→ 大 Boss 现身时触发特殊剧情：
+## 杨家将：「我已经看破了你的阵法。且看看我的阵法如何」→「阵法·杨家无敌」：Boss 不再生成罡气、防御 −30%、攻击 −20%、移速 −50%；
+## 其他职业：「真·唯我破阵」——60 秒的唯我破阵 buff
+func _bagua_finale() -> void:
+	if not bagua_on or bagua_finale_done or bagua_shuffles < 1 or bagua_broke_count < bagua_shuffles:
+		return
+	bagua_finale_done = true
+	if school_id == "spear":
+		_finale_q.append({"t": 0.1, "text": "杨家将：「我已经看破了你的阵法。且看看我的阵法如何」", "size": 26, "color": Color("#f3ead2"), "life": 3.4, "dy": -110.0})
+		_finale_q.append({"t": 3.0, "text": "阵法·杨家无敌", "size": 64, "color": Color("#f0b429"), "life": 3.0, "dy": -150.0, "shake": true})
+		for b in bosses:
+			if b.alive and b.is_final:
+				b.guard = 0.0                                   # 不再生成罡气
+				b.guard_max = 0.0
+				b.defense *= 0.7                                # 防御 −30%
+				b.def_down = maxf(b.def_down, 0.3)
+				b.def_down_t = 1.0e9
+				b.atk_down = 0.2                                # 攻击 −20%
+				b.atk_down_t = 1.0e9
+				b.speed *= 0.5                                  # 移速 −50%
+				add_fx("text", b.pos + Vector2(0, -b.radius - 44), 2.4, {"text": "罡气散尽　防御 −30%　攻击 −20%　移速 −50%", "size": 22, "color": Color("#f0b429")})
+	else:
+		bagua_true_t = 60.0
+		_finale_q.append({"t": 0.1, "text": "真·唯我破阵", "size": 60, "color": Color("#f0b429"), "life": 3.0, "dy": -140.0, "shake": true})
+		_finale_q.append({"t": 0.1, "text": "八卦阵的益处加持 60 秒", "size": 24, "color": Color("#f3ead2"), "life": 3.0, "dy": -96.0})
 
 
 func _bagua_order() -> Array:

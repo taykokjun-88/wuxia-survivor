@@ -4580,6 +4580,46 @@ func _bagua_test() -> void:
 	_check(w.bagua_shuffles == sp0 and not w.bagua_active, "大 Boss 现身后不再生成八卦阵")
 	_free_world(w)
 	_taohua_boss_test()
+	_bagua_finale_test()
+
+
+## 整局八卦阵都「唯我破阵」→ 大 Boss 现身的特殊剧情
+func _bagua_finale_test() -> void:
+	print("\n=== 八卦阵·整局破阵的特殊剧情 ===")
+	var fin_t := float(Data.maps["taohua"]["timeline"]["final"]["t"])
+	var speeds := {}
+	for school in ["spear", "fist"]:
+		for cond in [false, true]:
+			var w := GameWorld.new()
+			w.rng_seed = 31
+			add_child(w)
+			w.start_run("yangjia_spear" if school == "spear" else "chain_fist", "tashue", "taohua")
+			w.god = true
+			w.bagua_shuffles = 3
+			w.bagua_broke_count = 3 if cond else 2
+			w.time = fin_t - 0.05
+			w.step(DT * 6.0)
+			var fb: Enemy = null
+			for b in w.bosses:
+				if b.is_final:
+					fb = b
+			_check(fb != null, "大 Boss 现身（%s / 破阵全满 %s）" % [school, str(cond)])
+			if fb == null:
+				_free_world(w)
+				continue
+			if school == "spear":
+				speeds[cond] = [fb.speed, fb.guard_max, fb.defense, fb.atk_down_t > 0.0]
+			else:
+				_check((w.bagua_true_t > 50.0) == cond, "非杨家将：整局破阵 → 真·唯我破阵 60 秒（%.1f）" % w.bagua_true_t)
+				if cond:
+					w.step(DT)
+					_check(absf(w.bagua_spd - 0.125) < 1e-9 and absf(w.bagua_taken - 0.85) < 1e-9, "真·唯我破阵期间持续获得益处 buff 的 50%")
+			_free_world(w)
+	var off: Array = speeds[false]
+	var on: Array = speeds[true]
+	_check(absf(float(on[0]) - float(off[0]) * 0.5) < 0.01, "阵法·杨家无敌：Boss 移速 −50%%（%.1f → %.1f）" % [off[0], on[0]])
+	_check(float(off[1]) > 0.0 and float(on[1]) == 0.0, "Boss 不再生成罡气（%.0f → %.0f）" % [off[1], on[1]])
+	_check(absf(float(on[2]) - float(off[2]) * 0.7) < 0.01 and bool(on[3]) and not bool(off[3]), "Boss 防御 −30%、攻击 −20%")
 
 
 ## 第 3 关 Boss 专属招式：同心环冲击波（环带里受伤、缝隙里安全）、奇门易位（预警亮出新排布 → 立刻重排八门）、各 Boss 技能列表
