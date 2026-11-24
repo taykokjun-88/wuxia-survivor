@@ -133,7 +133,7 @@ func info_text(id: String) -> String:
 	if id != "" and not _all.has(id):
 		id = ""
 	if id == "":
-		return "把鼠标移到穴位上查看。左键加点，右键减点。每个节点要满足：①前置节点（≥1 点 / 点满，用连线表示：细线 ≥1 点、粗线 点满）；②本系其余节点已投入的点数达到该层门槛（框内横线上的数字）。三系容量共 150 点，满级最多 99 点，所以要取舍；点满 99 点后出现第 100 点「极意」。"
+		return "把鼠标移到穴位上查看。左键加点，右键减点。每个节点要满足：①前置节点（≥1 点 / 点满，用连线表示：细线 ≥1 点、粗线 点满）；②终极需要本系其余节点共投入 25 点，巅峰需要 36 点并且至少点亮一个终极；普通节点只看前置，所以可以先专心点一条链（点到终极前一格），再去别的链凑够点数。三系容量共 150 点，满级最多 99 点，所以要取舍；点满 99 点后出现第 100 点「极意」。"
 	var n: Dictionary = _all[id]
 	var rank := int(work.get(id, 0))
 	if n["branch"] == "ji":
@@ -183,7 +183,7 @@ func _draw() -> void:
 			var cx := rect.position.x + cw * (ci + 0.5)
 			draw_string(font, Vector2(cx - cw * 0.5, G_HEADER + 2), str(bd["cols"][ci]), HORIZONTAL_ALIGNMENT_CENTER, cw, 10, Color(col.lightened(0.3), 0.55))
 		# 层门槛线：行 r（2~7、9）上方；该行所在层的门槛
-		for r in [2, 3, 4, 5, 6, 7, 9]:
+		for r in [7, 9]:                                        # 只有终极（第 7 层）和巅峰（第 9 行）有跨链的总投入门槛
 			var tier: int = r if r < 9 else 8
 			var gy: float = G_HEADER + G_ROW * float(r - 1)
 			var okg := _branch_sum(b) >= int(gates[tier - 1])

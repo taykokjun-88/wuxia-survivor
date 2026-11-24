@@ -283,7 +283,7 @@ test('天赋：节点表与 game_data.json 一致；校验规则', (e) => {
   want[d.talents.ji.id] = ['ji', 7, d.talents.ji.max, 'legacy', 0, [], 0, 0];
   const trees = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'data', 'talent_trees.json'), 'utf8'));
   for (const [grp, tr] of Object.entries(trees)) {
-    for (const [b, bd] of Object.entries(tr.branches)) for (const n of bd.nodes) want[n.id] = [b, n.row, n.max, grp, tr.gates[n.tier - 1], n.req, n.cap ? 1 : 0, n.peak ? 1 : 0];
+    for (const [b, bd] of Object.entries(tr.branches)) for (const n of bd.nodes) want[n.id] = [b, n.row, n.max, grp, (n.gate !== undefined ? n.gate : tr.gates[n.tier - 1]), n.req, n.cap ? 1 : 0, n.peak ? 1 : 0];
     want[tr.ji.id] = ['ji', 10, tr.ji.max, grp, 0, [], 0, 0];
   }
   assert.deepStrictEqual(JSON.parse(JSON.stringify(e.ctx.TALENTS)), want, '节点表不同步：运行 python3 tools/sync_talents.py');
@@ -330,15 +330,17 @@ test('天赋：节点表与 game_data.json 一致；校验规则', (e) => {
   assert.ok(/本系其余节点已投入|前置/.test(e.ctx.TALENT_WHY), '失败时给出原因：' + e.ctx.TALENT_WHY);
   c({ not_a_node: 1 });
   assert.ok(/不认识节点/.test(e.ctx.TALENT_WHY), '未知节点提示后端代码可能过旧');
-  assert.strictEqual(c({ fg_a_1: 1, fg_a_2: 1 }), null, '层门槛：本系其余节点 ≥8 点才能点层 3');
+  assert.ok(c({ fg_a_1: 3, fg_a_2: 3, fg_a_3: 2 }), '单点一条链：前置满足就能一路点到终极前一格（普通节点的门槛不超过本链已点的点数）');
+  assert.ok(c({ fg_b_1: 3, fg_b_2: 3, fg_b_3: 2 }), '中间的链也能直接开始（第一个节点没有门槛）');
+  assert.strictEqual(c({ fg_a_1: 3, fg_a_2: 3, fg_a_3: 2, fg_a_4: 1 }), null, '终极需要本系其余节点共 25 点：一条链不够');
   const base = { fg_a_1: 3, fg_g_1: 3, fg_g_2: 2 };               // 本系 8 点
-  assert.ok(c(Object.assign({}, base, { fg_a_2: 1 })), '前置 ≥1 点 + 门槛满足');
+  assert.ok(c(Object.assign({}, base, { fg_a_2: 1 })), '前置 ≥1 点即可');
   assert.strictEqual(c(Object.assign({}, base, { fg_a_2: 1, fg_a_3: 1 })), null, '前置「点满」：第 2 个节点没点满，不能点第 3 个');
   const more = { fg_a_1: 3, fg_a_2: 3, fg_b_1: 3, fg_g_1: 3, fg_g_2: 3, fg_g_3: 3 };   // 19
   assert.ok(c(Object.assign({}, more, { fg_a_3: 1 })), '第 2 个点满后可点第 3 个');
-  assert.strictEqual(c(Object.assign({}, more, { fg_a_3: 1, fg_a_4: 1 })), null, '终极需要前置点满（且本系 ≥26 点）');
+  assert.strictEqual(c(Object.assign({}, more, { fg_a_3: 1, fg_a_4: 1 })), null, '终极需要前置点满');
   assert.strictEqual(c(Object.assign({}, more, { fg_peak: 1 })), null, '巅峰需要本系 ≥36 点且点过终极');
-  assert.ok(c({ fg_a_1: 3, fg_a_2: 3, fg_a_3: 2, fg_a_4: 1, fg_b_1: 3, fg_b_2: 3, fg_b_3: 2, fg_g_1: 3, fg_g_2: 3, fg_g_3: 3, fg_g_4: 3, fg_g_5: 1 }), '终极：前置点满 + 本系 ≥26 点');
+  assert.ok(c({ fg_a_1: 3, fg_a_2: 3, fg_a_3: 2, fg_a_4: 1, fg_b_1: 3, fg_b_2: 3, fg_b_3: 2, fg_g_1: 3, fg_g_2: 3, fg_g_3: 3, fg_g_4: 3, fg_g_5: 1 }), '终极：前置点满');
   const pk = { fg_a_1: 3, fg_a_2: 3, fg_a_3: 2, fg_a_4: 1, fg_b_1: 3, fg_b_2: 3, fg_b_3: 2, fg_g_1: 3, fg_g_2: 3, fg_g_3: 3, fg_g_4: 3, fg_g_5: 4, fg_g_6: 3, fg_c_1: 3, fg_c_2: 1 };   // 本系 ≥36
   assert.ok(c(Object.assign({}, pk, { fg_peak: 1 })), '巅峰：本系 ≥36 点且点过终极');
   assert.ok(c({ fg_a_1: 3 }, 1) === null && c({ fg_a_1: 2 }, 1), '每级 2 点的预算也适用于新树');

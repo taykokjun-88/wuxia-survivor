@@ -2,12 +2,12 @@
  "fist": {
   "gates": [
    0,
-   4,
-   8,
-   12,
-   16,
-   20,
-   26,
+   3,
+   6,
+   9,
+   15,
+   21,
+   25,
    36
   ],
   "ji": {
@@ -50,7 +50,8 @@
       "desc": "连山贯日拳连续命中同一敌人，每次叠 1 层「破绽」，该敌人受此招伤害 +5%/层；层数上限 3/4/5",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "fg_a_2",
@@ -70,7 +71,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "fg_a_3",
@@ -90,7 +92,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "fg_a_4",
@@ -110,7 +113,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "fg_b_1",
@@ -125,7 +129,8 @@
       "desc": "沉岳铁拳「内力越满伤害越高」的上限 +10%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "fg_b_2",
@@ -145,7 +150,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "fg_b_3",
@@ -165,7 +171,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "fg_b_4",
@@ -185,7 +192,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "fg_c_1",
@@ -201,7 +209,8 @@
       "desc": "裂脉震拳范围 +8%/级，击晕时间 +10%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "fg_c_2",
@@ -221,7 +230,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "fg_c_3",
@@ -241,7 +251,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "fg_c_4",
@@ -261,7 +272,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "fg_g_1",
@@ -276,7 +288,8 @@
       "desc": "招式伤害 +2%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "fg_g_2",
@@ -297,7 +310,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "fg_g_3",
@@ -317,7 +331,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "fg_g_4",
@@ -337,7 +352,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 9
      },
      {
       "id": "fg_g_5",
@@ -357,7 +373,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 12
      },
      {
       "id": "fg_g_6",
@@ -377,7 +394,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 16
      },
      {
       "id": "fg_g_7",
@@ -397,7 +415,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 19
      },
      {
       "id": "fg_g_8",
@@ -417,7 +436,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "fg_peak",
@@ -432,7 +452,8 @@
       "desc": "巅峰：阳性内力（双阳）：回内力 +50%；内力满时生成护盾（上限 50% 气血），护盾在时反弹所受伤害的 30%",
       "req": [],
       "cap": false,
-      "peak": true
+      "peak": true,
+      "gate": 36
      }
     ]
    },
@@ -465,7 +486,8 @@
       "desc": "凝霜点指每次多射 1 道指劲（+1/级）",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "fr_a_2",
@@ -485,7 +507,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "fr_a_3",
@@ -505,7 +528,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "fr_a_4",
@@ -525,7 +549,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "fr_b_1",
@@ -540,7 +565,8 @@
       "desc": "乱花拂柳掌范围 +12%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "fr_b_2",
@@ -560,7 +586,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "fr_b_3",
@@ -580,7 +607,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "fr_b_4",
@@ -600,7 +628,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "fr_c_1",
@@ -615,7 +644,8 @@
       "desc": "回澜卸力诀化解比例 +5%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "fr_c_2",
@@ -635,7 +665,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "fr_c_3",
@@ -655,7 +686,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "fr_c_4",
@@ -675,7 +707,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "fr_g_1",
@@ -690,7 +723,8 @@
       "desc": "气血回复 +0.3/秒每级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "fr_g_2",
@@ -710,7 +744,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "fr_g_3",
@@ -730,7 +765,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "fr_g_4",
@@ -750,7 +786,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 9
      },
      {
       "id": "fr_g_5",
@@ -770,7 +807,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 12
      },
      {
       "id": "fr_g_6",
@@ -791,7 +829,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 16
      },
      {
       "id": "fr_g_7",
@@ -811,7 +850,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 19
      },
      {
       "id": "fr_g_8",
@@ -831,7 +871,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "fr_peak",
@@ -846,7 +887,8 @@
       "desc": "巅峰：阴性内力（双阴）：真气爆发时额外回血，并获得 8 秒攻速 +30%",
       "req": [],
       "cap": false,
-      "peak": true
+      "peak": true,
+      "gate": 36
      }
     ]
    },
@@ -879,7 +921,8 @@
       "desc": "朔雪融阳掌初始掌印 +1/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "fl_a_2",
@@ -900,7 +943,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 2
      },
      {
       "id": "fl_a_3",
@@ -920,7 +964,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 5
      },
      {
       "id": "fl_a_4",
@@ -940,7 +985,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "fl_b_1",
@@ -955,7 +1001,8 @@
       "desc": "撼岳惊涛掌贯穿 +1/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "fl_b_2",
@@ -975,7 +1022,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "fl_b_3",
@@ -995,7 +1043,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "fl_b_4",
@@ -1015,7 +1064,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "fl_c_1",
@@ -1030,7 +1080,8 @@
       "desc": "四野归元功冷却 −10%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "fl_c_2",
@@ -1050,7 +1101,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "fl_c_3",
@@ -1070,7 +1122,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "fl_c_4",
@@ -1090,7 +1143,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "fl_g_1",
@@ -1105,7 +1159,8 @@
       "desc": "拳掌无敌持续 +1 秒/级（10 → 14 秒）",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "fl_g_2",
@@ -1125,7 +1180,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "fl_g_3",
@@ -1145,7 +1201,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "fl_g_4",
@@ -1165,7 +1222,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 9
      },
      {
       "id": "fl_g_5",
@@ -1185,7 +1243,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 13
      },
      {
       "id": "fl_g_6",
@@ -1205,7 +1264,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 16
      },
      {
       "id": "fl_g_7",
@@ -1225,7 +1285,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 19
      },
      {
       "id": "fl_g_8",
@@ -1245,7 +1306,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "fl_peak",
@@ -1260,7 +1322,8 @@
       "desc": "巅峰：调和内力（一阴一阳）：真气爆发次数 ×2（本局可爆发 2 次）",
       "req": [],
       "cap": false,
-      "peak": true
+      "peak": true,
+      "gate": 36
      }
     ]
    }
@@ -1269,12 +1332,12 @@
  "sword": {
   "gates": [
    0,
-   4,
-   8,
-   12,
-   16,
-   20,
-   26,
+   3,
+   6,
+   9,
+   15,
+   21,
+   25,
    36
   ],
   "ji": {
@@ -1317,7 +1380,8 @@
       "desc": "劲柏凌霜剑伤害 +8%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "sg_a_2",
@@ -1338,7 +1402,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "sg_a_3",
@@ -1358,7 +1423,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "sg_a_4",
@@ -1378,7 +1444,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "sg_b_1",
@@ -1393,7 +1460,8 @@
       "desc": "沉渊重剑伤害 +10%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "sg_b_2",
@@ -1413,7 +1481,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "sg_b_3",
@@ -1433,7 +1502,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "sg_b_4",
@@ -1453,7 +1523,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "sg_c_1",
@@ -1468,7 +1539,8 @@
       "desc": "断云裂帛剑伤害 +8%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "sg_c_2",
@@ -1488,7 +1560,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "sg_c_3",
@@ -1508,7 +1581,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "sg_c_4",
@@ -1528,7 +1602,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "sg_g_1",
@@ -1543,7 +1618,8 @@
       "desc": "招式伤害 +2%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "sg_g_2",
@@ -1563,7 +1639,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "sg_g_3",
@@ -1583,7 +1660,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "sg_g_4",
@@ -1603,7 +1681,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 10
      },
      {
       "id": "sg_g_5",
@@ -1623,7 +1702,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 13
      },
      {
       "id": "sg_g_6",
@@ -1643,7 +1723,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 17
      },
      {
       "id": "sg_peak",
@@ -1659,7 +1740,8 @@
       "desc": "巅峰：阳性内力（回内力 +50%、满内力护盾并反弹 30%），盈境伤害 +10%",
       "req": [],
       "cap": false,
-      "peak": true
+      "peak": true,
+      "gate": 36
      }
     ]
    },
@@ -1692,7 +1774,8 @@
       "desc": "猎风疾影剑伤害 +6%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "sr_a_2",
@@ -1712,7 +1795,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "sr_a_3",
@@ -1732,7 +1816,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "sr_a_4",
@@ -1752,7 +1837,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "sr_b_1",
@@ -1767,7 +1853,8 @@
       "desc": "圆转绵剑剑圈范围 +12%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "sr_b_2",
@@ -1787,7 +1874,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "sr_b_3",
@@ -1807,7 +1895,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "sr_b_4",
@@ -1827,7 +1916,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "sr_c_1",
@@ -1842,7 +1932,8 @@
       "desc": "兰溪双影剑伤害 +6%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "sr_c_2",
@@ -1862,7 +1953,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "sr_c_3",
@@ -1882,7 +1974,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "sr_c_4",
@@ -1902,7 +1995,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "sr_g_1",
@@ -1917,7 +2011,8 @@
       "desc": "移速 +1.5%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "sr_g_2",
@@ -1937,7 +2032,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "sr_g_3",
@@ -1957,7 +2053,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 7
      },
      {
       "id": "sr_g_4",
@@ -1977,7 +2074,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 10
      },
      {
       "id": "sr_g_5",
@@ -1997,7 +2095,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 13
      },
      {
       "id": "sr_g_6",
@@ -2017,7 +2116,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 17
      },
      {
       "id": "sr_peak",
@@ -2032,7 +2132,8 @@
       "desc": "巅峰：阴性内力（双阴）：真气爆发时额外回血，并获得 8 秒攻速 +30%",
       "req": [],
       "cap": false,
-      "peak": true
+      "peak": true,
+      "gate": 36
      }
     ]
    },
@@ -2070,7 +2171,8 @@
       "desc": "开局自带「总纲变」1/2/3 层",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "sl_a_2",
@@ -2090,7 +2192,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "sl_a_3",
@@ -2110,7 +2213,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 4
      },
      {
       "id": "sl_a_4",
@@ -2130,7 +2234,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 7
      },
      {
       "id": "sl_a_5",
@@ -2150,7 +2255,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "sl_b_1",
@@ -2165,7 +2271,8 @@
       "desc": "每次出剑有 8%/16%/24%/32% 几率额外「复剑」：同样的剑气再发一次（伤害 60%）",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "sl_b_2",
@@ -2185,7 +2292,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "sl_b_3",
@@ -2205,7 +2313,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "sl_b_4",
@@ -2225,7 +2334,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 8
      },
      {
       "id": "sl_b_5",
@@ -2245,7 +2355,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "sl_c_1",
@@ -2260,7 +2371,8 @@
       "desc": "折锋变的弹射次数 +1/2/3，弹射后伤害不再衰减",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "sl_c_2",
@@ -2280,7 +2392,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "sl_c_3",
@@ -2300,7 +2413,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 5
      },
      {
       "id": "sl_c_4",
@@ -2320,7 +2434,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 7
      },
      {
       "id": "sl_c_5",
@@ -2340,7 +2455,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "sl_d_1",
@@ -2355,7 +2471,8 @@
       "desc": "残影掠光剑闪现距离 / 范围 +10%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "sl_d_2",
@@ -2375,7 +2492,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "sl_d_3",
@@ -2395,7 +2513,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "sl_e_1",
@@ -2410,7 +2529,8 @@
       "desc": "千锋聚啸剑飞剑 +1/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "sl_e_2",
@@ -2430,7 +2550,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "sl_e_3",
@@ -2450,7 +2571,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "sl_f_1",
@@ -2465,7 +2587,8 @@
       "desc": "蜿蜒曲锋剑曲锋锥 +1/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "sl_f_2",
@@ -2485,7 +2608,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "sl_f_3",
@@ -2505,7 +2629,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "sl_peak",
@@ -2523,7 +2648,8 @@
       "desc": "巅峰：无迹九变剑伤害 +12%、暴击率 +6%、冷却 −8%，暴击伤害 +6%",
       "req": [],
       "cap": false,
-      "peak": true
+      "peak": true,
+      "gate": 36
      }
     ]
    }
@@ -2537,12 +2663,12 @@
  "blade": {
   "gates": [
    0,
-   4,
-   8,
-   12,
-   16,
-   20,
-   26,
+   3,
+   6,
+   9,
+   15,
+   21,
+   25,
    36
   ],
   "ji": {
@@ -2585,7 +2711,8 @@
       "desc": "五煞断岳刀伤害 +8%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "bg_a_2",
@@ -2605,7 +2732,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "bg_a_3",
@@ -2626,7 +2754,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "bg_a_4",
@@ -2646,7 +2775,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "bg_b_1",
@@ -2661,7 +2791,8 @@
       "desc": "斩蛟沉海刀范围 +10%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "bg_b_2",
@@ -2681,7 +2812,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "bg_b_3",
@@ -2701,7 +2833,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "bg_b_4",
@@ -2721,7 +2854,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "bg_c_1",
@@ -2736,7 +2870,8 @@
       "desc": "幽微藏锋刀伤害 +8%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "bg_c_2",
@@ -2756,7 +2891,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "bg_c_3",
@@ -2776,7 +2912,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "bg_c_4",
@@ -2796,7 +2933,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "bg_g_1",
@@ -2811,7 +2949,8 @@
       "desc": "招式伤害 +2%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "bg_g_2",
@@ -2831,7 +2970,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "bg_g_3",
@@ -2851,7 +2991,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "bg_g_4",
@@ -2871,7 +3012,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 9
      },
      {
       "id": "bg_g_5",
@@ -2891,7 +3033,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 12
      },
      {
       "id": "bg_g_6",
@@ -2911,7 +3054,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 16
      },
      {
       "id": "bg_g_7",
@@ -2931,7 +3075,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 19
      },
      {
       "id": "bg_g_8",
@@ -2951,7 +3096,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "bg_peak",
@@ -2968,7 +3114,8 @@
       "desc": "巅峰：阳性内力，盈境伤害 +10%；气血每降低 10%，全部伤害再 +3%",
       "req": [],
       "cap": false,
-      "peak": true
+      "peak": true,
+      "gate": 36
      }
     ]
    },
@@ -3001,7 +3148,8 @@
       "desc": "暴风卷沙刀冷却 −8%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "br_a_2",
@@ -3021,7 +3169,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "br_a_3",
@@ -3041,7 +3190,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "br_a_4",
@@ -3061,7 +3211,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "br_b_1",
@@ -3076,7 +3227,8 @@
       "desc": "朱砂饮锋刀伤害 +8%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "br_b_2",
@@ -3096,7 +3248,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "br_b_3",
@@ -3116,7 +3269,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "br_b_4",
@@ -3136,7 +3290,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "br_c_1",
@@ -3151,7 +3306,8 @@
       "desc": "错位双仪刀刀轮范围 +12%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "br_c_2",
@@ -3171,7 +3327,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "br_c_3",
@@ -3191,7 +3348,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "br_c_4",
@@ -3211,7 +3369,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "br_g_1",
@@ -3226,7 +3385,8 @@
       "desc": "气血回复 +0.4/秒每级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "br_g_2",
@@ -3246,7 +3406,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "br_g_3",
@@ -3266,7 +3427,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "br_g_4",
@@ -3286,7 +3448,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 9
      },
      {
       "id": "br_g_5",
@@ -3306,7 +3469,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 12
      },
      {
       "id": "br_g_6",
@@ -3326,7 +3490,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 16
      },
      {
       "id": "br_g_7",
@@ -3346,7 +3511,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 19
      },
      {
       "id": "br_g_8",
@@ -3366,7 +3532,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "br_peak",
@@ -3381,7 +3548,8 @@
       "desc": "巅峰：阴性内力：真气爆发时额外回血，并获得 8 秒攻速 +30%",
       "req": [],
       "cap": false,
-      "peak": true
+      "peak": true,
+      "gate": 36
      }
     ]
    },
@@ -3414,7 +3582,8 @@
       "desc": "寒鸦落雪刀伤害 +8%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "bl_a_2",
@@ -3434,7 +3603,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "bl_a_3",
@@ -3454,7 +3624,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "bl_a_4",
@@ -3474,7 +3645,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "bl_b_1",
@@ -3489,7 +3661,8 @@
       "desc": "烈焰焚林刀伤害 +8%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "bl_b_2",
@@ -3509,7 +3682,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "bl_b_3",
@@ -3529,7 +3703,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "bl_b_4",
@@ -3549,7 +3724,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "bl_c_1",
@@ -3564,7 +3740,8 @@
       "desc": "双鲤戏浪刀飞刀 +1 对/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "bl_c_2",
@@ -3584,7 +3761,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "bl_c_3",
@@ -3604,7 +3782,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "bl_c_4",
@@ -3624,7 +3803,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "bl_g_1",
@@ -3639,7 +3819,8 @@
       "desc": "真·霸刀破岳持续 +1 秒/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "bl_g_2",
@@ -3659,7 +3840,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "bl_g_3",
@@ -3679,7 +3861,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "bl_g_4",
@@ -3699,7 +3882,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 9
      },
      {
       "id": "bl_g_5",
@@ -3719,7 +3903,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 13
      },
      {
       "id": "bl_g_6",
@@ -3739,7 +3924,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 16
      },
      {
       "id": "bl_g_7",
@@ -3759,7 +3945,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 19
      },
      {
       "id": "bl_g_8",
@@ -3779,7 +3966,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "bl_peak",
@@ -3796,7 +3984,8 @@
       "desc": "巅峰：调和内力：真气爆发次数 ×2；招式冷却 −5%，气血上限 +10",
       "req": [],
       "cap": false,
-      "peak": true
+      "peak": true,
+      "gate": 36
      }
     ]
    }
@@ -3805,12 +3994,12 @@
  "spear": {
   "gates": [
    0,
-   4,
-   8,
-   12,
-   16,
-   20,
-   26,
+   3,
+   6,
+   9,
+   15,
+   21,
+   25,
    36
   ],
   "ji": {
@@ -3853,7 +4042,8 @@
       "desc": "少林棍法伤害 +8%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "pg_a_2",
@@ -3873,7 +4063,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "pg_a_3",
@@ -3893,7 +4084,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "pg_a_4",
@@ -3913,7 +4105,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "pg_b_1",
@@ -3928,7 +4121,8 @@
       "desc": "怒涛狂澜杖伤害 +8%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "pg_b_2",
@@ -3948,7 +4142,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "pg_b_3",
@@ -3968,7 +4163,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "pg_b_4",
@@ -3988,7 +4184,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "pg_c_1",
@@ -4003,7 +4200,8 @@
       "desc": "定海铁杖伤害 +8%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "pg_c_2",
@@ -4023,7 +4221,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "pg_c_3",
@@ -4043,7 +4242,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "pg_c_4",
@@ -4063,7 +4263,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "pg_g_1",
@@ -4078,7 +4279,8 @@
       "desc": "招式伤害 +2%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "pg_g_2",
@@ -4098,7 +4300,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "pg_g_3",
@@ -4118,7 +4321,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "pg_g_4",
@@ -4138,7 +4342,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 9
      },
      {
       "id": "pg_g_5",
@@ -4158,7 +4363,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 12
      },
      {
       "id": "pg_g_6",
@@ -4178,7 +4384,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 16
      },
      {
       "id": "pg_g_7",
@@ -4198,7 +4405,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 19
      },
      {
       "id": "pg_g_8",
@@ -4218,7 +4426,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "pg_peak",
@@ -4234,7 +4443,8 @@
       "desc": "巅峰：格挡几率 +5%，暴击伤害 +10%",
       "req": [],
       "cap": false,
-      "peak": true
+      "peak": true,
+      "gate": 36
      }
     ]
    },
@@ -4267,7 +4477,8 @@
       "desc": "蟠龙棍法守势时间 +12%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "pr_a_2",
@@ -4287,7 +4498,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "pr_a_3",
@@ -4307,7 +4519,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "pr_a_4",
@@ -4327,7 +4540,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "pr_b_1",
@@ -4342,7 +4556,8 @@
       "desc": "翠竹巧拨棒伤害 +8%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "pr_b_2",
@@ -4362,7 +4577,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "pr_b_3",
@@ -4382,7 +4598,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "pr_b_4",
@@ -4402,7 +4619,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "pr_c_1",
@@ -4417,7 +4635,8 @@
       "desc": "无名枪法暴击率 +5%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "pr_c_2",
@@ -4437,7 +4656,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "pr_c_3",
@@ -4457,7 +4677,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "pr_c_4",
@@ -4477,7 +4698,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "pr_g_1",
@@ -4492,7 +4714,8 @@
       "desc": "气血回复 +0.3/秒每级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "pr_g_2",
@@ -4512,7 +4735,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "pr_g_3",
@@ -4532,7 +4756,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "pr_g_4",
@@ -4552,7 +4777,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 9
      },
      {
       "id": "pr_g_5",
@@ -4572,7 +4798,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 12
      },
      {
       "id": "pr_g_6",
@@ -4592,7 +4819,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 16
      },
      {
       "id": "pr_g_7",
@@ -4612,7 +4840,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 19
      },
      {
       "id": "pr_g_8",
@@ -4632,7 +4861,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "pr_peak",
@@ -4647,7 +4877,8 @@
       "desc": "巅峰：阴性内力：真气爆发时额外回血，并获得 8 秒攻速 +30%",
       "req": [],
       "cap": false,
-      "peak": true
+      "peak": true,
+      "gate": 36
      }
     ]
    },
@@ -4680,7 +4911,8 @@
       "desc": "杨家枪法射程 +8%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "pl_a_2",
@@ -4700,7 +4932,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "pl_a_3",
@@ -4720,7 +4953,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "pl_a_4",
@@ -4740,7 +4974,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "pl_b_1",
@@ -4755,7 +4990,8 @@
       "desc": "梅花枪法枪数 +1/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "pl_b_2",
@@ -4775,7 +5011,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "pl_b_3",
@@ -4795,7 +5032,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "pl_b_4",
@@ -4815,7 +5053,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "pl_c_1",
@@ -4830,7 +5069,8 @@
       "desc": "白马银枪冷却 −10%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "pl_c_2",
@@ -4850,7 +5090,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "pl_c_3",
@@ -4870,7 +5111,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "pl_c_4",
@@ -4890,7 +5132,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "pl_g_1",
@@ -4905,7 +5148,8 @@
       "desc": "移速 +1.5%/级",
       "req": [],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 0
      },
      {
       "id": "pl_g_2",
@@ -4925,7 +5169,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 3
      },
      {
       "id": "pl_g_3",
@@ -4945,7 +5190,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 6
      },
      {
       "id": "pl_g_4",
@@ -4965,7 +5211,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 9
      },
      {
       "id": "pl_g_5",
@@ -4985,7 +5232,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 12
      },
      {
       "id": "pl_g_6",
@@ -5005,7 +5253,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 16
      },
      {
       "id": "pl_g_7",
@@ -5025,7 +5274,8 @@
        ]
       ],
       "cap": false,
-      "peak": false
+      "peak": false,
+      "gate": 19
      },
      {
       "id": "pl_g_8",
@@ -5045,7 +5295,8 @@
        ]
       ],
       "cap": true,
-      "peak": false
+      "peak": false,
+      "gate": 25
      },
      {
       "id": "pl_peak",
@@ -5062,7 +5313,8 @@
       "desc": "巅峰：调和内力：真气爆发次数 ×2；枪势 / 棍势攒速 +20%",
       "req": [],
       "cap": false,
-      "peak": true
+      "peak": true,
+      "gate": 36
      }
     ]
    }

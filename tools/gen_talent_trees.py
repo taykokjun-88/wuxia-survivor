@@ -3,7 +3,7 @@
 改天赋内容 → 改这里 → 运行 python3 tools/gen_talent_trees.py → python3 tools/sync_talents.py"""
 import json, pathlib
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-GATES = [0, 4, 8, 12, 16, 20, 26, 36]       # 第 1~8 层所需的「本系已投入点数」
+GATES = [0, 3, 6, 9, 15, 21, 25, 36]       # 第 1~8 层所需的「本系其余节点已投入点数」（你定的：3 / 6 / 9 / 15 / 21 / 25 / 36）
 ONE, FULL = "one", "full"
 
 
@@ -398,7 +398,22 @@ sp_ling = (
         ("枪出如龙", 1, {"t_qiangchu": 1}, "终极：每第 5 次枪路出手，游龙突无需攒势")], SIG_TIERS, SIG_ROWS, SIG_MODES))
 sp_ling.append(N("pl_peak", "神枪合一", 1, 8, 1.5, 9, {"burst_harmony": 1, "qs_gain": 0.2, "gs_gain": 0.2}, "巅峰：调和内力：真气爆发次数 ×2；枪势 / 棍势攒速 +20%", peak=True))
 
+def assign_gates(nodes):
+    """每个节点的层门槛 = 该层的总投入门槛；但普通节点最多要求「本链前面节点的点数之和」，
+    所以任何一条链都可以先单点、一路点到终极前一格；终极（需 25）和巅峰（需 36）必须靠别的链凑够。"""
+    prior = {}
+    for n in nodes:
+        g = GATES[n["tier"] - 1]
+        if not n["cap"] and not n["peak"]:
+            prefix = n["id"].rsplit("_", 1)[0]
+            g = min(g, prior.get(prefix, 0))
+        n["gate"] = g
+        prior[n["id"].rsplit("_", 1)[0]] = prior.get(n["id"].rsplit("_", 1)[0], 0) + n["max"]
+
+
 def build(ji, branches):
+    for _b, (_n, _s, _st, _c, _cs, nodes) in branches.items():
+        assign_gates(nodes)
     out = {"gates": GATES, "ji": ji, "branches": {}}
     for b, (name, sub_, starter, cols, col_skills, nodes) in branches.items():
         out["branches"][b] = {"name": name, "sub": sub_, "starter": starter, "cols": cols, "col_skills": col_skills, "nodes": nodes}

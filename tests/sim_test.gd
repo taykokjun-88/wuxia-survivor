@@ -20,6 +20,7 @@ func _ready() -> void:
 		_blade_tree_test()
 	if only == "speartree":
 		_spear_tree_test()
+		_single_chain_test()
 	if only == "" or only == "upgrade":
 		_upgrade_system_test()
 		_enhance_rework_test()
@@ -38,6 +39,7 @@ func _ready() -> void:
 		_sword_tree_test()
 		_blade_tree_test()
 		_spear_tree_test()
+		_single_chain_test()
 		_vfx_test()
 		_p2_test()
 		_synergy_test()
@@ -5316,3 +5318,37 @@ func _spear_tree_test() -> void:
 	_check((mh as SpearSkills.Meihua)._mh == 5, "梅花雨：计数到第 5 次")
 	_free_world(w6)
 	print("  杨家将 棍势 / 守势 / 枪势 / 招式链  OK")
+
+
+## 可以先单点一条链（一排）：普通节点的门槛不超过本链已点的点数，可以一路点到终极前一格；终极（25）和巅峰（36）要别的链凑
+func _single_chain_test() -> void:
+	print("\n=== 天赋：单点一条链 ===")
+	var cnt := 0
+	for sc in ["fist", "sword", "blade", "spear"]:
+		var nodes := Talents.nodes(sc)
+		var cols := {}
+		for id in nodes:
+			var n: Dictionary = nodes[id]
+			if n["branch"] == "ji" or bool(n.get("peak", false)):
+				continue
+			var key := "%s:%s" % [n["branch"], str(n["col"])]
+			if not cols.has(key):
+				cols[key] = []
+			cols[key].append(id)
+		for key in cols:
+			var ids: Array = cols[key]
+			ids.sort_custom(func(a, b): return int(nodes[a]["row"]) < int(nodes[b]["row"]))
+			var t := {}
+			for id in ids:
+				while Talents.can_add(t, id, 50):
+					t[id] = int(t.get(id, 0)) + 1
+			var full := true
+			var cap_blocked := true
+			for id in ids:
+				if bool(nodes[id].get("cap", false)):
+					cap_blocked = cap_blocked and int(t.get(id, 0)) == 0                 # 终极需要别的链凑够 25 点
+				else:
+					full = full and int(t.get(id, 0)) == int(nodes[id]["max"])
+			_check(full and cap_blocked, "%s %s 单点一整条链能点到终极前一格，终极要别的链凑够点数（%d 点）" % [sc, key, Talents.spent(t)])
+			cnt += 1
+	print("  %d 条链都能单点点满  OK" % cnt)

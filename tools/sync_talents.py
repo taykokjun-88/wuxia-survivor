@@ -21,7 +21,7 @@ def block() -> str:
     for grp, tr in trees.items():
         for b, bd in tr["branches"].items():
             for n in bd["nodes"]:
-                nodes[n["id"]] = [b, n["row"], n["max"], grp, tr["gates"][n["tier"] - 1], n["req"], int(n["cap"]), int(n["peak"])]
+                nodes[n["id"]] = [b, n["row"], n["max"], grp, n.get("gate", tr["gates"][n["tier"] - 1]), n["req"], int(n["cap"]), int(n["peak"])]
         nodes[tr["ji"]["id"]] = ["ji", 10, tr["ji"]["max"], grp, 0, [], 0, 0]
     g = d["gear"]
     gear = {"slots": [s["id"] for s in g["slots"]], "weights": [r["weight"] for r in g["rarity"]],
