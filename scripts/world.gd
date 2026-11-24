@@ -215,6 +215,7 @@ var shake := 0.0
 var time := 0.0
 var kills := 0
 var exp_total := 0          # 统计：本局累计获得的修为
+var _exp_frac := 0.0        # 经验的小数余数
 var over := false
 var won := false
 var enemies: Array[Enemy] = []
@@ -375,6 +376,7 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	time = 0.0
 	kills = 0
 	exp_total = 0
+	_exp_frac = 0.0
 	over = false
 	won = false
 	enemies.clear()
@@ -2212,7 +2214,10 @@ func _update_gems(dt: float) -> void:
 
 
 func _gain_exp(v: int) -> void:
-	var gain := int(ceil(v * (1.0 + st("exp_pct")) * (1.0 + (reward_comp - 1.0) * float(Data.difficulty["exp_in_run"]))))
+	# 怪变少了，每只怪给的经验 +30%（enemy_exp_mult）；小数部分累积到下一次，不吃亏也不多给
+	_exp_frac += float(v) * (1.0 + st("exp_pct")) * (1.0 + (reward_comp - 1.0) * float(Data.difficulty["exp_in_run"])) * Data.T("enemy_exp_mult")
+	var gain := int(_exp_frac)
+	_exp_frac -= float(gain)
 	exp_now += gain
 	exp_total += gain
 	var leveled := false

@@ -74,6 +74,7 @@
     "elite_dmg": 1.5,
     "elite_exp": 15,
     "exp_mult": 1.4,
+    "enemy_exp_mult": 1.3,
     "ying_at": 0.65,
     "xu_below": 0.25,
     "ying_dmg": 1.7,

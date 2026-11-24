@@ -4224,7 +4224,7 @@ func _full_run(cfg: Dictionary) -> void:
 	print("性能：平均 %.2f ms/step  最差 %.2f ms  敌人峰值 %d  Boss数 %d" % [
 		total_us / 1000.0 / maxi(1, int(w.time / DT)), worst_us / 1000.0, peak, w.bosses.size()])
 	if cfg["god"]:
-		_check(w.bosses.size() >= 3, "至少应刷出 3 个 Boss（小 Boss ×3；大 Boss 在 10 分钟现身，血量调高后无敌 bot 可能打不完），实际 %d" % w.bosses.size())
+		_check(w.mini_idx >= 3, "至少应刷出 3 个小 Boss（大 Boss 现身会清掉没打死的小 Boss，所以看已刷出的个数），实际 %d" % w.mini_idx)
 		_check(w.level >= 10, "无敌 bot 15 分钟应至少升到 10 级，实际 %d" % w.level)
 		_check(w.enhance_id != "", "整局应至少拿到一次专属强化")
 		_check(w.enhance_level >= 1, "击败小 Boss 后强化应至少 Lv1，实际 Lv%d" % w.enhance_level)
