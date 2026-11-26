@@ -116,6 +116,12 @@ func _gui_input(ev: InputEvent) -> void:
 		var id2 := node_at(ev.position)
 		if id2 == "":
 			return
+		if GameHud.touch_mode and ev.button_index == MOUSE_BUTTON_LEFT and id2 != hover_id:
+			# 触屏（iPad）：第一次点选穴位先预览效果，再点一次才加点/减点
+			hover_id = id2
+			hovered.emit(id2)
+			queue_redraw()
+			return
 		hover_id = id2
 		var add: bool = (ev.button_index == MOUSE_BUTTON_LEFT) != remove_mode
 		if ev.button_index != MOUSE_BUTTON_LEFT and ev.button_index != MOUSE_BUTTON_RIGHT:

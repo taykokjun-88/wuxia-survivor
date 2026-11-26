@@ -45,6 +45,7 @@ var levelup_panel: Control
 var choice_title: Label
 var choice_buttons: Array[Button] = []
 var choice_cards: Array[Dictionary] = []
+var choice_unlock_ms: int = 0       # 触屏弹出选卡后短暂防误触锁（避免拖动摇杆的拇指瞬间误点）
 var reroll_btn: Button
 var loadout_panel: Control
 var create_panel: Control
@@ -274,7 +275,9 @@ func _build_levelup() -> void:
 		var b := Button.new()
 		b.custom_minimum_size = Vector2(360, 410)
 		b.focus_mode = Control.FOCUS_NONE
-		b.pressed.connect(func(): choice_selected.emit(i))
+		b.pressed.connect(func():
+			if Time.get_ticks_msec() >= choice_unlock_ms:
+				choice_selected.emit(i))
 		row.add_child(b)
 		var pad := MarginContainer.new()
 		pad.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -2297,9 +2300,10 @@ func hide_overlay() -> void:
 
 func show_choices(choices: Array, title: String, rerolls: int = -1) -> void:
 	choice_title.text = title
+	choice_unlock_ms = Time.get_ticks_msec() + 380 if touch_mode else 0
 	reroll_btn.visible = rerolls >= 0
 	reroll_btn.disabled = rerolls == 0
-	reroll_btn.text = "另觅机缘（剩余 %d 次）　[R]" % rerolls if rerolls > 0 else "另觅机缘（已用尽）"
+	reroll_btn.text = ("另觅机缘（剩余 %d 次）" + ("" if touch_mode else "　[R]")) % rerolls if rerolls > 0 else "另觅机缘（已用尽）"
 	for i in choice_buttons.size():
 		var b := choice_buttons[i]
 		if i < choices.size():
@@ -2339,6 +2343,8 @@ func show_choices(choices: Array, title: String, rerolls: int = -1) -> void:
 				hint_lbl.visible = true
 			else:
 				hint_lbl.visible = false
+			var foot_lbl: Label = card["foot"]
+			foot_lbl.text = "点此选取" if touch_mode else ("按 [%d] 选取" % (i + 1))
 			b.add_theme_stylebox_override("normal", _choice_style(col, false))
 			b.add_theme_stylebox_override("hover", _choice_style(col, true))
 			b.add_theme_stylebox_override("pressed", _choice_style(col, true))
