@@ -264,7 +264,7 @@ func _draw_bg(rect: Rect2, branch: String, col: Color, bi: int) -> void:
 			src.size.y = ts.x / want
 			src.position.y = (ts.y - src.size.y) * 0.5
 		draw_texture_rect_region(tex, rect, src, Color(1, 1, 1, 0.9))
-	draw_rect(rect, Color(0.04, 0.04, 0.05, 0.38 if not placeholder else 0.6))   # 压暗，保证字和穴位看得清
+	draw_rect(rect, Color(0.03, 0.03, 0.04, 0.58 if not placeholder else 0.68))   # 压暗，保证字和穴位看得清
 	draw_rect(rect, Color(col, 0.10))
 
 
@@ -276,31 +276,34 @@ func _draw_node(id: String, bi: int, row: int, idx: int, col: Color, font: Font)
 	var mx := int(n["max"])
 	var rr := ICON * 0.5
 	if id == hover_id:
-		draw_rect(Rect2(c - Vector2(66, ICON * 0.5 + 6.0), Vector2(132, ICON + 30.0)), Color(1, 1, 1, 0.08))
+		draw_rect(Rect2(c - Vector2(66, ICON * 0.5 + 6.0), Vector2(132, ICON + 30.0)), Color(1, 1, 1, 0.12))
 	if icons.has(st):
 		var sz := ICON * 1.15
-		var tint := col if st != "locked" else Color(1, 1, 1, 0.55)
+		var tint := col if st != "locked" else Color(1, 1, 1, 0.65)
 		draw_texture_rect(icons[st], Rect2(c - Vector2(sz, sz) * 0.5, Vector2(sz, sz)), false, tint)
 	else:
 		match st:
 			"locked":
-				draw_circle(c, rr, Color(0.12, 0.11, 0.1, 0.8))
-				draw_arc(c, rr, 0.0, TAU, 28, Color(0.45, 0.42, 0.38, 0.7), 2.0)
+				draw_circle(c, rr, Color(0.12, 0.11, 0.1, 0.85))
+				draw_arc(c, rr, 0.0, TAU, 28, Color(0.55, 0.52, 0.48, 0.8), 2.0)
 			"open":
-				draw_circle(c, rr, Color(0.1, 0.09, 0.08, 0.88))
+				draw_circle(c, rr, Color(0.1, 0.09, 0.08, 0.9))
 				draw_arc(c, rr, 0.0, TAU, 28, Color(col, 0.55 + 0.35 * sin(time_acc * 3.0 + c.x)), 2.5)
 			"ranked":
 				draw_circle(c, rr, Color(col, 0.38))
 				draw_arc(c, rr, 0.0, TAU, 28, col, 3.0)
-				draw_arc(c, rr + 3.0, -PI * 0.5, -PI * 0.5 + TAU * float(rank) / float(mx), 28, Color("#f3ead2", 0.9), 2.5)
+				draw_arc(c, rr + 3.0, -PI * 0.5, -PI * 0.5 + TAU * float(rank) / float(mx), 28, Color("#f3ead2", 0.95), 2.5)
 			"maxed":
 				draw_circle(c, rr + 5.0, Color("#c9a227", 0.25))
 				draw_circle(c, rr, col)
 				draw_arc(c, rr, 0.0, TAU, 28, Color("#c9a227"), 3.5)
-	var name_col := Color("#fff6dc") if st == "ranked" or st == "maxed" else (Color("#e8dfc5") if st == "open" else Color("#8d8670"))
+	var name_col := Color("#ffffff") if st == "ranked" or st == "maxed" else (Color("#f7eed8") if st == "open" else Color("#cfc7b4"))
+	var ol := Color(0.0, 0.0, 0.0, 0.92)
+	draw_string_outline(font, c + Vector2(-62, ICON * 0.5 + 12.0), str(n["name"]), HORIZONTAL_ALIGNMENT_CENTER, 124.0, 13, 3, ol)
 	draw_string(font, c + Vector2(-62, ICON * 0.5 + 12.0), str(n["name"]), HORIZONTAL_ALIGNMENT_CENTER, 124.0, 13, name_col)
 	var txt := "%d" % rank if mx == 1 and rank > 0 else ("%d/%d" % [rank, mx])
-	draw_string(font, c + Vector2(-20, 5), txt, HORIZONTAL_ALIGNMENT_CENTER, 40.0, 12, Color("#fff6dc") if rank > 0 else Color(0.8, 0.77, 0.7, 0.8))
+	draw_string_outline(font, c + Vector2(-20, 5), txt, HORIZONTAL_ALIGNMENT_CENTER, 40.0, 12, 3, ol)
+	draw_string(font, c + Vector2(-20, 5), txt, HORIZONTAL_ALIGNMENT_CENTER, 40.0, 12, Color("#ffffff") if rank > 0 else Color("#e6dec8"))
 	if id == hover_id:
 		draw_arc(c, rr + 7.0, 0.0, TAU, 28, Color("#fff6dc", 0.95), 2.0)
 
@@ -313,20 +316,20 @@ func _draw_ji(font: Font, bold: Font) -> void:
 	var rank := int(work.get(id, 0))
 	var open := ji_unlocked() or rank > 0
 	var n: Dictionary = _all[id]
-	draw_rect(Rect2(Vector2(0, box_h() + 6.0), Vector2(size.x, STRIP_H - 8.0)), Color(0.07, 0.06, 0.04, 0.75))
-	draw_rect(Rect2(Vector2(0, box_h() + 6.0), Vector2(size.x, STRIP_H - 8.0)), Color(gold, 0.45 if open else 0.15), false, 2.0)
+	draw_rect(Rect2(Vector2(0, box_h() + 6.0), Vector2(size.x, STRIP_H - 8.0)), Color(0.06, 0.05, 0.04, 0.9))
+	draw_rect(Rect2(Vector2(0, box_h() + 6.0), Vector2(size.x, STRIP_H - 8.0)), Color(gold, 0.55 if open else 0.25), false, 2.0)
 	var pulse := 0.5 + 0.5 * sin(time_acc * 3.0)
 	if open:
 		draw_circle(c, 30.0 + 4.0 * pulse, Color(gold, 0.18 + 0.12 * pulse))
 		draw_circle(c, 22.0, Color(gold, 0.95 if rank > 0 else 0.35))
 		draw_arc(c, 22.0, 0.0, TAU, 32, gold, 3.0)
 		draw_string(bold, c + Vector2(-20, 8), "极", HORIZONTAL_ALIGNMENT_CENTER, 40.0, 24, Color("#3a2a05") if rank > 0 else Color("#fff6dc"))
-		draw_string(bold, c + Vector2(34, -4), str(n["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, gold.lightened(0.2))
-		draw_string(font, c + Vector2(34, 16), "已点亮" if rank > 0 else "可以加点：第 100 点", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#e8dfc5"))
+		draw_string(bold, c + Vector2(34, -4), str(n["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 20, gold.lightened(0.25))
+		draw_string(font, c + Vector2(34, 16), "已点亮" if rank > 0 else "可以加点：第 100 点", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#f7eed8"))
 	else:
-		draw_circle(c, 22.0, Color(0.12, 0.11, 0.1, 0.85))
-		draw_arc(c, 22.0, 0.0, TAU, 32, Color(0.45, 0.42, 0.38, 0.7), 2.0)
-		draw_string(bold, c + Vector2(-20, 8), "极", HORIZONTAL_ALIGNMENT_CENTER, 40.0, 24, Color(0.5, 0.47, 0.42, 0.8))
-		draw_string(font, c + Vector2(34, 4), "三系各 33 点全部点满（%d / %d）后出现" % [Talents.spent(work), Talents.ji_need()], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#8d8670"))
+		draw_circle(c, 22.0, Color(0.12, 0.11, 0.1, 0.9))
+		draw_arc(c, 22.0, 0.0, TAU, 32, Color(0.55, 0.52, 0.48, 0.8), 2.0)
+		draw_string(bold, c + Vector2(-20, 8), "极", HORIZONTAL_ALIGNMENT_CENTER, 40.0, 24, Color("#b8b09c"))
+		draw_string(font, c + Vector2(34, 4), "三系各 33 点全部点满（%d / %d）后出现" % [Talents.spent(work), Talents.ji_need()], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#d4ccb8"))
 	if id == hover_id:
 		draw_arc(c, 29.0, 0.0, TAU, 32, Color("#fff6dc", 0.95), 2.0)

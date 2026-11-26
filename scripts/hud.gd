@@ -1635,6 +1635,8 @@ func _build_talents() -> void:
 	box.add_child(top)
 	top.add_child(_label("天赋树", 36))
 	talents_info_points = _label("", 18)
+	talents_info_points.add_theme_constant_override("outline_size", 3)
+	talents_info_points.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
 	top.add_child(talents_info_points)
 	var grid := Talents.has_tree(Save.school())        # 有按流派的 RO 式新树（武者）就用新树
 	var tree: TalentTree = TalentGrid.new() if grid else TalentTree.new()
@@ -1645,18 +1647,35 @@ func _build_talents() -> void:
 	tree.custom_minimum_size = tsize
 	box.add_child(tree)
 	talents_tree = tree
+	var info_panel := PanelContainer.new()
+	info_panel.custom_minimum_size = Vector2(tsize.x, 66)
+	var isb := StyleBoxFlat.new()
+	isb.bg_color = Color(0.06, 0.05, 0.04, 0.96)
+	isb.border_color = Color("#b89452")
+	isb.set_border_width_all(2)
+	isb.set_corner_radius_all(6)
+	isb.content_margin_left = 16
+	isb.content_margin_right = 16
+	isb.content_margin_top = 8
+	isb.content_margin_bottom = 8
+	info_panel.add_theme_stylebox_override("panel", isb)
+	box.add_child(info_panel)
 	talents_info_node = Label.new()
-	talents_info_node.custom_minimum_size = Vector2(tsize.x, 50)
 	talents_info_node.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	talents_info_node.add_theme_font_size_override("font_size", 16)
-	talents_info_node.add_theme_color_override("font_color", Color("#f3ead2"))
+	talents_info_node.add_theme_font_size_override("font_size", 17)
+	talents_info_node.add_theme_color_override("font_color", Color("#fff9eb"))
+	talents_info_node.add_theme_constant_override("outline_size", 2)
+	talents_info_node.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 	talents_info_node.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	box.add_child(talents_info_node)
+	talents_info_node.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	info_panel.add_child(talents_info_node)
 	var bottom := HBoxContainer.new()
 	bottom.add_theme_constant_override("separation", 14)
 	bottom.alignment = BoxContainer.ALIGNMENT_CENTER
 	box.add_child(bottom)
-	talents_status = _label("", 16, Color("#cfc6ae"))
+	talents_status = _label("", 16, Color("#e6dec8"))
+	talents_status.add_theme_constant_override("outline_size", 2)
+	talents_status.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 	talents_status.custom_minimum_size = Vector2(280, 22)
 	bottom.add_child(talents_status)
 	var reset := _button("全部重置", Vector2(130, 42), 18)

@@ -205,17 +205,20 @@ func _draw() -> void:
 		draw_string(bold, rect.position + Vector2(rect.size.x - 112, 24), "%d / 50 点" % _branch_sum(b), HORIZONTAL_ALIGNMENT_RIGHT, 100.0, 17, Color("#fff6dc"))
 		draw_line(rect.position + Vector2(12, G_HEADER - 3), rect.position + Vector2(rect.size.x - 12, G_HEADER - 3), Color(col, 0.5), 1.5)
 		# 列名
+		var ol := Color(0.0, 0.0, 0.0, 0.92)
 		for ci in (bd["cols"] as Array).size():
 			var cw := g_colw(bi)
 			var cx := rect.position.x + cw * (ci + 0.5)
-			draw_string(font, Vector2(cx - cw * 0.5, G_HEADER + 2), str(bd["cols"][ci]), HORIZONTAL_ALIGNMENT_CENTER, cw, 10, Color(col.lightened(0.3), 0.55))
+			draw_string_outline(font, Vector2(cx - cw * 0.5, G_HEADER + 4), str(bd["cols"][ci]), HORIZONTAL_ALIGNMENT_CENTER, cw, 12, 3, ol)
+			draw_string(font, Vector2(cx - cw * 0.5, G_HEADER + 4), str(bd["cols"][ci]), HORIZONTAL_ALIGNMENT_CENTER, cw, 12, Color(col.lightened(0.45), 0.92))
 		# 层门槛线：行 r（2~7、9）上方；该行所在层的门槛
 		for r in [7, 9]:                                        # 只有终极（第 7 层）和巅峰（第 9 行）有跨链的总投入门槛
 			var tier: int = r if r < 9 else 8
 			var gy: float = G_HEADER + G_ROW * float(r - 1)
 			var okg := _branch_sum(b) >= int(gates[tier - 1])
-			draw_line(Vector2(rect.position.x + 10, gy), Vector2(rect.end.x - 10, gy), Color(col, 0.5 if okg else 0.16), 1.0)
-			draw_string(font, Vector2(rect.position.x + 14, gy + 11), "≥%d" % int(gates[tier - 1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(col.lightened(0.3), 0.95 if okg else 0.45))
+			draw_line(Vector2(rect.position.x + 10, gy), Vector2(rect.end.x - 10, gy), Color(col, 0.6 if okg else 0.25), 1.2)
+			draw_string_outline(font, Vector2(rect.position.x + 14, gy + 12), "≥%d" % int(gates[tier - 1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, 3, ol)
+			draw_string(font, Vector2(rect.position.x + 14, gy + 12), "≥%d" % int(gates[tier - 1]), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(col.lightened(0.4), 0.98 if okg else 0.78))
 		# 前置连线
 		for id in _all:
 			var n: Dictionary = _all[id]
@@ -227,7 +230,7 @@ func _draw() -> void:
 				var have := int(work.get(str(rq[0]), 0))
 				var lit := have >= (int(_all[str(rq[0])]["max"]) if rq[1] == "full" else 1)
 				var w := 3.5 if rq[1] == "full" else 1.8
-				draw_line(a + Vector2(0, G_ICON * 0.5 + 2), c - Vector2(0, G_ICON * 0.5 + 2), Color(col.lightened(0.2) if lit else col, 0.95 if lit else 0.22), w)
+				draw_line(a + Vector2(0, G_ICON * 0.5 + 2), c - Vector2(0, G_ICON * 0.5 + 2), Color(col.lightened(0.2) if lit else col, 0.95 if lit else 0.28), w)
 		# 巅峰与终极的汇聚线（视觉辅助，不是前置）：峰顶向本系终极各画一条淡线
 		for id in _all:
 			var n2: Dictionary = _all[id]
@@ -235,7 +238,7 @@ func _draw() -> void:
 				for id2 in _all:
 					if _all[id2]["branch"] == b and bool(_all[id2].get("cap", false)):
 						var lit2 := int(work.get(id2, 0)) > 0
-						draw_line(g_pos(_all[id2]) + Vector2(0, G_ICON * 0.5 + 2), g_pos(n2) - Vector2(0, G_ICON * 0.5 + 2), Color("#e8c15a", 0.6 if lit2 else 0.12), 1.2)
+						draw_line(g_pos(_all[id2]) + Vector2(0, G_ICON * 0.5 + 2), g_pos(n2) - Vector2(0, G_ICON * 0.5 + 2), Color("#e8c15a", 0.65 if lit2 else 0.18), 1.2)
 		for id in _all:
 			if _all[id]["branch"] == b:
 				_draw_gnode(id, col, font, bd)
@@ -254,8 +257,8 @@ func _draw_gnode(id: String, col: Color, font: Font, bd: Dictionary) -> void:
 	var ring := gold if (cap or peak) else col
 	var rr := G_ICON * 0.5 * (1.2 if peak else 1.0)
 	if id == hover_id:
-		draw_rect(Rect2(c - Vector2(minf(48.0, g_colw(_bi(str(n["branch"]))) * 0.5), G_ICON * 0.5 + 4.0), Vector2(minf(96.0, g_colw(_bi(str(n["branch"])))), G_ICON + 24.0)), Color(1, 1, 1, 0.08))
-	draw_circle(c, rr, Color(0.08, 0.07, 0.07, 0.92))
+		draw_rect(Rect2(c - Vector2(minf(48.0, g_colw(_bi(str(n["branch"]))) * 0.5), G_ICON * 0.5 + 4.0), Vector2(minf(96.0, g_colw(_bi(str(n["branch"])))), G_ICON + 24.0)), Color(1, 1, 1, 0.12))
+	draw_circle(c, rr, Color(0.08, 0.07, 0.07, 0.94))
 	# 招式链节点用该招式的图标，通用链 / 巅峰用文字徽章
 	var tex: Texture2D = null
 	var cs: Array = bd["col_skills"]
@@ -263,15 +266,15 @@ func _draw_gnode(id: String, col: Color, font: Font, bd: Dictionary) -> void:
 	var sk_id: String = str(cs[ci]) if (not peak and ci < cs.size()) else ""
 	if sk_id != "":
 		tex = Data.icon("skills", sk_id)
-	var dim := 1.0 if st != "locked" else 0.35
+	var dim := 1.0 if st != "locked" else 0.48
 	if tex != null:
 		var s := rr * 1.7
 		draw_texture_rect(tex, Rect2(c - Vector2(s, s) * 0.5, Vector2(s, s)), false, Color(1, 1, 1, dim))
 	else:
-		draw_string(font, c + Vector2(-rr, 5), "巅" if peak else ("通" if sk_id == "" else ""), HORIZONTAL_ALIGNMENT_CENTER, rr * 2.0, 15, Color(gold if peak else col, dim))
+		draw_string(font, c + Vector2(-rr, 5), "巅" if peak else ("通" if sk_id == "" else ""), HORIZONTAL_ALIGNMENT_CENTER, rr * 2.0, 15, Color(gold if peak else col.lightened(0.25), maxf(0.65, dim)))
 	match st:
 		"locked":
-			draw_arc(c, rr, 0.0, TAU, 28, Color(0.45, 0.42, 0.38, 0.7), 2.0)
+			draw_arc(c, rr, 0.0, TAU, 28, Color(0.55, 0.52, 0.48, 0.8), 2.0)
 		"open":
 			draw_arc(c, rr, 0.0, TAU, 28, Color(ring, 0.55 + 0.35 * sin(time_acc * 3.0 + c.x)), 2.5)
 		"ranked":
@@ -283,10 +286,15 @@ func _draw_gnode(id: String, col: Color, font: Font, bd: Dictionary) -> void:
 	if cap:                                              # 终极：金色小菱形角标
 		var d := c + Vector2(rr * 0.85, -rr * 0.85)
 		draw_colored_polygon(PackedVector2Array([d + Vector2(0, -5), d + Vector2(5, 0), d + Vector2(0, 5), d + Vector2(-5, 0)]), gold)
-	var name_col := Color("#fff6dc") if st == "ranked" or st == "maxed" else (Color("#e8dfc5") if st == "open" else Color("#8d8670"))
+	var name_col := Color("#ffffff") if st == "ranked" or st == "maxed" else (Color("#f7eed8") if st == "open" else Color("#cfc7b4"))
+	var ol := Color(0.0, 0.0, 0.0, 0.92)
 	var lw := minf(100.0, g_colw(_bi(str(n["branch"]))))
+	draw_string_outline(font, c + Vector2(-lw * 0.5, G_ICON * 0.5 + 11.0), str(n["name"]), HORIZONTAL_ALIGNMENT_CENTER, lw, 12, 3, ol)
 	draw_string(font, c + Vector2(-lw * 0.5, G_ICON * 0.5 + 11.0), str(n["name"]), HORIZONTAL_ALIGNMENT_CENTER, lw, 12, name_col)
-	draw_string(font, c + Vector2(rr - 8.0, rr + 1.0), "%d/%d" % [rank, mx] if mx > 1 else ("●" if rank > 0 else ""), HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#fff6dc") if rank > 0 else Color(0.8, 0.77, 0.7, 0.7))
+	var rtxt := "%d/%d" % [rank, mx] if mx > 1 else ("●" if rank > 0 else "")
+	if rtxt != "":
+		draw_string_outline(font, c + Vector2(rr - 8.0, rr + 1.0), rtxt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, 3, ol)
+		draw_string(font, c + Vector2(rr - 8.0, rr + 1.0), rtxt, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color("#ffffff") if rank > 0 else Color("#e6dec8"))
 	if id == hover_id:
 		draw_arc(c, rr + 6.0, 0.0, TAU, 28, Color("#fff6dc", 0.95), 2.0)
 
@@ -298,20 +306,20 @@ func _draw_gji(font: Font, bold: Font) -> void:
 	var open := ji_unlocked() or rank > 0
 	var n: Dictionary = _all[_ji_id]
 	var strip := Rect2(Vector2(0, grid_h() + 4.0), Vector2(size.x, G_STRIP - 6.0))
-	draw_rect(strip, Color(0.07, 0.06, 0.04, 0.75))
-	draw_rect(strip, Color(gold, 0.45 if open else 0.15), false, 2.0)
+	draw_rect(strip, Color(0.06, 0.05, 0.04, 0.9))
+	draw_rect(strip, Color(gold, 0.55 if open else 0.25), false, 2.0)
 	var pulse := 0.5 + 0.5 * sin(time_acc * 3.0)
 	if open:
 		draw_circle(c, 26.0 + 3.0 * pulse, Color(gold, 0.18 + 0.12 * pulse))
 		draw_circle(c, 20.0, Color(gold, 0.95 if rank > 0 else 0.35))
 		draw_arc(c, 20.0, 0.0, TAU, 32, gold, 3.0)
 		draw_string(bold, c + Vector2(-20, 8), "极", HORIZONTAL_ALIGNMENT_CENTER, 40.0, 22, Color("#3a2a05") if rank > 0 else Color("#fff6dc"))
-		draw_string(bold, c + Vector2(32, -2), str(n["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 19, gold.lightened(0.2))
-		draw_string(font, c + Vector2(32, 16), "已点亮" if rank > 0 else "可以加点：第 100 点", HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color("#e8dfc5"))
+		draw_string(bold, c + Vector2(32, -2), str(n["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 19, gold.lightened(0.25))
+		draw_string(font, c + Vector2(32, 16), "已点亮" if rank > 0 else "可以加点：第 100 点", HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#f7eed8"))
 	else:
-		draw_circle(c, 20.0, Color(0.12, 0.11, 0.1, 0.85))
-		draw_arc(c, 20.0, 0.0, TAU, 32, Color(0.45, 0.42, 0.38, 0.7), 2.0)
-		draw_string(bold, c + Vector2(-20, 8), "极", HORIZONTAL_ALIGNMENT_CENTER, 40.0, 22, Color(0.5, 0.47, 0.42, 0.8))
-		draw_string(font, c + Vector2(32, 5), "极意：投满 99 点后出现（%d / %d）" % [Talents.spent(work, school), Talents.ji_need()], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#8d8670"))
+		draw_circle(c, 20.0, Color(0.12, 0.11, 0.1, 0.9))
+		draw_arc(c, 20.0, 0.0, TAU, 32, Color(0.55, 0.52, 0.48, 0.8), 2.0)
+		draw_string(bold, c + Vector2(-20, 8), "极", HORIZONTAL_ALIGNMENT_CENTER, 40.0, 22, Color("#b8b09c"))
+		draw_string(font, c + Vector2(32, 5), "极意：投满 99 点后出现（%d / %d）" % [Talents.spent(work, school), Talents.ji_need()], HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#d4ccb8"))
 	if _ji_id == hover_id:
 		draw_arc(c, 27.0, 0.0, TAU, 32, Color("#fff6dc", 0.95), 2.0)
