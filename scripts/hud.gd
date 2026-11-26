@@ -2232,7 +2232,8 @@ func show_pause() -> void:
 	overlay_dim.color = Color(0.05, 0.05, 0.08, 0.68 if (world != null and world.visible) else 0.92)
 	overlay_title.text = "暂停"
 	var st_txt := _run_stats_text(world)
-	overlay_body.text = "按 Esc 继续" + (("\n\n" + st_txt) if st_txt != "" else "")
+	var resume_hint := "点下方「继续」返回战斗" if touch_mode else "按 Esc 继续"
+	overlay_body.text = resume_hint + (("\n\n" + st_txt) if st_txt != "" else "")
 	pause_box.visible = true
 	pause_main.visible = true
 	pause_confirm.visible = false

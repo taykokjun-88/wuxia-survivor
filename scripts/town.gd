@@ -479,7 +479,7 @@ func _draw_npc(n: Dictionary, near: bool) -> void:
 		var bp := Vector2(pos.x, top - 22.0 + bob2)
 		draw_rect(Rect2(bp.x - 44, bp.y - 14, 88, 22), Color("#1c1812", 0.88))
 		draw_rect(Rect2(bp.x - 44, bp.y - 14, 88, 22), Color("#c9a227"), false, 2.0)
-		draw_string(banner_font, Vector2(bp.x - 44, bp.y + 3), "[E] 交谈", HORIZONTAL_ALIGNMENT_CENTER, 88, 14, Color("#f3ead2"))
+		draw_string(banner_font, Vector2(bp.x - 44, bp.y + 3), "点「交谈」" if GameHud.touch_mode else "[E] 交谈", HORIZONTAL_ALIGNMENT_CENTER, 88, 14, Color("#f3ead2"))
 	Depth.flat(self)
 
 

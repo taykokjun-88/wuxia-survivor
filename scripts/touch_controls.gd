@@ -229,7 +229,7 @@ func _draw_pad() -> void:
 			var full_cd := float(world.qg.get("cd", 1.0)) * maxf(0.4, 1.0 - world.st("qg_cd_reduce"))
 			var prog := clampf(1.0 - world.dash_recharge / maxf(0.1, full_cd), 0.0, 1.0)
 			_pad.draw_arc(dash_c, DASH_R + 5.0, -PI * 0.5, -PI * 0.5 + TAU * prog, 32, Color("#7ef0e8", 0.85), 3.5)
-		# 真气爆发：就绪时金色脉冲光圈 + 剩余次数
+		# 真气爆发：就绪时金色脉冲光圈 + 剩余次数 + 气海境界提示
 		var ult_c := _pos("ult")
 		var burst_ok := world != null and world.burst_left() > 0 and world.can_burst()
 		var ult_sub := "%d/%d" % [world.burst_left(), world.burst_max()] if world != null else ""
@@ -237,6 +237,13 @@ func _draw_pad() -> void:
 			var pulse := 0.5 + 0.5 * sin(_pulse_t * 5.0)
 			_pad.draw_arc(ult_c, ULT_R + 4.0 + pulse * 5.0, 0.0, TAU, 36, Color("#ffd466", 0.35 + 0.4 * pulse), 3.0)
 		_round_btn(ult_c, ULT_R, "爆发", Color("#d47a2a"), _btn_pressed("ult"), burst_ok, ult_sub)
+		if world != null:
+			var r_lbl := "入定" if world.meditating() else ("盈境" if world.realm() == GameWorld.Realm.YING else ("虚境" if world.realm() == GameWorld.Realm.XU else "平境"))
+			var r_col := Color("#7ef0e8") if world.meditating() else (Color("#ffd466") if world.realm() == GameWorld.Realm.YING else (Color("#ff6a5a") if world.realm() == GameWorld.Realm.XU else Color("#cfc6ae")))
+			var rp := Vector2(ult_c.x - 28.0, ult_c.y - ULT_R - 24.0)
+			_pad.draw_rect(Rect2(rp, Vector2(56.0, 18.0)), Color(0.06, 0.06, 0.08, 0.78))
+			_pad.draw_rect(Rect2(rp, Vector2(56.0, 18.0)), Color(r_col, 0.75), false, 1.5)
+			_pad.draw_string(font, rp + Vector2(0, 14.0), r_lbl, HORIZONTAL_ALIGNMENT_CENTER, 56.0, 12, r_col)
 		_round_btn(_pos("pause"), SMALL_R, "停", Color("#cccccc"), _btn_pressed("pause"), true)
 		_round_btn(_pos("detail"), SMALL_R, "详", Color("#cccccc"), _btn_pressed("detail"), true)
 	elif mode == "town":
