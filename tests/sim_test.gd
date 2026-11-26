@@ -1403,7 +1403,7 @@ func _dugu_test() -> void:
 	var c4 := log.count(4)
 	var c9 := log.count(9)
 	print("  30 秒出手 %d 次：单 %d / 2连 %d / 4连 %d / 9连 %d" % [log.size(), c1, c2, c4, c9])
-	_check(log.size() >= 40, "攻速快：30 秒出手 ≥ 40 次，实际 %d" % log.size())
+	_check(log.size() >= 30, "攻速快：30 秒出手 ≥ 30 次，实际 %d" % log.size())
 	_check(c2 > 0 and c4 > 0, "连击：2 连 / 4 连都应出现")
 	_check(c2 + 6 >= c4 and c4 + 4 >= c9 and c1 > 0, "连击几率独立判定：9 连 9%% / 4 连 18%% / 2 连 36%% / 单击 36%%（%d / %d / %d / %d）" % [c9, c4, c2, c1])
 	_check(float(w4.skill_dmg.get("dugu", 0.0)) - dmg0 > 100000.0, "近身群攻输出很高，实际 %d" % int(float(w4.skill_dmg.get("dugu", 0.0)) - dmg0))
@@ -1714,8 +1714,8 @@ func _enhance_rework_test() -> void:
 		ny += 1 if str(Data.xinfa[id]["yy"]) == "yang" else 0
 	_check(ny == 5, "5 个阳性 + 5 个阴性心法（阳 %d）" % ny)
 	# 初始恢复：内力回复 −30%，气血每 5 秒 1 点
-	_check(absf(float(Data.player_base["neili_regen"]) - 8.4) < 1e-6, "初始内力回复 8.4（原 12 的 70%）")
-	_check(absf(float(Data.player_base["hp_regen"]) - 0.2) < 1e-6, "初始气血回复 0.2 / 秒（每 5 秒 1 点）")
+	_check(absf(float(Data.player_base["neili_regen"]) - 10.0) < 1e-6, "初始内力回复 10.0（A3 白板回补）")
+	_check(absf(float(Data.player_base["hp_regen"]) - 0.4) < 1e-6, "初始气血回复 0.4 / 秒（A3 白板回补）")
 	# 流派特色：剑侠 = 速度 / 攻速；武者 = 内力（盈境加成高、催动贵）；刀客 = 气血；无迹九变剑催动消耗减半
 	var wsw := _new_world(88, "kuang_feng")
 	var wfi := _new_world(89, "chain_fist")
@@ -2020,7 +2020,7 @@ func _plan6_test() -> void:
 	wu._rebuild_grid()
 	_check(wu.can_burst(), "内力足够可以爆发")
 	wu._burst()
-	_check(wu.fist_ult_t > 9.9 and wu.neili == 0.0 and wu.burst_left() == 1, "爆发：消耗全部内力、进入 10 秒拳掌无敌、次数 −1")
+	_check(wu.fist_ult_t > 6.9 and wu.neili == 0.0 and wu.burst_left() == 1, "爆发：消耗全部内力、进入 7 秒拳掌无敌、次数 −1")
 	wu.hp = wu.st("max_hp")
 	wu.input_move = Vector2.ZERO
 	var hp_u := wu.hp
@@ -2043,7 +2043,7 @@ func _plan6_test() -> void:
 		wu.step(DT)
 		tu.hp = 1e9
 	_check(wu.cunjin_count > c_before, "无敌期间每一下出手都触发寸劲（%d → %d）" % [c_before, wu.cunjin_count])
-	# 真伤：额外 30%，无视防御（多次平均，排除暴击随机）
+	# 真伤：额外 20%，无视防御（多次平均，排除暴击随机）
 	var sum_t := 0.0
 	var sum_n := 0.0
 	for i in 300:
@@ -2057,7 +2057,8 @@ func _plan6_test() -> void:
 		sum_n += 1e9 - tu.hp
 	var kdef := 1.0 - tu.defense * (1.0 - wu.st("armor_pierce"))
 	var ratio := sum_t / sum_n
-	_check(absf(ratio - (1.0 + 0.3 / kdef)) < 0.12, "真伤 = 伤害量 30%%，不被防御削减（倍率 %.2f，预期 %.2f）" % [ratio, 1.0 + 0.3 / kdef])
+	var tfrac := Data.T("fist_ult_true")
+	_check(absf(ratio - (1.0 + tfrac / kdef)) < 0.12, "真伤 = 伤害量 %.0f%%，不被防御削减（倍率 %.2f，预期 %.2f）" % [tfrac * 100.0, ratio, 1.0 + tfrac / kdef])
 	# 状态结束后恢复内力
 	wu.fist_ult_t = 0.02
 	wu.neili = 0.0
@@ -2072,7 +2073,7 @@ func _plan6_test() -> void:
 	_check(wjf.burst_max() == 3, "极·天人合一：多 1 次真气爆发（%d）" % wjf.burst_max())
 	wjf.neili = wjf.st("max_neili")
 	wjf._burst()
-	_check(is_equal_approx(wjf.fist_ult_t, 15.0), "极·天人合一：拳掌无敌 15 秒（%.1f）" % wjf.fist_ult_t)
+	_check(is_equal_approx(wjf.fist_ult_t, 12.0), "极·天人合一：拳掌无敌 12 秒（%.1f）" % wjf.fist_ult_t)
 	wjf.fist_ult_t = 0.01
 	for i in 3:
 		wjf.step(DT)
@@ -2163,7 +2164,7 @@ func _plan6_test() -> void:
 	_check(wd.dugu_can_cut(), "学了落矢变也能斩落")
 	_check(not (Data.shi as Array).any(func(d): return str(d["desc"]).contains("追踪剑气")), "落矢变不再是自动射箭")
 	# 连击几率
-	_check(is_equal_approx(Data.T("dugu_combo2"), 0.45) and is_equal_approx(Data.T("dugu_combo4"), 0.20) and is_equal_approx(Data.T("dugu_combo9"), 0.08), "觉醒连击几率 45% / 20% / 8%")
+	_check(is_equal_approx(Data.T("dugu_combo2"), 0.35) and is_equal_approx(Data.T("dugu_combo4"), 0.14) and is_equal_approx(Data.T("dugu_combo9"), 0.04), "觉醒连击几率 35% / 14% / 4%")
 	_free_world(wd)
 
 
@@ -5017,13 +5018,13 @@ func _fist_sig_test() -> void:
 	# 寸劲
 	var w := _ft_world({"fg_g_2": 3, "fg_g_3": 3, "fg_g_4": 3, "fg_g_6": 3, "fg_g_7": 2, "fg_g_8": 1}, "chain_fist", 720)
 	var foe := _ft_foe(w, Vector2(80, 0))
-	w.fist_qi = 70.0
+	w.fist_qi = 90.0
 	var sk: SkillBase = w.skills["chain_fist"]
 	_check(absf(w.st("qi_gain") - 0.45) < 1e-6, "蓄劲 3 级：攒劲速度 +45%")
 	sk.cd = 0.0
 	foe.pos = w.player_pos + Vector2(80, 0)
 	w.step(1.0 / 60.0)
-	_check(w.cunjin_count >= 1, "寸劲无双：攒到 70 劲就能震爆")
+	_check(w.cunjin_count >= 1, "寸劲无双：攒到 90 劲就能震爆")
 	_check(foe.def_down_t > 0.0 and absf(foe.def_down - 0.3) < 1e-6, "破阵劲：震爆命中降防 30%")
 	var has_after := false
 	for z in w.zones:
