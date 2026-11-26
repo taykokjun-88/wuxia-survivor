@@ -5,58 +5,73 @@ extends Node
 ## 2. 内置冷却锁（防同屏百怪齐中炸音）、并发声道上限、音高随机抖动（±10%）与 20 路播放器复用池。
 
 const SAMPLE_RATE := 22050
-const POOL_SIZE := 20
+const POOL_SIZE := 8               # 参考 RO 局内清晰度：同时最多 8 路，避免百怪齐中叠成一团白噪音，同时大幅降低 Web Audio 开销
 
 var enabled := true
 var _players: Array[AudioStreamPlayer] = []
 var _playing_id: Array[String] = []
+var _playing_cat: Array[String] = []
 var _streams: Dictionary = {}
 var _last_ms: Dictionary = {}
+var _cat_last_ms: Dictionary = {}
 var _exp_streak := 0
 var _exp_last_ms := 0
 
-# id -> [cooldown_ms, max_voices, priority]
+# id -> [cooldown_ms, max_voices, priority, base_vol_db, category]
+# 音量层次参考 RO（仙境传说）：
+#   高频底噪（普通命中 / 拾取 / 小怪死）：-11 ~ -14 dB，轻巧点缀绝不吵耳
+#   招式挥砍 / 施法：-7 ~ -9 dB，全局出招节流防多招同帧齐吼
+#   清晰反馈（暴击 / 格挡 / 破防 / 轻功）：-3 ~ -5 dB，清脆透出
+#   关键事件（升级 / Boss / 觉醒 / 受击）：-1 ~ -2 dB，最高优先级
 const RULES := {
-	"hit_fist": [45, 3, 1],
-	"hit_sword": [45, 3, 1],
-	"hit_crit": [55, 3, 3],
-	"vuln_break": [80, 2, 2],
-	"block_shield": [90, 2, 2],
-	"player_hurt": [250, 1, 4],
-	"enemy_death": [60, 2, 0],
-	"dash_qg": [120, 2, 2],
-	"realm_ying": [1000, 1, 3],
-	"burst_ult": [400, 1, 4],
-	"pickup_exp": [35, 4, 0],
-	"level_up": [200, 1, 4],
-	"boss_warn": [1500, 1, 5],
-	"armor_break": [300, 1, 4],
-	"sw_slash": [75, 3, 1],
-	"sw_heavy": [180, 2, 2],
-	"sw_thrust": [75, 3, 1],
-	"sw_proj": [80, 3, 1],
-	"dugu_flash": [35, 4, 2],
-	"dugu_awaken": [1000, 1, 5],
-	"fist_punch": [65, 3, 1],
-	"palm_wave": [110, 2, 1],
-	"enemy_ranged": [140, 2, 1],
-	"boss_cleave": [220, 1, 3],
-	"burst_break": [300, 1, 4],
-	"hit_blade": [45, 3, 1],
+	"hit_fist": [95, 1, 1, -11.0, "hit"],
+	"hit_sword": [95, 1, 1, -11.0, "hit"],
+	"hit_blade": [95, 1, 1, -11.0, "hit"],
+	"hit_crit": [110, 1, 3, -5.0, "hit"],
+	"vuln_break": [160, 1, 2, -5.5, "fb"],
+	"block_shield": [140, 1, 2, -5.0, "fb"],
+	"player_hurt": [320, 1, 4, -2.0, "evt"],
+	"enemy_death": [180, 1, 0, -14.0, "amb"],
+	"dash_qg": [160, 1, 2, -5.0, "fb"],
+	"realm_ying": [1400, 1, 3, -4.0, "evt"],
+	"burst_ult": [500, 1, 4, -2.0, "evt"],
+	"pickup_exp": [115, 1, 0, -12.0, "amb"],
+	"level_up": [250, 1, 4, -1.5, "evt"],
+	"boss_warn": [1500, 1, 5, -1.0, "evt"],
+	"armor_break": [320, 1, 4, -3.5, "evt"],
+	"sw_slash": [150, 1, 1, -8.5, "cast"],
+	"sw_heavy": [240, 1, 2, -7.0, "cast"],
+	"sw_thrust": [150, 1, 1, -8.5, "cast"],
+	"sw_proj": [160, 1, 1, -9.0, "cast"],
+	"dugu_flash": [95, 2, 2, -7.5, "cast"],
+	"dugu_awaken": [1000, 1, 5, -1.0, "evt"],
+	"fist_punch": [140, 1, 1, -8.5, "cast"],
+	"palm_wave": [180, 1, 1, -8.5, "cast"],
+	"enemy_ranged": [260, 1, 0, -11.5, "amb"],
+	"boss_cleave": [260, 1, 3, -4.0, "evt"],
+	"burst_break": [320, 1, 4, -3.5, "evt"],
 	# 剑
-	"sw_ring": [150, 2, 2], "sw_multi": [140, 2, 2], "sw_blink": [120, 2, 2], "sw_snake": [100, 3, 1], "sw_yitian": [300, 1, 3],
+	"sw_ring": [220, 1, 2, -8.0, "cast"], "sw_multi": [220, 1, 2, -8.5, "cast"], "sw_blink": [180, 1, 2, -7.5, "cast"], "sw_snake": [180, 1, 1, -9.0, "cast"], "sw_yitian": [320, 1, 3, -6.0, "cast"],
 	# 刀
-	"bl_slash": [80, 3, 1], "bl_heavy": [180, 2, 2], "bl_proj": [90, 3, 1], "bl_fire": [200, 2, 2], "bl_blood": [90, 3, 1],
-	"bl_wheel": [220, 1, 2], "bl_quake": [260, 1, 3], "bl_spin": [200, 2, 2], "bl_dragon": [400, 1, 4],
+	"bl_slash": [150, 1, 1, -8.5, "cast"], "bl_heavy": [220, 1, 2, -7.0, "cast"], "bl_proj": [170, 1, 1, -9.0, "cast"], "bl_fire": [240, 1, 2, -7.5, "cast"], "bl_blood": [180, 1, 1, -8.5, "cast"],
+	"bl_wheel": [260, 1, 2, -8.0, "cast"], "bl_quake": [300, 1, 3, -6.5, "cast"], "bl_spin": [240, 1, 2, -8.0, "cast"], "bl_dragon": [420, 1, 4, -5.0, "cast"],
 	# 拳 / 掌
-	"fist_finger": [75, 3, 1], "fist_quake": [260, 1, 3], "fist_vajra": [260, 1, 3],
-	"palm_multi": [140, 2, 1], "palm_dragon": [200, 2, 2], "palm_soft": [200, 2, 2],
+	"fist_finger": [150, 1, 1, -9.0, "cast"], "fist_quake": [280, 1, 3, -6.5, "cast"], "fist_vajra": [280, 1, 3, -6.5, "cast"],
+	"palm_multi": [200, 1, 1, -8.5, "cast"], "palm_dragon": [240, 1, 2, -7.5, "cast"], "palm_soft": [240, 1, 2, -8.0, "cast"],
 	# 界面 / 结算
-	"footstep": [180, 1, 0], "ui_click": [40, 2, 1], "ui_confirm": [60, 1, 2], "ui_back": [60, 1, 2], "card_pick": [80, 1, 2], "chest_open": [300, 1, 2],
-	"block_staff": [90, 2, 2], "block_swing": [120, 1, 2], "sp_thrust": [70, 3, 1], "sp_multi": [120, 2, 2], "sp_pierce": [200, 2, 3], "sp_staff_heavy": [150, 2, 2],
-	"sp_staff_sweep": [200, 2, 2], "sp_dragon": [400, 1, 4], "bagua_shift": [1500, 1, 4], "bagua_bad": [900, 1, 1], "xiao_note": [800, 1, 3], "bell_ring": [600, 1, 3],
-	"peach_petal": [400, 1, 2], "poison_dart": [90, 3, 1],
-	"gear_upgrade": [300, 1, 3], "gear_fail": [300, 1, 3], "win_jingle": [2000, 1, 5], "lose_jingle": [2000, 1, 5],
+	"footstep": [200, 1, 0, -9.0, "ui"], "ui_click": [45, 2, 2, -4.0, "ui"], "ui_confirm": [60, 1, 3, -3.0, "ui"], "ui_back": [60, 1, 3, -3.0, "ui"], "card_pick": [80, 1, 3, -2.5, "ui"], "chest_open": [300, 1, 3, -3.0, "evt"],
+	"block_staff": [140, 1, 2, -5.0, "fb"], "block_swing": [180, 1, 2, -6.5, "fb"], "sp_thrust": [150, 1, 1, -8.5, "cast"], "sp_multi": [180, 1, 2, -8.5, "cast"], "sp_pierce": [240, 1, 3, -6.5, "cast"], "sp_staff_heavy": [200, 1, 2, -7.5, "cast"],
+	"sp_staff_sweep": [220, 1, 2, -7.5, "cast"], "sp_dragon": [420, 1, 4, -5.0, "cast"], "bagua_shift": [1500, 1, 4, -3.0, "evt"], "bagua_bad": [1100, 1, 1, -9.0, "amb"], "xiao_note": [800, 1, 3, -4.5, "evt"], "bell_ring": [600, 1, 3, -4.5, "evt"],
+	"peach_petal": [450, 1, 2, -8.0, "amb"], "poison_dart": [200, 1, 0, -11.0, "amb"],
+	"gear_upgrade": [300, 1, 3, -2.0, "ui"], "gear_fail": [300, 1, 3, -2.0, "ui"], "win_jingle": [2000, 1, 5, -1.0, "evt"], "lose_jingle": [2000, 1, 5, -1.0, "evt"],
+}
+
+# 全局分类并发与节流：[category_cooldown_ms, category_max_voices]
+const CAT_LIMITS := {
+	"hit": [85, 2],      # 打击感：同瞬间最多响 1~2 声，清脆不糊
+	"cast": [125, 2],    # 出招：多自动技能错峰发声，不齐吼
+	"amb": [120, 2],     # 经验球 / 小怪死亡 / 杂兵箭矢：轻巧节流
+	"fb": [70, 2],       # 格挡 / 破绽 / 轻功
 }
 
 var _variants: Dictionary = {}     # id -> [AudioStream]：<id>_1 / _2 / _3 …（命中 / 受击等随机轮换，避免听腻）
@@ -92,6 +107,7 @@ func _ready() -> void:
 		add_child(p)
 		_players.append(p)
 		_playing_id.append("")
+		_playing_cat.append("")
 	_build_all_streams()
 
 
@@ -118,55 +134,81 @@ func _setup_bus() -> void:
 		AudioServer.add_bus(idx)
 		AudioServer.set_bus_name(idx, "SFX")
 		AudioServer.set_bus_send(idx, "Master")
+		AudioServer.set_bus_volume_db(idx, -2.0)      # 给 BGM 留出空间，久听不累
+		var eq := AudioEffectEQ6.new()                # 柔化 3.2kHz / 10kHz 刺耳高频，贴近 RO 的圆润听感
+		eq.set_band_gain_db(4, -1.5)
+		eq.set_band_gain_db(5, -3.5)
+		AudioServer.add_bus_effect(idx, eq)
 		var lim := AudioEffectLimiter.new()
-		lim.ceiling_db = -1.0
-		lim.threshold_db = -4.0
+		lim.ceiling_db = -2.0
+		lim.threshold_db = -5.0
 		AudioServer.add_bus_effect(idx, lim)
 
 
-func play(id: String, pitch_jitter: float = 0.10, vol_db: float = 0.0, pitch_override: float = -1.0) -> void:
+func play(id: String, pitch_jitter: float = 0.08, vol_db: float = 0.0, pitch_override: float = -1.0) -> void:
 	if not enabled or not _streams.has(id):
 		return
 	var now := Time.get_ticks_msec()
-	var rule: Array = RULES.get(id, [50, 3, 1])
+	var rule: Array = RULES.get(id, [120, 1, 1, -8.0, "cast"])
 	if now - int(_last_ms.get(id, 0)) < int(rule[0]):
 		return
 	if _active_count(id) >= int(rule[1]):
 		return
-	var idx := _borrow_slot(int(rule[2]))
+	var cat: String = str(rule[4]) if rule.size() >= 5 else "cast"
+	var prio: int = int(rule[2])
+	if CAT_LIMITS.has(cat):
+		var cl: Array = CAT_LIMITS[cat]
+		# 暴击（prio >= 3）在打击类里可按一半间隔穿透普通命中，保留清晰暴击反馈
+		var min_gap := int(cl[0]) / 2 if (cat == "hit" and prio >= 3) else int(cl[0])
+		if now - int(_cat_last_ms.get(cat, 0)) < min_gap:
+			return
+		if _active_cat_count(cat) >= int(cl[1]):
+			return
+	var idx := _borrow_slot(prio)
 	if idx < 0:
 		return
 	var p := _players[idx]
 	_playing_id[idx] = id
+	_playing_cat[idx] = cat
 	var vs: Array = _variants.get(id, [])
 	p.stream = vs[randi() % vs.size()] if not vs.is_empty() else _streams[id]
 	if pitch_override > 0.0:
 		p.pitch_scale = pitch_override
 	else:
 		p.pitch_scale = randf_range(1.0 - pitch_jitter, 1.0 + pitch_jitter)
-	p.volume_db = vol_db
+	var base_db := float(rule[3]) if rule.size() >= 4 else -6.0
+	p.volume_db = base_db + vol_db
 	p.play()
 	_last_ms[id] = now
+	_cat_last_ms[cat] = now
 
 
 func play_skill(skill_id: String, combo_step: int = 0) -> void:
 	if skill_id == "dugu" and combo_step > 0:
-		play("dugu_flash", 0.04, -1.0, 1.0 + minf(0.28, combo_step * 0.03))
+		play("dugu_flash", 0.04, 0.0, 1.0 + minf(0.24, combo_step * 0.025))
 		return
-	play(str(SKILL_MAP.get(skill_id, "sw_slash")), 0.10, -2.0)
+	play(str(SKILL_MAP.get(skill_id, "sw_slash")), 0.08, 0.0)
 
 
 func play_exp() -> void:
 	var now := Time.get_ticks_msec()
-	_exp_streak = mini(8, _exp_streak + 1) if now - _exp_last_ms < 400 else 0
+	_exp_streak = mini(6, _exp_streak + 1) if now - _exp_last_ms < 450 else 0
 	_exp_last_ms = now
-	play("pickup_exp", 0.03, -6.0, 1.0 + _exp_streak * 0.03)
+	play("pickup_exp", 0.02, 0.0, 1.0 + _exp_streak * 0.025)
 
 
 func _active_count(id: String) -> int:
 	var c := 0
 	for i in _players.size():
 		if _players[i].playing and _playing_id[i] == id:
+			c += 1
+	return c
+
+
+func _active_cat_count(cat: String) -> int:
+	var c := 0
+	for i in _players.size():
+		if _players[i].playing and _playing_cat[i] == cat:
 			c += 1
 	return c
 
@@ -178,7 +220,7 @@ func _borrow_slot(prio: int) -> int:
 		if not _players[i].playing:
 			return i
 		var p_id := _playing_id[i]
-		var r: Array = RULES.get(p_id, [50, 3, 1])
+		var r: Array = RULES.get(p_id, [120, 1, 1, -8.0, "cast"])
 		if int(r[2]) < worst_prio:
 			worst_prio = int(r[2])
 			worst = i

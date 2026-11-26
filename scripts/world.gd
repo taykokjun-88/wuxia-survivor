@@ -15,10 +15,11 @@ const SPAWN_DIST := 780.0
 const RELOCATE_DIST := 1300.0
 const MAX_GEMS := 400
 const VACUUM_SPEED := 1100.0       # 海纳百川：道具飞向主角的速度
-const MAX_EFFECTS := 160
+const MAX_EFFECTS := 110
+const MAX_TEXT_FX := 44            # 同屏飘字上限（小伤害数字超限跳过，重要大字提示优先保留）
 const CELL := 64.0
 const MAX_SKILLS := 4
-const LITE_ENEMIES := 140          # 画面里怪物超过这个数：普通怪用快速画法（没有倾斜 / 挤压）
+const LITE_ENEMIES := 65           # 画面里怪物超过这个数：普通怪用快速画法（零变换，Web / iPad 流畅）
 const MAX_XINFA := 2
 # 气海三境：盈（真气外放，伤害加成、可催动招式）/ 平 / 虚（回气加快）。数值见 data 的 tuning。
 enum Realm { XU, PING, YING }
@@ -2931,6 +2932,19 @@ func apply_choice(c: Dictionary) -> void:
 # =====================================================================
 
 func add_fx(kind: String, at: Vector2, life: float, extra: Dictionary = {}) -> void:
+	var important := kind == "text" and int(extra.get("size", 18)) >= 24
+	if not important:
+		if not _vis(at, 120.0):
+			return
+		if effects.size() >= MAX_EFFECTS:
+			return
+		if kind == "text":
+			var tc := 0
+			for fx0 in effects:
+				if fx0["kind"] == "text":
+					tc += 1
+					if tc >= MAX_TEXT_FX:
+						return
 	var fx := {"kind": kind, "pos": at, "t": 0.0, "life": life}
 	fx.merge(extra)
 	effects.append(fx)
@@ -3442,28 +3456,32 @@ func _draw_player() -> void:
 
 func _draw_effects() -> void:
 	var font := ThemeDB.fallback_font
+	var tfont: Font = Data.font_bold if Data.font_bold != null else font
+	var dense := effects.size() > 40
 	for fx in effects:
+		var at: Vector2 = fx["pos"]
+		if not _vis(at, 140.0):
+			continue
 		var t: float = fx["t"]
 		var life: float = fx["life"]
 		var a := 1.0 - t / life
-		var at: Vector2 = fx["pos"]
 		if fx.has("vfx") and vfx.has(str(fx["vfx"])):
 			continue
 		match str(fx["kind"]):
 			"text":
-				# 飘字：游戏字体 + 深色描边（深色地面上也看得清）；出现时先「弹」一下变大，大半寿命保持不透明再淡出
+				# 固定原字号（避免每帧动态改字号导致 WebGL 字体图集反复光栅化掉帧）
 				var col: Color = fx["color"]
 				if col.get_luminance() < 0.45:
 					col = col.lightened(0.4)
-				var tfont: Font = Data.font_bold if Data.font_bold != null else font
-				var pop := 1.0 + 0.35 * maxf(0.0, 1.0 - t / 0.12)
-				var fs := int(float(fx["size"]) * pop)
+				var fs := int(fx["size"])
 				var ta := clampf(a * 2.2, 0.0, 1.0)
-				var tw := maxf(200.0, float(fs) * float(str(fx["text"]).length()) + 24.0)
+				var txt := str(fx["text"])
+				var tw := maxf(200.0, float(fs) * float(txt.length()) + 24.0)
 				var tp := at - Vector2(tw * 0.5, 0)
+				var ow := maxi(2, fs / 6) if dense else maxi(3, fs / 4)
 				Depth.upright(self, Vector2(at.x, tp.y))
-				draw_string_outline(tfont, tp, str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, tw, fs, maxi(4, fs / 4), Color(0.05, 0.03, 0.02, ta))
-				draw_string(tfont, tp, str(fx["text"]), HORIZONTAL_ALIGNMENT_CENTER, tw, fs, Color(col, ta))
+				draw_string_outline(tfont, tp, txt, HORIZONTAL_ALIGNMENT_CENTER, tw, fs, ow, Color(0.05, 0.03, 0.02, ta))
+				draw_string(tfont, tp, txt, HORIZONTAL_ALIGNMENT_CENTER, tw, fs, Color(col, ta))
 				Depth.flat(self)
 			"ring":
 				var r := lerpf(float(fx["r0"]), float(fx["r1"]), t / life)
