@@ -557,8 +557,8 @@ func recalc() -> void:
 			stats["speed_pct"] = st("speed_pct") + 0.08
 		if has_route("staff"):
 			stats["crit_chance"] = st("crit_chance") + 0.10
-			stats["crit_mult"] = st("crit_mult") + 0.25
-			stats["block_chance"] = st("block_chance") + 0.10 + (0.10 if st("ji_spear") > 0.0 else 0.0)
+			stats["crit_mult"] = st("crit_mult") + 0.16
+			stats["block_chance"] = st("block_chance") + 0.06 + (0.10 if st("ji_spear") > 0.0 else 0.0)
 		for sid in skills:
 			stats["block_chance"] = st("block_chance") + float((skills[sid] as SkillBase).mods["block"])
 	_apply_synergies()
@@ -2871,7 +2871,7 @@ func _on_block() -> void:
 		for sk0: SkillBase in skills.values():
 			if str(sk0.def.get("school", "")) == "spear":
 				_spear_ctx = true
-				area_hit_raw(player_pos, 120.0, sk0.p("damage") * (0.2 + 0.3 * float(fj)), sk0.tags(), sk0.id, 200.0)
+				area_hit_raw(player_pos, 120.0, sk0.p("damage") * (0.15 + 0.20 * float(fj)), sk0.tags(), sk0.id, 200.0)
 				_spear_ctx = false
 				break
 	if st("t_tiebi") > 0.0:
@@ -3792,7 +3792,7 @@ func _cunjin(s: SkillBase, free: bool = false) -> void:
 			spawn_proj(s, a0 + (float(k) - float(zl - 1) * 0.5) * 0.4, {"speed": 720.0, "radius": 14.0, "life": 0.7, "pierce": 3, "knock": 80.0, "damage": s.p("damage") * 0.4})
 	if not free:
 		fist_qi = 0.0
-		hp = minf(st("max_hp"), hp + st("max_hp") * 0.04)   # 寸劲震爆回气血 4%，补足武者近身续航
+		hp = minf(st("max_hp"), hp + st("max_hp") * 0.05)   # 寸劲震爆回气血 5%，补足武者近身续航
 		if rng.randf() < 0.12 * st("t_lianhuan"):          # 连环劲：保留一半的劲
 			fist_qi = 50.0
 	cunjin_count += 1

@@ -2192,11 +2192,44 @@ func show_town_hud(on: bool) -> void:
 	town_layer.visible = on
 
 
+func _run_stats_text(w: GameWorld) -> String:
+	if w == null:
+		return ""
+	var out: Array[String] = []
+	out.append("属性：攻击 +%d%% · 暴击 %d%%(×%.2f) · 破甲 %d%% · 冷却 −%d%% · 防御 %.1f · 格挡 %d%%" % [
+		int(roundf(w.st("damage_pct") * 100.0)), int(roundf(w.st("crit_chance") * 100.0)), w.st("crit_mult"),
+		int(roundf(w.st("armor_pierce") * 100.0)), int(roundf(w.st("cd_reduce") * 100.0)),
+		w.st("armor"), int(roundf(w.block_chance() * 100.0))])
+	if not w.synergies.is_empty():
+		var sy_lines: Array[String] = []
+		for sy in w.synergies:
+			sy_lines.append("%s %s：%s" % ["★" if bool(sy["harmony"]) else "◇", str(sy["name"]), str(sy["desc"])])
+		out.append("\n".join(sy_lines))
+	var rows: Array = []
+	var tot := 0.0
+	for k in w.skill_dmg:
+		var v := float(w.skill_dmg[k])
+		if v > 0.5:
+			tot += v
+			rows.append([str(k), v])
+	if tot > 0.0:
+		rows.sort_custom(func(a, b): return float(a[1]) > float(b[1]))
+		var parts: Array[String] = []
+		for i in mini(5, rows.size()):
+			var sid: String = rows[i][0]
+			var dmg: float = rows[i][1]
+			var nm := "流血/血爆" if sid == "bleed" else ("破境余波" if sid == "poju" else str(Data.skills.get(sid, {}).get("name", sid)))
+			parts.append("%s %s (%.1f%%)" % [nm, _commas(int(dmg)), 100.0 * dmg / tot])
+		out.append("伤害占比：" + "　|　".join(parts))
+	return "\n".join(out)
+
+
 func show_pause() -> void:
 	end_bg.visible = false
-	overlay_dim.color = Color(0.05, 0.05, 0.08, 0.62 if (world != null and world.visible) else 0.92)
+	overlay_dim.color = Color(0.05, 0.05, 0.08, 0.68 if (world != null and world.visible) else 0.92)
 	overlay_title.text = "暂停"
-	overlay_body.text = "按 Esc 继续"
+	var st_txt := _run_stats_text(world)
+	overlay_body.text = "按 Esc 继续" + (("\n\n" + st_txt) if st_txt != "" else "")
 	pause_box.visible = true
 	pause_main.visible = true
 	pause_confirm.visible = false
@@ -2214,6 +2247,9 @@ func show_end(won: bool) -> void:
 	var dd: Dictionary = w.run_summary()["difficulty"]
 	if int(dd["count"]) != 100 or int(dd["hp"]) != 100 or int(dd["speed"]) != 100:
 		end_base += "\n难度：数量 %d%% · 血量 %d%% · 速度 %d%%" % [dd["count"], dd["hp"], dd["speed"]]
+	var st_txt := _run_stats_text(w)
+	if st_txt != "":
+		end_base += "\n\n" + st_txt
 	end_locked = false
 	end_box.visible = true
 	end_continue_btn.disabled = false
@@ -2224,7 +2260,7 @@ func show_end(won: bool) -> void:
 		art = _load_tex("res://assets/ui/screens/%s_%s.jpg" % ["victory" if won else "defeat", Save.school() if Save.school() != "" else "fist"])
 	end_bg.texture = art
 	end_bg.visible = art != null
-	overlay_dim.color = Color(0.03, 0.03, 0.05, 0.35 if art != null else 0.62)
+	overlay_dim.color = Color(0.03, 0.03, 0.05, 0.42 if art != null else 0.62)
 	overlay.visible = true
 
 
@@ -2606,6 +2642,35 @@ func _draw_hud() -> void:
 			if b.shield > 0.0:
 				canvas.draw_rect(Rect2(vw * 0.5 - bw * 0.5, by, bw * b.shield / maxf(1.0, b.shield_max), 18), Color("#9ae8ff", 0.85))
 				canvas.draw_string(font, Vector2(vw * 0.5 + bw * 0.5 + 8, by + 14), "护盾 %d%%" % int(100.0 * b.shield / maxf(1.0, b.shield_max)), HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color("#2a6a8a"))
+			# Boss 异常状态徽章（流血层数 / 破绽 / 破防 / 定身 / 减速 / 中毒 / 灼烧）
+			var tags: Array = []
+			if b.bleed_stacks > 0 and b.bleed_t > 0.0:
+				var ready_pop := b.bleed_stacks >= 3 and w.school_id == "blade"
+				tags.append(["流血×%d%s" % [b.bleed_stacks, "·可爆" if ready_pop else ""], Color("#ff4a3a") if ready_pop else Color("#c94a3a")])
+			if b.vuln_t > 0.0 and b.vuln > 0.0:
+				tags.append(["破绽 +%d%%" % int(roundf(b.vuln * 100.0)), Color("#e8b84a")])
+			if b.def_down_t > 0.0 and b.def_down > 0.0:
+				tags.append(["破防 −%d%%" % int(roundf(b.def_down * 100.0)), Color("#c488ff")])
+			if b.stun > 0.0:
+				tags.append(["定身 %.1fs" % b.stun, Color("#6ee7ff")])
+			if b.slow_t > 0.0 and b.slow_mult < 0.99:
+				tags.append(["减速 %d%%" % int(roundf((1.0 - b.slow_mult) * 100.0)), Color("#6aaeff")])
+			if b.poison_t > 0.0:
+				tags.append(["中毒", Color("#64d67a")])
+			if b.burn_t > 0.0:
+				tags.append(["灼烧", Color("#ff8a3a")])
+			if not tags.is_empty():
+				var tx := vw * 0.5 - bw * 0.5
+				var ty := by + 26.0
+				for tg in tags:
+					var lbl: String = tg[0]
+					var col: Color = tg[1]
+					var tw := maxf(54.0, float(lbl.length()) * 11.5 + 14.0)
+					canvas.draw_rect(Rect2(tx, ty, tw, 18.0), Color(0.08, 0.07, 0.07, 0.88))
+					canvas.draw_rect(Rect2(tx, ty, tw, 18.0), col, false, 1.5)
+					canvas.draw_string(font, Vector2(tx, ty + 14.0), lbl, HORIZONTAL_ALIGNMENT_CENTER, tw, 12, col.lightened(0.25))
+					tx += tw + 6.0
+				by += 22.0
 			if b.is_final and w.boss_deadline > 0.0:
 				var left := maxf(0.0, w.boss_deadline - w.time)
 				var urgent := left < 15.0
