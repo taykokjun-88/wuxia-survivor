@@ -3611,8 +3611,8 @@ func _fist_ult_end() -> void:
 			if not e.alive or e.pos.distance_to(player_pos) >= 700.0 + e.radius:
 				continue
 			var out := (e.pos - player_pos).normalized() if e.pos.distance_to(player_pos) > 0.01 else Vector2.RIGHT
-			e.knock += out * (300.0 * (0.25 if e.is_boss else 1.0))
-			_apply_dmg(e, wave_dmg, false, "poju")
+			skill_dmg["poju"] = float(skill_dmg.get("poju", 0.0)) + wave_dmg
+			damage_enemy(e, wave_dmg, out * 300.0, false)
 		add_fx("ring", player_pos, 0.6, {"r0": 30.0, "r1": 600.0, "color": GOLD, "vfx": "burst_gold", "size": 1100.0})
 	if st("t_yuwei") > 0.0:
 		yuwei_t = 5.0
