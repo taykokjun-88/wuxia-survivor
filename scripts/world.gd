@@ -3673,6 +3673,7 @@ func _cunjin(s: SkillBase, free: bool = false) -> void:
 			spawn_proj(s, a0 + (float(k) - float(zl - 1) * 0.5) * 0.4, {"speed": 720.0, "radius": 14.0, "life": 0.7, "pierce": 3, "knock": 80.0, "damage": s.p("damage") * 0.4})
 	if not free:
 		fist_qi = 0.0
+		hp = minf(st("max_hp"), hp + st("max_hp") * 0.04)   # 寸劲震爆回气血 4%，补足武者近身续航
 		if rng.randf() < 0.12 * st("t_lianhuan"):          # 连环劲：保留一半的劲
 			fist_qi = 50.0
 	cunjin_count += 1

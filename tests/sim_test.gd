@@ -2020,7 +2020,7 @@ func _plan6_test() -> void:
 	wu._rebuild_grid()
 	_check(wu.can_burst(), "内力足够可以爆发")
 	wu._burst()
-	_check(wu.fist_ult_t > 6.9 and wu.neili == 0.0 and wu.burst_left() == 1, "爆发：消耗全部内力、进入 7 秒拳掌无敌、次数 −1")
+	_check(wu.fist_ult_t > 5.9 and wu.neili == 0.0 and wu.burst_left() == 1, "爆发：消耗全部内力、进入 6 秒拳掌无敌、次数 −1")
 	wu.hp = wu.st("max_hp")
 	wu.input_move = Vector2.ZERO
 	var hp_u := wu.hp
@@ -2073,7 +2073,7 @@ func _plan6_test() -> void:
 	_check(wjf.burst_max() == 3, "极·天人合一：多 1 次真气爆发（%d）" % wjf.burst_max())
 	wjf.neili = wjf.st("max_neili")
 	wjf._burst()
-	_check(is_equal_approx(wjf.fist_ult_t, 12.0), "极·天人合一：拳掌无敌 12 秒（%.1f）" % wjf.fist_ult_t)
+	_check(is_equal_approx(wjf.fist_ult_t, 11.0), "极·天人合一：拳掌无敌 11 秒（%.1f）" % wjf.fist_ult_t)
 	wjf.fist_ult_t = 0.01
 	for i in 3:
 		wjf.step(DT)

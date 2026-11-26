@@ -90,7 +90,7 @@ class Base extends SkillBase:
 		if w.rng.randf() < 0.12 * w.st("t_liansao"):                                               # 连扫：保留一半棍势
 			w.spear_gs = maxf(w.spear_gs, 50.0)
 		var cap := w.st("t_hengsao_cap") > 0.0
-		var r := (p("reach") if def.has("reach") else p("radius")) * 2.0 * (1.0 + w.st("sweep_r")) * (1.12 if cap else 1.0)
+		var r := (p("reach") if def.has("reach") else p("radius")) * 2.0 * (1.0 + w.st("sweep_r")) * (1.10 if cap else 1.0)
 		w.spear_guard_t = 0.5
 		w.cone_hit(self, w.player_pos, 0.0, PI, r, p("damage") * 2.5, p("knock") * 2.0 * (1.3 if cap else 1.0), true)
 		for e in w._query(w.player_pos, r):
@@ -98,8 +98,8 @@ class Base extends SkillBase:
 				if w.st("t_pzg") > 0.0:                                                            # 破阵棍：降防
 					e.def_down = maxf(e.def_down, 0.1 * w.st("t_pzg"))
 					e.def_down_t = 3.0
-				if cap and not e.is_boss:                                                          # 横扫天下：晕眩 0.8 秒
-					e.stun = maxf(e.stun, 0.8)
+				if cap and not e.is_boss:                                                          # 横扫天下：短暂打断晕眩 0.35 秒
+					e.stun = maxf(e.stun, 0.35)
 		if w.st("t_hsyz") > 0.0:                                                                   # 横扫·余震：0.6 秒后再扫一次
 			w.add_zone({"kind": "impact", "skill": self, "pos": w.player_pos, "r": r, "delay": 0.6, "t": 0.0, "dmg": p("damage") * (0.1 + 0.2 * w.st("t_hsyz")), "stun": 0.0, "crack": false, "elv": 0})
 		if not vfx_at("fx_staff_wide", w.player_pos, r * 2.2, 0.0, 0.5):
