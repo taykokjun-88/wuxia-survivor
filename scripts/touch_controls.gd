@@ -11,9 +11,15 @@ signal menu_pressed
 
 const STICK_R := 72.0
 const STICK_DEADZONE := 0.14    # 摇杆死区：避免拇指微抖意外打断「入定」
+const DASH_POS := Vector2(1162, 598)
 const DASH_R := 60.0
+const ULT_POS := Vector2(1024, 638)
 const ULT_R := 48.0
+const PAUSE_POS := Vector2(1222, 108)
+const DETAIL_POS := Vector2(1222, 182)
 const SMALL_R := 30.0           # iPad 友好尺寸（直径 60px），远离屏幕边缘防触发 iOS 返回手势
+const MENU_POS := Vector2(1222, 58)
+const INTERACT_POS := Vector2(1162, 598)
 
 var mode := ""                  # "" 不显示 / "play" 局内 / "town" 村子
 var touch_seen := false
@@ -40,7 +46,7 @@ func _ready() -> void:
 
 
 func _vs() -> Vector2:
-	var s := _pad.get_viewport_rect().size if _pad != null else Vector2(1280, 720)
+	var s := _pad.get_viewport_rect().size if (_pad != null and _pad.is_inside_tree()) else Vector2(1280, 720)
 	return s if s.x > 100.0 and s.y > 100.0 else Vector2(1280, 720)
 
 
@@ -89,16 +95,17 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var st := event as InputEventScreenTouch
 		if st.pressed:
-			if _touch_down(st.index, st.position):
+			if _touch_down(st.index, st.position) and is_inside_tree():
 				get_viewport().set_input_as_handled()
 		else:
-			if _touch_up(st.index):
+			if _touch_up(st.index) and is_inside_tree():
 				get_viewport().set_input_as_handled()
 	elif event is InputEventScreenDrag:
 		var sd := event as InputEventScreenDrag
 		if sd.index == _stick_idx:
 			_stick_move(sd.position)
-			get_viewport().set_input_as_handled()
+			if is_inside_tree():
+				get_viewport().set_input_as_handled()
 
 
 ## 点中了哪个按钮（返回按钮名，没点中返回 ""）
