@@ -216,6 +216,7 @@ var tbw_t := 0.0               # 「余威」：真·霸刀结束后的增伤窗
 var hunbao_t := 0.0            # 「魂爆」：霸刀破岳后刀魂增长加成
 var hunbao_v := 0.0
 var baodao_skill: SkillBase = null
+var baodao_seen: Dictionary = {}     # 本次霸刀破岳已触发过叠层/引爆的敌人（防止多段斩击自爆刚叠的 3 层）
 var tiebi_t := 0.0             # 杨家将天赋「铁壁连环」：格挡后的格挡几率加成窗口
 var yishou_n := 0              # 「以守为攻」：格挡计数 / 下一击增伤
 var yishou_buff := 1.0
@@ -445,6 +446,7 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	hunbao_t = 0.0
 	hunbao_v = 0.0
 	baodao_skill = null
+	baodao_seen.clear()
 	tiebi_t = 0.0
 	yishou_n = 0
 	yishou_buff = 1.0
@@ -1915,8 +1917,9 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 			var bn := int(bv) + (1 if rng.randf() < bv - floorf(bv) else 0)
 			if bn > 0:
 				apply_bleed(e, bn, amount)
-	if bd and sid != "bleed" and not e.is_prop:
-		if e.bleed_stacks >= 3:                          # 霸刀破岳引爆 ≥3 层流血，爆出范围伤害并留 1 层余血
+	if bd and sid != "bleed" and not e.is_prop and not baodao_seen.has(e):
+		baodao_seen[e] = true
+		if e.bleed_stacks >= 3:                          # 霸刀破岳引爆 ≥3 层既有流血，爆出范围伤害并留 1 层余血
 			bleed_burst(e, true)
 			if effects.size() < MAX_EFFECTS:
 				add_fx("text", e.pos + Vector2(0, -e.radius - 14), 0.75, {"text": "血爆", "size": 22, "color": Color("#ff5a4a")})
@@ -3819,6 +3822,7 @@ func baodao_try(s: SkillBase) -> bool:
 	if school_id == "blade" and soul >= (80.0 if st("t_bawu") > 0.0 else 100.0) and not s.free_cast and str(s.def.get("school", "")) == "blade":
 		baodao = true
 		baodao_skill = s
+		baodao_seen.clear()
 		return true
 	return false
 

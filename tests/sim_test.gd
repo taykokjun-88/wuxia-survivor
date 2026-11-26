@@ -3794,7 +3794,7 @@ func _neili_test() -> void:
 		_populate(w2, 40)
 		w2.neili = w2.st("max_neili")
 		var before := w2.empower_count
-		for i in int(maxf(8.0, float(Data.skills[id]["cooldown"]) * 1.5 + 4.0) / DT):      # 冷却长的招式要给足出手次数
+		for i in int(maxf(12.0, float(Data.skills[id]["cooldown"]) * 2.5 + 4.0) / DT):      # 冷却长的招式要给足出手次数
 			TestBot.drive(w2, 75.0 if sk.tags().has("近战") else 240.0)
 			w2.step(DT)
 			if id == "taiji" and i % 90 == 0:
