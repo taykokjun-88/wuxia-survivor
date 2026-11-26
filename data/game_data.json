@@ -340,7 +340,7 @@
       ],
       "proj_kind": "finger",
       "desc": "远距离穿透指劲：有几率定身，伤害高（每穿透一个目标衰减）",
-      "damage": 42,
+      "damage": 49.6,
       "cooldown": 1.0,
       "pierce": 3,
       "stun": 1.0,
@@ -414,7 +414,7 @@
       ],
       "proj_kind": "palm",
       "desc": "中距离追踪掌印：命中减速、小范围溅射，容易连击",
-      "damage": 36,
+      "damage": 41.4,
       "cooldown": 1.3,
       "count": 1,
       "pierce": 1,
@@ -908,7 +908,7 @@
         "连击"
       ],
       "desc": "近身快刀，一刀向前一刀向后，连出两道疾风刀弧；每刀叠一层撕裂，每第 4 次出刀引爆敌人身上的撕裂",
-      "damage": 8,
+      "damage": 9.4,
       "cooldown": 0.65,
       "reach": 85,
       "arc": 1.7,
@@ -2657,9 +2657,9 @@
       "town_hero_dir": "res://assets/town/hero",
       "passive": {
         "ying_dmg": 0.2,
-        "empower_cut": -0.15,
+        "empower_cut": -0.08,
         "max_neili": 40,
-        "neili_regen": 1.5,
+        "neili_regen": 2.2,
         "max_hp": 15,
         "armor": 0.8,
         "damage_pct": 0.08
@@ -2702,9 +2702,11 @@
       "sprite_dir": "res://assets/sprites/blade",
       "town_hero_dir": "res://assets/town/hero_blade",
       "passive": {
-        "max_hp": 10,
-        "hp_regen": 0.05,
-        "kill_hp": 0.07
+        "max_hp": 25,
+        "hp_regen": 0.45,
+        "kill_hp": 0.35,
+        "damage_pct": 0.08,
+        "armor_pierce": 0.12
       },
       "passive_text": "悍勇不屈：气血上限 +10，气血回复 +0.05/秒，击杀回血 +0.07；烈焰 / 朱砂饮锋 / 幽微 / 斩蛟四个刀法会消耗气血（自己耗的血同样涨刀魂，更容易触发霸刀 / 破岳，霸刀 / 破岳时回复已损气血的 12%），要靠回复撑住；气血降到 20% 触发「真·霸刀破岳」：10 秒内刀招不耗血、所有回复翻倍（冷却 30 秒，从状态结束后开始算）",
       "story": "黑衣、斗笠、赤金披风。你曾是漠北马帮的刀手，护镖三十载，没丢过一趟镖。直到那一夜，同伴替你挡下致命一刀，死在你怀里，而你只能咬着牙活下来。\n从此你的刀越来越狠，越是流血，反而越清醒。披风是亡友留下的，赤金色是他生前最爱的颜色。你想知道，这把刀到底能劈开多少不公。"

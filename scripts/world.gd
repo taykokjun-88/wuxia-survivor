@@ -1915,15 +1915,21 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 			var bn := int(bv) + (1 if rng.randf() < bv - floorf(bv) else 0)
 			if bn > 0:
 				apply_bleed(e, bn, amount)
-	if bd and sid != "bleed":
-		apply_bleed(e, int(Data.T("blade_break_stacks")), amount)
+	if bd and sid != "bleed" and not e.is_prop:
+		if e.bleed_stacks >= 3:                          # 霸刀破岳引爆 ≥3 层流血，爆出范围伤害并留 1 层余血
+			bleed_burst(e, true)
+			if effects.size() < MAX_EFFECTS:
+				add_fx("text", e.pos + Vector2(0, -e.radius - 14), 0.75, {"text": "血爆", "size": 22, "color": Color("#ff5a4a")})
+			apply_bleed(e, 1, amount)
+		else:
+			apply_bleed(e, int(Data.T("blade_break_stacks")), amount)
 	if school_id == "blade" and sk != null and st("t_xuewu") > 0.0 and hp < st("max_hp") * 0.5 and not e.is_prop:     # 血雾：气血 <50% 时额外叠 1 层撕裂
 		apply_bleed(e, 1, amount)
 	if e.defense > 0.0:
 		var dfn := e.defense * (1.0 - e.def_down if e.def_down_t > 0.0 else 1.0)
 		if e.bleed_stacks > 0:                          # 撕裂：每层降低目标防御
 			dfn = maxf(0.0, dfn - Data.T("bleed_armor") * e.bleed_stacks * (1.0 + st("bleed_pow")))
-		amount *= 1.0 - dfn * (1.0 - clampf(st("armor_pierce") + (0.5 if tulong_on else 0.0) + (sk.ignore_def() if sk != null else 0.0), 0.0, 1.0))
+		amount *= 1.0 - dfn * (1.0 - clampf(st("armor_pierce") + (0.4 if bd else 0.0) + (0.5 if tulong_on else 0.0) + (sk.ignore_def() if sk != null else 0.0), 0.0, 1.0))
 	if e.is_boss:
 		amount = _boss_guard(e, amount, emp)
 		if e.shield > 0.0:                               # 护盾：先吃伤害；Boss 破防（虚弱）时以双倍伤害打掉
