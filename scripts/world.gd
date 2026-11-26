@@ -681,6 +681,99 @@ func _synergy_hint(new_id: String) -> String:
 	return out
 
 
+## 心法升级卡的具体提升明细（被动属性 / 标签加成 / 已有同修招式），替代抽象的「强度+N」
+func _xinfa_upgrade_desc(id: String, add_power: int) -> String:
+	var def: Dictionary = Data.xinfa[id]
+	var lines: Array[String] = []
+	var per_parts: Array[String] = []
+	var per: Dictionary = def.get("per_level", {})
+	for k in per:
+		per_parts.append(_fmt_xinfa_stat(str(k), float(per[k]) * float(add_power)))
+	if not per_parts.is_empty():
+		lines.append("被动：" + "、".join(per_parts))
+	var tag_parts: Array[String] = []
+	var bonus: Dictionary = def.get("bonus", {})
+	var scale_delta := 0.12 * float(add_power)
+	for tg in bonus:
+		var dv := float(bonus[tg]) * scale_delta * 100.0
+		tag_parts.append("%s +%s%%" % [str(tg), Data._fmt(dv)])
+	if not tag_parts.is_empty():
+		lines.append("标签：" + "、".join(tag_parts))
+	var lk_all: Dictionary = def.get("link", {})
+	var link_lines: Array[String] = []
+	var old_sc := xinfa_scale(id)
+	var new_sc := old_sc + scale_delta
+	for sid in lk_all:
+		if not skills.has(sid):
+			continue
+		var lk: Dictionary = lk_all[sid]
+		var sk_parts: Array[String] = []
+		for k in lk:
+			var ks := str(k)
+			var base_v := float(lk[k])
+			if ks == "targets":
+				var jump := int(base_v * new_sc) - int(base_v * old_sc)
+				sk_parts.append("目标 +%d" % jump if jump > 0 else "目标进度 +%s" % Data._fmt(base_v * scale_delta))
+			else:
+				sk_parts.append(_fmt_xinfa_link(ks, base_v * scale_delta))
+		link_lines.append("同修·%s：%s" % [str(Data.skills[sid]["name"]), "、".join(sk_parts)])
+	if not link_lines.is_empty():
+		lines.append("\n".join(link_lines))
+	else:
+		lines.append("同修倍率 +%d%%（尚未领悟对应招式）" % int(roundf(scale_delta * 100.0)))
+	lines.append("（已强化 %d/%d）" % [int(xinfa[id]) - 1, int(def["max_level"]) - 1])
+	return "\n".join(lines)
+
+
+func _fmt_xinfa_stat(k: String, v: float) -> String:
+	match k:
+		"max_hp": return "气血上限 +%s" % Data._fmt(v)
+		"max_neili": return "内力上限 +%s" % Data._fmt(v)
+		"neili_regen": return "回气 +%s/秒" % Data._fmt(v)
+		"hp_regen": return "回血 +%s/秒" % Data._fmt(v)
+		"full_hp_regen": return "满内回血 +%s/秒" % Data._fmt(v)
+		"ying_shift": return "盈境门槛 −%s%%" % Data._fmt(absf(v) * 100.0)
+		"armor": return "防御 +%s" % Data._fmt(v)
+		"block_chance": return "格挡 +%s%%" % Data._fmt(v * 100.0)
+		"dodge_chance": return "闪避 +%s%%" % Data._fmt(v * 100.0)
+		"thorns": return "反震 +%s" % Data._fmt(v)
+		"kill_neili": return "击杀回内 +%s" % Data._fmt(v)
+		"hit_slow": return "命中减速 +%s%%" % Data._fmt(v * 100.0)
+		"skill_debuff": return "控场增强 +%s%%" % Data._fmt(v * 100.0)
+		"damage_pct": return "全伤害 +%s%%" % Data._fmt(v * 100.0)
+		"cd_reduce": return "冷却 −%s%%" % Data._fmt(v * 100.0)
+		"speed_pct": return "移速 +%s%%" % Data._fmt(v * 100.0)
+		"pickup_heal": return "拾取回血 +%s" % Data._fmt(v)
+		"shield_max": return "护盾上限 +%s" % Data._fmt(v)
+		"shield_regen": return "护盾回复 +%s/秒" % Data._fmt(v)
+		"skill_range": return "招式范围 +%s%%" % Data._fmt(v * 100.0)
+		"crit_chance": return "暴击率 +%s%%" % Data._fmt(v * 100.0)
+		"crit_mult": return "暴击伤害 +%s%%" % Data._fmt(v * 100.0)
+		"exp_pct": return "经验 +%s%%" % Data._fmt(v * 100.0)
+		"pickup_range": return "拾取范围 +%s" % Data._fmt(v)
+		"luck": return "福缘 +%s%%" % Data._fmt(v * 100.0)
+	return "%s +%s" % [k, Data._fmt(v)]
+
+
+func _fmt_xinfa_link(k: String, v: float) -> String:
+	match k:
+		"damage": return "伤害 +%s%%" % Data._fmt(v * 100.0)
+		"ying": return "盈境增伤 +%s%%" % Data._fmt(v * 100.0)
+		"range": return "范围 +%s%%" % Data._fmt(v * 100.0)
+		"empower": return "省内 +%s%%" % Data._fmt(v * 100.0)
+		"heal": return "吸血 +%.3f%%" % (v * 100.0)
+		"duration": return "持续 +%s%%" % Data._fmt(v * 100.0)
+		"cooldown": return "冷却 −%s%%" % Data._fmt(v * 100.0)
+		"block": return "格挡 +%s%%" % Data._fmt(v * 100.0)
+		"neili_hit": return "命中回内 +%s" % Data._fmt(v)
+		"debuff": return "减速 +%s%%" % Data._fmt(v * 100.0)
+		"vuln": return "破绽 +%s%%" % Data._fmt(v * 100.0)
+		"bleed": return "流血 +%s%%" % Data._fmt(v * 100.0)
+		"crit": return "暴击 +%s%%" % Data._fmt(v * 100.0)
+		"hits": return "连击 +%s%%" % Data._fmt(v * 100.0)
+	return "%s +%s" % [k, Data._fmt(v)]
+
+
 func _exp_for(l: int) -> int:
 	return int(Data.T("exp_mult") * (6 + 4.0 * l + 0.5 * l * l))
 
@@ -2444,8 +2537,7 @@ func roll_choices(n: int = 3, avoid: Array = [], reroll: bool = false) -> Array:
 					"kind": "up_xinfa", "id": id, "tier": xt, "src": "level",
 					"tag": str(Data.tiers[xt]["name"]), "color": str(Data.tiers[xt]["color"]),
 					"title": "%s · 强化（Lv%d→%d）" % [def2["name"], xinfa[id], xinfa[id] + 1],
-					"desc": "同修招式与被动属性 +%d 份强度（累计 %.0f → %.0f 份）　（已强化 %d/%d）" % [
-						xt + 1, xinfa_power(id), xinfa_power(id) + xt + 1, int(xinfa[id]) - 1, int(def2["max_level"]) - 1],
+					"desc": _xinfa_upgrade_desc(id, xt + 1),
 				})
 		elif xinfa.size() < MAX_XINFA:
 			pool.append({

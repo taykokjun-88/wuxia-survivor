@@ -44,6 +44,7 @@ var pause_main: HBoxContainer
 var levelup_panel: Control
 var choice_title: Label
 var choice_buttons: Array[Button] = []
+var choice_cards: Array[Dictionary] = []
 var reroll_btn: Button
 var loadout_panel: Control
 var create_panel: Control
@@ -260,26 +261,90 @@ func _build_levelup() -> void:
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	levelup_panel.add_child(center)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
+	box.add_theme_constant_override("separation", 18)
 	center.add_child(box)
 	choice_title = _label("", 28)
+	choice_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(choice_title)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 20)
+	box.add_child(row)
 	for i in 3:
 		var b := Button.new()
-		b.custom_minimum_size = Vector2(780, 104)
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.expand_icon = true
-		b.add_theme_constant_override("icon_max_width", 72)
-		b.add_theme_constant_override("h_separation", 14)
-		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART        # 长说明自动换行，不再超出格子
-		b.clip_text = true
+		b.custom_minimum_size = Vector2(360, 410)
 		b.focus_mode = Control.FOCUS_NONE
-		b.add_theme_font_size_override("font_size", 17)
 		b.pressed.connect(func(): choice_selected.emit(i))
-		box.add_child(b)
+		row.add_child(b)
+		var pad := MarginContainer.new()
+		pad.set_anchors_preset(Control.PRESET_FULL_RECT)
+		pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pad.add_theme_constant_override("margin_left", 16)
+		pad.add_theme_constant_override("margin_right", 16)
+		pad.add_theme_constant_override("margin_top", 14)
+		pad.add_theme_constant_override("margin_bottom", 14)
+		b.add_child(pad)
+		var cv := VBoxContainer.new()
+		cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cv.add_theme_constant_override("separation", 10)
+		pad.add_child(cv)
+		var badge := Label.new()
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		badge.add_theme_font_size_override("font_size", 14)
+		cv.add_child(badge)
+		var icon_wrap := CenterContainer.new()
+		icon_wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cv.add_child(icon_wrap)
+		var icon_frame := PanelContainer.new()
+		icon_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon_frame.custom_minimum_size = Vector2(80, 80)
+		icon_wrap.add_child(icon_frame)
+		var icon_tr := TextureRect.new()
+		icon_tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon_tr.custom_minimum_size = Vector2(68, 68)
+		icon_tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon_tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon_frame.add_child(icon_tr)
+		var ttl := Label.new()
+		ttl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ttl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ttl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		ttl.add_theme_font_size_override("font_size", 20)
+		cv.add_child(ttl)
+		var sep := ColorRect.new()
+		sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sep.custom_minimum_size = Vector2(0, 2)
+		sep.color = Color("#a8895a", 0.55)
+		cv.add_child(sep)
+		var desc := Label.new()
+		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		desc.clip_text = true
+		desc.add_theme_font_size_override("font_size", 15)
+		desc.add_theme_color_override("font_color", Color("#ede4ce"))
+		cv.add_child(desc)
+		var hint_lbl := Label.new()
+		hint_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		hint_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		hint_lbl.add_theme_font_size_override("font_size", 13)
+		hint_lbl.add_theme_color_override("font_color", Color("#f2c864"))
+		hint_lbl.visible = false
+		cv.add_child(hint_lbl)
+		var foot := Label.new()
+		foot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		foot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		foot.add_theme_font_size_override("font_size", 14)
+		foot.add_theme_color_override("font_color", Color("#c2b393"))
+		foot.text = "按 [%d] 选取" % (i + 1)
+		cv.add_child(foot)
 		choice_buttons.append(b)
-	reroll_btn = _button("另觅机缘", Vector2(260, 44), 18)        # 重抽 3 张升级卡（局外每 5 级 +3 次）
+		choice_cards.append({
+			"badge": badge, "icon_wrap": icon_wrap, "icon_frame": icon_frame, "icon": icon_tr,
+			"title": ttl, "sep": sep, "desc": desc, "hint": hint_lbl, "foot": foot,
+		})
+	reroll_btn = _button("另觅机缘", Vector2(280, 44), 18)        # 重抽 3 张升级卡（局外每 5 级 +3 次）
 	reroll_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	reroll_btn.add_theme_stylebox_override("normal", _choice_style(Color("#a8895a"), false))
 	reroll_btn.add_theme_stylebox_override("hover", _choice_style(Color("#d9b46a"), true))
@@ -2184,25 +2249,44 @@ func show_choices(choices: Array, title: String, rerolls: int = -1) -> void:
 		var b := choice_buttons[i]
 		if i < choices.size():
 			var c: Dictionary = choices[i]
+			var card: Dictionary = choice_cards[i]
 			var hint := ""
 			if ["new_skill", "up_skill", "enhance"].has(str(c.get("kind", ""))):       # 天赋树里有强化这个招式的节点（已点的）就在卡上提示
 				hint = Talents.skill_hint(Save.school(), Save.meta_talents(), str(c.get("id", "")))
-			b.text = "[%d] 【%s】%s\n%s%s" % [i + 1, c["tag"], c["title"], c["desc"], ("\n【" + hint + "】") if hint != "" else ""]
-			b.icon = _choice_icon(c)
-			if c.has("color"):                  # 强化卡：框和字都用品质色（白 / 蓝 / 紫 / 金）
-				var col := Color(str(c["color"]))
-				b.add_theme_color_override("font_color", col)
-				b.add_theme_color_override("font_hover_color", col)
-				b.add_theme_stylebox_override("normal", _choice_style(col, false))
-				b.add_theme_stylebox_override("hover", _choice_style(col, true))
-				b.add_theme_stylebox_override("pressed", _choice_style(col, true))
-			else:                               # 领悟招式 / 修习心法：古铜色框
-				var bronze := Color("#a8895a")
-				b.add_theme_color_override("font_color", Color("#f3ead2"))
-				b.add_theme_color_override("font_hover_color", Color.WHITE)
-				b.add_theme_stylebox_override("normal", _choice_style(bronze, false))
-				b.add_theme_stylebox_override("hover", _choice_style(bronze, true))
-				b.add_theme_stylebox_override("pressed", _choice_style(bronze, true))
+			var col := Color(str(c["color"])) if c.has("color") else Color("#c9a566")
+			var title_col := col if c.has("color") else Color("#f7eed8")
+			var badge_lbl: Label = card["badge"]
+			badge_lbl.text = "【%s】" % str(c["tag"])
+			badge_lbl.add_theme_color_override("font_color", col)
+			var tex := _choice_icon(c)
+			var icon_wrap: Control = card["icon_wrap"]
+			var icon_tr: TextureRect = card["icon"]
+			icon_tr.texture = tex
+			icon_wrap.visible = tex != null
+			var icon_frame: PanelContainer = card["icon_frame"]
+			var isb := StyleBoxFlat.new()
+			isb.bg_color = Color(0.08, 0.07, 0.06, 0.92)
+			isb.border_color = col
+			isb.set_border_width_all(2)
+			isb.set_corner_radius_all(6)
+			isb.set_content_margin_all(5)
+			icon_frame.add_theme_stylebox_override("panel", isb)
+			var ttl: Label = card["title"]
+			ttl.text = str(c["title"])
+			ttl.add_theme_color_override("font_color", title_col)
+			var sep: ColorRect = card["sep"]
+			sep.color = Color(col.r, col.g, col.b, 0.5)
+			var desc_lbl: Label = card["desc"]
+			desc_lbl.text = str(c["desc"])
+			var hint_lbl: Label = card["hint"]
+			if hint != "":
+				hint_lbl.text = "◆ 天赋：%s" % hint
+				hint_lbl.visible = true
+			else:
+				hint_lbl.visible = false
+			b.add_theme_stylebox_override("normal", _choice_style(col, false))
+			b.add_theme_stylebox_override("hover", _choice_style(col, true))
+			b.add_theme_stylebox_override("pressed", _choice_style(col, true))
 			b.visible = true
 		else:
 			b.visible = false

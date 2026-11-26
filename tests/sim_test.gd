@@ -3161,7 +3161,7 @@ func _synergy_test() -> void:
 	wa.skills.clear()
 	wa.xinfa = {"wuxiang": 1, "hanshuang": 1}
 	wa.recalc()
-	_check(absf(wa.st("neili_regen") - base_regen * 1.2) < 1e-6 and wa.st("ping_widen") > 0.0 and wa.synergies[0]["name"] == "调和体", "调和体：回气 +20%，平境更宽")
+	_check(absf(wa.st("neili_regen") - base_regen * 1.15) < 1e-6 and wa.st("ping_widen") >= 0.09 and wa.st("armor") > float(Data.player_base["armor"]) and wa.synergies[0]["name"] == "调和体", "调和体：回气 +15%、平境大幅拓宽、防御提升")
 	var xu0 := Data.T("xu_below")
 	wa.neili = wa.st("max_neili") * (xu0 - 0.03)
 	_check(wa.realm() == GameWorld.Realm.PING, "平境更宽：略低于虚境线时仍算平")
@@ -3170,7 +3170,7 @@ func _synergy_test() -> void:
 	wb.skills.clear()
 	wb.xinfa = {"wuxiang": 1, "tiegu": 1}
 	wb.recalc()
-	_check(absf(wb.st("neili_regen") - base_regen * 0.8) < 1e-6 and absf(wb.st("emp_power") - 0.3) < 1e-9 and wb.synergies[0]["name"] == "纯阳体", "纯阳体：回气 −20%，催动威力 +30%")
+	_check(absf(wb.st("neili_regen") - base_regen * 0.85) < 1e-6 and absf(wb.st("emp_power") - 0.35) < 1e-9 and wb.st("damage_pct") >= 0.10 - 1e-9 and wb.st("crit_chance") >= 0.06 - 1e-9 and wb.synergies[0]["name"] == "纯阳体", "纯阳体：回气 −15%、催动威力 +35%、全伤 +10%、暴击 +6%")
 	wb.input_move = Vector2.ZERO
 	for i in int(3.0 / DT):
 		wb.step(DT)
@@ -3183,14 +3183,19 @@ func _synergy_test() -> void:
 	var plain := wb.hit_enemy(probe, 100.0, ["远程"], Vector2.ZERO, "probe")
 	wb._emp_ctx = 1
 	var emp := wb.hit_enemy(probe, 100.0, ["远程"], Vector2.ZERO, "probe")
-	_check(absf(emp / plain - 1.3) < 1e-6, "纯阳体：催动版伤害 ×1.3（实际 ×%.2f）" % (emp / plain))
+	_check(absf(emp / plain - 1.35) < 1e-6, "纯阳体：催动版伤害 ×1.35（实际 ×%.2f）" % (emp / plain))
 	_free_world(wb)
 	var wc := _new_world(73)
 	wc.skills.clear()
 	wc.xinfa = {"hanshuang": 1, "tunhai": 1}
 	wc.recalc()
 	var per_max := float(Data.xinfa["hanshuang"]["per_level"].get("max_neili", 0.0)) + float(Data.xinfa["tunhai"]["per_level"].get("max_neili", 0.0))
-	_check(absf(wc.st("max_neili") - (base_max + float(Data.schools["fist"]["passive"]["max_neili"]) + per_max) * 1.3) < 1e-6 and absf(wc.st("emp_power") + 0.15) < 1e-9 and wc.synergies[0]["name"] == "纯阴体", "纯阴体：内力上限 +30%，催动威力 −15%")
+	_check(absf(wc.st("max_neili") - (base_max + float(Data.schools["fist"]["passive"]["max_neili"]) + per_max) * 1.35) < 1e-6 and absf(wc.st("emp_power") + 0.10) < 1e-9 and wc.st("cd_reduce") >= 0.08 - 1e-9 and wc.st("dodge_chance") >= 0.06 - 1e-9 and wc.synergies[0]["name"] == "纯阴体", "纯阴体：内力上限 +35%、冷却 −8%、闪避 +6%、催动 −10%")
+	# 心法升级明细：必须列出具体属性与已有同修招式，不再显示「份强度」
+	wc.add_skill("quake_fist")
+	wc.recalc()
+	var up_desc := wc._xinfa_upgrade_desc("hanshuang", 2)
+	_check(not up_desc.contains("份强度") and up_desc.contains("命中减速") and up_desc.contains("裂脉震拳"), "心法升级卡列出具体被动属性与同修招式提升：" + up_desc)
 	_free_world(wc)
 	# 合璧效果
 	var wd := _new_world(74)
