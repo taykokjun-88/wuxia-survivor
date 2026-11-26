@@ -3632,7 +3632,7 @@ func fist_after_cast(s: SkillBase) -> void:
 		return
 	if fist_ult_t > 0.0:                          # 拳掌无敌：每一下出手都触发寸劲（不耗劲力）
 		_cunjin(s, true)
-	elif fist_qi >= (80.0 if st("t_wushuang") > 0.0 else 100.0):
+	elif fist_qi >= (90.0 if st("t_wushuang") > 0.0 else 100.0):
 		_cunjin(s)
 	else:
 		fist_qi = minf(100.0, fist_qi + Data.T("fist_qi_cast") * (1.0 + st("qi_gain") + (1.0 if st("ji_fist") > 0.0 else 0.0)))
@@ -3641,7 +3641,7 @@ func fist_after_cast(s: SkillBase) -> void:
 func _cunjin(s: SkillBase, free: bool = false) -> void:
 	var t := nearest_enemy(420.0)
 	var center := t.pos if t != null else player_pos + facing_dir() * 90.0
-	var r := Data.T("fist_qi_radius") * (1.2 if st("t_wushuang") > 0.0 else 1.0)
+	var r := Data.T("fist_qi_radius") * (1.15 if st("t_wushuang") > 0.0 else 1.0)
 	var base := s.p("damage") * Data.T("fist_qi_mult")
 	var pz := int(st("t_pozhen"))
 	for e in _query(center, r):
