@@ -1769,7 +1769,13 @@ func _build_gear() -> void:
 		if not gear_discard.has(c):
 			inv.append(c)
 	inv.sort_custom(func(a, b): return int(Gear.parse(a)["rarity"]) > int(Gear.parse(b)["rarity"]))
-	box.add_child(_label("背包 %d / %d%s" % [inv.size(), int(Data.gear["inventory_max"]), "　【丢弃模式：点击装备即丢弃，保存后生效】" if gear_drop_mode else "　点击装备穿上"], 18,
+	var sell_total := 0
+	for scode in gear_discard:
+		sell_total += Gear.discard_silver(int(Gear.parse(str(scode))["rarity"]))
+	var sell_hint := "　【售卖模式：点击装备加入出售清单，保存后入账】" if gear_drop_mode else "　点击装备穿上"
+	if gear_discard.size() > 0:
+		sell_hint += "　待售 %d 件（+%d 银两）" % [gear_discard.size(), sell_total]
+	box.add_child(_label("背包 %d / %d%s" % [inv.size(), int(Data.gear["inventory_max"]), sell_hint], 18,
 		Color("#f08070") if gear_drop_mode else Color("#c9a227")))
 	box.add_child(_slot_tabs(inv, gear_tab, func(k: String) -> void:
 		gear_tab = k
@@ -1793,21 +1799,41 @@ func _build_gear() -> void:
 			bt2.text = "【已装备】" + bt2.text
 			bt2.modulate = Color(0.78, 1.0, 0.82)
 			bt2.tooltip_text = "已装备：再点一下卸下\n" + bt2.tooltip_text
+		elif gear_drop_mode:
+			var sv := Gear.discard_silver(int(Gear.parse(str(c))["rarity"]))
+			bt2.text += "　[售 +%d 银]" % sv
+			bt2.tooltip_text = "点击售卖（+%d 银两，保存后入账）\n" % sv + bt2.tooltip_text
 		bt2.pressed.connect(_gear_item_click.bind(str(c)))
 		grid.add_child(bt2)
 	gear_status = _label("", 16, Color("#cfc6ae"))
 	gear_status.custom_minimum_size = Vector2(0, 22)
 	box.add_child(gear_status)
-	var btns := _center_row(16)
-	var dm := _button("丢弃模式：%s" % ("开" if gear_drop_mode else "关"), Vector2(170, 44), 16)
+	var btns := _center_row(14)
+	var dm := _button("售卖模式：%s" % ("开" if gear_drop_mode else "关"), Vector2(160, 44), 16)
 	dm.pressed.connect(func():
 		gear_drop_mode = not gear_drop_mode
 		_gear_refresh())
-	var save := _button("保存", Vector2(160, 44), 22)
+	var bulk := _button("一键售卖白/蓝装", Vector2(180, 44), 16)
+	bulk.pressed.connect(func():
+		var added := 0
+		for code_i in Save.items():
+			var cs := str(code_i)
+			if gear_discard.has(cs) or gear_equip.values().has(cs):
+				continue
+			if int(Gear.parse(cs)["rarity"]) <= 1:
+				gear_discard.append(cs)
+				added += 1
+		if added > 0:
+			gear_drop_mode = true
+		_gear_refresh()
+		if added == 0 and gear_status != null:
+			gear_status.text = "背包里没有未穿戴的普通 / 特别装备可售卖。")
+	var save := _button("保存%s" % ("（+%d 银）" % sell_total if sell_total > 0 else ""), Vector2(180 if sell_total > 0 else 160, 44), 20 if sell_total > 0 else 22)
 	save.pressed.connect(func(): gear_saved.emit(gear_equip.duplicate(), gear_discard.duplicate()))
 	var cancel := _button("返回  [Esc]", Vector2(160, 44), 18)
 	cancel.pressed.connect(func(): modal_closed.emit())
 	btns.add_child(dm)
+	btns.add_child(bulk)
 	btns.add_child(save)
 	btns.add_child(cancel)
 	box.add_child(btns)

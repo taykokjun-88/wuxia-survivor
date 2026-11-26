@@ -1713,12 +1713,12 @@ func hit_enemy(e: Enemy, base: float, tags: Array, knock_vec: Vector2, sid: Stri
 	if sid == "dugu":
 		if st("t_zhibu") > 0.0 and e.stun > 0.0:                      # 滞步冰封：被定身的敌人受九变剑伤害 +15%/30%
 			m *= 1.0 + 0.15 * st("t_zhibu")
-		if st("t_fenfeng") > 0.0:                                     # 分锋合流：同一次出手的多柄剑命中同一敌人，每柄再叠伤害
+		if st("t_fenfeng") > 0.0:                                     # 分锋合流：同一次出手的多柄剑命中同一敌人，每柄再叠伤害（最多叠 5 层）
 			var fh: Array = fenfeng_hits.get(e.uid, [0, -9.0])
 			if time - float(fh[1]) > 0.3:
 				fh[0] = 0
-			m *= 1.0 + 0.12 * st("t_fenfeng") * float(fh[0])
-			fh[0] = int(fh[0]) + 1
+			m *= 1.0 + 0.08 * st("t_fenfeng") * float(mini(5, int(fh[0])))
+			fh[0] = mini(5, int(fh[0]) + 1)
 			fh[1] = time
 			fenfeng_hits[e.uid] = fh
 			if fenfeng_hits.size() > 200:
@@ -3605,7 +3605,14 @@ func _fist_talent_tick(dt: float) -> void:
 func _fist_ult_end() -> void:
 	var pl := int(st("t_poju"))
 	if pl > 0 and ult_dmg > 0.0:
-		area_hit_raw(player_pos, 700.0, ult_dmg * 0.04 * float(pl), [], "poju", 300.0)
+		# 破境余波按无敌期间累计伤害的固定比例直接结算（避免经 area_hit_raw 二次叠全伤/暴击造成 3× 以上失衡）
+		var wave_dmg := ult_dmg * 0.02 * float(pl)
+		for e in _query(player_pos, 700.0):
+			if not e.alive or e.pos.distance_to(player_pos) >= 700.0 + e.radius:
+				continue
+			var out := (e.pos - player_pos).normalized() if e.pos.distance_to(player_pos) > 0.01 else Vector2.RIGHT
+			e.knock += out * (300.0 * (0.25 if e.is_boss else 1.0))
+			_apply_dmg(e, wave_dmg, false, "poju")
 		add_fx("ring", player_pos, 0.6, {"r0": 30.0, "r1": 600.0, "color": GOLD, "vfx": "burst_gold", "size": 1100.0})
 	if st("t_yuwei") > 0.0:
 		yuwei_t = 5.0
@@ -3625,7 +3632,7 @@ func fist_after_cast(s: SkillBase) -> void:
 		return
 	if fist_ult_t > 0.0:                          # 拳掌无敌：每一下出手都触发寸劲（不耗劲力）
 		_cunjin(s, true)
-	elif fist_qi >= (70.0 if st("t_wushuang") > 0.0 else 100.0):
+	elif fist_qi >= (80.0 if st("t_wushuang") > 0.0 else 100.0):
 		_cunjin(s)
 	else:
 		fist_qi = minf(100.0, fist_qi + Data.T("fist_qi_cast") * (1.0 + st("qi_gain") + (1.0 if st("ji_fist") > 0.0 else 0.0)))
@@ -3634,7 +3641,7 @@ func fist_after_cast(s: SkillBase) -> void:
 func _cunjin(s: SkillBase, free: bool = false) -> void:
 	var t := nearest_enemy(420.0)
 	var center := t.pos if t != null else player_pos + facing_dir() * 90.0
-	var r := Data.T("fist_qi_radius") * (1.3 if st("t_wushuang") > 0.0 else 1.0)
+	var r := Data.T("fist_qi_radius") * (1.2 if st("t_wushuang") > 0.0 else 1.0)
 	var base := s.p("damage") * Data.T("fist_qi_mult")
 	var pz := int(st("t_pozhen"))
 	for e in _query(center, r):
@@ -3663,7 +3670,7 @@ func _cunjin(s: SkillBase, free: bool = false) -> void:
 	if zl > 0 and fist_ult_t > 0.0:
 		var a0 := (center - player_pos).angle()
 		for k in zl:
-			spawn_proj(s, a0 + (float(k) - float(zl - 1) * 0.5) * 0.4, {"speed": 720.0, "radius": 14.0, "life": 0.7, "pierce": 3, "knock": 80.0, "damage": s.p("damage") * 0.6})
+			spawn_proj(s, a0 + (float(k) - float(zl - 1) * 0.5) * 0.4, {"speed": 720.0, "radius": 14.0, "life": 0.7, "pierce": 3, "knock": 80.0, "damage": s.p("damage") * 0.4})
 	if not free:
 		fist_qi = 0.0
 		if rng.randf() < 0.12 * st("t_lianhuan"):          # 连环劲：保留一半的劲

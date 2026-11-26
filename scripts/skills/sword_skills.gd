@@ -600,10 +600,10 @@ class Dugu extends SkillBase:
 				w.stun_enemy(e, 0.8)
 			if first == null or to.length() < (first.pos - w.player_pos).length():
 				first = e
-		# 分锋变：每 3 层多一圈余波（更大一圈，60% 伤害）
+		# 分锋变：每 3 层多一圈余波（更大一圈，35% 伤害）
 		for i in mini(3, L("po_jian") / 3):
 			var Ri := R * (1.0 + 0.16 * (i + 1))
-			w.area_hit_raw(w.player_pos, Ri, dmg * 0.6, tags(), id, 160.0, 0.0, false, true)
+			w.area_hit_raw(w.player_pos, Ri, dmg * 0.35, tags(), id, 160.0, 0.0, false, true)
 			w.add_fx("ring", w.player_pos, 0.35 + 0.05 * i, {"r0": R * 0.6, "r1": Ri, "color": SwordSkills.SWORD_BLUE})
 		if first != null:
 			w.add_fx("text", first.pos + Vector2(0, -first.radius - 34), 0.9, {"text": label, "size": 26, "color": GameWorld.VERMILION})

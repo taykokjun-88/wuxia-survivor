@@ -714,9 +714,9 @@ func _talk(npc: Dictionary) -> void:
 		"clerk":
 			opts = [{"label": "出发历练（选择地图）", "action": "depart"}, {"label": "再逛逛", "action": "close"}]
 		"smith":
-			greet += "\n\n你有银两 %d。每局结算都会得到银两，丢弃（分解）装备也能换银两。" % Save.silver()
+			greet += "\n\n你有银两 %d。每局结算都会得到银两，售卖多余装备也能换银两（普通 30 / 特别 100 / 稀有 350 / 传说 1000）。" % Save.silver()
 			opts = [{"label": "强化装备（消耗银两，最高 +%d）" % Gear.enhance_max(), "action": "enhance"},
-				{"label": "整备装备（穿戴 / 丢弃）", "action": "gear"}, {"label": "告辞", "action": "close"}]
+				{"label": "整备装备（穿戴 / 售卖）", "action": "gear"}, {"label": "告辞", "action": "close"}]
 		"herbalist":
 			opts = [{"label": "告辞", "action": "close"}]
 		"master":

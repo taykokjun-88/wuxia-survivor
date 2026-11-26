@@ -90,9 +90,9 @@ class Base extends SkillBase:
 		if w.rng.randf() < 0.12 * w.st("t_liansao"):                                               # 连扫：保留一半棍势
 			w.spear_gs = maxf(w.spear_gs, 50.0)
 		var cap := w.st("t_hengsao_cap") > 0.0
-		var r := (p("reach") if def.has("reach") else p("radius")) * 2.0 * (1.0 + w.st("sweep_r")) * (1.4 if cap else 1.0)
+		var r := (p("reach") if def.has("reach") else p("radius")) * 2.0 * (1.0 + w.st("sweep_r")) * (1.2 if cap else 1.0)
 		w.spear_guard_t = 0.5
-		w.cone_hit(self, w.player_pos, 0.0, PI, r, p("damage") * 2.5, p("knock") * 2.0 * (2.0 if cap else 1.0), true)
+		w.cone_hit(self, w.player_pos, 0.0, PI, r, p("damage") * 2.5, p("knock") * 2.0 * (1.5 if cap else 1.0), true)
 		for e in w._query(w.player_pos, r):
 			if e.alive and e.pos.distance_to(w.player_pos) < r + e.radius:
 				if w.st("t_pzg") > 0.0:                                                            # 破阵棍：降防
