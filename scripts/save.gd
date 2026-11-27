@@ -520,3 +520,11 @@ func mark_intro_seen() -> void:
 func mark_smith_rescued() -> void:
 	_set_story_flag("intro_seen", true)
 	_set_story_flag("smith_rescued", true)
+
+
+func story_flag(flag: String) -> bool:
+	return bool(_story_dict().get(flag, false))
+
+
+func mark_story_flag(flag: String) -> void:
+	_set_story_flag(flag, true)

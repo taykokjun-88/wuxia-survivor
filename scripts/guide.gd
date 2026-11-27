@@ -2,7 +2,7 @@ class_name Guide
 extends RefCounted
 ## 茶馆老包的图鉴：玩法 / 招式 / 心法 / 轻功。内容几乎全部由数据表生成，数值改了图鉴自动跟着变。
 
-const CATEGORIES := [["play", "玩法"], ["skill", "招式"], ["xinfa", "心法"], ["qg", "轻功"]]
+const CATEGORIES := [["play", "玩法"], ["story", "列传"], ["skill", "招式"], ["xinfa", "心法"], ["qg", "轻功"]]
 
 
 static func _fmt_page(text: String) -> String:
@@ -27,6 +27,8 @@ static func entries(cat: String) -> Array:
 		"play":
 			for pg in Data.guide["pages"]:
 				out.append({"title": pg["title"], "text": _fmt_page(str(pg["text"])), "icon_kind": "", "icon_id": ""})
+		"story":
+			return Story.bio_entries(Save.school(), Save.is_cleared("black_wind"), Save.is_cleared("guangming"), Save.is_cleared("taohua"))
 		"skill":
 			for id in Data.skills:
 				out.append({"title": Data.skills[id]["name"], "text": skill_text(id), "icon_kind": "skills", "icon_id": id})

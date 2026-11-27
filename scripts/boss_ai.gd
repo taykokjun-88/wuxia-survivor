@@ -168,6 +168,10 @@ static func enter_phase2(w: GameWorld, e: Enemy) -> void:
 	if w.tulong_equipped and e.is_final:                    # 彩蛋：斩蛟宝刀对断云剑
 		w.tulong_on = true
 		w.add_fx("text", w.player_pos + Vector2(0, -110), 3.0, {"text": "斩蛟宝刀，天下至尊", "size": 40, "color": Color("#ffb030")})
+	elif e.is_final:
+		var p2_line := Story.phase2_line(w.school_id, w.map_id)
+		if p2_line != "":
+			w.add_fx("text", e.pos + Vector2(0, -e.radius - 115), 2.8, {"text": p2_line, "size": 22, "color": Color("#ffd88a")})
 	Sfx.play("boss_warn")
 
 

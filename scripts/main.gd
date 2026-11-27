@@ -415,11 +415,28 @@ func _enter_town() -> void:
 	_debug_place_near_npc()
 	if not Save.is_intro_seen() and not Save.is_smith_rescued():
 		Save.mark_intro_seen()
+		var ci := Story.chief_intro(Save.school())
 		var chief_tex: Texture2D = load("res://assets/town/npc/sage.png") if ResourceLoader.exists("res://assets/town/npc/sage.png") else null
 		_dlg({"id": "chief", "name": "老村长", "title": "小村村长", "tex": chief_tex},
-			"少侠，你可算来了！村里的王铁匠前日去山脚收铁矿，竟被黑风寨那帮恶贼给抓上了山！\n\n如今打铁铺空荡荡的，兵甲无人锻打。还请少侠前去黑风寨走一遭——只要能熬到大当家现身之前，便能趁乱把铁匠救回村来！",
-			[{"label": "义不容辞，这就前往黑风寨！", "action": "map:black_wind"},
-			{"label": "先在村里四处转转", "action": "close"}])
+			str(ci["text"]),
+			[{"label": str(ci["opt1"]), "action": "map:black_wind"},
+			{"label": str(ci["opt2"]), "action": "close"}])
+	else:
+		_check_town_milestones()
+
+
+func _check_town_milestones() -> void:
+	for pair in [["taohua", "th_clear"], ["guangming", "gm_clear"], ["black_wind", "bw_clear"]]:
+		var mid: String = pair[0]
+		var fl: String = pair[1]
+		if Save.is_cleared(mid) and not Save.story_flag(fl):
+			Save.mark_story_flag(fl)
+			var ms := Story.town_milestone(fl, Save.school())
+			if not ms.is_empty():
+				var tex: Texture2D = load(str(ms["tex"])) if ResourceLoader.exists(str(ms["tex"])) else null
+				_dlg({"id": fl, "name": str(ms["speaker"]), "title": str(ms["title"]), "tex": tex},
+					str(ms["text"]), [{"label": str(ms["opt"]), "action": "close"}])
+			return
 
 
 ## 仅限开发：后端指向本机时，地址里的 ?npc=<id> 让主角一进村就站在那个 NPC 面前（端到端测试用）
@@ -719,10 +736,15 @@ func _dlg(npc: Dictionary, text: String, opts: Array) -> void:
 func _talk(npc: Dictionary) -> void:
 	var opts: Array = []
 	var greet := str(npc["greet"])
+	if Save.is_cleared("taohua"):
+		greet = greet.replace("少侠", Story.honorific(Save.school(), true))
 	match str(npc["id"]):
 		"clerk":
 			opts = [{"label": "出发历练（选择地图）", "action": "depart"}, {"label": "再逛逛", "action": "close"}]
 		"smith":
+			if Save.is_smith_rescued() and not Save.story_flag("smith_thanked"):
+				Save.mark_story_flag("smith_thanked")
+				greet = Story.smith_thanks(Save.school())
 			greet += "\n\n你有银两 %d。每局结算都会得到银两，售卖多余装备也能换银两（普通 30 / 特别 100 / 稀有 350 / 传说 1000）。" % Save.silver()
 			opts = [{"label": "强化装备（消耗银两，最高 +%d）" % Gear.enhance_max(), "action": "enhance"},
 				{"label": "整备装备（穿戴 / 售卖）", "action": "gear"}, {"label": "告辞", "action": "close"}]

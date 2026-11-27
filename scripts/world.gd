@@ -62,6 +62,7 @@ var boss_deadline := -1.0          # 大 Boss 现身后的限时（秒，游戏�
 signal story_event(id: String)
 var timeout_fail := false
 var smith_rescue_triggered := false
+var _story_done: Dictionary = {}       # 本局已触发过的轻剧情台词（entry / low_hp / harmony）
 var sword_break_count := 0           # 统计：「剑破天下」触发次数（测试用）
 var dugu_combo_log: Array = []     # 统计：真·无迹九变剑的连击段数（测试用）
 var soul := 0.0                    # 刀魂（刀客，0~100）
@@ -308,6 +309,7 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	boss_deadline = -1.0
 	timeout_fail = false
 	smith_rescue_triggered = false
+	_story_done.clear()
 	hzones.clear()
 	sword_break_count = 0
 	qinggong_id = p_qinggong
@@ -658,6 +660,9 @@ func _apply_synergies() -> void:
 	if not h.is_empty():
 		defs.append(h)
 		synergies.append({"name": h["name"], "desc": h["desc"], "harmony": true})
+		if time > 1.0 and not _story_done.has("harmony"):
+			_story_done["harmony"] = true
+			add_fx("text", player_pos + Vector2(0, -86), 2.8, {"text": Story.harmony_line(school_id, str(h["name"])), "size": 21, "color": Color("#ffd87a")})
 	for d in defs:
 		var sd: Dictionary = d.get("stats", {})
 		for k in sd:
@@ -1183,6 +1188,14 @@ func _spawn(dt: float) -> void:
 	if time >= next_wave and not boss_spawned:                       # 怪潮：从一个方向压过来的一大群
 		next_wave += Data.T("wave_interval")
 		_spawn_wave()
+	if time >= 2.0 and not _story_done.has("entry"):
+		_story_done["entry"] = true
+		var eline := Story.map_entry_line(school_id, map_id)
+		if eline != "":
+			add_fx("text", player_pos + Vector2(0, -82), 2.8, {"text": eline, "size": 20, "color": Color("#f7eed8")})
+	if hp > 0.0 and hp < st("max_hp") * 0.25 and not _story_done.has("low_hp"):
+		_story_done["low_hp"] = true
+		add_fx("text", player_pos + Vector2(0, -90), 2.6, {"text": Story.low_hp_line(school_id), "size": 21, "color": Color("#ff9a6a")})
 	var tl := _timeline()
 	var minis: Array = tl["minis"]
 	if mini_idx < minis.size() and time >= float(minis[mini_idx]["t"]) and not boss_spawned:
@@ -1376,6 +1389,15 @@ func _spawn_boss(id: String, final: bool) -> void:
 		boss_deadline = time + float((_timeline()["final"] as Dictionary)["limit"])
 	Sfx.play("boss_warn")
 	add_fx("text", player_pos + Vector2(0, -80), 2.0, {"text": "%s 现身！" % e.boss_name, "size": 28, "color": VERMILION})
+	if not final:
+		var mb := Story.mini_boss_banter(school_id, id)
+		if mb != "":
+			add_fx("text", e.pos + Vector2(0, -e.radius - 36), 2.6, {"text": mb, "size": 19, "color": Color("#ffd88a")})
+	else:
+		var ex := Story.final_boss_exchange(school_id, map_id, skills.has("dugu") and shi_total() >= shi_th(3))
+		if ex.size() >= 2:
+			_finale_q.append({"t": 0.9, "text": "%s：「%s」" % [e.boss_name.split("·")[-1], str(ex[0])], "size": 21, "color": Color("#ff9e7a"), "dy": -138.0, "life": 2.8})
+			_finale_q.append({"t": 2.9, "text": "「%s」" % str(ex[1]), "size": 21, "color": Color("#fff2b8"), "dy": -96.0, "life": 2.8})
 
 
 # =====================================================================
