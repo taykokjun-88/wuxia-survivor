@@ -212,6 +212,8 @@ func near_npc() -> Dictionary:
 	var best := {}
 	var best_d := NPC_REACH
 	for n in npcs:
+		if str(n["id"]) == "smith" and not Save.is_smith_rescued():
+			continue
 		var d := (n["pos"] as Vector2).distance_to(player_pos)
 		if d < best_d:
 			best_d = d
@@ -239,6 +241,8 @@ func _draw() -> void:
 	# NPC 和主角按脚底的 y 排序，谁靠下谁盖在上面
 	var items: Array = []
 	for n in npcs:
+		if str(n["id"]) == "smith" and not Save.is_smith_rescued():
+			continue
 		items.append({"y": (n["pos"] as Vector2).y, "npc": n})
 	items.append({"y": player_pos.y, "npc": null})
 	items.sort_custom(func(a, b): return a["y"] < b["y"])

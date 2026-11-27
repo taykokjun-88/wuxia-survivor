@@ -14,6 +14,7 @@ var current_map := "black_wind"
 var stage_bgm := "black_wind"       # 当前关卡的曲子（没有专属曲目就用黑风寨的）
 var dialog_actions: Array = []
 var dialog_npc: Dictionary = {}
+var dialog_return_play := false
 var town: Town
 var world: GameWorld
 var cam: Camera2D
@@ -28,6 +29,7 @@ var choice_is_chest := false
 func _ready() -> void:
 	world = GameWorld.new()
 	add_child(world)
+	world.story_event.connect(_on_story_event)
 	town = Town.new()
 	add_child(town)
 	town.visible = false
@@ -411,6 +413,13 @@ func _enter_town() -> void:
 	town.scale = Vector2(1.0, Depth.tilt)
 	hud.show_town_hud(true)
 	_debug_place_near_npc()
+	if not Save.is_intro_seen() and not Save.is_smith_rescued():
+		Save.mark_intro_seen()
+		var chief_tex: Texture2D = load("res://assets/town/npc/sage.png") if ResourceLoader.exists("res://assets/town/npc/sage.png") else null
+		_dlg({"id": "chief", "name": "老村长", "title": "小村村长", "tex": chief_tex},
+			"少侠，你可算来了！村里的王铁匠前日去山脚收铁矿，竟被黑风寨那帮恶贼给抓上了山！\n\n如今打铁铺空荡荡的，兵甲无人锻打。还请少侠前去黑风寨走一遭——只要能熬到大当家现身之前，便能趁乱把铁匠救回村来！",
+			[{"label": "义不容辞，这就前往黑风寨！", "action": "map:black_wind"},
+			{"label": "先在村里四处转转", "action": "close"}])
 
 
 ## 仅限开发：后端指向本机时，地址里的 ?npc=<id> 让主角一进村就站在那个 NPC 面前（端到端测试用）
@@ -749,9 +758,26 @@ func _open_town_menu() -> void:
 		{"label": "退出登录（返回登录画面）" if online else "退出登录（未联网，无登录画面）", "action": "logout", "enabled": online}])
 
 
+func _on_story_event(ev_id: String) -> void:
+	if state != State.PLAY:
+		return
+	if ev_id == "rescue_smith":
+		Save.mark_smith_rescued()
+		world.hp = minf(world.st("max_hp"), world.hp + world.st("max_hp") * 0.2)
+		dialog_return_play = true
+		var smith_tex: Texture2D = load("res://assets/town/npc/smith.png") if ResourceLoader.exists("res://assets/town/npc/smith.png") else null
+		_dlg({"id": "smith", "name": "王铁匠", "title": "获救的铁匠", "tex": smith_tex},
+			"多谢少侠救命之恩！黑风寨这帮恶贼把我绑在寨口柴房里，眼看大当家就要亲至，幸好少侠杀到！\n\n我这就抄小路赶回小村重开打铁铺！今后历练得来的神兵利器与银两，只管拿来找我锻打强化——大当家马上就要现身了，少侠千万小心！",
+			[{"label": "放心回村，大当家交给我！（回复 20% 气血）", "action": "resume_play"}])
+
+
 func _dialog_close() -> void:
 	hud.hide_dialog()
-	state = State.TOWN
+	if dialog_return_play:
+		dialog_return_play = false
+		state = State.PLAY
+	else:
+		state = State.TOWN
 
 
 func _on_dialog_option(i: int) -> void:
@@ -759,11 +785,12 @@ func _on_dialog_option(i: int) -> void:
 		return
 	var act: String = str(dialog_actions[i])
 	if act.begins_with("map:"):
+		dialog_return_play = false
 		hud.hide_dialog()
 		_enter_loadout(act.substr(4))
 		return
 	match act:
-		"close":
+		"close", "resume_play":
 			_dialog_close()
 		"credits":
 			hud.show_credits()

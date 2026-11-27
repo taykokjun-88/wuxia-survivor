@@ -2576,7 +2576,10 @@ func _town_test() -> void:
 	_check(main.state == main.State.CREATE, "没有角色先创建角色")
 	main.hud.confirm_create()
 	await get_tree().process_frame
-	_check(main.state == main.State.TOWN and main.town.visible and not main.world.visible, "创建完角色进入村子")
+	_check(main.state == main.State.DIALOG and str(main.dialog_npc.get("id", "")) == "chief" and main.town.visible and not main.world.visible, "新角色首次进村：老村长触发铁匠被抓剧情")
+	_check(not Save.is_smith_rescued(), "新角色初始尚未救出铁匠")
+	main._dialog_close()
+	_check(main.state == main.State.TOWN, "关闭村长剧情后进入村子")
 	main.town.player_pos = Vector2(0, -290)
 	main._talk(main.town.near_npc())
 	_check(main.state == main.State.DIALOG and main.hud.dialog_count == 2, "和驿卒说话：出现对话框")
@@ -2598,6 +2601,12 @@ func _town_test() -> void:
 	main._on_loadout("point_finger", "feiyan")
 	_check(main.state == main.State.PLAY and main.world.map_id == "black_wind" and main.world.visible and not main.town.visible, "出发后进入战斗，村子隐藏")
 	_check(str(main.world.run_summary().get("map", "")) == "black_wind", "成绩摘要带上地图")
+	# 熬到黑风寨大 Boss 现身前：触发救下铁匠剧情，并恢复战斗
+	main.world.time = 597.0
+	main.world.step(DT)
+	_check(Save.is_smith_rescued() and main.state == main.State.DIALOG and str(main.dialog_npc.get("id", "")) == "smith", "熬到大 Boss 现身前：触发救下铁匠剧情")
+	main._on_dialog_option(0)
+	_check(main.state == main.State.PLAY, "救出铁匠后恢复战斗迎战大 Boss")
 	# 师父 / 掌柜 / 茶馆老包
 	main.world.over = true
 	main._enter_town()

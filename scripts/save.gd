@@ -468,3 +468,55 @@ func recommend_status(map_id: String) -> Array:
 		var gs := gear_score()
 		out.append({"label": "装备分数 %d / %d" % [gs, int(rec["gear_score"])], "ok": gs >= int(rec["gear_score"])})
 	return out
+
+
+# ---------------------------------------------------------------------
+# 剧情进度（按角色记录在本地存档；已有装备或已通关黑风寨的老角色自动视为已救出铁匠）
+# ---------------------------------------------------------------------
+
+func _story_key() -> String:
+	return char_id() if char_id() != "" else "_local"
+
+
+func _story_dict() -> Dictionary:
+	var st: Variant = data.get("story", {})
+	if st is Dictionary:
+		var cd: Variant = (st as Dictionary).get(_story_key(), {})
+		if cd is Dictionary:
+			return cd
+	return {}
+
+
+func _set_story_flag(flag: String, val: bool) -> void:
+	var st: Variant = data.get("story", {})
+	if not st is Dictionary:
+		st = {}
+	var k := _story_key()
+	var cd: Variant = (st as Dictionary).get(k, {})
+	if not cd is Dictionary:
+		cd = {}
+	(cd as Dictionary)[flag] = val
+	(st as Dictionary)[k] = cd
+	data["story"] = st
+	save_data()
+
+
+func is_smith_rescued() -> bool:
+	if bool(_story_dict().get("smith_rescued", false)):
+		return true
+	if is_cleared("black_wind") or not items().is_empty():
+		return true
+	return false
+
+
+func is_intro_seen() -> bool:
+	return bool(_story_dict().get("intro_seen", false)) or is_smith_rescued()
+
+
+func mark_intro_seen() -> void:
+	_set_story_flag("intro_seen", true)
+
+
+func mark_smith_rescued() -> void:
+	_set_story_flag("intro_seen", true)
+	_set_story_flag("smith_rescued", true)

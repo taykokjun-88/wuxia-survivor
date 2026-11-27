@@ -59,7 +59,9 @@ var hzones: Array = []                # Boss 留下的地面区域：毒雾 / �
 var player_knock := Vector2.ZERO       # Boss 技能击退
 var player_slow_t := 0.0           # 银鞭减速
 var boss_deadline := -1.0          # 大 Boss 现身后的限时（秒，游戏内时间）；超时 = 寨主逃遁，判负
+signal story_event(id: String)
 var timeout_fail := false
+var smith_rescue_triggered := false
 var sword_break_count := 0           # 统计：「剑破天下」触发次数（测试用）
 var dugu_combo_log: Array = []     # 统计：真·无迹九变剑的连击段数（测试用）
 var soul := 0.0                    # 刀魂（刀客，0~100）
@@ -305,6 +307,7 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	dugu_combo_log.clear()
 	boss_deadline = -1.0
 	timeout_fail = false
+	smith_rescue_triggered = false
 	hzones.clear()
 	sword_break_count = 0
 	qinggong_id = p_qinggong
@@ -1186,6 +1189,9 @@ func _spawn(dt: float) -> void:
 		_spawn_boss(str(minis[mini_idx]["id"]), false)
 		mini_idx += 1
 	var fin: Dictionary = tl["final"]
+	if map_id == "black_wind" and not smith_rescue_triggered and not boss_spawned and time >= float(fin["t"]) - 4.0 and not Save.is_smith_rescued():
+		smith_rescue_triggered = true
+		story_event.emit("rescue_smith")
 	if not boss_spawned and time >= float(fin["t"]):
 		boss_spawned = true
 		_clear_for_final()
