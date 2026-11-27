@@ -313,20 +313,25 @@ func _build_levelup() -> void:
 		ttl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		ttl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		ttl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		ttl.add_theme_font_size_override("font_size", 20)
+		ttl.add_theme_font_size_override("font_size", 21)
+		ttl.add_theme_constant_override("outline_size", 2)
+		ttl.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
 		cv.add_child(ttl)
 		var sep := ColorRect.new()
 		sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		sep.custom_minimum_size = Vector2(0, 2)
 		sep.color = Color("#a8895a", 0.55)
 		cv.add_child(sep)
-		var desc := Label.new()
+		var desc := RichTextLabel.new()
 		desc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		desc.bbcode_enabled = true
+		desc.scroll_active = false
+		desc.fit_content = false
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		desc.clip_text = true
-		desc.add_theme_font_size_override("font_size", 15)
-		desc.add_theme_color_override("font_color", Color("#ede4ce"))
+		desc.add_theme_font_size_override("normal_font_size", 15)
+		desc.add_theme_color_override("default_color", Color("#f2ead5"))
+		desc.add_theme_constant_override("line_separation", 4)
 		cv.add_child(desc)
 		var hint_lbl := Label.new()
 		hint_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -2336,8 +2341,8 @@ func show_choices(choices: Array, title: String, rerolls: int = -1) -> void:
 			ttl.add_theme_color_override("font_color", title_col)
 			var sep: ColorRect = card["sep"]
 			sep.color = Color(col.r, col.g, col.b, 0.5)
-			var desc_lbl: Label = card["desc"]
-			desc_lbl.text = str(c["desc"])
+			var desc_rt: RichTextLabel = card["desc"]
+			desc_rt.text = _format_card_desc(c, col)
 			var hint_lbl: Label = card["hint"]
 			if hint != "":
 				hint_lbl.text = "◆ 天赋：%s" % hint
@@ -2353,6 +2358,96 @@ func show_choices(choices: Array, title: String, rerolls: int = -1) -> void:
 		else:
 			b.visible = false
 	levelup_panel.visible = true
+
+
+var _re_card_num: RegEx = null
+
+func _esc_bb(s: String) -> String:
+	return s.replace("[", "[lb]").replace("]", "[rb]")
+
+
+func _hl_card_nums(s: String, num_hex: String = "#7ef0a8") -> String:
+	if _re_card_num == null:
+		_re_card_num = RegEx.new()
+		_re_card_num.compile("([+−\\-×]\\d+(?:\\.\\d+)?%?(?:/秒|秒|点|层|次)?|\\d+(?:\\.\\d+)?%)")
+	return _re_card_num.sub(s, "[color=%s]$1[/color]" % num_hex, true)
+
+
+func _hl_card_mech(s: String) -> String:
+	var out := _hl_card_nums(s, "#7ef0a8")
+	for kw in ["必暴击", "无视防御", "破甲", "流血", "血爆", "破绽", "定身", "眩晕", "击退", "穿透", "折返", "连击", "护盾", "吸血", "格挡", "催动", "盈境", "觉醒", "真伤"]:
+		out = out.replace(kw, "[color=#ffe07a]%s[/color]" % kw)
+	return out
+
+
+## 升级卡正文富文本排版：突出核心强化数值、机制关键词、分节标题与合璧提示
+func _format_card_desc(c: Dictionary, col: Color) -> String:
+	var kind := str(c.get("kind", ""))
+	var raw := _esc_bb(str(c.get("desc", "")))
+	var col_hex := "#" + col.lightened(0.2).to_html(false)
+	match kind:
+		"up_skill", "shi_up":
+			var idx := raw.find("（")
+			var main_part := raw.substr(0, idx).strip_edges() if idx > 0 else raw
+			var prog_part := raw.substr(idx).strip_edges() if idx > 0 else ""
+			var out := "\n[center][font_size=21][color=%s]%s[/color][/font_size][/center]" % [col_hex, _hl_card_nums(main_part, "#ffe27a")]
+			if prog_part != "":
+				out += "\n\n[center][font_size=13][color=#a89d86]%s[/color][/font_size][/center]" % prog_part
+			return out
+		"enhance", "shi_new":
+			return "[font_size=16]%s[/font_size]" % _hl_card_mech(raw)
+		"up_xinfa":
+			var lines: Array[String] = []
+			for ln in raw.split("\n"):
+				var t := ln.strip_edges()
+				if t == "":
+					continue
+				if t.begins_with("被动："):
+					lines.append("[color=#f2c864]◆ 被动强化[/color]\n" + _hl_card_nums(t.substr(3), "#7ef0a8"))
+				elif t.begins_with("标签："):
+					lines.append("[color=#6ee7d8]◆ 标签[/color] " + _hl_card_nums(t.substr(3), "#7ef0a8"))
+				elif t.begins_with("同修·"):
+					var ci := t.find("：")
+					if ci > 0:
+						lines.append("[color=#ffb85c]★ %s[/color]\n%s" % [t.substr(0, ci), _hl_card_nums(t.substr(ci + 1), "#ffe27a")])
+					else:
+						lines.append("[color=#ffb85c]★ %s[/color]" % t)
+				elif t.begins_with("同修倍率"):
+					lines.append("[color=#ffb85c]★[/color] " + _hl_card_nums(t, "#ffe27a"))
+				elif t.begins_with("（"):
+					lines.append("[font_size=13][color=#a89d86]%s[/color][/font_size]" % t)
+				else:
+					lines.append(_hl_card_nums(t, "#7ef0a8"))
+			return "\n".join(lines)
+		"new_skill":
+			var ti := raw.rfind("【")
+			var body := raw.substr(0, ti).strip_edges() if ti > 0 else raw
+			var tags := raw.substr(ti).strip_edges() if ti > 0 else ""
+			var out := ""
+			if tags != "":
+				out += "[center][font_size=14][color=#6ee7d8]%s[/color][/font_size][/center]\n" % tags
+			out += "[font_size=16]%s[/font_size]" % _hl_card_mech(body)
+			return out
+		"new_xinfa":
+			var s := raw
+			s = s.replace("被动：", "\n[color=#f2c864]◆ 被动：[/color]")
+			s = s.replace("同修：", "\n[color=#ffb85c]★ 同修：[/color]")
+			s = s.replace("标签：", "\n[color=#6ee7d8]◆ 标签：[/color]")
+			var lines2: Array[String] = []
+			for ln in s.split("\n"):
+				var t := ln.strip_edges()
+				if t == "":
+					continue
+				if t.begins_with("◆ 你已有的同修招式："):
+					lines2.append("[color=#7ef0a8]%s[/color]" % t)
+				elif t.begins_with("▶ "):
+					lines2.append("[color=#72d8ff]%s[/color]" % _hl_card_nums(t, "#ffe27a"))
+				elif t.begins_with("★ 合璧"):
+					lines2.append("[color=#ff9e5e]%s[/color]" % _hl_card_nums(t, "#ffe27a"))
+				else:
+					lines2.append(_hl_card_nums(t, "#7ef0a8"))
+			return "[font_size=14]" + "\n".join(lines2) + "[/font_size]"
+	return "[center][font_size=18]%s[/font_size][/center]" % _hl_card_mech(raw)
 
 
 ## 选卡上的图标：招式 / 心法 / 无迹九变剑的式；没有图标的（调息）返回 null
