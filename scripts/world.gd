@@ -295,7 +295,7 @@ func _load_map_art() -> void:
 		map_art = null
 
 
-func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", p_map: String = "black_wind", p_diff: Dictionary = {}) -> void:
+func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", p_map: String = "black_wind", p_diff: Dictionary = {}, p_xinfa: String = "") -> void:
 	map_id = p_map
 	_load_map_art()
 	set_difficulty(p_diff)
@@ -319,6 +319,8 @@ func start_run(p_starter: String = "chain_fist", p_qinggong: String = "tashue", 
 	school_id = str(Data.skills[starter_id]["school"])
 	_load_school_sprites()
 	add_skill(starter_id)
+	if p_xinfa != "" and Data.xinfa.has(p_xinfa):
+		xinfa[p_xinfa] = 1
 	stats = {}
 	recalc()
 	hp = float(stats["max_hp"])
@@ -590,12 +592,32 @@ func xinfa_scale(id: String) -> float:
 	return 1.0 + 0.12 * (xinfa_power(id) - 1.0)
 
 
-## 心法「同修」：学会的心法点名 3 个招式（可以跨流派、起手招式除外），每个招式有各自的加成 / 特殊效果；强度随心法的份数提高
+## 心法联动：1）标签机制（tag_fx）对所有匹配标签的招式生效（含起手招式）；2）同修羁绊（link）对点名的 4 个招式提供大幅专属加成；强度均随心法份数提升
 func _apply_xinfa_links() -> void:
 	var per_skill: Dictionary = {}       # 技能 id -> {mods: {}, flags: {}}
 	for id in xinfa:
 		var def: Dictionary = Data.xinfa[id]
 		var sc := xinfa_scale(id)
+		var tfx: Dictionary = def.get("tag_fx", {})
+		var btags: Dictionary = def.get("bonus", {})
+		if not tfx.is_empty() and not btags.is_empty():
+			for sid in skills:
+				var sk0: SkillBase = skills[sid]
+				var matched := false
+				for tg in sk0.tags():
+					if btags.has(tg):
+						matched = true
+						break
+				if not matched:
+					continue
+				if not per_skill.has(sid):
+					per_skill[sid] = {"mods": {}, "flags": {}}
+				for k in tfx:
+					var v := float(tfx[k]) * sc
+					if ["ying", "neili_hit", "vuln", "bleed"].has(k):
+						per_skill[sid]["flags"][k] = float(per_skill[sid]["flags"].get(k, 0.0)) + v
+					else:
+						per_skill[sid]["mods"][k] = float(per_skill[sid]["mods"].get(k, 0.0)) + v
 		var lk_all: Dictionary = def.get("link", {})
 		for sid in lk_all:
 			if not skills.has(sid):
@@ -701,6 +723,12 @@ func _xinfa_upgrade_desc(id: String, add_power: int) -> String:
 		tag_parts.append("%s +%s%%" % [str(tg), Data._fmt(dv)])
 	if not tag_parts.is_empty():
 		lines.append("标签：" + "、".join(tag_parts))
+	var tfx: Dictionary = def.get("tag_fx", {})
+	if not tfx.is_empty():
+		var tfx_parts: Array[String] = []
+		for k in tfx:
+			tfx_parts.append(_fmt_xinfa_link(str(k), float(tfx[k]) * scale_delta))
+		lines.append("机制：" + "、".join(tfx_parts))
 	var lk_all: Dictionary = def.get("link", {})
 	var link_lines: Array[String] = []
 	var old_sc := xinfa_scale(id)
@@ -2532,10 +2560,18 @@ func roll_choices(n: int = 3, avoid: Array = [], reroll: bool = false) -> Array:
 		if dugu_route or skills.has(id) or str(def["school"]) != school_id or Data.is_starter(id) or bool(def.get("hidden", false)):      # 起手招式（含无迹九变剑）只能在出发前选，升级时不会出现
 			continue
 		if skills.size() < MAX_SKILLS:
+			var bond_names: Array[String] = []
+			for xid in xinfa:
+				if (Data.xinfa[xid].get("link", {}) as Dictionary).has(id):
+					bond_names.append(str(Data.xinfa[xid]["name"]))
+			var desc_ns := "%s　【%s】" % [def["desc"], Data.tags_text(id)]
+			if not bond_names.is_empty():
+				desc_ns += "\n★ 与「%s」触发同修羁绊！" % "」「".join(bond_names)
 			pool.append({
 				"kind": "new_skill", "id": id, "tag": "招式", "src": "level",
 				"title": "领悟：%s" % def["name"],
-				"desc": "%s　【%s】" % [def["desc"], Data.tags_text(id)],
+				"desc": desc_ns,
+				"_w": 2.5 if not bond_names.is_empty() else 1.0,
 			})
 	for id in Data.xinfa:
 		var def2: Dictionary = Data.xinfa[id]
@@ -2547,23 +2583,48 @@ func roll_choices(n: int = 3, avoid: Array = [], reroll: bool = false) -> Array:
 					"tag": str(Data.tiers[xt]["name"]), "color": str(Data.tiers[xt]["color"]),
 					"title": "%s · 强化（Lv%d→%d）" % [def2["name"], xinfa[id], xinfa[id] + 1],
 					"desc": _xinfa_upgrade_desc(id, xt + 1),
+					"_w": 1.0,
 				})
 		elif xinfa.size() < MAX_XINFA:
+			var xw := 1.0
+			var lk_x: Dictionary = def2.get("link", {})
+			for sid in skills:
+				if lk_x.has(sid):
+					xw *= 2.5
+					break
+			if xinfa.size() == 1 and not Data.harmony_of(str(xinfa.keys()[0]), id).is_empty():
+				xw *= 2.0
 			pool.append({
 				"kind": "new_xinfa", "id": id, "tag": "心法", "src": "level",
 				"title": "修习：%s【%s】" % [def2["name"], "阳" if str(def2.get("yy", "")) == "yang" else "阴"],
 				"desc": str(def2["desc"]) + _link_hint(id) + _synergy_hint(id),
+				"_w": xw,
 			})
-	_shuffle(pool)
-	if not avoid.is_empty() and pool.size() > n:      # 重抽：刚展示过的卡放到最后面（抽不到别的时才会再出现）
-		var seen: Array = []
-		var fresh: Array = []
-		for c: Dictionary in pool:
-			(seen if avoid.has(_choice_key(c)) else fresh).append(c)
-		pool = seen + fresh
+	var fresh: Array = []
+	var seen: Array = []
+	for c: Dictionary in pool:
+		if not avoid.is_empty() and avoid.has(_choice_key(c)):
+			seen.append(c)
+		else:
+			fresh.append(c)
 	var out: Array = shi_pool.duplicate()    # 无迹九变剑：每次至少两张「式」
-	while out.size() < n and not pool.is_empty():
-		out.append(pool.pop_back())
+	for bucket in [fresh, seen]:
+		while out.size() < n and not (bucket as Array).is_empty():
+			out.append(_pop_weighted_card(bucket))
+	# 前 3 次升级若还未修习任何心法，保底提供 1 张心法卡（方便尽早定好构筑方向）
+	if xinfa.is_empty() and level <= 4 and not dugu_route and not out.is_empty():
+		var has_xf := false
+		for c: Dictionary in out:
+			if str(c.get("kind", "")) == "new_xinfa":
+				has_xf = true
+				break
+		if not has_xf:
+			var xf_cands: Array = []
+			for c: Dictionary in fresh + seen:
+				if str(c.get("kind", "")) == "new_xinfa":
+					xf_cands.append(c)
+			if not xf_cands.is_empty():
+				out[out.size() - 1] = _pop_weighted_card(xf_cands)
 	var hc := _hidden_card(reroll)
 	if not hc.is_empty() and not out.is_empty():
 		out[rng.randi() % out.size()] = hc
@@ -2575,6 +2636,20 @@ func roll_choices(n: int = 3, avoid: Array = [], reroll: bool = false) -> Array:
 		out.append({"kind": "heal", "id": "", "tag": "调息", "src": "level", "title": "运功疗伤", "desc": "回复 40% 气血"})
 		out.append({"kind": "elixir", "id": "", "tag": "调息", "src": "level", "title": "凝神静气", "desc": "获得相当于当前升级所需 60% 的修为"})
 	return out
+
+
+func _pop_weighted_card(arr: Array) -> Dictionary:
+	var total := 0.0
+	for c: Dictionary in arr:
+		total += maxf(0.1, float(c.get("_w", 1.0)))
+	var r := rng.randf() * total
+	for i in arr.size():
+		r -= maxf(0.1, float((arr[i] as Dictionary).get("_w", 1.0)))
+		if r <= 0.0:
+			var picked: Dictionary = arr[i]
+			arr.remove_at(i)
+			return picked
+	return arr.pop_back()
 
 
 ## 学会无名枪法后，每次升级三选一里必定有一张它的强化卡（方向：连击 / 暴击 / 暴击伤害 / 贯穿 / 破绽）；已有就不重复，升满后不再出

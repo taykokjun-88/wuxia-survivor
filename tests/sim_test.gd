@@ -3197,6 +3197,20 @@ func _synergy_test() -> void:
 	var up_desc := wc._xinfa_upgrade_desc("hanshuang", 2)
 	_check(not up_desc.contains("份强度") and up_desc.contains("命中减速") and up_desc.contains("裂脉震拳"), "心法升级卡列出具体被动属性与同修招式提升：" + up_desc)
 	_free_world(wc)
+	# 初始心法 + 标签机制对起手招式生效 + 前 3 级保底心法
+	var wst := _new_world(78)
+	wst.start_run("kuang_feng", "tashue", "black_wind", {}, "lingxi")
+	_check(wst.xinfa.has("lingxi") and float((wst.skills["kuang_feng"] as SkillBase).link_applied.get("crit", 0.0)) >= 0.08 - 1e-6, "初始心法 + 标签机制：灵犀飞针录对起手「猎风疾影剑」连击标签生效")
+	wst.xinfa.clear()
+	wst.level = 2
+	wst.recalc()
+	var gch := wst.roll_choices(3)
+	var has_gx := false
+	for gc in gch:
+		if str(gc.get("kind", "")) == "new_xinfa":
+			has_gx = true
+	_check(has_gx, "未学心法时前 3 次升级保底出现 1 张心法卡")
+	_free_world(wst)
 	# 合璧效果
 	var wd := _new_world(74)
 	wd.skills.clear()

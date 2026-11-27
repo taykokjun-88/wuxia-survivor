@@ -114,6 +114,7 @@ const FEEDBACK_TYPES := ["bug", "balance", "idea", "other"]
 var school := "fist"          # 当前角色的流派
 var sel_starter := "chain_fist"
 var sel_qg := "tashue"
+var sel_xinfa := ""
 var diff := {"count": 100, "hp": 100, "speed": 100}     # 难度（百分比，100 ~ 300，步长 10）
 
 
@@ -532,15 +533,15 @@ func _build_loadout() -> void:
 	left.custom_minimum_size = Vector2(580, 0)
 	cols.add_child(left)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 8)
+	box.add_theme_constant_override("separation", 5)
 	box.custom_minimum_size = Vector2(600, 0)
 	cols.add_child(box)
 	_build_stage_info(left)
 
-	box.add_child(_label("角色流派：%s　　WASD 移动（自动攻击）　空格 轻功　E 真气爆发" % Data.schools[school]["name"], 14, Color("#cfc6ae")))
+	box.add_child(_label("角色流派：%s　　WASD 移动（自动攻击）　空格 轻功　E 真气爆发" % Data.schools[school]["name"], 13, Color("#cfc6ae")))
 
 	# 起手招式（3 选 1）。天赋加点（刚/柔/灵）是独立的局外系统，不在这里选。
-	box.add_child(_label("起手招式（3 选 1）", 20, Color("#c9a227")))
+	box.add_child(_label("起手招式（3 选 1）", 17, Color("#c9a227")))
 	var sgroup := ButtonGroup.new()
 	for id in Data.schools[school]["starters"]:
 		var sd: Dictionary = Data.skills[id]
@@ -549,26 +550,26 @@ func _build_loadout() -> void:
 		b.icon = Data.icon("skills", id)
 		b.expand_icon = true
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.add_theme_constant_override("icon_max_width", 48)
-		b.add_theme_constant_override("h_separation", 10)
+		b.add_theme_constant_override("icon_max_width", 42)
+		b.add_theme_constant_override("h_separation", 8)
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.clip_text = true
-		b.custom_minimum_size = Vector2(600, 66)
+		b.custom_minimum_size = Vector2(600, 56)
 		b.toggle_mode = true
 		b.button_group = sgroup
 		b.button_pressed = id == sel_starter
 		b.focus_mode = Control.FOCUS_NONE
 		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.add_theme_font_size_override("font_size", 14)
+		b.add_theme_font_size_override("font_size", 13)
 		b.pressed.connect(func(): sel_starter = id)
 		box.add_child(b)
 
 	# 轻功
-	box.add_child(_label("轻功（6 选 1）", 20, Color("#c9a227")))
+	box.add_child(_label("轻功（6 选 1）", 17, Color("#c9a227")))
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 8)
-	grid.add_theme_constant_override("v_separation", 6)
+	grid.add_theme_constant_override("v_separation", 4)
 	box.add_child(grid)
 	var qgroup := ButtonGroup.new()
 	for id in Data.qinggong:
@@ -578,10 +579,10 @@ func _build_loadout() -> void:
 		b.icon = Data.icon("qinggong", id)
 		b.expand_icon = true
 		b.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.add_theme_constant_override("icon_max_width", 36)
-		b.add_theme_constant_override("h_separation", 8)
+		b.add_theme_constant_override("icon_max_width", 30)
+		b.add_theme_constant_override("h_separation", 6)
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.custom_minimum_size = Vector2(296, 54)
+		b.custom_minimum_size = Vector2(296, 44)
 		b.toggle_mode = true
 		b.button_group = qgroup
 		b.button_pressed = id == sel_qg
@@ -592,9 +593,60 @@ func _build_loadout() -> void:
 		b.pressed.connect(func(): sel_qg = id)
 		grid.add_child(b)
 
+	# 初始心法（可选 1 本，自带 1 级入局）
+	box.add_child(_label("初始心法（可选 1 本，自带 1 级入局）", 17, Color("#c9a227")))
+	var xgrid := GridContainer.new()
+	xgrid.columns = 6
+	xgrid.add_theme_constant_override("h_separation", 4)
+	xgrid.add_theme_constant_override("v_separation", 4)
+	box.add_child(xgrid)
+	var xgroup := ButtonGroup.new()
+	var xinfo := _label("", 12, Color("#dfd6be"))
+	xinfo.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	xinfo.custom_minimum_size = Vector2(600, 32)
+	var upd_xinfo := func() -> void:
+		if sel_xinfa == "" or not Data.xinfa.has(sel_xinfa):
+			xinfo.text = "当前：不带初始心法（局内前 3 次升级必出心法三选一）"
+		else:
+			var xd: Dictionary = Data.xinfa[sel_xinfa]
+			xinfo.text = "【%s·%s】%s" % [xd["name"], "阳" if str(xd.get("yy", "")) == "yang" else "阴", str(xd["desc"])]
+	var x_none := Button.new()
+	x_none.text = "随机/不带"
+	x_none.custom_minimum_size = Vector2(96, 32)
+	x_none.toggle_mode = true
+	x_none.button_group = xgroup
+	x_none.button_pressed = sel_xinfa == ""
+	x_none.focus_mode = Control.FOCUS_NONE
+	x_none.add_theme_font_size_override("font_size", 12)
+	x_none.pressed.connect(func():
+		sel_xinfa = ""
+		upd_xinfo.call())
+	xgrid.add_child(x_none)
+	for xid in Data.xinfa:
+		var xd: Dictionary = Data.xinfa[xid]
+		var xb := Button.new()
+		xb.text = "%s%s" % [str(xd["name"]).substr(0, 2), "阳" if str(xd.get("yy", "")) == "yang" else "阴"]
+		xb.icon = Data.icon("xinfa", xid)
+		xb.expand_icon = true
+		xb.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
+		xb.add_theme_constant_override("icon_max_width", 20)
+		xb.add_theme_constant_override("h_separation", 4)
+		xb.custom_minimum_size = Vector2(96, 32)
+		xb.toggle_mode = true
+		xb.button_group = xgroup
+		xb.button_pressed = xid == sel_xinfa
+		xb.focus_mode = Control.FOCUS_NONE
+		xb.add_theme_font_size_override("font_size", 12)
+		xb.pressed.connect(func():
+			sel_xinfa = xid
+			upd_xinfo.call())
+		xgrid.add_child(xb)
+	upd_xinfo.call()
+	box.add_child(xinfo)
+
 	# 难度调节：三个滑条（怪物数量 / 血量 / 移动速度），100% ~ 300%
 	_load_difficulty()
-	box.add_child(_label("难度调节（100% = 标准）", 20, Color("#c9a227")))
+	box.add_child(_label("难度调节（100% = 标准）", 17, Color("#c9a227")))
 	var drow := _center_row(14)
 	var sum_lbl := _label("", 15, Color("#cfc6ae"))
 	var upd := func():
@@ -2404,6 +2456,8 @@ func _format_card_desc(c: Dictionary, col: Color) -> String:
 					continue
 				if t.begins_with("被动："):
 					lines.append("[color=#f2c864]◆ 被动强化[/color]\n" + _hl_card_nums(t.substr(3), "#7ef0a8"))
+				elif t.begins_with("机制："):
+					lines.append("[color=#5fe8d0]◆ 标签机制[/color] " + _hl_card_nums(t.substr(3), "#7ef0a8"))
 				elif t.begins_with("标签："):
 					lines.append("[color=#6ee7d8]◆ 标签[/color] " + _hl_card_nums(t.substr(3), "#7ef0a8"))
 				elif t.begins_with("同修·"):
@@ -2420,17 +2474,26 @@ func _format_card_desc(c: Dictionary, col: Color) -> String:
 					lines.append(_hl_card_nums(t, "#7ef0a8"))
 			return "\n".join(lines)
 		"new_skill":
-			var ti := raw.rfind("【")
-			var body := raw.substr(0, ti).strip_edges() if ti > 0 else raw
-			var tags := raw.substr(ti).strip_edges() if ti > 0 else ""
-			var out := ""
+			var lines_ns: Array[String] = []
+			var bond_line := ""
+			var base_ns := raw
+			var bi := raw.find("\n★ ")
+			if bi >= 0:
+				base_ns = raw.substr(0, bi)
+				bond_line = raw.substr(bi + 1).strip_edges()
+			var ti := base_ns.rfind("【")
+			var body := base_ns.substr(0, ti).strip_edges() if ti > 0 else base_ns
+			var tags := base_ns.substr(ti).strip_edges() if ti > 0 else ""
 			if tags != "":
-				out += "[center][font_size=14][color=#6ee7d8]%s[/color][/font_size][/center]\n" % tags
-			out += "[font_size=16]%s[/font_size]" % _hl_card_mech(body)
-			return out
+				lines_ns.append("[center][font_size=14][color=#6ee7d8]%s[/color][/font_size][/center]" % tags)
+			lines_ns.append("[font_size=16]%s[/font_size]" % _hl_card_mech(body))
+			if bond_line != "":
+				lines_ns.append("[color=#ff9e5e]%s[/color]" % bond_line)
+			return "\n".join(lines_ns)
 		"new_xinfa":
 			var s := raw
 			s = s.replace("被动：", "\n[color=#f2c864]◆ 被动：[/color]")
+			s = s.replace("机制：", "\n[color=#5fe8d0]◆ 机制：[/color]")
 			s = s.replace("同修：", "\n[color=#ffb85c]★ 同修：[/color]")
 			s = s.replace("标签：", "\n[color=#6ee7d8]◆ 标签：[/color]")
 			var lines2: Array[String] = []
