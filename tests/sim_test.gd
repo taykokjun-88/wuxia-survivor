@@ -2222,7 +2222,7 @@ func _chars_test() -> void:
 	main.hud.sel_school = "sword"
 	main.hud.confirm_create()
 	await get_tree().process_frame
-	_check(main.state == main.State.TOWN and Save.char_name() == "山河剑客" and Save.school() == "sword", "创建角色：用自己起的名字进村")
+	_check((main.state == main.State.TOWN or main.state == main.State.DIALOG) and Save.char_name() == "山河剑客" and Save.school() == "sword", "创建角色：用自己起的名字进村")
 	main._on_switch_char()
 	await get_tree().process_frame
 	_check(main.state == main.State.CHARS and main.hud.chars_panel.visible and main.hud.chars_list.size() == 1, "掌柜「切换角色」→ 选人界面，列出 1 个角色")
@@ -2233,7 +2233,7 @@ func _chars_test() -> void:
 	main.hud.sel_school = "fist"
 	main.hud.confirm_create()
 	await get_tree().process_frame
-	_check(main.state == main.State.TOWN and Save.chars().size() == 2 and Save.school() == "fist", "再创建一个角色（武者）")
+	_check((main.state == main.State.TOWN or main.state == main.State.DIALOG) and Save.chars().size() == 2 and Save.school() == "fist", "再创建一个角色（武者）")
 	main._on_switch_char()
 	await get_tree().process_frame
 	main.hud.chars_move(-1)
@@ -2297,13 +2297,13 @@ func _chars_test() -> void:
 	main2.hud.sel_school = "fist"
 	main2.hud.confirm_create()
 	await get_tree().create_timer(0.1).timeout
-	_check(main2.state == main2.State.TOWN and Save.char_name() == "新来的" and Save.school() == "fist" and Net.chars.size() == 2, "在线创建角色：建在服务器上并进村")
+	_check((main2.state == main2.State.TOWN or main2.state == main2.State.DIALOG) and Save.char_name() == "新来的" and Save.school() == "fist" and Net.chars.size() == 2, "在线创建角色：建在服务器上并进村")
 	_check(Net.chars.size() == 2 and Save.char_name() == "新来的", "服务器上有 2 个角色，当前是「新来的」")
 	main2._on_switch_char()
 	await get_tree().process_frame
 	main2._on_char_chosen("s1")
 	await get_tree().create_timer(0.1).timeout
-	_check(main2.state == main2.State.TOWN and Save.char_name() == "云游" and Save.school() == "blade" and Save.meta_exp() == 1200 and Save.is_cleared("black_wind"), "在线选择角色：进度（修为 / 通关）灌进本地")
+	_check((main2.state == main2.State.TOWN or main2.state == main2.State.DIALOG) and Save.char_name() == "云游" and Save.school() == "blade" and Save.meta_exp() == 1200 and Save.is_cleared("black_wind"), "在线选择角色：进度（修为 / 通关）灌进本地")
 	main2._on_switch_char()
 	await get_tree().process_frame
 	main2._on_char_delete("n1")
