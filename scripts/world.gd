@@ -592,7 +592,7 @@ func xinfa_scale(id: String) -> float:
 	return 1.0 + 0.12 * (xinfa_power(id) - 1.0)
 
 
-## 心法联动：1）标签机制（tag_fx）对所有匹配标签的招式生效（含起手招式）；2）同修羁绊（link）对点名的 4 个招式提供大幅专属加成；强度均随心法份数提升
+## 心法联动：1）标签机制（tag_fx）对所有匹配标签的招式生效（含起手招式）；2）同修联动（link）对点名的 4 个招式提供大幅专属加成；强度均随心法份数提升
 func _apply_xinfa_links() -> void:
 	var per_skill: Dictionary = {}       # 技能 id -> {mods: {}, flags: {}}
 	for id in xinfa:
@@ -2566,7 +2566,7 @@ func roll_choices(n: int = 3, avoid: Array = [], reroll: bool = false) -> Array:
 					bond_names.append(str(Data.xinfa[xid]["name"]))
 			var desc_ns := "%s　【%s】" % [def["desc"], Data.tags_text(id)]
 			if not bond_names.is_empty():
-				desc_ns += "\n★ 与「%s」触发同修羁绊！" % "」「".join(bond_names)
+				desc_ns += "\n★ 与「%s」触发同修联动！" % "」「".join(bond_names)
 			pool.append({
 				"kind": "new_skill", "id": id, "tag": "招式", "src": "level",
 				"title": "领悟：%s" % def["name"],
