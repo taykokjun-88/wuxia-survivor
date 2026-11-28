@@ -416,7 +416,7 @@ func _enter_town() -> void:
 	if not Save.is_intro_seen() and not Save.is_smith_rescued():
 		Save.mark_intro_seen()
 		var ci := Story.chief_intro(Save.school())
-		var chief_tex: Texture2D = load("res://assets/town/npc/sage.png") if ResourceLoader.exists("res://assets/town/npc/sage.png") else null
+		var chief_tex: Texture2D = load("res://assets/town/npc/chief.png") if ResourceLoader.exists("res://assets/town/npc/chief.png") else null
 		_dlg({"id": "chief", "name": "老村长", "title": "小村村长", "tex": chief_tex},
 			str(ci["text"]),
 			[{"label": str(ci["opt1"]), "action": "map:black_wind"},

@@ -166,7 +166,7 @@ static func town_milestone(flag: String, school: String) -> Dictionary:
 	match flag:
 		"bw_clear":
 			return {
-				"speaker": "老村长", "title": "小村村长", "tex": "res://assets/town/npc/sage.png",
+				"speaker": "老村长", "title": "小村村长", "tex": "res://assets/town/npc/chief.png",
 				"text": "少侠凯旋！黑风铁锅王伏诛的消息已经传遍十里八乡，王铁匠的打铁铺也重新红火起来了！\n\n对了，方才过路的商队说起，昆仑山「赤焰巅」如今正被五大派围攻，赤焰宗灭灶掌门更是放言邀天下群雄上山。少侠若想再攀武道高峰，不妨去驿站看看。",
 				"opt": "昆仑赤焰巅？我去会会他们！",
 			}

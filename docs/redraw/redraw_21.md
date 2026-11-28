@@ -2,10 +2,10 @@
 
 ## 进度
 - [x] `assets/maps/black_wind/portrait_boss.png` — **黑风铁锅王**（已生成并入库，`384×384` RGB）
-- [ ] `assets/maps/black_wind/portrait_mini_boss_1.png` — **独眼秤砣**（`384×384` RGB）
-- [ ] `assets/maps/black_wind/portrait_mini_boss_2.png` — **算盘精**（`384×384` RGB）
-- [ ] `assets/maps/black_wind/portrait_mini_boss_3.png` — **醉酒屠夫**（`384×384` RGB）
-- [ ] `assets/town/npc/chief.png` — **老村长**（Q 版全身立绘，绿幕抠图后裁切为 ~`134×192` RGBA）
+- [x] `assets/maps/black_wind/portrait_mini_boss_1.png` — **独眼秤砣**（已入库，`384×384` RGB）
+- [x] `assets/maps/black_wind/portrait_mini_boss_2.png` — **算盘精**（已入库，`384×384` RGB）
+- [x] `assets/maps/black_wind/portrait_mini_boss_3.png` — **醉酒屠夫**（已入库，`384×384` RGB）
+- [x] `assets/town/npc/chief.png` — **老村长**（绿幕抠图并入库，`113×192` RGBA，已接入 `main.gd` 与 `story.gd`）
 
 ---
 
